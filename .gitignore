@@ -37,6 +37,9 @@
 # Visual Studio cache directory
 .vs/
 
+# Local VS project config
+/signal-lost/.vsconfig
+
 # Gradle cache directory
 .gradle/
 
