@@ -35,6 +35,7 @@ The source proposes an eight-week sequence: foundation/prototype (weeks 1–3), 
 - Clarify whether the tutorial crab, merchant, and desert boss are the same creature or separate characters.
 - Confirm what counts toward the three encounters and how optional quests assist scanner/boss discovery.
 - Define laser charge/cooldown values, flask intoxication thresholds/recovery, and save triggers before implementing them.
+- Laser charge/cooldown is provisionally a hold-to-fire beam that drains charge and overheats when empty (see [combat prototype](combat-prototype.md)). Confirm the rule and values with the lead after playtesting.
 - Clarify how the finale's stolen components affect inventory/progression and the ship repair ending.
 
 These are unresolved questions, not blockers for repository setup or permission to choose new gameplay rules.
