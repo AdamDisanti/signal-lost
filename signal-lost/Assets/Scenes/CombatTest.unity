@@ -1955,16 +1955,39 @@ MonoBehaviour:
   aimOrigin: {fileID: 2086300657}
   muzzle: {fileID: 1767234087}
   beam: {fileID: 1767234086}
-  damagePerSecond: 30
-  range: 25
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  maxCharge: 100
-  drainPerSecond: 25
-  rechargePerSecond: 40
-  rechargeDelay: 0.5
-  overheatDuration: 2
+  heldModel: {fileID: 4307029778071904678, guid: ebf5ba36196b4844497405ecfbecac51, type: 3}
+  heldModelScale: 0.55
+  gripPosition: {x: -0.02, y: -0.08, z: -0.22}
+  heldModelRotation: {x: 0, y: -3, z: 0}
+  comboDamage:
+  - 20
+  - 20
+  - 30
+  comboDuration:
+  - 0.55
+  - 0.55
+  - 0.8
+  meleeRange: 2.1
+  comboArc:
+  - 30
+  - 70
+  - 45
+  comboWindow: 0.4
+  hitStop: 0.06
+  energyColor: {r: 1, g: 0.5490196, b: 0, a: 1}
+  viewKick: 0.9
+  fullChargeTime: 1.2
+  minShotDamage: 10
+  maxShotDamage: 70
+  minShotSpeed: 25
+  maxShotSpeed: 45
+  minShotRadius: 0.06
+  maxShotRadius: 0.2
+  shotRange: 30
+  shotCooldown: 0.5
 --- !u!1 &2147241979
 GameObject:
   m_ObjectHideFlags: 0

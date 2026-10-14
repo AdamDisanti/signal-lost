@@ -49,7 +49,7 @@ namespace SignalLost.Combat
 
         private Color CurrentColor() => Color.Lerp(damagedColor, healthyColor, health.Normalized);
 
-        // A continuous beam damages every frame, so the flash stays on while the beam is held.
+        // Every hit (swing or bolt) flashes the dummy briefly.
         private void OnDamaged(Health _, float amount, GameObject source) => flashUntil = Time.time + flashSeconds;
 
         private void OnDied(Health _) => StartCoroutine(Respawn());
