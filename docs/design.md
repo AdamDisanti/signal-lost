@@ -37,5 +37,9 @@ The source proposes an eight-week sequence: foundation/prototype (weeks 1–3), 
 - Define laser charge/cooldown values, flask intoxication thresholds/recovery, and save triggers before implementing them.
 - Laser charge/cooldown is provisionally a hold-to-fire beam that drains charge and overheats when empty (see [combat prototype](combat-prototype.md)). Confirm the rule and values with the lead after playtesting.
 - Clarify how the finale's stolen components affect inventory/progression and the ship repair ending.
+- Lawson requested a burnt-rock basin for laser placement and an exit gate as [tutorial graybox props](graybox-props.md). The gate's unlock conditions and destination are unspecified; the delivered gate is an open visual frame, not a progression or scene-transition system.
+- Lawson requested replacing the box-shaped tutorial environment with a dark rocky [impact site](tutorial-impact-site.md): a broad crater, scattered ship debris, modest hills, and the existing rocket partially buried at its center. The existing terrain slopes were explicitly approved and retained; this environment adds no checkpoint, quest-order, collectible-debris or exit-unlock rules.
+
+- The latest tutorial art request doubles terrain width/length to 320 x 320 meters, preserves ship/debris sizes, adds a laser visual in the basin and requires impassable natural perimeter cliffs. The closed cliff ring is scenery/collision, not an exit-unlock mechanic. Confirm how the existing gate will eventually transition to the next area; no cliff opening, teleport or progression rule was invented. The placed laser has no new pickup/equip behavior.
 
 These are unresolved questions, not blockers for repository setup or permission to choose new gameplay rules.

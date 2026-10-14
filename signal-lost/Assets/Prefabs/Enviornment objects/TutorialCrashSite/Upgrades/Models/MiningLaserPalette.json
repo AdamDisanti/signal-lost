@@ -1,0 +1,40 @@
+{
+  "materials": [
+    {
+      "name": "LaserGraphite",
+      "hex": "29343D",
+      "metallic": 0.35,
+      "smoothness": 0.6799999999999999
+    },
+    {
+      "name": "LaserSteel",
+      "hex": "819CA5",
+      "metallic": 0.7,
+      "smoothness": 0.73
+    },
+    {
+      "name": "LaserOrange",
+      "hex": "DF883C",
+      "metallic": 0.2,
+      "smoothness": 0.55
+    },
+    {
+      "name": "LaserTeal",
+      "hex": "246C79",
+      "metallic": 0.3,
+      "smoothness": 0.6
+    },
+    {
+      "name": "LaserLens",
+      "hex": "80E3D8",
+      "metallic": 0.15,
+      "smoothness": 0.8200000000000001
+    },
+    {
+      "name": "LaserRubber",
+      "hex": "151E24",
+      "metallic": 0.0,
+      "smoothness": 0.09999999999999998
+    }
+  ]
+}
