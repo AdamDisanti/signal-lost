@@ -17,6 +17,7 @@ namespace SignalLost.Combat
         [SerializeField] private Color hitFlashColor = Color.white;
         [SerializeField, Min(0f)] private float flashSeconds = 0.06f;
         [SerializeField, Min(0f)] private float respawnSeconds = 3f;
+        [SerializeField] private bool respawnOnTimer = true;
 
         private Health health;
         private Renderer[] renderers;
@@ -52,7 +53,11 @@ namespace SignalLost.Combat
         // Every hit (swing or bolt) flashes the dummy briefly.
         private void OnDamaged(Health _, float amount, GameObject source) => flashUntil = Time.time + flashSeconds;
 
-        private void OnDied(Health _) => StartCoroutine(Respawn());
+        private void OnDied(Health _)
+        {
+            if (respawnOnTimer) StartCoroutine(Respawn());
+            else SetVisible(false);
+        }
 
         private IEnumerator Respawn()
         {

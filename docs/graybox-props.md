@@ -1,6 +1,6 @@
 # Tutorial graybox props
 
-Four original low-poly models for Lawson's tutorial graybox. No asset packs or packages were added to the project. These are reusable visual props, not implemented gameplay systems.
+Four original low-poly models for Lawson's tutorial graybox. No asset packs or packages were added to the project. The source prefabs remain reusable visual props. The later [tutorial gameplay integration](tutorial-gameplay.md) adds pickup/healing behavior to scene instances without changing these source prefabs.
 
 ## Where to find them
 
@@ -27,7 +27,7 @@ The rock uses non-convex mesh colliders so the recess remains open. Keep it stat
 
 ### Flask
 
-Realistic handheld scale, so it may look small next to the graybox. Select it and press F in Scene view to frame it. No drinking, healing, pickup, inventory, or Rigidbody behavior is attached.
+Realistic handheld scale, so it may look small next to the graybox. Select it and press F in Scene view to frame it. No drinking, healing, pickup, inventory, or Rigidbody behavior is attached to the source prefab. In `Tutorial.unity`, E picks up the placed flask and F drinks from a non-colliding first-person copy; see [tutorial gameplay](tutorial-gameplay.md).
 
 ### Gate
 
@@ -78,4 +78,4 @@ Blender renders (appearance previews, not Unity screenshots):
 
 ## Scope decisions
 
-The request establishes the rock basin and exit gate as visual tutorial props. Gate unlock requirements and exit destination remain unspecified; no progression rules were invented. Dialogue, drinking and pickup integration belong to the existing gameplay systems and are not added by this asset task.
+The request establishes the rock basin and exit gate as visual tutorial props. Gate unlock requirements and exit destination remain unspecified; no progression rules were invented. Dialogue remains outside this asset task. Drinking and pickup were subsequently integrated into `Tutorial.unity`; see [tutorial gameplay](tutorial-gameplay.md) for the current controls and behavior.

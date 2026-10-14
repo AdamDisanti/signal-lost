@@ -20,7 +20,7 @@ Under **Tutorial Impact Site**:
 
 The player, capybara, basin, flask and gate retain their saved XZ positions, rotations and scales; only their heights were regrounded on the expanded terrain. Their source prefabs are unchanged. Routes from spawn to these props, through the gate, and for 50 meters beyond it remain traversable without jumping.
 
-The laser is a **placed visual prop**, not a new pickup/equip or firing system. No dialogue, healing, scrap collection, quest progression, exit unlocking or scene-transition rules were invented. The requested cliff perimeter is closed, including beyond the gate; the gate remains an open visual frame. Its eventual progression/transition behavior needs team confirmation.
+The laser was originally an art-only prop; the subsequent [tutorial gameplay integration](tutorial-gameplay.md) now makes it an E-to-pick-up weapon, reuses combat-demo attacks, and adds flask healing, player health, drunkenness and a damage-test pad. No dialogue, scrap collection, quest progression, exit unlocking or scene-transition rules were invented. The requested cliff perimeter is closed, including beyond the gate; the gate remains an open visual frame. Its eventual progression/transition behavior needs team confirmation.
 
 The extra authoring camera/listener and duplicate directional light remain disabled. Exactly one gameplay camera/listener is active. The scene retains the existing URP setup, dark rough materials and cool lighting; distance fog was extended for the larger map. No dependencies or third-party asset packs were added.
 
@@ -86,4 +86,4 @@ Run the harness with `-batchmode -projectPath <temporary-project> -executeMethod
 
 Ignored local safety copies/reports are under `signal-lost/Logs/`, including `TutorialBeforeShipUpgrades.unity`, `TutorialBeforeMapExpansion.unity`, `ImpactCraterBeforeExpansion.asset`, and `CrashSiteUpgradeValidation.txt`. The TerrainData file itself changed for the doubled dimensions, although its height samples did not. Nothing was staged, committed or pushed.
 
-The harness drives CharacterController collision directly after checking FirstPersonController initialization; it does not simulate keyboard/mouse input. Interactive movement feel, final art direction and gameplay integration still need team playtesting.
+The harness drives CharacterController collision directly after checking FirstPersonController initialization; it does not simulate keyboard/mouse input. The later [gameplay integration](tutorial-gameplay.md) has separate automated combat/healing/respawn and rendered-distortion checks. Physical keyboard/mouse/controller feel, balance and final art direction still need team playtesting.

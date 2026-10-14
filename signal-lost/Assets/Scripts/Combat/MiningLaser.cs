@@ -201,10 +201,13 @@ namespace SignalLost.Combat
             if (heldModel != null) BuildHeldModel();
             else BuildPlaceholderTool();
             basePosition = restPosition;
+            toolPivot.gameObject.SetActive(isActiveAndEnabled);
         }
 
         private void OnEnable()
         {
+            if (toolPivot != null) toolPivot.gameObject.SetActive(true);
+            waitForRelease = true;
             playerMap?.Enable();
             RenderPipelineManager.beginCameraRendering += ApplyKick;
             RenderPipelineManager.endCameraRendering += RemoveKick;
@@ -215,6 +218,7 @@ namespace SignalLost.Combat
             RenderPipelineManager.beginCameraRendering -= ApplyKick;
             RenderPipelineManager.endCameraRendering -= RemoveKick;
             kick = Vector3.zero;
+            if (toolPivot != null) toolPivot.gameObject.SetActive(false);
             playerMap?.Disable();
             IsCharging = false;
             IsSwinging = false;
