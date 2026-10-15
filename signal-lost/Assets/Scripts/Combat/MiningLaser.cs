@@ -40,10 +40,10 @@ namespace SignalLost.Combat
 
         [Header("Melee combo (placeholder values)")]
         [Tooltip("Damage of each swing in order. The number of entries is the combo length.")]
-        [SerializeField] private float[] comboDamage = { 20f, 20f, 40f };
+        [SerializeField] private float[] comboDamage = { 10f, 10f, 20f };
         [Tooltip("Seconds each swing takes, including recovery. Same order as Combo Damage.")]
-        [SerializeField] private float[] comboDuration = { 0.35f, 0.35f, 0.6f };
-        [SerializeField, Min(0.5f)] private float meleeRange = 2.5f;
+        [SerializeField] private float[] comboDuration = { 0.4f, 0.4f, 0.65f };
+        [SerializeField, Min(0.5f)] private float meleeRange = 2.1f;
         [Tooltip("Width of each strike in degrees, centred on the crosshair, in the same order as Combo Damage. " +
                  "Everything inside it is hit. The jab is narrow; the side bash sweeps wider.")]
         [SerializeField] private float[] comboArc = { 30f, 70f, 45f };
@@ -54,11 +54,11 @@ namespace SignalLost.Combat
 
         [Header("Charge effect")]
         [Tooltip("Colour of the charging electricity, the bolt, and the flash where a bolt lands.")]
-        [SerializeField] private Color energyColor = new Color(0.4f, 0.9f, 1f);
+        [SerializeField] private Color energyColor = new Color(1f, 0.549f, 0f); // dark orange
 
         [Header("Feel")]
         [Tooltip("Strength of the camera kick on strikes and shots. 0 turns it off.")]
-        [SerializeField, Min(0f)] private float viewKick = 1f;
+        [SerializeField, Min(0f)] private float viewKick = 0.9f;
         [Tooltip("How much the laser lags behind when you look around. 0 turns it off.")]
         [SerializeField, Min(0f)] private float swayStrength = 1f;
         [Tooltip("How much the laser bobs while walking and sprinting, dips on landing, and drifts while idle. 0 turns it off.")]
@@ -67,8 +67,8 @@ namespace SignalLost.Combat
         [Header("Charged shot (placeholder values)")]
         [Tooltip("Seconds of holding to reach full charge. Releasing earlier fires a weaker shot.")]
         [SerializeField, Min(0.1f)] private float fullChargeTime = 1.2f;
-        [SerializeField, Min(0f)] private float minShotDamage = 10f;
-        [SerializeField, Min(0f)] private float maxShotDamage = 70f;
+        [SerializeField, Min(0f)] private float minShotDamage = 5f;
+        [SerializeField, Min(0f)] private float maxShotDamage = 50f;
         [SerializeField, Min(1f)] private float minShotSpeed = 25f;
         [SerializeField, Min(1f)] private float maxShotSpeed = 45f;
         [SerializeField, Min(0.01f)] private float minShotRadius = 0.06f;

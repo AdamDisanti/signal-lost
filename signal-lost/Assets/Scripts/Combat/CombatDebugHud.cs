@@ -4,19 +4,40 @@ namespace SignalLost.Combat
 {
     /// <summary>
     /// Temporary on-screen readout for testing combat: crosshair with hit marker, combo counter,
-    /// charge bar, controls hint, and the health of whatever is under the crosshair.
+    /// charge bar, controls hint, and the health of whatever is under the crosshair. With Show Player Health
+    /// on (and a Health on the player) it also shows the player's health and flashes red when they are hurt.
+    /// It is off by default so scenes with their own health UI, like the tutorial, don't show two bars.
     /// Placeholder only; the real HUD will replace it.
     /// </summary>
     public sealed class CombatDebugHud : MonoBehaviour
     {
         [SerializeField] private MiningLaser laser;
+        [Tooltip("Show the player's health bar, a red flash when hurt, and a respawn message. For test scenes without a real HUD.")]
+        [SerializeField] private bool showPlayerHealth;
 
-        private GUIStyle label, hint;
+        private GUIStyle label, hint, corner;
+        private Health playerHealth;
+        private float hurtFlash; // 1 when just hit, fades to 0
 
         private void Awake()
         {
             if (laser == null) laser = GetComponentInChildren<MiningLaser>();
+            if (showPlayerHealth) playerHealth = GetComponent<Health>();
         }
+
+        private void OnEnable()
+        {
+            if (playerHealth != null) playerHealth.Damaged += OnPlayerDamaged;
+        }
+
+        private void OnDisable()
+        {
+            if (playerHealth != null) playerHealth.Damaged -= OnPlayerDamaged;
+        }
+
+        private void OnPlayerDamaged(Health _, float amount, GameObject source) => hurtFlash = 1f;
+
+        private void Update() => hurtFlash = Mathf.MoveTowards(hurtFlash, 0f, Time.deltaTime / 0.35f);
 
         private void OnGUI()
         {
@@ -25,10 +46,29 @@ namespace SignalLost.Combat
             {
                 label = new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleCenter };
                 hint = new GUIStyle(GUI.skin.label) { fontSize = 13, alignment = TextAnchor.LowerLeft };
+                corner = new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleLeft };
             }
 
             float cx = Screen.width * 0.5f;
             float cy = Screen.height * 0.5f;
+
+            if (playerHealth != null)
+            {
+                // Red flash over the whole screen when hurt, then the player's health bar in the top left.
+                if (hurtFlash > 0f) Fill(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0.8f, 0f, 0f, 0.35f * hurtFlash));
+
+                var hpBar = new Rect(20f, 20f, 220f, 14f);
+                Fill(hpBar, new Color(0f, 0f, 0f, 0.6f));
+                Fill(new Rect(hpBar.x, hpBar.y, hpBar.width * playerHealth.Normalized, hpBar.height), new Color(0.35f, 0.9f, 0.35f));
+                GUI.Label(new Rect(hpBar.x, hpBar.yMax + 2f, 300f, 24f),
+                    $"HP {Mathf.CeilToInt(playerHealth.Current)} / {Mathf.CeilToInt(playerHealth.Max)}", corner);
+
+                if (playerHealth.IsDead)
+                {
+                    GUI.Label(new Rect(cx - 200f, cy - 15f, 400f, 30f), "PINCHED! Respawning...", label);
+                    return;
+                }
+            }
 
             if (Cursor.lockState != CursorLockMode.Locked)
             {
