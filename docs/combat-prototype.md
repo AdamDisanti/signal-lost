@@ -55,9 +55,9 @@ All values are placeholders, tunable on the player's **MiningLaser** component i
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| Combo Damage | 20, 20, 40 | Damage of each swing; the number of entries sets the combo length |
-| Combo Duration | 0.35, 0.35, 0.6 s | Length of each swing including recovery |
-| Melee Range | 2.5 m | Reach of a swing |
+| Combo Damage | 10, 10, 20 | Damage of each swing; the number of entries sets the combo length |
+| Combo Duration | 0.4, 0.4, 0.65 s | Length of each swing including recovery |
+| Melee Range | 2.1 m | Reach of a swing |
 | Combo Arc | 30°, 70°, 45° | Width of each strike (jab, bash, slam), centred on the crosshair |
 | Combo Window | 0.4 s | Time after a swing to continue the combo |
 | Hit Stop | 0.06 s | How long a strike freezes when it connects |
@@ -65,7 +65,7 @@ All values are placeholders, tunable on the player's **MiningLaser** component i
 | Sway Strength | 1 | How much the laser lags behind when you look around; 0 turns it off |
 | Bob Strength | 1 | Walking/sprinting bob, landing dip and idle breathing; 0 turns it off |
 | Full Charge Time | 1.2 s | Hold time for a full-strength shot |
-| Min / Max Shot Damage | 10 / 70 | Tap shot to full-charge shot |
+| Min / Max Shot Damage | 5 / 50 | Tap shot to full-charge shot |
 | Min / Max Shot Speed | 25 / 45 m/s | Tap shot to full-charge shot |
 | Min / Max Shot Radius | 0.06 / 0.2 m | Bolt size, which also widens what it can clip |
 | Shot Range | 30 m | Bolt travel distance; the 32 m dummy is deliberately out of range |
@@ -76,7 +76,7 @@ All values are placeholders, tunable on the player's **MiningLaser** component i
 | Grip Position | (-0.02, -0.08, -0.22) | Where the grip sits relative to the Laser Muzzle point |
 | Held Model Rotation | (0, -3, 0) | Angle of the held model in degrees |
 
-With these values a 100 HP dummy takes one full combo plus a swing (20 + 20 + 40 + 20), or two full-charge bolts.
+With these values (Christian's tuning from playtesting) a 100 HP dummy takes two full combos plus a jab (10 + 10 + 20, twice, + 10), or two full-charge bolts.
 
 Training dummies have 100 HP (on their **Health** component). They redden as they lose health, flash when hit, vanish at zero, and return at full health after 3 s.
 
@@ -88,7 +88,7 @@ The laser in your hand moves with you: it lags slightly behind when you turn and
 
 - `Assets/Scripts/Combat/Health.cs`: shared health for the player, enemies, bosses, and dummies. `TakeDamage`, `Heal` (capped at max; flask overheal not implemented), `Restore` for respawns, plus `Changed`, `Damaged`, and `Died` events and an optional Inspector `died` event.
 - `Assets/Scripts/Combat/MiningLaser.cs`: reads the **Attack** and **ChargeShot** actions, runs the combo and charge, places the held model (or a placeholder) and the muzzle point, animates the jab, bash and slam, applies the camera kick only while the camera renders (so aim is never affected), and exposes `IsSwinging`, `ComboStep`, `IsCharging`, `Charge01`, `IsCoolingDown`, `LastHitTime`, and `CurrentTarget` for a future HUD. It must sit on the player root.
-- `Assets/Scripts/Combat/LaserBolt.cs`: the charged-shot projectile. It sphere-casts along its path each frame, so fast bolts cannot pass through thin walls.
+- `Assets/Scripts/Combat/LaserBolt.cs`: the charged-shot projectile. It sphere-casts along its path each frame, so fast bolts cannot pass through thin walls. Anything implementing `IBoltReflector` (`Assets/Scripts/Combat/IBoltReflector.cs`), such as a hiding hermit crab, can bounce it back; a bounced bolt can hit the player.
 - `Assets/Scripts/Combat/ChargeEffect.cs`: the charging electricity (flickering core and redrawn LineRenderer arcs), built at runtime on the muzzle point. Placeholder until real particles are made.
 - `Assets/Scripts/Combat/ImpactFlash.cs`: placeholder burst where strikes and bolts land.
 
@@ -102,13 +102,13 @@ The strike poses (wind-up and impact positions and angles, and when the hit land
 
 1. The scene opens and enters Play Mode with no Console errors or missing scripts. Movement still works.
 2. A crosshair and the controls hint are visible. Lawson's orange and graphite mining laser sits at the lower right of the view, pointing forward, not clipping into the camera. The Console shows no `GripAnchor` or `MuzzleAnchor` warnings. If you see a dark grey box instead, the model files are missing (see Held model).
-3. Tap left click near the 5 m dummy: the laser pulls back and jabs forward. An orange flash appears on the dummy, the laser freezes for an instant, the view kicks slightly, the crosshair flashes yellow, and the dummy's health drops by 20.
-4. Tap three times quickly: jab, side bash from right to left, then the laser rises and slams down with a bigger view kick. The HUD shows `SWING 1 / 3` to `3 / 3`, and the slam deals 40.
+3. Tap left click near the 5 m dummy: the laser pulls back and jabs forward. An orange flash appears on the dummy, the laser freezes for an instant, the view kicks slightly, the crosshair flashes yellow, and the dummy's health drops by 10.
+4. Tap three times quickly: jab, side bash from right to left, then the laser rises and slams down with a bigger view kick. The HUD shows `SWING 1 / 3` to `3 / 3`, and the slam deals 20.
 5. Wait a moment between taps: the combo restarts at swing 1.
 6. Strike at a dummy more than about 2.5 m away: it takes no damage. Jab with the dummy just off the edge of the screen's centre third: the jab misses, but the wider side bash still hits it.
 7. Hold right click: cyan electricity crackles at the muzzle, starting with a single arc and building to several that crawl along the barrel. It stays close to the gun and never covers it. After about 1.2 s, as the bar reaches `FULL CHARGE`, a ring blasts out from the muzzle, the laser jolts and the view kicks. Then a white-hot crackling ring stays around the muzzle until you release. Full charge should be obvious without looking at the bar.
-8. Release at full charge on the 12 m dummy: a large bolt flies to it and deals 70.
-9. Tap right click quickly: a small, slower bolt deals about 10. Firing again immediately shows `COOLING` for half a second first.
+8. Release at full charge on the 12 m dummy: a large bolt flies to it and deals 50.
+9. Tap right click quickly: a small, slower bolt deals about 5. Firing again immediately shows `COOLING` for half a second first.
 10. Bolts reach the 20 m dummy, fade out before the 32 m dummy, and stop on the orange cover block.
 11. Hold right click, then press Escape: the charge cancels without firing. Click the Game view to resume. That click must **not** swing; swinging needs a fresh press.
 12. Swinging or firing at walls, the floor, or the sky never damages the player or causes errors. Bolts leave a cyan flash where they hit. Strikes that miss still kick the view, but more softly, and do not freeze.

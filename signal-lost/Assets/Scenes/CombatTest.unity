@@ -1963,13 +1963,13 @@ MonoBehaviour:
   gripPosition: {x: -0.02, y: -0.08, z: -0.22}
   heldModelRotation: {x: 0, y: -3, z: 0}
   comboDamage:
+  - 10
+  - 10
   - 20
-  - 20
-  - 30
   comboDuration:
-  - 0.55
-  - 0.55
-  - 0.8
+  - 0.4
+  - 0.4
+  - 0.65
   meleeRange: 2.1
   comboArc:
   - 30
@@ -1979,9 +1979,11 @@ MonoBehaviour:
   hitStop: 0.06
   energyColor: {r: 1, g: 0.5490196, b: 0, a: 1}
   viewKick: 0.9
+  swayStrength: 1
+  bobStrength: 1
   fullChargeTime: 1.2
-  minShotDamage: 10
-  maxShotDamage: 70
+  minShotDamage: 5
+  maxShotDamage: 50
   minShotSpeed: 25
   maxShotSpeed: 45
   minShotRadius: 0.06

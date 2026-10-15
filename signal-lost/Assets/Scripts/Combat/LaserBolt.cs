@@ -7,7 +7,8 @@ namespace SignalLost.Combat
     /// <summary>
     /// The mining laser's charged shot: a glowing bolt that flies straight, damages the first thing with
     /// Health it touches, and disappears on any hit or after travelling its range. It moves by sphere-casting
-    /// each frame instead of using physics, so fast bolts cannot pass through thin walls.
+    /// each frame instead of using physics, so fast bolts cannot pass through thin walls. Something with an
+    /// <see cref="IBoltReflector"/> can bounce it back instead; the bounced bolt can then hit whoever fired it.
     /// </summary>
     public sealed class LaserBolt : MonoBehaviour
     {
@@ -16,7 +17,10 @@ namespace SignalLost.Combat
         private Transform owner;
         private Action<Health> onHit;
         private Vector3 direction, previous;
-        private float damage, speed, radius, remaining;
+        private float damage, speed, radius, remaining, range;
+        private int reflections;
+
+        private const int MaxReflections = 3; // stops bolts bouncing between two reflectors forever
         private LayerMask mask;
 
         /// <summary>
@@ -48,6 +52,7 @@ namespace SignalLost.Combat
             bolt.speed = speed;
             bolt.radius = radius;
             bolt.remaining = range;
+            bolt.range = range;
             bolt.mask = mask;
             return bolt;
         }
@@ -88,15 +93,41 @@ namespace SignalLost.Combat
 
         private void Impact(RaycastHit hit)
         {
+            // A sphere cast that starts overlapping something reports no contact point; use the bolt's position.
+            Vector3 point = hit.distance > 0f ? hit.point : transform.position;
+
+            var reflector = hit.collider.GetComponentInParent<IBoltReflector>();
+            if (reflector != null && reflections < MaxReflections &&
+                reflector.TryReflect(point, direction, owner, out Vector3 bounce, out float damageMultiplier))
+            {
+                Reflect(point, bounce, ((Component)reflector).transform, damageMultiplier);
+                return;
+            }
+
             Health target = hit.collider.GetComponentInParent<Health>();
             if (target != null && target.TakeDamage(damage, owner != null ? owner.gameObject : null))
                 onHit?.Invoke(target);
 
-            // A sphere cast that starts overlapping something reports no contact point; use the bolt's position.
-            Vector3 point = hit.distance > 0f ? hit.point : transform.position;
             var material = GetComponent<Renderer>().sharedMaterial;
             ImpactFlash.Spawn(material, point, radius * 4f);
             Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// Sends the bolt off in a new direction, owned by the reflector so it ignores the reflector and can hit the
+        /// original shooter. It no longer reports hits to the shooter's laser (no hit marker for being hit yourself).
+        /// </summary>
+        private void Reflect(Vector3 point, Vector3 newDirection, Transform newOwner, float damageMultiplier)
+        {
+            reflections++;
+            owner = newOwner;
+            onHit = null;
+            damage *= damageMultiplier;
+            direction = newDirection.sqrMagnitude > 0.0001f ? newDirection.normalized : -direction;
+            remaining = range;
+            previous = point;
+            transform.SetPositionAndRotation(point, Quaternion.LookRotation(direction));
+            ImpactFlash.Spawn(GetComponent<Renderer>().sharedMaterial, point, radius * 3f, 0.08f);
         }
     }
 }
