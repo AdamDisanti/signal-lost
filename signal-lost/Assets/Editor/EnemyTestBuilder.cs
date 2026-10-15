@@ -21,6 +21,7 @@ namespace SignalLost.Editor
     /// EnemyTest.unity with an arena, two crabs and the player with the mining laser.
     /// Like the other builders it refuses to overwrite the scene; existing prefabs are reused.
     /// "Regenerate Hermit Crab Prefabs" rebuilds the crab, bucket and their meshes in place (same GUIDs).
+    /// Its arena, player and mesh helpers are shared with FrogTestBuilder.
     /// </summary>
     public static class EnemyTestBuilder
     {
@@ -28,14 +29,14 @@ namespace SignalLost.Editor
         public const string CrabPrefabPath = EnemyFolder + "/HermitCrab.prefab";
         public const string BucketPrefabPath = ShellFolder + "/MetalBucket.prefab";
 
-        private const string EnemyFolder = "Assets/Prefabs/Enemies";
+        internal const string EnemyFolder = "Assets/Prefabs/Enemies";
         private const string ShellFolder = EnemyFolder + "/Shells";
-        private const string MeshFolder = EnemyFolder + "/Meshes";
-        private const string MaterialFolder = "Assets/Materials/Enemies";
-        private const string PlayerPrefabPath = "Assets/Prefabs/Player/FirstPersonPlayer.prefab";
-        private const string InputPath = "Assets/InputSystem_Actions.inputactions";
+        internal const string MeshFolder = EnemyFolder + "/Meshes";
+        internal const string MaterialFolder = "Assets/Materials/Enemies";
+        internal const string PlayerPrefabPath = "Assets/Prefabs/Player/FirstPersonPlayer.prefab";
+        internal const string InputPath = "Assets/InputSystem_Actions.inputactions";
         private const string LaserModelPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Upgrades/MiningLaser.prefab";
-        private const string BeamMaterialPath = "Assets/Materials/Combat/LaserBeam.mat";
+        internal const string BeamMaterialPath = "Assets/Materials/Combat/LaserBeam.mat";
 
         [MenuItem("Signal Lost/Create Enemy Test Scene")]
         public static void Create()
@@ -120,7 +121,7 @@ namespace SignalLost.Editor
         /// Shell prefab convention: origin at the centre of the opening, +Z out of the opening, +Y up.
         /// The bucket lies on its side with its mouth facing forward and its handle on top.
         /// </summary>
-        private static GameObject BuildBucketPrefab()
+        internal static GameObject BuildBucketPrefab()
         {
             // Profile traced with the metal on the left: base, outside wall with two raised bands, rolled rim,
             // inside wall, inside floor.
@@ -166,7 +167,7 @@ namespace SignalLost.Editor
         // Layout (metres, crab facing +Z, ground at y = 0):
         //   bucket opening at (0, 0.42, 0.28), bucket extends back to z = -0.33
         //   body just inside the opening; eyes, claws and six legs at the front
-        private static GameObject BuildCrabPrefab(GameObject shell)
+        internal static GameObject BuildCrabPrefab(GameObject shell)
         {
             Mesh blob = SaveMesh(LowPolyMesh.Icosphere("CrabBlob", 1));
             Mesh gem = GemMesh();
@@ -270,7 +271,7 @@ namespace SignalLost.Editor
 
         // ---------- Scene ----------
 
-        private static void BuildArena()
+        internal static void BuildArena()
         {
             Material floor = ExistingOrLit("Assets/Materials/Combat/CombatFloor.mat", "ArenaFloor", new Color(0.32f, 0.36f, 0.4f));
             Material wall = ExistingOrLit("Assets/Materials/Combat/CombatWall.mat", "ArenaWall", new Color(0.52f, 0.55f, 0.58f));
@@ -297,7 +298,7 @@ namespace SignalLost.Editor
             ramp.transform.rotation = Quaternion.Euler(-14f, 0f, 0f);
         }
 
-        private static void PlaceCrab(GameObject prefab, string name, Vector3 position, float yaw)
+        internal static void PlaceCrab(GameObject prefab, string name, Vector3 position, float yaw)
         {
             var crab = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             crab.name = name;
@@ -309,7 +310,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>Player with the mining laser (same setup as the combat test), health, HUD and placeholder respawn.</summary>
-        private static void BuildPlayer(GameObject prefab, InputActionAsset input, Material beam)
+        internal static void BuildPlayer(GameObject prefab, InputActionAsset input, Material beam)
         {
             var player = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             player.transform.position = new Vector3(0f, 0.1f, -12f);
@@ -347,7 +348,7 @@ namespace SignalLost.Editor
             hud.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void BuildLighting()
+        internal static void BuildLighting()
         {
             var light = new GameObject("Directional Light").AddComponent<Light>();
             light.type = LightType.Directional;
@@ -362,9 +363,9 @@ namespace SignalLost.Editor
         // ---------- Helpers ----------
 
         private static Mesh gemMesh;
-        private static Mesh GemMesh() => gemMesh != null ? gemMesh : gemMesh = SaveMesh(LowPolyMesh.Icosphere("LowPolyGem", 0));
+        internal static Mesh GemMesh() => gemMesh != null ? gemMesh : gemMesh = SaveMesh(LowPolyMesh.Icosphere("LowPolyGem", 0));
 
-        private static Transform Empty(string name, Transform parent, Vector3 position)
+        internal static Transform Empty(string name, Transform parent, Vector3 position)
         {
             var item = new GameObject(name).transform;
             item.SetParent(parent, false);
@@ -372,7 +373,7 @@ namespace SignalLost.Editor
             return item;
         }
 
-        private static Transform Part(string name, Transform parent, Mesh mesh, Material material,
+        internal static Transform Part(string name, Transform parent, Mesh mesh, Material material,
             Vector3 position, Quaternion rotation, Vector3 scale)
         {
             var item = new GameObject(name);
@@ -386,7 +387,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>A unit-length +Z mesh stretched from one point to another with the given start radius.</summary>
-        private static Transform Segment(string name, Transform parent, Mesh mesh, Material material, Vector3 from, Vector3 to, float radius)
+        internal static Transform Segment(string name, Transform parent, Mesh mesh, Material material, Vector3 from, Vector3 to, float radius)
         {
             Vector3 direction = to - from;
             Vector3 up = Mathf.Abs(Vector3.Dot(direction.normalized, Vector3.up)) > 0.95f ? Vector3.forward : Vector3.up;
@@ -394,7 +395,7 @@ namespace SignalLost.Editor
                 new Vector3(radius, radius, direction.magnitude));
         }
 
-        private static GameObject Block(string name, Vector3 position, Vector3 scale, Material material, Transform parent)
+        internal static GameObject Block(string name, Vector3 position, Vector3 scale, Material material, Transform parent)
         {
             GameObject block = GameObject.CreatePrimitive(PrimitiveType.Cube);
             block.name = name;
@@ -405,14 +406,14 @@ namespace SignalLost.Editor
             return block;
         }
 
-        private static void SetArray(SerializedProperty property, Transform[] items)
+        internal static void SetArray(SerializedProperty property, Transform[] items)
         {
             property.arraySize = items.Length;
             for (int i = 0; i < items.Length; i++) property.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
         }
 
         /// <summary>Saves a mesh asset, replacing the contents of an existing one so references and GUIDs survive.</summary>
-        private static Mesh SaveMesh(Mesh mesh)
+        internal static Mesh SaveMesh(Mesh mesh)
         {
             string path = MeshFolder + "/" + mesh.name + ".asset";
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
@@ -427,7 +428,7 @@ namespace SignalLost.Editor
             return existing;
         }
 
-        private static GameObject SavePrefab(GameObject root, string path)
+        internal static GameObject SavePrefab(GameObject root, string path)
         {
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             UnityEngine.Object.DestroyImmediate(root);
@@ -435,7 +436,7 @@ namespace SignalLost.Editor
             return prefab;
         }
 
-        private static Material LitMaterial(string name, Color color, float metallic, float smoothness)
+        internal static Material LitMaterial(string name, Color color, float metallic, float smoothness)
         {
             string path = MaterialFolder + "/" + name + ".mat";
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -450,10 +451,10 @@ namespace SignalLost.Editor
             return material;
         }
 
-        private static Material ExistingOrLit(string path, string fallbackName, Color color) =>
+        internal static Material ExistingOrLit(string path, string fallbackName, Color color) =>
             AssetDatabase.LoadAssetAtPath<Material>(path) ?? LitMaterial(fallbackName, color, 0f, 0.2f);
 
-        private static void EnsureFolders()
+        internal static void EnsureFolders()
         {
             foreach (string folder in new[] { "Assets/Prefabs", EnemyFolder, ShellFolder, MeshFolder, "Assets/Materials", MaterialFolder })
             {
@@ -463,7 +464,7 @@ namespace SignalLost.Editor
             }
         }
 
-        private static List<T> All<T>() where T : Component
+        internal static List<T> All<T>() where T : Component
         {
             var found = new List<T>();
             foreach (GameObject root in SceneManager.GetActiveScene().GetRootGameObjects())
@@ -471,9 +472,9 @@ namespace SignalLost.Editor
             return found;
         }
 
-        private static int Count<T>() where T : Component => All<T>().Count;
+        internal static int Count<T>() where T : Component => All<T>().Count;
 
-        private static void Require(bool condition, string message)
+        internal static void Require(bool condition, string message)
         {
             if (!condition) throw new InvalidOperationException(message);
         }

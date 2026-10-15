@@ -54,11 +54,11 @@ namespace SignalLost.Combat
 
         [Header("Charge effect")]
         [Tooltip("Colour of the charging electricity, the bolt, and the flash where a bolt lands.")]
-        [SerializeField] private Color energyColor = new Color(0.4f, 0.9f, 1f);
+        [SerializeField] private Color energyColor = new Color(1f, 0.549f, 0f); // dark orange
 
         [Header("Feel")]
         [Tooltip("Strength of the camera kick on strikes and shots. 0 turns it off.")]
-        [SerializeField, Min(0f)] private float viewKick = 1f;
+        [SerializeField, Min(0f)] private float viewKick = 0.9f;
         [Tooltip("How much the laser lags behind when you look around. 0 turns it off.")]
         [SerializeField, Min(0f)] private float swayStrength = 1f;
         [Tooltip("How much the laser bobs while walking and sprinting, dips on landing, and drifts while idle. 0 turns it off.")]
