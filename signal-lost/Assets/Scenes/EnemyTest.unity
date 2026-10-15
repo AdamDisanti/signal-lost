@@ -1768,8 +1768,8 @@ MonoBehaviour:
   - 45
   comboWindow: 0.4
   hitStop: 0.06
-  energyColor: {r: 0.4, g: 0.9, b: 1, a: 1}
-  viewKick: 1
+  energyColor: {r: 1, g: 0.5490196, b: 0, a: 1}
+  viewKick: 0.9
   swayStrength: 1
   bobStrength: 1
   fullChargeTime: 1.2
