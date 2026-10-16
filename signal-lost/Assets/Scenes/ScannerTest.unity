@@ -1131,10 +1131,6 @@ PrefabInstance:
       propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 851335618112205571, guid: 4ee38cab98c277a4489133da573c0499, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 4442678260498168383, guid: 4ee38cab98c277a4489133da573c0499, type: 3}
       propertyPath: m_Name
       value: ScannerRig
