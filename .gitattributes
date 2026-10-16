@@ -23,6 +23,12 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 
+# Unity TerrainData remains native binary even with Force Text enabled.
+# Scope exceptions to native terrain files; other .asset files stay ordinary text.
+"signal-lost/Assets/Prefabs/Enviornment objects/TutorialCrashSite/Terrain/ImpactCrater.asset" filter=lfs diff=lfs merge=lfs -text
+"signal-lost/Assets/New Terrain.asset" filter=lfs diff=lfs merge=lfs -text
+"signal-lost/Assets/New Terrain 1.asset" filter=lfs diff=lfs merge=lfs -text
+
 # Binary source assets use Git LFS; match lower/upper-case extensions.
 *.[fF][bB][xX] filter=lfs diff=lfs merge=lfs -text
 *.[bB][lL][eE][nN][dD] filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,100 @@
+{
+  "materials": [
+    {
+      "name": "SuitIvory",
+      "hex": "D9DFDB",
+      "metallic": 0.05,
+      "smoothness": 0.35
+    },
+    {
+      "name": "SuitTeal",
+      "hex": "287F86",
+      "metallic": 0.25,
+      "smoothness": 0.55
+    },
+    {
+      "name": "SafetyOrange",
+      "hex": "E68435",
+      "metallic": 0.1,
+      "smoothness": 0.44999999999999996
+    },
+    {
+      "name": "Graphite",
+      "hex": "29343D",
+      "metallic": 0.25,
+      "smoothness": 0.35
+    },
+    {
+      "name": "Steel",
+      "hex": "8CABB6",
+      "metallic": 0.65,
+      "smoothness": 0.6799999999999999
+    },
+    {
+      "name": "Fur",
+      "hex": "9B704A",
+      "metallic": 0.0,
+      "smoothness": 0.050000000000000044
+    },
+    {
+      "name": "Muzzle",
+      "hex": "B98B5E",
+      "metallic": 0.0,
+      "smoothness": 0.050000000000000044
+    },
+    {
+      "name": "EarInner",
+      "hex": "67452F",
+      "metallic": 0.0,
+      "smoothness": 0.050000000000000044
+    },
+    {
+      "name": "Eyes",
+      "hex": "111A21",
+      "metallic": 0.0,
+      "smoothness": 0.72
+    },
+    {
+      "name": "Highlight",
+      "hex": "F4F5E4",
+      "metallic": 0.0,
+      "smoothness": 0.65
+    },
+    {
+      "name": "Charcoal",
+      "hex": "30302F",
+      "metallic": 0.0,
+      "smoothness": 0.0
+    },
+    {
+      "name": "Ash",
+      "hex": "56534C",
+      "metallic": 0.0,
+      "smoothness": 0.0
+    },
+    {
+      "name": "Scorch",
+      "hex": "181C1E",
+      "metallic": 0.0,
+      "smoothness": 0.0
+    },
+    {
+      "name": "Rust",
+      "hex": "795743",
+      "metallic": 0.05,
+      "smoothness": 0.050000000000000044
+    },
+    {
+      "name": "Basin",
+      "hex": "414744",
+      "metallic": 0.0,
+      "smoothness": 0.050000000000000044
+    },
+    {
+      "name": "SignalMint",
+      "hex": "8CE7C6",
+      "metallic": 0.1,
+      "smoothness": 0.6
+    }
+  ]
+}

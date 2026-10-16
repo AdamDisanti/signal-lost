@@ -23,6 +23,15 @@ namespace SignalLost.Player
         private float verticalSpeed, pitch;
         private bool captured;
 
+        public float Impairment { get; set; }
+        public float MovementScale => 1f - (0.55f * 2f / 3f) * Mathf.Clamp01(Impairment);
+
+        public void ResetMotion()
+        {
+            verticalSpeed = pitch = 0f;
+            cameraPivot.localRotation = Quaternion.identity;
+        }
+
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
@@ -99,7 +108,11 @@ namespace SignalLost.Player
             verticalSpeed -= gravity * Time.deltaTime;
 
             Vector2 axis = canControl ? Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f) : Vector2.zero;
-            float speed = canControl && sprint.IsPressed() ? sprintSpeed : walkSpeed;
+            // Only stagger while moving; a drunk player can still stop safely near cliffs.
+            float stagger = Mathf.Sin(Time.time * 2.1f) * Mathf.Clamp01(Impairment) * 0.45f;
+            axis = new Vector2(axis.x * Mathf.Cos(stagger) + axis.y * Mathf.Sin(stagger),
+                axis.y * Mathf.Cos(stagger) - axis.x * Mathf.Sin(stagger));
+            float speed = (canControl && sprint.IsPressed() ? sprintSpeed : walkSpeed) * MovementScale;
             Vector3 velocity = (transform.right * axis.x + transform.forward * axis.y) * speed;
             velocity.y = verticalSpeed;
             CollisionFlags collisions = controller.Move(velocity * Time.deltaTime);

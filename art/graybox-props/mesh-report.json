@@ -1,0 +1,22 @@
+[
+  {
+    "name": "CapybaraAstronaut",
+    "meshCount": 52,
+    "triangles": 6828
+  },
+  {
+    "name": "BurntRockBasin",
+    "meshCount": 8,
+    "triangles": 352
+  },
+  {
+    "name": "AlcoholFlask",
+    "meshCount": 21,
+    "triangles": 1116
+  },
+  {
+    "name": "GrayboxExitGate",
+    "meshCount": 27,
+    "triangles": 2496
+  }
+]
