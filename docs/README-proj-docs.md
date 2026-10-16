@@ -3,6 +3,7 @@
 - [Work guidelines](WORK_GUIDELINES_README.md): prototype sequence, Unity/LLM collaboration, and task acceptance.
 - [Movement prototype](movement-prototype.md): scene, controls, reusable player, and test checklist.
 - [Combat prototype](combat-prototype.md): health system, mining laser, training dummies, and test checklist.
+- [Player HUD](hud.md): HUD prefab, test scene, how other systems feed it, and test checklist.
 - [Design](design.md): source-grounded scope and open questions.
 - [Team](team.md): documented responsibilities and pending roster details.
 - [Workflow](workflow.md): step-by-step teammate onboarding, branching, commits, pull requests, conflicts, and project-lead setup.
