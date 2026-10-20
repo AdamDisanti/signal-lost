@@ -24,6 +24,8 @@ namespace SignalLost.Combat
         /// <summary>Raised once when health reaches zero.</summary>
         public event Action<Health> Died;
 
+        // Runtime protection for friendly NPCs; normal actors remain damageable by default.
+        public bool Invulnerable { get; set; }
         public float Max => maxHealth;
         public float Current => current;
         public float Normalized => current / maxHealth;
@@ -34,7 +36,7 @@ namespace SignalLost.Combat
         /// <summary>Applies damage. Returns false if the amount is not positive or this is already dead.</summary>
         public bool TakeDamage(float amount, GameObject source = null)
         {
-            if (amount <= 0f || IsDead) return false;
+            if (Invulnerable || amount <= 0f || IsDead) return false;
 
             float applied = Mathf.Min(amount, current);
             current -= applied;

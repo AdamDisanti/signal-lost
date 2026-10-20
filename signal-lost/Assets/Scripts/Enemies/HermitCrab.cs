@@ -463,6 +463,8 @@ namespace SignalLost.Enemies
             if (respawnDelay > 0f && stateTime >= corpseTime + respawnDelay) Respawn();
         }
 
+        public void ResetEncounter() => Respawn();
+
         private void Respawn()
         {
             health.Restore();

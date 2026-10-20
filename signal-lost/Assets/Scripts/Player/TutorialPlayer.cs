@@ -1,5 +1,7 @@
 using System.Collections;
 using SignalLost.Combat;
+using SignalLost.Enemies;
+using SignalLost.NPC;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -23,6 +25,8 @@ namespace SignalLost.Player
         [SerializeField] private HUDController hud;
         [SerializeField] private TextMeshProUGUI healthText, promptText, drunkText, messageText;
         [SerializeField] private Image blackoutOverlay;
+        [SerializeField] private TutorialQuestFlow quest;
+        [SerializeField] private TutorialNpcUi npcUi;
 
         [Header("Prototype tuning")]
         [SerializeField, Min(0.5f)] private float pickupDistance = 3f;
@@ -101,8 +105,15 @@ namespace SignalLost.Player
             health.Died -= OnDied;
         }
 
+        public void BindNpcUi(TutorialNpcUi windows)
+        {
+            npcUi = windows;
+            npcUi?.BindPlayer(transform);
+        }
+
         private void Start()
         {
+            if (npcUi == null) BindNpcUi(FindFirstObjectByType<TutorialNpcUi>());
             spawnPosition = transform.position;
             spawnRotation = transform.rotation;
             // An inactive stage-start copy also restores enemies destroyed or hidden by death.
@@ -124,8 +135,9 @@ namespace SignalLost.Player
             if (IsRespawning) return;
             bool canControl = Application.isFocused && Cursor.lockState == CursorLockMode.Locked;
             TutorialPickup pickup = FindPickup();
-            promptText.text = pickup != null ? $"E  Pick up {pickup.DisplayName}" : "";
-            if (canControl && !IsDrinking && interact.WasPressedThisFrame()) TryInteract();
+            NpcActor npc = FindNpc();
+            promptText.text = npcUi != null && npcUi.HasOpenWindow ? "" : npc != null ? npc.Prompt : pickup != null ? $"E  Pick up {pickup.DisplayName}" : "";
+            if (canControl && (npcUi == null || (!npcUi.HasOpenWindow && !npcUi.WindowChangedThisFrame)) && !IsDrinking && interact.WasPressedThisFrame()) TryInteract();
             if (canControl && drink.WasPressedThisFrame()) TryDrink();
 
             if (IsDrinking)
@@ -163,7 +175,9 @@ namespace SignalLost.Player
             if (IsRespawning) return;
             drunkText.text = DrunkStacks > 0
                 ? $"DRUNK x{DrunkStacks} / 8   •   Blackout above 8" : "SOBER";
-            messageText.text = HasFlask ? $"F: drink Scotch (+{healAmount:0} HP)   •   Unlimited uses" : "Find the flask near the basin";
+            messageText.text = HasFlask ? $"F: drink Scotch (+{healAmount:0} HP)   •   Unlimited uses" :
+                quest != null ? "Talk to Cavendish to recover your flask." : "Find the flask near the basin";
+            if (quest != null) { hud.SetObjective(npcUi != null && (quest.Accepted || npcUi.HasOpenWindow) ? "" : quest.Objective); return; }
             hud.SetObjective(!HasLaser ? "Recover the mining laser from the basin (E)." :
                 !HasFlask ? "Recover your flask (E)." : "Try your laser on the targets; the red pad deals damage.");
         }
@@ -175,9 +189,20 @@ namespace SignalLost.Player
             return hit.collider.GetComponentInParent<TutorialPickup>();
         }
 
+        private NpcActor FindNpc()
+        {
+            if (!Physics.Raycast(view.transform.position, view.transform.forward, out RaycastHit hit,
+                pickupDistance, ~0, QueryTriggerInteraction.Ignore)) return null;
+            NpcActor actor = hit.collider.GetComponentInParent<NpcActor>();
+            return actor != null && actor.CanInteract ? actor : null;
+        }
+
         public bool TryInteract()
         {
             if (IsRespawning || health.IsDead || IsDrinking) return false;
+            if (npcUi != null && npcUi.HasOpenWindow) return npcUi.Advance();
+            NpcActor npc = FindNpc();
+            if (npc != null) return npc.Interact(this);
             TutorialPickup pickup = FindPickup();
             return pickup != null && pickup.TryCollect(this);
         }
@@ -244,6 +269,7 @@ namespace SignalLost.Player
         private IEnumerator Respawn(string reason)
         {
             IsRespawning = true;
+            npcUi?.CloseAll();
             IsDrinking = false;
             promptText.text = "";
             messageText.text = reason + " — returning to the crash site";
@@ -265,12 +291,18 @@ namespace SignalLost.Player
             health.Restore();
             foreach (LaserBolt bolt in FindObjectsByType<LaserBolt>())
                 if (bolt.gameObject.scene == gameObject.scene) Destroy(bolt.gameObject);
+            // Enemy projectiles belong to the previous attempt, just like player bolts.
+            foreach (GooBlob blob in FindObjectsByType<GooBlob>())
+                if (blob.gameObject.scene == gameObject.scene) Destroy(blob.gameObject);
+            foreach (GooPuddle puddle in FindObjectsByType<GooPuddle>())
+                if (puddle.gameObject.scene == gameObject.scene) Destroy(puddle.gameObject);
             Transform enemyParent = enemies.transform.parent;
             enemies.SetActive(false);
             Destroy(enemies);
             enemies = Instantiate(enemySnapshot.transform.GetChild(0).gameObject, enemyParent, true);
             enemies.name = "Tutorial Targets";
             enemies.SetActive(true);
+            quest?.OnStageReset();
             blackoutOverlay.color = Color.clear;
             nextDrink = Time.time;
             IsRespawning = false;

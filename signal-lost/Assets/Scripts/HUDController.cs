@@ -60,7 +60,7 @@ public class HUDController : MonoBehaviour
     {
         if (objectiveText != null)
         {
-            objectiveText.text = $"Objective: {newObjective}";
+            objectiveText.text = string.IsNullOrWhiteSpace(newObjective) ? "" : $"Objective: {newObjective}";
         }
     }
 

@@ -418,7 +418,10 @@ namespace SignalLost.Combat
             CurrentTarget = null;
             if (!TryNearestHit(aimOrigin.position, aimOrigin.forward, shotRange, out RaycastHit hit)) return;
             Health target = hit.collider.GetComponentInParent<Health>();
-            if (target != null && !target.IsDead) CurrentTarget = target;
+            if (target == null || target.IsDead) return;
+            var merchant = target.GetComponent<SignalLost.NPC.MerchantCrab>();
+            if (merchant != null && merchant.IsDefeated) return;
+            CurrentTarget = target;
         }
 
         /// <summary>Nearest raycast hit that is not part of the player.</summary>

@@ -75,6 +75,16 @@ namespace SignalLost.Player
             if (!focused) SetCapture(false);
         }
 
+        private bool menuOpen;
+        private int menuChangedFrame = -1;
+
+        public void SetMenuOpen(bool open)
+        {
+            menuOpen = open;
+            menuChangedFrame = Time.frameCount;
+            SetCapture(!open && Application.isFocused);
+        }
+
         private void SetCapture(bool capture)
         {
             captured = capture;
@@ -84,9 +94,11 @@ namespace SignalLost.Player
 
         private void Update()
         {
-            if (Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            if (menuOpen)
                 SetCapture(false);
-            else if (!captured && Application.isFocused &&
+            else if (menuChangedFrame != Time.frameCount && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+                SetCapture(false);
+            else if (menuChangedFrame != Time.frameCount && !captured && Application.isFocused &&
                      Mouse.current?.leftButton.wasPressedThisFrame == true)
                 SetCapture(true);
 
@@ -102,17 +114,18 @@ namespace SignalLost.Player
                 cameraPivot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
             }
 
+            bool canMove = canControl || (menuOpen && Application.isFocused);
             if (controller.isGrounded && verticalSpeed < 0f) verticalSpeed = -2f;
-            if (canControl && controller.isGrounded && jump.WasPressedThisFrame())
+            if (canMove && controller.isGrounded && jump.WasPressedThisFrame())
                 verticalSpeed = Mathf.Sqrt(2f * gravity * jumpHeight);
             verticalSpeed -= gravity * Time.deltaTime;
 
-            Vector2 axis = canControl ? Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f) : Vector2.zero;
+            Vector2 axis = canMove ? Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f) : Vector2.zero;
             // Only stagger while moving; a drunk player can still stop safely near cliffs.
             float stagger = Mathf.Sin(Time.time * 2.1f) * Mathf.Clamp01(Impairment) * 0.45f;
             axis = new Vector2(axis.x * Mathf.Cos(stagger) + axis.y * Mathf.Sin(stagger),
                 axis.y * Mathf.Cos(stagger) - axis.x * Mathf.Sin(stagger));
-            float speed = (canControl && sprint.IsPressed() ? sprintSpeed : walkSpeed) * MovementScale;
+            float speed = (canMove && sprint.IsPressed() ? sprintSpeed : walkSpeed) * MovementScale;
             Vector3 velocity = (transform.right * axis.x + transform.forward * axis.y) * speed;
             velocity.y = verticalSpeed;
             CollisionFlags collisions = controller.Move(velocity * Time.deltaTime);
