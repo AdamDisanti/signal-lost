@@ -90,3 +90,26 @@ Instructional dialogue now advances only on E. Cavendish's first quest uses a sc
 ### Overhead flavour versus quest information
 
 The project lead clarified that first-encounter and combat crab chatter should appear overhead, while all quest-related instructions must be interacted with and shown in popups. The hostile crab keeps its no-E-prompt rule; its first approach greeting is proximity-triggered. After defeat its first friendly E greeting appears overhead, then the next E opens the reward/trading popup. Cavendish's quest reminders and completion instructions also use popups; only non-quest small talk remains overhead.
+
+## Tutorial core loop (meeting notes 10-20-26)
+
+Adam and Lawson's meeting notes asked for a complete tutorial before the demo. The project lead chose the scope and resolved the open rules below. See [tutorial core loop](tutorial-core-loop.md) for how it plays.
+
+- **Quest order:** wake up beside Cavendish, then "Gear Up" (find the laser in the basin and the scanner in the wreckage), return, "Hair of the Crab" (beat the flask crab, collect the flask), follow the crab home, hear its scrap and shop rundown, then report back. This supersedes the earlier single "Recover Your Flask" quest.
+- **Dialogue:** subtitles at the bottom middle plus speech bubbles for chatter. Quest information goes in a rounded, transparent popup that advances with a click or E. Earlier rules still hold: walking stays active and cancelling does not accept.
+- **Items:** Q swaps between scanner and laser, and F drinks. The scanner is found in the tutorial. The two-handed, both-items-at-once idea from the UI notes was not built.
+- **Scanner:** it points at the current quest objective, or at the NPC with a quest waiting, at any distance. Quest objectives outrank creatures. This resolves the mini-boss doc's open question for quest targets only; boss priority is still undecided.
+- **Healing (supersedes 35 HP flat, blackout above 8):** each sip heals half as much per drunk stack and returns to full once sober. Blackout comes on the sip after 5 stacks.
+- **Laser (the lead wants the starting weapon to feel weak):**
+  - a 10 s cooldown on the charged shot only;
+  - the third combo hit stuns desert fodder only (not crabs, frogs or bosses) for 2 s;
+  - melee then needs 3 s to recharge. The meeting notes' "3 second cooldown for the stun combo" is read here as a pause before the next swing.
+  - These apply in the tutorial; code defaults leave other scenes unchanged until their owners opt in.
+- **Scrap:** four placeholder types (Scrap Metal, Wiring, Circuit Boards, Fuel Cells). Enemies drop them, and walking over them collects and sorts them. A placeholder inventory opens on Tab, and the merchant menu is a priced, disabled preview. No trading, upgrades or save.
+- **Angry merchant:** hits on the friendly crab bring non-blocking red warnings. One hit is forgotten for every 10 s without another. The 6th hit calls 5-10 hermit crabs. Beating them or dying makes the merchant surrender again, and the shop stays open.
+- **Crash site:** a new stripped shipwreck replaces the rocket, and the rocket's assets are kept. The empty sockets for the engine core, reactor core, flight-control module and navigation computer show what the bosses took. The site is much more cluttered. The player now wakes up beside Cavendish instead of at the old spawn.
+- **Not done:**
+  - Moving the tutorial enemies out from under the terrain was not selected, so the encounter NavMesh was not rebaked around the wreck.
+  - The next-stage transition (heal and black out after a stage) and the other UI ideas (Doom-style HUD, on-screen hands, skyboxes) are still open.
+  - The "screeb" spotter behaviour and Burnout's targeted multi-dash are still open.
+
