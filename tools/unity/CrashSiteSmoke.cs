@@ -25,6 +25,8 @@ public static class CrashSiteSmoke
         EditorSceneManager.OpenScene(TutorialCrashSiteBuilder.ScenePath);
         if (GameObject.Find("Perimeter Cliffs") != null) CrashSiteUpgradeValidation.Validate();
         else TutorialCrashSiteBuilder.Validate();
+        if (GameObject.Find(TutorialTraversalBuilder.LandscapeName) != null) TutorialTraversalSmoke.Validate();
+        if (GameObject.Find("Lunar Landscape") != null) LunarTutorialSmoke.Validate();
         SessionState.SetInt(Key, 1);
         SessionState.SetFloat(Key + "Start", (float)EditorApplication.timeSinceStartup);
         EditorApplication.EnterPlaymode();
@@ -92,6 +94,16 @@ public static class CrashSiteSmoke
             if (cameras != 1 || listeners != 1)
                 throw new Exception("Expected one Tutorial gameplay camera/listener; got " + cameras + "/" + listeners + "\n" + string.Join("\n", viewpoints));
             report.Add("Exactly one gameplay camera and AudioListener active.");
+            if (environment.Find(TutorialTraversalBuilder.LandscapeName) != null)
+            {
+                TutorialTraversalSmoke.TestRoutes(cc, terrain, environment, controller);
+                if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) TutorialTraversalSmoke.CaptureViews(environment);
+            }
+            if (environment.Find("Lunar Landscape") != null)
+            {
+                LunarTutorialSmoke.TestRoutes(cc, terrain, environment, controller);
+                if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) LunarTutorialSmoke.CaptureViews(environment, terrain);
+            }
             if (environment.Find("Perimeter Cliffs") != null)
             {
                 TestCliffs(cc, terrain, environment);
@@ -126,11 +138,16 @@ public static class CrashSiteSmoke
     {
         // Isolate the cliff itself rather than accidentally passing because a loose rock blocked the probe.
         foreach (Collider c in environment.Find("Basalt Rocks").GetComponentsInChildren<Collider>()) c.enabled = false;
+        Transform outlying = environment.Find("Traversal Landscape/Outlying Rock Fields");
+        if (outlying != null) foreach (Collider c in outlying.GetComponentsInChildren<Collider>()) c.enabled = false;
+        Transform lunar = environment.Find("Lunar Landscape");
+        if (lunar != null) foreach (Collider c in lunar.GetComponentsInChildren<Collider>()) c.enabled = false;
+        float expansion = terrain.terrainData.size.x / 320f;
         for (int i = 0; i < 64; i++)
         {
             float a = i * Mathf.PI * 2 / 64;
             Vector3 direction = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
-            Vector3 start = environment.position + direction * 130;
+            Vector3 start = environment.position + direction * (130 * expansion);
             start.y = terrain.SampleHeight(start) + terrain.transform.position.y + 0.1f;
             Reset(cc, start);
             float vertical = 0;
@@ -141,7 +158,7 @@ public static class CrashSiteSmoke
                 vertical -= 20 * dt;
                 cc.Move(direction * (7 * dt) + Vector3.up * (vertical * dt));
                 Vector3 radial = cc.transform.position - environment.position; radial.y = 0;
-                if (radial.magnitude > 149) throw new Exception("Player escaped cliff perimeter at direction " + i);
+                if (radial.magnitude > 149 * expansion) throw new Exception("Player escaped cliff perimeter at direction " + i);
             }
         }
     }
@@ -149,7 +166,7 @@ public static class CrashSiteSmoke
     private static void Settle(CharacterController cc)
     { for (int i = 0; i < 40; i++) cc.Move(Vector3.down * 0.04f); }
 
-    private static void Reset(CharacterController cc, Vector3 start)
+    internal static void Reset(CharacterController cc, Vector3 start)
     { cc.enabled = false; cc.transform.position = start; cc.enabled = true; Settle(cc); }
 
     private static void Walk(CharacterController cc, Vector3 target, Terrain terrain)

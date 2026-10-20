@@ -10,9 +10,15 @@ The three mini-bosses of the Desert / Dunes biome. When the ship broke up, the T
 
 This builds on the [desert fodder](desert-fodder.md) branch and lives entirely in new files, apart from small changes to the fodder scripts listed under [Changes to the fodder code](#changes-to-the-fodder-code). It does not touch the tutorial, the Desert Dunes scene, the crash-site assets it borrows, the shared player, scanner or HUD prefabs, or the crab and frog.
 
+## Open the delivered assets
+
+The local `tutorial-zone` integration now contains the **saved mini-boss prefabs, their meshes/materials, all fodder assets and all three test scenes**. Open `Assets/Scenes/BurnoutTest.unity`, `OldBuzzardTest.unity` or `SludgeTest.unity` and press Play. The prefabs are under `Assets/Prefabs/Enemies/Desert/MiniBosses/`. No generator needs to be run over the delivered scenes, and the tutorial and Desert Dunes scene have not been populated with new enemies.
+
 ## Create the prefabs and test scenes
 
-1. Open the `signal-lost/` project in Unity **6000.6.2f1** on the `feature/desert-minibosses` branch and wait for scripts to compile.
+For a checkout containing only scripts, or reproduction in a disposable project:
+
+1. Open the `signal-lost/` project in Unity **6000.6.2f1** with `feature/desert-minibosses` merged and wait for scripts to compile.
 2. Choose **Signal Lost > Desert Mini-Bosses > Create Test Scenes**.
 3. The Console should print `DESERT_MINIBOSS_TEST_SCENES_CREATED_AND_VALIDATED`.
 
@@ -169,4 +175,6 @@ For each scene: press Play. No Console errors (a short pause while the NavMesh b
 ## Validation performed
 
 - All scripts, including the whole existing project, were compiled with the C# compiler against the Unity **6000.6.2f1** engine, editor and package assemblies from a teammate's Unity install, with the project's own defines and C# 9. No errors, and no warnings in the new code. That check caught one Unity 6.6 API removal (`GetInstanceID`), which was fixed.
-- It is **not** a Unity Editor import or a Play Mode run. Prefab and scene generation, the builder's validation, and every check above remain for the first person to open this branch in Unity.
+- The subsequent local integration performed actual Unity **6000.6.2f1** import, compilation and generation in a disposable project, then passed the builder's checks for all three prefab/scene bindings, player/laser/scanner/HUD, one camera/listener, NavMesh, spawner entries and missing scripts. All generated files were delivered with matching `.meta` files/GUIDs; existing assets, including the lunar tutorial and borrowed rocket/hull sources, remain byte-identical.
+- [DesertEnemySmoke.cs](../tools/unity/DesertEnemySmoke.cs) passed a rendered Direct3D 11 Play Mode smoke across all nine new test scenes. Each mini-boss test built its NavMesh, entered combat and spawned support enemies. The known unrelated Editor SearchDatabase startup exception is narrowly excluded. The full phase/weak-spot/reward/leash and physical-input acceptance list above is **not** proven by this short smoke.
+- The fixture is only for disposable temporary projects; install it in that project's `Assets/Editor`, run `DesertEnemySmoke.Start` and omit `-quit` so it can exit itself. Local Unity logs, preservation/delivery hashes and merge recovery details are under ignored `signal-lost/Logs/DesertEnemiesMerge/`. The saved assets and all nine test scenes are included on the `desert-enemies` publication branch, alongside the lunar tutorial.

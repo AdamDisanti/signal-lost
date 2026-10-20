@@ -2,7 +2,7 @@
 
 Open `signal-lost/Assets/Scenes/Tutorial.unity` in Unity **6000.6.2f1** and press Play. Gameplay is already installed; **do not rerun the creation tools** over the scene.
 
-The approved terrain, rocket, cliffs, original source models and shared player prefab are preserved. Gameplay components are added to the tutorial player/prop instances. The original combat test scene remains separate and unchanged.
+The rocket, original source models, shared player prefab and working gameplay are preserved. The current [480-meter lunar revision](tutorial-impact-site.md) replaces the extreme industrial terrain/landmarks with rolling crater fields, grey regolith and a lower blended perimeter, while retaining the core tutorial floor/routes. Gameplay components remain on the tutorial player/prop instances; the original combat test scene remains separate and unchanged.
 
 ## Controls and test loop
 
@@ -23,7 +23,7 @@ The approved terrain, rocket, cliffs, original source models and shared player p
 
 The upper-left HUD shows the health bar and numeric HP; below it are drunkenness and the current tutorial objective. Pickup prompts appear near the center; the original combat HUD provides crosshair/hit feedback and combo/charge information once equipped.
 
-Gamepad bindings are supplied but require a physical hardware check.
+Gamepad bindings are supplied but require a physical hardware check. Optional exploration now follows natural lunar hills and crater fields; the former industrial causeway/stepping-fin jump course is no longer in the scene. Eight exploration circuits and the normal pickup/target/gate loop are tested without jumping. Existing walking/sprinting/jumping, intoxication penalties and respawn rules are unchanged; no low-gravity or fall-damage system was added.
 
 ## Drunkenness, blackout and death
 
@@ -58,7 +58,7 @@ Runtime scripts:
 
 ## Validation
 
-Unity **6000.6.2f1** compilation and isolated Play Mode checks passed using [TutorialGameplaySmoke.cs](../tools/unity/TutorialGameplaySmoke.cs):
+Unity **6000.6.2f1** compilation and isolated Play Mode checks passed using [TutorialGameplaySmoke.cs](../tools/unity/TutorialGameplaySmoke.cs), including a full rendered rerun against the final 480-meter lunar scene:
 
 - Unarmed start; distance/interaction-ray pickup gating; no duplicate collection; held weapon visibility and collision.
 - Actual pad trigger damage and health bar events; flask animation, one-time healing, max-HP cap, cooldown and unlimited drinks.
