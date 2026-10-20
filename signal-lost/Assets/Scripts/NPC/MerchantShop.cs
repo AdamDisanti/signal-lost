@@ -1,19 +1,29 @@
+using SignalLost.Player;
 using SignalLost.UI;
 using UnityEngine;
 
 namespace SignalLost.NPC
 {
-    // The friendly merchant crab's shop. Placeholder until the merchant menu exists.
+    // The friendly merchant crab's shop: opens the Bucket & Barter menu for this crab.
     public sealed class MerchantShop : MonoBehaviour
     {
-        [SerializeField] private NpcDialogue dialogue;
+        private Transform customer;
         private void Awake()
         {
-            if (dialogue == null) dialogue = GetComponentInChildren<NpcDialogue>();
+            var player = FindFirstObjectByType<FirstPersonController>();
+            if (player != null) customer = player.transform;
         }
-        public bool IsOpen => false;
-        public void Toggle() => dialogue?.Speak(3.5f, "Shelves are still being stocked! Come back soon.");
-        public void Close() => DialogueUi.Instance?.CloseFor(transform);
+        public bool IsOpen => MerchantMenuUi.Instance != null && MerchantMenuUi.Instance.IsOpen && MerchantMenuUi.Instance.Owner == transform;
+        public void Toggle()
+        {
+            if (IsOpen) Close();
+            else MerchantMenuUi.Instance.Open(transform, customer);
+        }
+        public void Close()
+        {
+            if (IsOpen) MerchantMenuUi.Instance.Close();
+            DialogueUi.Instance?.CloseFor(transform);
+        }
         private void OnDisable() => Close();
     }
 }

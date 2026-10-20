@@ -221,6 +221,7 @@ namespace SignalLost.Editor
 
             // Components: AddComponent<HermitCrab> also adds the NavMeshAgent, Health and rig it requires.
             root.AddComponent<HermitCrab>();
+            root.AddComponent<SignalLost.Inventory.ScrapDropper>(); // defeated enemies drop scrap (tutorial core loop)
             var agent = root.GetComponent<NavMeshAgent>();
             agent.enabled = false; // switched on in HermitCrab.Start, once the NavMesh has been built
             agent.radius = 0.5f;

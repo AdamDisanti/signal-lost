@@ -7,6 +7,7 @@ using System.Reflection;
 using SignalLost.Combat;
 using SignalLost.Enemies;
 using SignalLost.Enemies.Desert;
+using SignalLost.Inventory;
 using SignalLost.NPC;
 using SignalLost.Player;
 using SignalLost.Scanner;
@@ -183,8 +184,13 @@ public static class TutorialCoreLoopSmoke
         merchant.GetComponent<HermitCrab>().enabled = true;
         var health = merchant.GetComponent<Health>();
         var drop = Get<TutorialPickup>(merchant, "flaskDrop");
+        Foot(merchant.transform.position + merchant.transform.forward * 6.5f);
+        view.transform.LookAt(merchant.transform.position);
         Check(health.TakeDamage(999f, player.gameObject) && merchant.IsDefeated, "Defeating the crab makes it surrender.");
-        yield return 0.2f;
+        var chunks = UnityEngine.Object.FindObjectsByType<ScrapPickup>();
+        Check(chunks.Length == 9 && chunks.Select(c => c.Type).Distinct().Count() == 4, "Its defeat drops a first haul of all four scrap types.");
+        yield return 1f;
+        yield return Capture("ScrapDrop");
         Check(quest.Current == TutorialQuestFlow.Step.CollectFlask && drop.gameObject.activeSelf, "Its flask drops for the player.");
         yield return Scan(null);
         Check(scanned != null && scanned.GetComponent<TutorialPickup>() == drop, "The scanner points at the dropped flask.");
@@ -198,7 +204,19 @@ public static class TutorialCoreLoopSmoke
         Check(merchant.IsWaitingForPlayer, "The crab waits for a player who falls behind.");
         Aim(drop.GetComponentInChildren<Collider>(), drop.transform);
         Check(player.TryInteract() && player.HasFlask, "E collects the dropped flask.");
-        yield return 0.2f;
+        var inventory = player.GetComponent<PlayerInventory>();
+        for (int i = 0; i < 60 && inventory.TotalScrap < 9; i++)
+        {
+            // Walk over whatever is still lying around, like a player hoovering up the drop.
+            var left = UnityEngine.Object.FindObjectsByType<ScrapPickup>();
+            if (i % 5 == 0 && left.Length > 0) Foot(left[0].transform.position);
+            yield return 0.1f;
+        }
+        report.Add($"  scrap collected={inventory.TotalScrap} left={UnityEngine.Object.FindObjectsByType<ScrapPickup>().Length}");
+        Check(inventory.TotalScrap == 9 && inventory.Scrap(ScrapType.ScrapMetal) == 4 && inventory.Scrap(ScrapType.FuelCells) == 1 &&
+              UnityEngine.Object.FindObjectsByType<ScrapPickup>().Length == 0, "Walking over the scrap sucks it in, sorted by type.");
+        Check(Get<CanvasGroup>(GameplayOverlay.Instance, "scrapGroup").alpha > 0f, "The scrap counter appears once the player has scrap.");
+        yield return Capture("ScrapCollected");
         Check(quest.Current == TutorialQuestFlow.Step.FollowMerchant, "With the flask in hand, the objective is to follow the crab.");
         Aim(merchant.GetComponent<Collider>(), merchant.transform);
         Check(player.TryInteract() && !ui.PopupOpen && crabSpeech.IsSpeaking, "Talking to the crab on the way home only gets a bubble.");
@@ -216,6 +234,22 @@ public static class TutorialCoreLoopSmoke
         yield return Capture("MerchantRundown");
         ReadToEnd(ui);
         Check(quest.Current == TutorialQuestFlow.Step.ReportToCavendish, "After the rundown, the player reports back to Cavendish.");
+        var menu = MerchantMenuUi.Instance;
+        Check(menu.IsOpen && menu.Owner == merchant.transform && UiMenus.AnyOpen, "The rundown ends by opening the Bucket & Barter menu.");
+        var buyButtons = menu.GetComponentsInChildren<UnityEngine.UI.Button>().Where(b => b.name == "Buy").ToArray();
+        Check(menu.ListingCount == 4 && buyButtons.Length == 4 && buyButtons.All(b => !b.interactable), "Upgrades are listed with every purchase disabled.");
+        yield return Capture("MerchantMenu");
+        menu.ShowTab(2);
+        Check(menu.CurrentTab == 2 && menu.ListingCount == 3, "The Trade Scrap tab lists placeholder trades.");
+        menu.Close();
+        Check(!menu.IsOpen && !UiMenus.AnyOpen, "The menu closes and returns the cursor.");
+        InventoryUi.Instance.Open();
+        Check(InventoryUi.Instance.IsOpen && UiMenus.AnyOpen && Get<TextMeshProUGUI[]>(InventoryUi.Instance, "scrapCounts")[0].text == "4",
+            "The inventory screen shows sorted scrap.");
+        yield return 0.4f;
+        yield return Capture("Inventory");
+        InventoryUi.Instance.Close();
+        Check(!UiMenus.AnyOpen, "The inventory closes.");
         Aim(cav.GetComponent<Collider>(), cav.transform);
         Check(player.TryInteract() && ui.PopupOpen, "Cavendish's report popup opens.");
         ReadToEnd(ui);
@@ -229,7 +263,51 @@ public static class TutorialCoreLoopSmoke
         Check(player.TryInteract() && cavSpeech.IsManual && !ui.PopupOpen, "After the tutorial, Cavendish's small talk is overhead.");
         player.TryInteract();
 
+        yield return AngryMerchant(merchant, quest);
         yield return Healing(quest, merchant, wake);
+    }
+
+    // ---------- Package 5: hitting the friendly merchant ----------
+    private static IEnumerator AngryMerchant(MerchantCrab merchant, TutorialQuestFlow quest)
+    {
+        var health = merchant.GetComponent<Health>();
+        var subtitle = Get<TextMeshProUGUI>(DialogueUi.Instance, "subtitleText");
+        Foot(merchant.transform.position + merchant.transform.forward * 3f);
+        view.transform.LookAt(merchant.transform.position);
+        for (int hit = 1; hit <= 5; hit++)
+        {
+            Check(!health.TakeDamage(10f, player.gameObject) && merchant.Anger == hit && !merchant.AmbushActive, $"Hit {hit} on the friendly merchant is refused but noticed.");
+            yield return 0.1f;
+        }
+        Check(subtitle.text.Contains("Last warning") && !UiMenus.AnyOpen && health.Current == health.Max,
+            "Five hits bring escalating red warnings, no damage and no menu.");
+        yield return Capture("AngryWarning");
+        Set(merchant, "nextCalm", Time.time);
+        yield return 0.1f;
+        Check(merchant.Anger == 4, "Anger cools off by one hit after 10 s without another.");
+        health.TakeDamage(10f, player.gameObject);
+        health.TakeDamage(10f, player.gameObject);
+        Check(merchant.AmbushActive && merchant.Ambush.Count >= 5 && merchant.Ambush.Count <= 10, $"The sixth hit calls {merchant.Ambush.Count} Bucket Brothers.");
+        yield return 1.2f;
+        Check(merchant.Ambush.All(c => c != null && c.enabled), "The Bucket Brothers spawn on the NavMesh and come for the player.");
+        yield return Capture("BucketBrothers");
+        foreach (HermitCrab crab in merchant.Ambush.ToArray()) crab.GetComponent<Health>().TakeDamage(999f, player.gameObject);
+        yield return 0.3f;
+        Check(!merchant.AmbushActive && merchant.Anger == 0 && merchant.Dialogue.CurrentLine.Contains("Claws down"),
+            "Beating every Bucket Brother makes the merchant surrender again.");
+        Check(merchant.IsDefeated && quest.Current == TutorialQuestFlow.Step.Complete, "The merchant stays friendly with the shop open.");
+
+        for (int hit = 0; hit < 6; hit++) health.TakeDamage(10f, player.gameObject);
+        Check(merchant.AmbushActive, "A second ambush can be called.");
+        var brothers = merchant.Ambush.ToArray();
+        player.Health.TakeDamage(999f);
+        for (int i = 0; i < 40 && player.IsRespawning; i++) yield return 0.1f;
+        yield return 0.2f;
+        Check(!merchant.AmbushActive && brothers.All(c => c == null) && merchant.Anger == 0, "Dying ends the ambush and clears the crabs.");
+        var wake = player.GetComponent<WakeUpSequence>();
+        for (int i = 0; i < 40 && wake.Playing; i++) yield return 0.1f;
+        movement.enabled = false;
+        foreach (var chunk in UnityEngine.Object.FindObjectsByType<ScrapPickup>()) UnityEngine.Object.Destroy(chunk.gameObject);
     }
 
     // Raises the scanner for a moment and records what it is pointing at in 'scanned'.

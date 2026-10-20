@@ -465,6 +465,15 @@ namespace SignalLost.Enemies
 
         public void ResetEncounter() => Respawn();
 
+        /// <summary>Starts chasing the target straight away, as if it had just spotted it (for spawned ambushes).</summary>
+        public void Provoke()
+        {
+            if (!started || state != State.Idle || !TargetAlive) return;
+            lastSeen = Time.time;
+            rig.Alert();
+            Enter(State.Chase);
+        }
+
         private void Respawn()
         {
             health.Restore();

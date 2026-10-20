@@ -24,6 +24,7 @@ namespace SignalLost.UI
         private static DialogueUi instance;
 
         private RectTransform bubbleLayer;
+        private CanvasGroup bubbleGroup;
         private CanvasGroup subtitleGroup;
         private Image subtitlePanel;
         private TextMeshProUGUI subtitleText;
@@ -201,8 +202,9 @@ namespace SignalLost.UI
             float now = Time.unscaledTime;
             float fadeIn = Mathf.Clamp01((now - subtitleShown) / 0.15f);
             float fadeOut = Mathf.Clamp01((subtitleUntil - now) / 0.35f);
-            // The popup carries its own text; a subtitle underneath it would only compete.
-            subtitleGroup.alpha = PopupOpen ? 0f : Mathf.Min(fadeIn, fadeOut);
+            // Popups and menus carry their own text; subtitles and bubbles underneath would only compete.
+            subtitleGroup.alpha = UiMenus.AnyOpen ? 0f : Mathf.Min(fadeIn, fadeOut);
+            bubbleGroup.alpha = Mathf.MoveTowards(bubbleGroup.alpha, UiMenus.AnyOpen ? 0f : 1f, Time.unscaledDeltaTime * 8f);
             float shake = subtitleWarning && now - subtitleShown < 0.4f ? Mathf.Sin(now * 70f) * 6f : 0f;
             subtitlePanel.rectTransform.anchoredPosition = new Vector2(shake, 0f);
         }
@@ -214,6 +216,8 @@ namespace SignalLost.UI
             var root = (RectTransform)transform;
 
             bubbleLayer = UiTheme.Stretch(UiTheme.Rect("Speech Bubbles", root));
+            bubbleGroup = bubbleLayer.gameObject.AddComponent<CanvasGroup>();
+            bubbleGroup.blocksRaycasts = false;
 
             RectTransform subtitle = UiTheme.Place(UiTheme.Rect("Subtitle", root),
                 new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(1160f, 120f));

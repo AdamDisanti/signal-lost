@@ -2517,6 +2517,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1202309172}
     - target: {fileID: 7899117747059539393, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
+      propertyPath: ambushCrab
+      value: 
+      objectReference: {fileID: 8887596149147691018, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+    - target: {fileID: 7899117747059539393, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       propertyPath: returnPoint
       value: 
       objectReference: {fileID: 1501662949}

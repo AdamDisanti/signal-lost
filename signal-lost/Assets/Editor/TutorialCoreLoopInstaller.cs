@@ -21,6 +21,9 @@ public static class TutorialCoreLoopInstaller
 {
     private const string ScenePath = "Assets/Scenes/Tutorial.unity";
     private const string ScannerRigPath = "Assets/Prefabs/Player/Scanner/ScannerRig.prefab";
+    private const string CrabPath = "Assets/Prefabs/Enemies/HermitCrab.prefab";
+    private const string FrogPath = "Assets/Prefabs/Enemies/MortarFrog.prefab";
+    private const string MerchantPath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
     private static readonly Color ScannerTeal = new Color(0.42f, 0.9f, 0.86f);
     private static readonly List<string> Log = new List<string>();
 
@@ -45,6 +48,8 @@ public static class TutorialCoreLoopInstaller
         InstallWakeUp(scene, player);
 
         InstallScannerObjectives(scene);
+
+        InstallScrapAndMerchant(scene);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -214,6 +219,47 @@ public static class TutorialCoreLoopInstaller
         signal.enabled = false; // TutorialQuestFlow switches on the current objective
         Log.Add("Added a quest signal to " + target.name + ".");
         return signal;
+    }
+
+    // ---------- Package 5: scrap and the angry merchant ----------
+
+    // Enemies drop scrap (placeholder amounts); the merchant's defeat drops a first haul of all four types so the
+    // rundown that follows has something to talk about. The friendly merchant calls hermit crabs when angered.
+    private static void InstallScrapAndMerchant(Scene scene)
+    {
+        SetDrops(CrabPath, (ScrapType.ScrapMetal, 2, 3), (ScrapType.Wiring, 0, 1), (ScrapType.CircuitBoards, 0, 1));
+        SetDrops(FrogPath, (ScrapType.ScrapMetal, 1, 2), (ScrapType.FuelCells, 1, 2));
+        SetDrops(MerchantPath, (ScrapType.ScrapMetal, 4, 4), (ScrapType.Wiring, 2, 2), (ScrapType.CircuitBoards, 2, 2), (ScrapType.FuelCells, 1, 1));
+
+        var merchant = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<MerchantCrab>(true)).First();
+        SetReference(merchant, "ambushCrab", AssetDatabase.LoadAssetAtPath<GameObject>(CrabPath).GetComponent<SignalLost.Enemies.HermitCrab>());
+    }
+
+    // Adds or rewrites a prefab's ScrapDropper. Variants (the merchant) store their table as an override.
+    private static void SetDrops(string path, params (ScrapType type, int min, int max)[] drops)
+    {
+        GameObject contents = PrefabUtility.LoadPrefabContents(path);
+        try
+        {
+            var dropper = contents.GetComponent<ScrapDropper>();
+            if (dropper == null) dropper = contents.AddComponent<ScrapDropper>();
+            var data = new SerializedObject(dropper);
+            SerializedProperty list = data.FindProperty("drops");
+            list.arraySize = drops.Length;
+            for (int i = 0; i < drops.Length; i++)
+            {
+                SerializedProperty entry = list.GetArrayElementAtIndex(i);
+                entry.FindPropertyRelative("type").enumValueIndex = (int)drops[i].type;
+                entry.FindPropertyRelative("min").intValue = drops[i].min;
+                entry.FindPropertyRelative("max").intValue = drops[i].max;
+            }
+            data.ApplyModifiedPropertiesWithoutUndo();
+            PrefabUtility.SaveAsPrefabAsset(contents, path);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(contents);
+        }
     }
 
     // ---------- Helpers ----------

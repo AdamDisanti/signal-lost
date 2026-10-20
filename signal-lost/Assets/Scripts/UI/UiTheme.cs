@@ -1,5 +1,7 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace SignalLost.UI
@@ -56,6 +58,31 @@ namespace SignalLost.UI
             scaler.referenceResolution = Reference;
             scaler.matchWidthOrHeight = 0.5f;
             return canvas;
+        }
+
+        /// <summary>Menus with clickable buttons need an EventSystem; scenes without one get it here.</summary>
+        public static void EnsureEventSystem()
+        {
+            if (EventSystem.current != null || Object.FindFirstObjectByType<EventSystem>() != null) return;
+            new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
+        }
+
+        /// <summary>A rounded, themed button. Disabled buttons stay readable but greyed.</summary>
+        public static Button Button(string name, Transform parent, string label, float fontSize = 26f)
+        {
+            Image background = Panel(name, parent, PanelLight, Edge, 0.6f);
+            background.raycastTarget = true;
+            var button = background.gameObject.AddComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1.2f, 1.1f, 0.9f);
+            colors.pressedColor = new Color(0.8f, 0.7f, 0.6f);
+            colors.disabledColor = new Color(0.5f, 0.5f, 0.55f, 0.6f);
+            button.colors = colors;
+            TextMeshProUGUI text = Label("Label", background.transform, fontSize, Text, TextAlignmentOptions.Center, FontStyles.Bold);
+            Stretch(text.rectTransform, 6f);
+            text.text = label;
+            return button;
         }
 
         public static RectTransform Rect(string name, Transform parent)

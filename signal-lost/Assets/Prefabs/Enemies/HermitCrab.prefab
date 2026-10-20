@@ -1390,6 +1390,7 @@ GameObject:
   - component: {fileID: 8066123752180398288}
   - component: {fileID: 8887596149147691018}
   - component: {fileID: 1949822043762120792}
+  - component: {fileID: 8512650683800514789}
   m_Layer: 0
   m_Name: HermitCrab
   m_TagString: Untagged
@@ -1467,6 +1468,9 @@ MonoBehaviour:
   shellOffset: {x: 0, y: 0, z: 0}
   shellRotation: {x: 0, y: 0, z: 0}
   shellScale: 1
+  hideShellPosition: {x: 0, y: -0.41, z: -0.13}
+  hideShellRotation: {x: 105, y: 0, z: 0}
+  shellFlipTime: 0.3
   visual: {fileID: 4216758757323933871}
   body: {fileID: 431301850140188767}
   shellSocket: {fileID: 1122183243432468701}
@@ -1484,6 +1488,7 @@ MonoBehaviour:
   - {fileID: 6678979097315100187}
   - {fileID: 5864150614908820566}
   - {fileID: 5693141713085606761}
+  clawGlowColor: {r: 1, g: 0.85, b: 0.35, a: 1}
 --- !u!114 &8887596149147691018
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1506,18 +1511,30 @@ MonoBehaviour:
   wanderSpeed: 1.2
   chaseSpeed: 3.2
   wanderRadius: 4
+  facePlayerWhileChasing: 1
+  chaseTurnSpeed: 360
   attackRange: 1.6
   attackReach: 1.9
+  attackArc: 90
   attackDamage: 15
   windupTime: 0.9
+  windupTracking: 0.5
   strikeTime: 0.14
   recoverTime: 0.6
+  missRecoverTime: 1.6
+  stumbleDistance: 0.8
   attackCooldown: 0.7
   lungeDistance: 0.6
   playerShove: 0.6
   staggerThreshold: 20
   staggerTime: 0.9
   knockback: 1.1
+  shellGuard: 1
+  hideAfterCharging: 0.5
+  reflectDamageMultiplier: 0.5
+  reflectSpread: 4
+  guardHoldTime: 0.9
+  guardCooldown: 0.5
   corpseTime: 3.5
   respawnDelay: 0
 --- !u!136 &1949822043762120792
@@ -1543,6 +1560,29 @@ CapsuleCollider:
   m_Height: 0.95
   m_Direction: 1
   m_Center: {x: 0, y: 0.45, z: 0.05}
+--- !u!114 &8512650683800514789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4396611760563897212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a919ebb127e774fe9b15dfc76b585980, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Inventory.ScrapDropper
+  drops:
+  - type: 0
+    min: 2
+    max: 3
+  - type: 1
+    min: 0
+    max: 1
+  - type: 2
+    min: 0
+    max: 1
+  popHeight: 0.6
 --- !u!1 &4512872401853929573
 GameObject:
   m_ObjectHideFlags: 0

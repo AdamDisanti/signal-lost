@@ -133,6 +133,7 @@ namespace SignalLost.Player
         private void Start()
         {
             DialogueUi.Instance.BindPlayer(transform);
+            InventoryUi.Instance.Bind(inventory);
             spawnPosition = transform.position;
             spawnRotation = transform.rotation;
             // An inactive stage-start copy also restores enemies destroyed or hidden by death.

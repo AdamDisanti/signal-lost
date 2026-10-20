@@ -19,6 +19,14 @@ namespace SignalLost.NPC
         [SerializeField] private MerchantShop shop;
         [Tooltip("After surrendering, the crab leads the player home; it waits while the player is this far behind.")]
         [SerializeField, Min(2f)] private float leadWaitDistance = 12f;
+
+        [Header("Angry merchant (hit while friendly)")]
+        [Tooltip("Crab prefab that answers the call when the player keeps hitting the friendly merchant.")]
+        [SerializeField] private HermitCrab ambushCrab;
+        [SerializeField, Min(1)] private int hitsBeforeAmbush = 6;
+        [Tooltip("Each hit is forgotten after this many seconds without another.")]
+        [SerializeField, Min(1f)] private float angerCooldown = 10f;
+        [SerializeField] private Vector2Int ambushSize = new Vector2Int(5, 10);
         private HermitCrab brain;
         private HermitCrabRig rig;
         private Health health;
@@ -32,6 +40,17 @@ namespace SignalLost.NPC
         private int nextHealthDialogue;
         private Coroutine damageDialogueRoutine;
         private readonly Queue<string[]> pendingDamageDialogue = new Queue<string[]>();
+        private readonly List<HermitCrab> ambush = new List<HermitCrab>();
+        private int anger;
+        private float nextCalm;
+        private static readonly string[] Warnings =
+        {
+            "Hey! That's not nice!",
+            "Hey, don't hit me! I'm a small business!",
+            "Ow! Do that again and I'm calling my cousins.",
+            "I'm SERIOUS, mechanic. They're very big cousins.",
+            "Last warning! One more and it's bucket time!"
+        };
         // Fractions of Max Health, so changing the prefab's HP does not break dialogue pacing.
         private static readonly float[] HealthDialogueThresholds = { 0.75f, 0.5f, 0.25f };
         private static readonly string[][] HealthDialogueLines =
@@ -49,6 +68,10 @@ namespace SignalLost.NPC
         public NpcDialogue Dialogue => dialogue;
         public MerchantShop Shop => shop;
         public event Action ArrivedHome;
+        /// <summary>Recent hits on the friendly crab; one is forgiven every few seconds without another.</summary>
+        public int Anger => anger;
+        public bool AmbushActive => ambush.Count > 0;
+        public IReadOnlyList<HermitCrab> Ambush => ambush;
 
         private void Awake()
         {
@@ -61,10 +84,10 @@ namespace SignalLost.NPC
             brain.enabled = false;
             health.Invulnerable = true;
         }
-        private void OnEnable() { health.Died += Defeated; health.Damaged += OnDamaged; }
+        private void OnEnable() { health.Died += Defeated; health.Damaged += OnDamaged; health.Blocked += OnBlocked; }
         private void OnDisable()
         {
-            health.Died -= Defeated; health.Damaged -= OnDamaged;
+            health.Died -= Defeated; health.Damaged -= OnDamaged; health.Blocked -= OnBlocked;
             StopDamageDialogue(); shop?.Close();
         }
 
@@ -106,6 +129,11 @@ namespace SignalLost.NPC
         public void Interact()
         {
             if (!IsDefeated) return;
+            if (AmbushActive)
+            {
+                dialogue.Warn("Busy! Watching my cousins teach you some manners.");
+                return;
+            }
             if (quest != null && quest.TalkToMerchant()) return;
             OpenShop();
         }
@@ -161,6 +189,7 @@ namespace SignalLost.NPC
 
         private void Update()
         {
+            if (IsDefeated) UpdateAnger();
             if (!IsDefeated && !encounterGreetingShown && player != null && !player.IsRespawning &&
                 Vector3.Distance(player.transform.position, transform.position) <= 9f)
             {
@@ -215,9 +244,77 @@ namespace SignalLost.NPC
             }
         }
 
+        // ---------- Angry merchant (meeting notes 2026-10-20) ----------
+
+        // The friendly crab cannot be hurt, but it notices every hit: warnings first, then the Bucket Brothers.
+        private void OnBlocked(Health _, float amount, GameObject source)
+        {
+            if (!IsDefeated || source == null || source.GetComponentInParent<TutorialPlayer>() == null) return;
+            rig.Flinch(false);
+            if (AmbushActive) return;
+            anger++;
+            nextCalm = Time.time + angerCooldown;
+            if (anger >= hitsBeforeAmbush) StartAmbush();
+            else dialogue.Warn(Warnings[Mathf.Min(anger, Warnings.Length) - 1]);
+        }
+
+        private void StartAmbush()
+        {
+            shop.Close();
+            dialogue.Warn("THAT'S IT! Bucket Brothers, ASSEMBLE!");
+            if (ambushCrab == null) { EndAmbush(); return; }
+            int count = UnityEngine.Random.Range(ambushSize.x, Mathf.Max(ambushSize.x, ambushSize.y) + 1);
+            for (int i = 0; i < count; i++)
+            {
+                float angle = (i + UnityEngine.Random.value * 0.5f) / count * Mathf.PI * 2f;
+                Vector3 spot = transform.position + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * UnityEngine.Random.Range(4.5f, 8f);
+                if (!NavMesh.SamplePosition(spot, out NavMeshHit hit, 4f, NavMesh.AllAreas)) continue;
+                Vector3 face = player != null ? player.transform.position - hit.position : -transform.forward;
+                face.y = 0f;
+                HermitCrab crab = Instantiate(ambushCrab, hit.position, face.sqrMagnitude > 0.01f ? Quaternion.LookRotation(face) : Quaternion.identity);
+                crab.name = "Bucket Brother " + (i + 1);
+                ambush.Add(crab);
+            }
+            if (ambush.Count == 0) { EndAmbush(); return; }
+            StartCoroutine(ProvokeAmbush());
+        }
+
+        // Spawned crabs finish Start (and find the NavMesh) on their first frame; then they charge.
+        private IEnumerator ProvokeAmbush()
+        {
+            yield return null;
+            yield return null;
+            foreach (HermitCrab crab in ambush) if (crab != null) crab.Provoke();
+        }
+
+        private void UpdateAnger()
+        {
+            if (AmbushActive)
+            {
+                foreach (HermitCrab crab in ambush) if (crab != null && !crab.IsDead) return;
+                EndAmbush();
+                return;
+            }
+            if (anger > 0 && Time.time >= nextCalm)
+            {
+                anger--;
+                nextCalm = Time.time + angerCooldown;
+            }
+        }
+
+        // Ends the ambush the way the fight ended: the crab surrenders again and the shop stays open.
+        private void EndAmbush()
+        {
+            foreach (HermitCrab crab in ambush) if (crab != null) Destroy(crab.gameObject, crab.IsDead ? 4f : 0f);
+            ambush.Clear();
+            anger = 0;
+            dialogue.Speak(4f, "All right, all right! Claws down... AGAIN.", "No hard feelings? The shop's still open.");
+        }
+
         public void ResetAfterPlayerRespawn()
         {
             shop.Close();
+            if (AmbushActive) EndAmbush();
             if (IsDefeated) return; // Friendly merchant and dropped/collected flask persist this session.
             StopDamageDialogue();
             nextHealthDialogue = 0;

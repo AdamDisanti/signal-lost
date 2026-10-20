@@ -21,6 +21,8 @@ namespace SignalLost.Scanner
         public TrackableTarget CurrentTarget => currentTarget;
         public float SignalStrength01 => signalStrength01;
         public Vector3 DirectionToTarget => directionToTarget;
+        /// <summary>How far away creatures are detected (quest objectives are tracked at any distance).</summary>
+        public float Range => config != null ? config.MaxRange : 0f;
 
         public event Action<TrackableTarget> OnTargetReached;
 
