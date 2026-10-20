@@ -169,7 +169,7 @@ namespace SignalLost.Editor
             foreach (string field in new[] { "inputActions", "view", "laser", "combatHud", "heldFlask", "enemies", "drunkVolume", "hud", "healthText", "promptText", "drunkText", "messageText", "blackoutOverlay" })
                 if (data.FindProperty(field).objectReferenceValue == null) throw new InvalidOperationException("Missing tutorial reference: " + field);
             if (player.GetComponent<MiningLaser>().enabled) throw new InvalidOperationException("Player must start unarmed.");
-            if (UnityEngine.Object.FindObjectsByType<TutorialPickup>().Length != 2) throw new InvalidOperationException("Expected laser and flask pickups.");
+            if (UnityEngine.Object.FindObjectsByType<TutorialPickup>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length != 2) throw new InvalidOperationException("Expected laser and flask pickups.");
             if (UnityEngine.Object.FindObjectsByType<PlayerDamageZone>().Length != 1) throw new InvalidOperationException("Damage test pad missing.");
             if (UnityEngine.Object.FindObjectsByType<TrainingDummy>().Length != 3) throw new InvalidOperationException("Training targets missing.");
             foreach (GameObject root in player.gameObject.scene.GetRootGameObjects())

@@ -3,6 +3,8 @@
 Open `signal-lost/Assets/Scenes/Tutorial.unity` in Unity **6000.6.2f1** and press Play. Gameplay is already installed; **do not rerun the creation tools** over the scene.
 
 The rocket, original source models, shared player prefab and working gameplay are preserved. The current [480-meter lunar revision](tutorial-impact-site.md) replaces the extreme industrial terrain/landmarks with rolling crater fields, grey regolith and a lower blended perimeter, while retaining the core tutorial floor/routes. Gameplay components remain on the tutorial player/prop instances; the original combat test scene remains separate and unchanged.
+**Current quest sequence:** talk to Cavendish with E, collect the laser, defeat the dedicated merchant crab, and collect its dropped flask. See [tutorial NPCs](tutorial-npcs.md) for the current walkthrough. The flask now stays hidden until the quest crab is defeated; the existing combat and healing mechanics below are reused.
+
 
 ## Controls and test loop
 
@@ -16,7 +18,7 @@ The rocket, original source models, shared player prefab and working gameplay ar
 | Escape / left click | Release / recapture the mouse, following the existing controller behavior |
 
 1. Start unarmed. Find the basin near the capybara, look at the orange/graphite laser and press **E**. Its world copy disappears and the combat-demo model is equipped. No attacks or held weapon are available before collection.
-2. Pick up the existing flask near the basin with **E**. It has unlimited uses, not unlimited simultaneous sips.
+2. Talk to Cavendish with **E**, defeat the larger flask-carrying merchant crab, then pick up its dropped flask with **E**. It has unlimited uses, not unlimited simultaneous sips.
 3. Walk onto the marked **red Damage Test Pad**, near the starting area, to lose **20 HP immediately and once per second** while remaining inside it. Step off to stop taking damage. It only damages the player, not props/targets.
 4. Press **F** to lift/tilt the existing flask model and drink. Each sip heals **35 HP**, capped at the existing **100 HP** maximum. Healing and the drunk stack apply once halfway through the 0.9-second animation. Drinks have a 1.2-second cooldown. The laser is hidden and attacks/charging are cancelled during drinking, then restored.
 5. Test the original three-hit combo and charged bolts against the three capsule practice targets near the basin. These use the existing `Health` and `TrainingDummy` classes, not new enemy AI. Tutorial targets stay defeated until the stage resets; combat-demo dummies still respawn automatically after three seconds.
@@ -34,7 +36,7 @@ Gamepad bindings are supplied but require a physical hardware check. Optional ex
 - Reaching zero health follows the same return/reset flow with a death message. The player retains the laser/flask once collected, and collected world copies remain removed. Gear is not duplicated.
 - On death/blackout the whole **Tutorial Gameplay > Tutorial Targets** group is recreated from an inactive stage-start snapshot: all targets, including destroyed ones, return to their original transforms and full HP. Put tutorial enemy actors in this group when replacing the practice targets. Live laser bolts are cleared so they cannot immediately hit fresh targets.
 
-These numbers are prototype tuning, exposed on the tutorial player's `TutorialPlayer` component. No overheal, save/checkpoint network, general equipment inventory, inter-stage gear persistence, enemy AI, quests, scanner or gate transitions are introduced. Lawson's rule to retain pre-stage equipment remains a requirement for the future inventory/stage-transition integration; the current level only has the two basic pickups.
+These numbers are prototype tuning, exposed on the tutorial player's `TutorialPlayer` component. No overheal, save/checkpoint network, general equipment inventory, inter-stage gear persistence, quests, scanner or gate transitions are introduced. Existing crab/frog AI is now present in a separate tutorial encounter, described below. Lawson's rule to retain pre-stage equipment remains a requirement for the future inventory/stage-transition integration; the current level only has the two basic pickups.
 
 ## Authoring and reusable assets
 
@@ -77,3 +79,28 @@ Unity.exe -batchmode -nographics -projectPath <temporary-project> -executeMethod
 ```
 
 Omit `-quit`; the harness exits with a pass/fail code. Omit `-nographics` and use `-force-d3d11` for rendered distortion checks. Logs and captures are written to that project's ignored `Logs/` directory. No dependencies or Unity/package versions were changed in the delivered project.
+
+## Prototype-demo enemy encounter
+
+Branch: `feature/playable-tutorial-demo`. The existing tutorial dummies are preserved, with their original transforms, prefab references, health and respawn settings.
+
+One existing **HermitCrab** prefab and one **MortarFrog** prefab are placed beyond the basin/target area, away from the unarmed starting location:
+
+| Actor | Approximate world position |
+| --- | --- |
+| Tutorial Hermit Crab | (62.50, 0.04, 22.14) |
+| Tutorial Mortar Frog | (77.23, 0.72, 15.21) |
+
+Find them under **Tutorial Gameplay > Tutorial Targets > Tutorial Enemies** in the Hierarchy; select an actor and press **F in the Scene view** to frame it. Collect the laser/flask first, then approach the encounter. Controls and enemy behaviors are unchanged; see [crab](enemy-prototype.md) and [frog](frog-enemy.md) guides. No new boss, quest, reward or progression rules are added.
+
+**Tutorial Encounter Navigation**, next to the target group, holds a baked NavMeshSurface for a 100 x 40 x 100 m volume around the encounter. The bake uses physics colliders and excludes NavMesh agents via the surface's existing defaults. This is local encounter navigation, not a promise that enemies can traverse the entire 320 m map. After changing encounter terrain or collision, rebake that surface in Unity and include its navigation asset; the exact binary `.asset` path has an LFS rule. Do not rerun the original scene-creation tools.
+
+Both enemies stay defeated until the player's next death/blackout. They participate in the existing stage-start snapshot/reset together with the unchanged dummies. Frog projectiles and puddles from the previous attempt are removed alongside player bolts during reset. Shared enemy prefabs and separate enemy test scenes are unchanged.
+
+### Integration checks
+
+Unity **6000.6.2f1** compilation, prefab placement, navigation bake, and isolated Play Mode checks passed. The checks confirmed both enemies on the NavMesh, complete routes from the pickup area, actual crab AI damage, actual frog projectile damage, enemy death and stage-reset restoration, player pickup retention, removal of old goo, and all three dummies remaining at their original positions/full health. The authored scene change contains only added data; existing dummy serialized data is unchanged.
+
+The harness uses automatic enemy AI plus direct player relocation, pickup collection and health damage for batch-mode setup/death checks; it is not a physical-input test or a full visual playthrough. The existing editor-only SearchDatabase startup exception is excluded, as in the prior tutorial harness; gameplay exceptions fail the run. Manually verify encounter visibility, movement/combat feel, enemy special attacks, and both death and ninth-drink blackout in the editor.
+
+Reproduction tools: [TutorialEnemiesSetup.cs](../tools/unity/TutorialEnemiesSetup.cs) and [TutorialEnemiesSmoke.cs](../tools/unity/TutorialEnemiesSmoke.cs). Copy the smoke harness and setup helper into `Assets/Editor` of a disposable project under the system temporary directory. With the already-integrated scene, run Unity with `-batchmode -nographics -projectPath <temporary-project> -executeMethod TutorialEnemiesSmoke.Start -logFile <log-path>`; omit `-quit`. `TutorialEnemiesSetup.Create` is only for adding this integration to a pre-enemy copy of the tutorial; it refuses an already-integrated scene. Test scripts remain outside the real project's Assets.

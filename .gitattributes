@@ -64,3 +64,6 @@
 *.[wW][oO][fF][fF]2 filter=lfs diff=lfs merge=lfs -text
 *.[pP][dD][fF] filter=lfs diff=lfs merge=lfs -text
 *.[dD][oO][cC][xX] filter=lfs diff=lfs merge=lfs -text
+
+# Baked tutorial encounter navigation is native binary.
+"signal-lost/Assets/Prefabs/Enviornment objects/TutorialCrashSite/Gameplay/TutorialEncounterNavMesh.asset" filter=lfs diff=lfs merge=lfs -text
