@@ -102,6 +102,9 @@ namespace SignalLost.Enemies.Desert
 
         // ---------- Unity / DesertFodder hooks ----------
 
+        // The laser's combo finisher only stuns small enemies (meeting notes 2026-10-20).
+        protected override bool CanBeStunned => false;
+
         protected override void OnEnable()
         {
             base.OnEnable();

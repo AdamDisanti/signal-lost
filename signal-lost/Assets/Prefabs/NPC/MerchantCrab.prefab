@@ -187,7 +187,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9541d86e2fd84c1d9990edf0852d74ab, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshPro
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -197,7 +197,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text:
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -282,12 +282,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d0ca333b76544c99a3f2cfbc99f4a83c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.NpcDialogue
   text: {fileID: 7983126383743592789}
   speaker: Merchant Crab
   secondsPerLine: 6
   visibleDistance: 14
+  subtitleDistance: 20
 --- !u!1001 &2888327524364770074
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -386,7 +387,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8066123752180398288, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
       propertyPath: shellPrefab
-      value:
+      value: 
       objectReference: {fileID: 9180836610715682660, guid: 2509127ba854e45d1a500cea5093cc6b, type: 3}
     - target: {fileID: 8359211845770697674, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
       propertyPath: m_LocalScale.x
@@ -439,6 +440,46 @@ PrefabInstance:
     - target: {fileID: 8359211845770697674, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.data[0].max
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.data[0].min
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.data[1].max
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.data[1].min
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.data[2].max
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.data[2].min
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.data[3].max
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.data[3].min
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8512650683800514789, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      propertyPath: drops.Array.data[3].type
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 8887596149147691018, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
       propertyPath: m_Enabled
@@ -500,13 +541,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 46b7b426c7cd4b2684113f6dd02826ef, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.MerchantCrab
   returnPoint: {fileID: 0}
   flaskDrop: {fileID: 0}
   carriedFlask: {fileID: 8292495766570075412}
   dialogue: {fileID: 8876351220341108976}
   shop: {fileID: 2610125622718312351}
+  leadWaitDistance: 12
+  ambushCrab: {fileID: 0}
+  hitsBeforeAmbush: 6
+  angerCooldown: 10
+  ambushSize: {x: 5, y: 10}
 --- !u!114 &4017251773753087503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -517,7 +563,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 72eb1a46725241f99d031404dd9fccbd, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.NpcActor
   role: 1
   quest: {fileID: 0}
@@ -532,7 +578,5 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 920827ce8e36463ea187320421161fd8, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.MerchantShop
-  ui: {fileID: 0}
-  dialogue: {fileID: 0}

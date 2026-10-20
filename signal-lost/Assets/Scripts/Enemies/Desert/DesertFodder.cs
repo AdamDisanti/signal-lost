@@ -15,7 +15,7 @@ namespace SignalLost.Enemies.Desert
     /// once NavMeshBaker has built the NavMesh. All numbers are placeholders to tune in the Inspector.
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent), typeof(Health))]
-    public abstract class DesertFodder : MonoBehaviour
+    public abstract class DesertFodder : MonoBehaviour, IStunnable
     {
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
@@ -58,8 +58,14 @@ namespace SignalLost.Enemies.Desert
         private Renderer[] renderers;
         private Collider[] colliders;
         private MaterialPropertyBlock block;
-        private float flashUntil;
-        private bool flashing;
+        private float flashUntil, stunnedUntil;
+        private bool flashing, wasStunned;
+
+        /// <summary>True while dazed by the mining laser's combo finisher; its state machine pauses meanwhile.</summary>
+        public bool IsStunned => Time.time < stunnedUntil;
+
+        /// <summary>Mini-bosses share this base class but are too big to be stunned by the combo.</summary>
+        protected virtual bool CanBeStunned => true;
 
         // ---------- Unity ----------
 
@@ -128,7 +134,27 @@ namespace SignalLost.Enemies.Desert
                 if (Time.time - DeathTime >= corpseTime) Destroy(gameObject);
                 return;
             }
+            if (IsStunned)
+            {
+                // Dizzy: stands still, spinning and wobbling in place.
+                wasStunned = true;
+                Halt();
+                float spin = (Time.time * 220f) % 360f;
+                visual.localRotation = VisualRestRotation * Quaternion.Euler(0f, spin, Mathf.Sin(Time.time * 14f) * 12f);
+                return;
+            }
+            if (wasStunned)
+            {
+                wasStunned = false;
+                visual.localRotation = VisualRestRotation;
+            }
             Tick(Time.deltaTime);
+        }
+
+        public void Stun(float seconds)
+        {
+            if (!CanBeStunned || IsDead || seconds <= 0f) return;
+            stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds);
         }
 
         protected virtual void LateUpdate()

@@ -587,6 +587,7 @@ GameObject:
   - component: {fileID: 3521588064810457918}
   - component: {fileID: 5444651838569466136}
   - component: {fileID: 4793892196913013064}
+  - component: {fileID: 8548669135033511191}
   m_Layer: 0
   m_Name: MortarFrog
   m_TagString: Untagged
@@ -676,6 +677,9 @@ MonoBehaviour:
   canMouth: {fileID: 4126966523296832807}
   gooColor: {r: 0.45, g: 1, b: 0.25, a: 1}
   hopHeight: 1.4
+  fireHopHeight: 0.55
+  loadRear: 24
+  squashAmount: 1
 --- !u!114 &5444651838569466136
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -741,6 +745,26 @@ CapsuleCollider:
   m_Height: 0.84
   m_Direction: 1
   m_Center: {x: 0, y: 0.32, z: 0.02}
+--- !u!114 &8548669135033511191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2112816268695513050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a919ebb127e774fe9b15dfc76b585980, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Inventory.ScrapDropper
+  drops:
+  - type: 0
+    min: 1
+    max: 2
+  - type: 3
+    min: 1
+    max: 2
+  popHeight: 0.6
 --- !u!1 &2594551544849587289
 GameObject:
   m_ObjectHideFlags: 0

@@ -21,6 +21,8 @@ namespace SignalLost.Scanner
         public TrackableTarget CurrentTarget => currentTarget;
         public float SignalStrength01 => signalStrength01;
         public Vector3 DirectionToTarget => directionToTarget;
+        /// <summary>How far away creatures are detected (quest objectives are tracked at any distance).</summary>
+        public float Range => config != null ? config.MaxRange : 0f;
 
         public event Action<TrackableTarget> OnTargetReached;
 
@@ -54,6 +56,14 @@ namespace SignalLost.Scanner
 
         private void ScanForNearestTarget()
         {
+            // Quest objectives outrank creatures and are tracked at any distance (meeting notes 2026-10-20).
+            QuestSignalSource quest = QuestSignalSource.Nearest(scanOrigin.position);
+            if (quest != null)
+            {
+                SetCurrentTarget(quest);
+                return;
+            }
+
             EnemySignalSource bestTarget = null;
             float maxRange = config.MaxRange;
             float nearestDistanceSquared = maxRange * maxRange;
@@ -91,7 +101,7 @@ namespace SignalLost.Scanner
             float distance = offset.magnitude;
             float MaxRange = config.MaxRange;
 
-            if (distance > MaxRange)
+            if (distance > MaxRange && !(currentTarget is QuestSignalSource))
             {
                 SetCurrentTarget(null);
                 signalStrength01 = 0f;

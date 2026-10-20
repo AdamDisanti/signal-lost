@@ -188,6 +188,7 @@ namespace SignalLost.Editor
 
             // Components: AddComponent<MortarFrog> also adds the NavMeshAgent, Health and rig it requires.
             root.AddComponent<MortarFrog>();
+            root.AddComponent<SignalLost.Inventory.ScrapDropper>(); // defeated enemies drop scrap (tutorial core loop)
             var agent = root.GetComponent<NavMeshAgent>();
             agent.enabled = false; // switched on in MortarFrog.Start, once the NavMesh has been built
             agent.radius = 0.45f;

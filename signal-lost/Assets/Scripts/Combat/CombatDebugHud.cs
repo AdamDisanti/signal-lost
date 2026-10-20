@@ -98,12 +98,16 @@ namespace SignalLost.Combat
             }
             else if (laser.IsCoolingDown)
             {
-                GUI.Label(new Rect(bar.x, bar.y - 26f, bar.width, 24f), "COOLING", label);
+                // Long cooldowns (the tutorial's 10 s) need a countdown; the old half-second one just says COOLING.
+                string cooling = laser.ShotCooldown > 2f ? $"BOLT COOLING  {Mathf.CeilToInt(laser.ShotCooldownRemaining)}s" : "COOLING";
+                GUI.Label(new Rect(bar.x, bar.y - 26f, bar.width, 24f), cooling, label);
             }
             else if (laser.ComboStep > 0)
             {
                 GUI.Label(new Rect(bar.x, bar.y - 26f, bar.width, 24f), $"SWING {laser.ComboStep} / {laser.ComboLength}", label);
             }
+            if (laser.ComboCooldownRemaining > 0f)
+                GUI.Label(new Rect(bar.x, bar.y - 50f, bar.width, 24f), $"COMBO RECHARGING  {laser.ComboCooldownRemaining:0.0}s", label);
 
             GUI.Label(new Rect(16f, Screen.height - 40f, 600f, 24f),
                 "Left click: swing (combo)    Hold right click: charge, release to fire", hint);
