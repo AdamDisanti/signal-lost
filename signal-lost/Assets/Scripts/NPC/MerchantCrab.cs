@@ -128,7 +128,9 @@ namespace SignalLost.NPC
             yield return new WaitForSeconds(1.2f);
             health.Restore();
             rig.ResetPose();
-            foreach (Collider item in GetComponents<Collider>()) item.enabled = true;
+            // The knockback-only controller must stay off after surrender.
+            foreach (Collider item in GetComponents<Collider>())
+                if (!(item is CharacterController)) item.enabled = true;
             agent.enabled = true;
             if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 3, NavMesh.AllAreas)) agent.Warp(hit.position);
             agent.updateRotation = true;

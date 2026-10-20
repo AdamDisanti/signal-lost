@@ -41,6 +41,8 @@ namespace SignalLost.Combat
         [Header("Melee combo (placeholder values)")]
         [Tooltip("Damage of each swing in order. The number of entries is the combo length.")]
         [SerializeField] private float[] comboDamage = { 10f, 10f, 20f };
+        [Tooltip("Optional motion per combo strike. None/empty preserves existing enemy hit reactions.")]
+        [SerializeField] private Knockback[] comboKnockback = new Knockback[0];
         [Tooltip("Seconds each swing takes, including recovery. Same order as Combo Damage.")]
         [SerializeField] private float[] comboDuration = { 0.4f, 0.4f, 0.65f };
         [SerializeField, Min(0.5f)] private float meleeRange = 2.1f;
@@ -77,6 +79,8 @@ namespace SignalLost.Combat
         [SerializeField, Min(1f)] private float shotRange = 30f;
         [Tooltip("Seconds after firing before charging can start again.")]
         [SerializeField, Min(0f)] private float shotCooldown = 0.5f;
+        [Tooltip("Optional bolt knockback, disabled by default; follows the bolt's current travel direction.")]
+        [SerializeField] private Knockback shotKnockback;
 
         /// <summary>
         /// One melee strike, as poses relative to the resting hold (positions in metres, rotations in degrees:
@@ -360,7 +364,9 @@ namespace SignalLost.Combat
             bool connected = false;
             foreach (Health target in struckThisSwing)
             {
-                if (!target.TakeDamage(damage, gameObject)) continue;
+                Knockback motion = comboKnockback != null && comboKnockback.Length > 0
+                    ? comboKnockback[Mathf.Min(comboStep, comboKnockback.Length - 1)] : default;
+                if (!target.TakeDamage(damage, gameObject, motion, target.transform.position - transform.position)) continue;
                 LastHitTime = Time.time;
                 connected = true;
             }
@@ -404,7 +410,7 @@ namespace SignalLost.Combat
                 Mathf.Lerp(minShotDamage, maxShotDamage, charge),
                 Mathf.Lerp(minShotSpeed, maxShotSpeed, charge),
                 Mathf.Lerp(minShotRadius, maxShotRadius, charge),
-                shotRange, hitMask, transform, OnBoltHit);
+                shotRange, hitMask, transform, OnBoltHit, shotKnockback);
 
             cooldownUntil = Time.time + shotCooldown;
             recoil = 1f;

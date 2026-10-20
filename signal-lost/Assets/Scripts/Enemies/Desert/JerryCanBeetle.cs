@@ -1,3 +1,4 @@
+using SignalLost.Combat;
 using UnityEngine;
 
 namespace SignalLost.Enemies.Desert
@@ -33,6 +34,7 @@ namespace SignalLost.Enemies.Desert
         [Header("Blast")]
         [SerializeField, Min(0.5f)] private float blastRadius = 3.6f;
         [SerializeField, Min(0f)] private float blastDamage = 32f;
+        [SerializeField] private Knockback blastKnockback = new Knockback(KnockbackMode.Launch, 8f, 5f);
         [Tooltip("Fraction of the damage dealt at the very edge of the blast.")]
         [SerializeField, Range(0f, 1f)] private float edgeDamage = 0.3f;
         [SerializeField] private LayerMask blastMask = ~0;
@@ -131,7 +133,7 @@ namespace SignalLost.Enemies.Desert
             exploded = true;
             Vector3 point = transform.position;
             if (!IsDead) Kill(gameObject); // counts as a kill for the spawner
-            FodderExplosion.Explode(point, blastRadius, blastDamage, edgeDamage, gameObject, transform, explosionMaterial, blastMask);
+            FodderExplosion.Explode(point, blastRadius, blastDamage, edgeDamage, gameObject, transform, explosionMaterial, blastMask, blastKnockback);
             SetRenderersVisible(false); // blown to bits
         }
 

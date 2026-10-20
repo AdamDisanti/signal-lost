@@ -84,18 +84,22 @@ Omit `-quit`; the harness exits with a pass/fail code. Omit `-nographics` and us
 
 Branch: `feature/playable-tutorial-demo`. The existing tutorial dummies are preserved, with their original transforms, prefab references, health and respawn settings.
 
-One existing **HermitCrab** prefab and one **MortarFrog** prefab are placed beyond the basin/target area, away from the unarmed starting location:
+The current scene has **three HermitCrab actors and three MortarFrog actors**, including duplicated encounter instances, beyond the basin/target area. The dedicated quest merchant is separate. All six regular enemy spawns are grounded on the current terrain; approximate positions of the original named pair are:
 
 | Actor | Approximate world position |
 | --- | --- |
-| Tutorial Hermit Crab | (62.50, 0.04, 22.14) |
-| Tutorial Mortar Frog | (77.23, 0.72, 15.21) |
+| Tutorial Hermit Crab | (62.97, 7.43, 19.81) |
+| Tutorial Mortar Frog | (77.23, 8.07, 15.21) |
 
-Find them under **Tutorial Gameplay > Tutorial Targets > Tutorial Enemies** in the Hierarchy; select an actor and press **F in the Scene view** to frame it. Collect the laser/flask first, then approach the encounter. Controls and enemy behaviors are unchanged; see [crab](enemy-prototype.md) and [frog](frog-enemy.md) guides. No new boss, quest, reward or progression rules are added.
+Find them under **Tutorial Gameplay > Tutorial Targets > Tutorial Enemies** in the Hierarchy; select an actor and press **F in the Scene view** to frame it. Collect the laser/flask first, then approach the encounter. Controls and enemy AI patterns are retained; heavy claw impacts now use shared [directional knockback](knockback.md). See [crab](enemy-prototype.md) and [frog](frog-enemy.md) guides. No new boss, quest, reward or progression rules are added.
 
-**Tutorial Encounter Navigation**, next to the target group, holds a baked NavMeshSurface for a 100 x 40 x 100 m volume around the encounter. The bake uses physics colliders and excludes NavMesh agents via the surface's existing defaults. This is local encounter navigation, not a promise that enemies can traverse the entire 320 m map. After changing encounter terrain or collision, rebake that surface in Unity and include its navigation asset; the exact binary `.asset` path has an LFS rule. Do not rerun the original scene-creation tools.
+**Tutorial Encounter Navigation**, next to the target group, covers the current 480 x 480 m terrain with a physics-collider bake and height detail. The former encounter-only bake followed the pre-lunar ground, up to about 12 m beneath the visible terrain; NavMesh agents follow that surface rather than physics gravity. The revision also grounds the authored crab/frog spawns, including duplicates, on the new navigation. After changing terrain or collision, open the saved tutorial and use **Signal Lost > Tutorial Crash Site > Rebake Tutorial Navigation**. This updates the existing navigation asset without changing its GUID and grounds enemy spawns; review/save the scene and include the navigation asset (its exact binary `.asset` path has an LFS rule). Do not rerun the original scene-creation tools. Small decorative regolith stones intentionally have no collision; large boulders and terrain remain solid.
 
 Both enemies stay defeated until the player's next death/blackout. They participate in the existing stage-start snapshot/reset together with the unchanged dummies. Frog projectiles and puddles from the previous attempt are removed alongside player bolts during reset. Shared enemy prefabs and separate enemy test scenes are unchanged.
+
+### Terrain regression check
+
+`TutorialTerrainSmoke.cs` (with `TutorialEnemiesSetup.cs` for the temporary-project guard) checks collider/data agreement, full-terrain navigation coverage, thousands of height samples, every authored crab/frog spawn, merchant activation, and actual agent walks onto the reshaped lunar ground. Copy the tools into a disposable matching project's `Assets/Editor`, then run `-batchmode -nographics -projectPath <temp-project> -executeMethod TutorialTerrainSmoke.Start` without `-quit`. Unity 6000.6.2f1 passed 4,619 height samples and 25 seconds of movement for all seven agents; the old bake fails the coverage check. This is a physics/navigation check, not a rendered or physical-input playthrough. The known editor SearchDatabase startup exception remains unrelated to gameplay.
 
 ### Integration checks
 

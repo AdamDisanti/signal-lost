@@ -90,3 +90,9 @@ Instructional dialogue now advances only on E. Cavendish's first quest uses a sc
 ### Overhead flavour versus quest information
 
 The project lead clarified that first-encounter and combat crab chatter should appear overhead, while all quest-related instructions must be interacted with and shown in popups. The hostile crab keeps its no-E-prompt rule; its first approach greeting is proximity-triggered. After defeat its first friendly E greeting appears overhead, then the next E opens the reward/trading popup. Cavendish's quest reminders and completion instructions also use popups; only non-quest small talk remains overhead.
+
+## Directional knockback decisions
+
+Lawson requested fixing tutorial enemies following old navigation beneath the lunar terrain first, then reusable damage-associated [knockback](knockback.md). Initially new knockback is enabled for enemy heavy attacks and explosions against the player; existing basic-attack shoves are migrated rather than adding new ones. Shoves are horizontal, while heavy impacts/explosions can launch upward. Direction comes from the strike origin, projectile travel, or blast center, never the target's facing. The shared damage API and default-off player melee/bolt profiles support future player-to-enemy knockback, including reflected projectiles and opt-in blast knockback against enemies. Enemy hit flinches/staggers remain unchanged unless an explicit profile replaces their physical push.
+
+Exact impulse strengths, lift and slowdown were not specified; the documented per-attack presets are provisional and need hands-on tuning. Scripted airborne bosses require flight-specific receiving behavior before enabling player knockback against them. No stun combo, weapon cooldown/balance changes, Burnout aiming changes, fall damage, merchant retaliation, or other meeting-list tasks are authorized by this step.

@@ -16,6 +16,7 @@ namespace SignalLost.Combat
         [SerializeField] private UnityEvent died = new UnityEvent();
 
         private float current;
+        private bool deathRaised;
 
         /// <summary>Raised after any change to current health (damage, healing, or restore).</summary>
         public event Action<Health> Changed;
@@ -26,6 +27,9 @@ namespace SignalLost.Combat
 
         // Runtime protection for friendly NPCs; normal actors remain damageable by default.
         public bool Invulnerable { get; set; }
+        /// <summary>The current hit context, available to damage reactions and weak-spot relays.</summary>
+        public Knockback HitKnockback { get; private set; }
+        public Vector3 HitDirection { get; private set; }
         public float Max => maxHealth;
         public float Current => current;
         public float Normalized => current / maxHealth;
@@ -33,23 +37,39 @@ namespace SignalLost.Combat
 
         private void Awake() => current = maxHealth;
 
-        /// <summary>Applies damage. Returns false if the amount is not positive or this is already dead.</summary>
-        public bool TakeDamage(float amount, GameObject source = null)
+        /// <summary>Damage with optional attack-directed motion. Rejected and lethal hits do not push a target.</summary>
+        public bool TakeDamage(float amount, GameObject source = null, Knockback knockback = default, Vector3 hitDirection = default)
         {
-            if (Invulnerable || amount <= 0f || IsDead) return false;
+            if (Invulnerable || amount <= 0f || float.IsNaN(amount) || float.IsInfinity(amount) || IsDead) return false;
 
-            float applied = Mathf.Min(amount, current);
-            current -= applied;
-            Damaged?.Invoke(this, applied, source);
-            Changed?.Invoke(this);
-
-            if (current <= 0f)
+            Knockback previousKnockback = HitKnockback;
+            Vector3 previousDirection = HitDirection;
+            HitKnockback = knockback;
+            HitDirection = hitDirection;
+            try
             {
-                current = 0f;
-                Died?.Invoke(this);
-                died.Invoke();
+                float applied = Mathf.Min(amount, current);
+                current -= applied;
+                Damaged?.Invoke(this, applied, source);
+                Changed?.Invoke(this);
+
+                if (current <= 0f && !deathRaised)
+                {
+                    current = 0f;
+                    deathRaised = true;
+                    KnockbackReceiver.Reset(this);
+                    Died?.Invoke(this);
+                    died.Invoke();
+                }
+                else if (!IsDead && !Invulnerable)
+                    KnockbackReceiver.Apply(this, knockback, hitDirection);
+                return true;
             }
-            return true;
+            finally
+            {
+                HitKnockback = previousKnockback;
+                HitDirection = previousDirection;
+            }
         }
 
         /// <summary>
@@ -67,6 +87,8 @@ namespace SignalLost.Combat
         /// <summary>Resets to full health, including after death (respawn, checkpoint, dummy reset).</summary>
         public void Restore()
         {
+            KnockbackReceiver.Reset(this);
+            deathRaised = false;
             current = maxHealth;
             Changed?.Invoke(this);
         }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SignalLost.Combat;
+using SignalLost.Player;
 using UnityEngine;
 
 namespace SignalLost.Enemies.Desert
@@ -20,34 +21,31 @@ namespace SignalLost.Enemies.Desert
     /// </summary>
     public static class FodderExplosion
     {
-        private static readonly Collider[] Overlaps = new Collider[64];
-        private static readonly HashSet<Health> Damaged = new HashSet<Health>();
-        private static readonly HashSet<IIgnitable> Ignited = new HashSet<IIgnitable>();
-
         /// <param name="edgeDamage">Fraction of the damage still dealt at the very edge of the radius (0 to 1).</param>
         /// <param name="ignore">This object and its children are not damaged (the exploding beetle itself).</param>
         public static void Explode(Vector3 point, float radius, float damage, float edgeDamage, GameObject source,
-            Transform ignore, Material flashMaterial, LayerMask mask)
+            Transform ignore, Material flashMaterial, LayerMask mask, Knockback knockback = default, bool knockbackEnemies = false)
         {
-            Damaged.Clear();
-            Ignited.Clear();
-            int count = Physics.OverlapSphereNonAlloc(point, radius, Overlaps, mask, QueryTriggerInteraction.Ignore);
-            for (int i = 0; i < count; i++)
+            if (radius <= 0f || float.IsNaN(radius) || float.IsInfinity(radius)) return;
+            // Per-blast collections keep nested death/chain explosions from corrupting the outer blast.
+            var damaged = new HashSet<Health>();
+            var ignited = new HashSet<IIgnitable>();
+            foreach (Collider hit in Physics.OverlapSphere(point, radius, mask, QueryTriggerInteraction.Ignore))
             {
-                Collider hit = Overlaps[i];
                 if (ignore != null && hit.transform.IsChildOf(ignore)) continue;
 
                 var ignitable = hit.GetComponentInParent<IIgnitable>();
-                if (ignitable != null) Ignited.Add(ignitable);
+                if (ignitable != null) ignited.Add(ignitable);
 
                 Health health = hit.GetComponentInParent<Health>();
-                if (health == null || health.IsDead || !Damaged.Add(health)) continue;
+                if (health == null || health.IsDead || !damaged.Add(health)) continue;
                 float distance = Vector3.Distance(point, hit.ClosestPoint(point));
                 float falloff = Mathf.Lerp(1f, Mathf.Clamp01(edgeDamage), Mathf.Clamp01(distance / radius));
-                health.TakeDamage(damage * falloff, source);
+                Knockback motion = knockbackEnemies || health.GetComponent<FirstPersonController>() != null ? knockback : default;
+                health.TakeDamage(damage * falloff, source, motion, health.transform.position - point);
             }
 
-            foreach (IIgnitable item in Ignited)
+            foreach (IIgnitable item in ignited)
                 if (item is Object unityObject && unityObject != null) item.Ignite(source);
 
             ImpactFlash.Spawn(flashMaterial, point + Vector3.up * 0.4f, radius * 0.9f, 0.22f);

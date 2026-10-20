@@ -46,6 +46,7 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(0.1f)] private float diveTime = 0.55f;
         [SerializeField, Min(0f)] private float diveDamage = 22f;
         [SerializeField, Min(0.5f)] private float diveRadius = 2.4f;
+        [SerializeField] private Knockback diveKnockback = new Knockback(KnockbackMode.Launch, 7f, 5f);
         [Tooltip("Seconds it sits on the ground after a dive: the melee window.")]
         [SerializeField, Min(0f)] private float landedTime = 1.1f;
         [SerializeField, Min(0.1f)] private float climbTime = 1f;
@@ -61,6 +62,7 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(1f)] private float bombSpread = 9f;
         [SerializeField, Min(0f)] private float bombDamage = 12f;
         [SerializeField, Min(0.3f)] private float bombRadius = 1.7f;
+        [SerializeField] private Knockback bombKnockback = new Knockback(KnockbackMode.Launch, 8f, 5f);
         [SerializeField, Min(0f)] private float bombCooldown = 9f;
 
         [Header("Wing hits")]
@@ -76,17 +78,19 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(0.5f)] private float peckReach = 2.8f;
         [SerializeField, Range(10f, 180f)] private float peckArc = 70f;
         [SerializeField, Min(0f)] private float peckDamage = 16f;
+        [SerializeField] private Knockback peckKnockback = new Knockback(KnockbackMode.Shove, 5.4f);
         [SerializeField, Min(1f)] private float stompRange = 7f;
         [SerializeField, Min(0.1f)] private float stompWindup = 0.7f;
         [SerializeField, Min(0.1f)] private float stompTime = 0.55f;
         [SerializeField, Min(0.5f)] private float stompRadius = 2.4f;
         [SerializeField, Min(0f)] private float stompDamage = 20f;
+        [SerializeField] private Knockback stompKnockback = new Knockback(KnockbackMode.Launch, 7f, 5f);
         [SerializeField, Min(1f)] private float gustRange = 9f;
         [Tooltip("Raising its wing before the gust: the player's warning.")]
         [SerializeField, Min(0.1f)] private float gustWindup = 1f;
         [SerializeField, Range(5f, 90f)] private float gustHalfAngle = 35f;
         [SerializeField, Min(0f)] private float gustDamage = 8f;
-        [SerializeField, Min(0f)] private float gustPush = 4f;
+        [SerializeField] private Knockback gustKnockback = new Knockback(KnockbackMode.Shove, 12f);
         [Tooltip("Seconds of sand in the player's eyes after being caught by the gust.")]
         [SerializeField, Min(0f)] private float sandBlindTime = 2.5f;
         [Tooltip("Seconds between failed take-off attempts (random between the two).")]
@@ -218,7 +222,6 @@ namespace SignalLost.Enemies.Desert
         protected override void TickCombat(float dt)
         {
             stateTime += dt;
-            UpdateShove(dt);
             if (!TargetAlive) return;
             switch (state)
             {
@@ -300,8 +303,8 @@ namespace SignalLost.Enemies.Desert
 
             ClearMarker();
             Dust(diveTarget, diveRadius);
-            if (Flat(Target.position - diveTarget) <= diveRadius && Target.position.y - diveTarget.y < 2f && HurtPlayer(diveDamage))
-                ShovePlayer(Target.position - diveTarget, 1.6f);
+            if (Flat(Target.position - diveTarget) <= diveRadius && Target.position.y - diveTarget.y < 2f)
+                HurtPlayer(diveDamage, diveKnockback, Target.position - diveTarget);
             nextDive = Time.time + (Alerted ? diveCooldown * 0.5f : diveCooldown);
             Enter(State.Landed);
         }
@@ -345,7 +348,7 @@ namespace SignalLost.Enemies.Desert
             {
                 nextBomb = Time.time + bombInterval;
                 ScrapBomb.Drop(scrapMaterial, warningMaterial, blastMaterial, transform.position + Vector3.down * 0.6f,
-                    GroundBelow(transform.position), bombRadius, bombDamage, gameObject, transform, sightMask);
+                    GroundBelow(transform.position), bombRadius, bombDamage, gameObject, transform, sightMask, bombKnockback);
             }
             if (stateTime * bombRunSpeed < bombRunLength && Flat(transform.position - Home) <= ArenaRadius + 6f) return;
             runDirection = Vector3.zero;
@@ -401,8 +404,8 @@ namespace SignalLost.Enemies.Desert
             {
                 struck = true;
                 if (AgentReady) Agent.Move(transform.forward * 0.4f);
-                if (FlatDistance(Target.position) <= peckReach && AngleToTarget() <= peckArc * 0.5f && HurtPlayer(peckDamage))
-                    ShovePlayer(FlatDirectionTo(Target.position), 0.8f);
+                if (FlatDistance(Target.position) <= peckReach && AngleToTarget() <= peckArc * 0.5f)
+                    HurtPlayer(peckDamage, peckKnockback);
             }
             if (stateTime >= 0.25f) Enter(State.Recover);
         }
@@ -426,7 +429,8 @@ namespace SignalLost.Enemies.Desert
             if (AgentReady) Agent.Move(Vector3.Lerp(hopFrom, hopTo, t) - transform.position);
             if (t < 1f) return;
             Dust(hopTo, stompRadius);
-            if (Flat(Target.position - hopTo) <= stompRadius && HurtPlayer(stompDamage)) ShovePlayer(Target.position - hopTo, 1.5f);
+            if (Flat(Target.position - hopTo) <= stompRadius)
+                HurtPlayer(stompDamage, stompKnockback, Target.position - hopTo);
             Enter(State.Recover);
         }
 
@@ -441,9 +445,7 @@ namespace SignalLost.Enemies.Desert
                 toPlayer.y = 0f;
                 if (toPlayer.magnitude <= gustRange && Vector3.Angle(forward, toPlayer) <= gustHalfAngle)
                 {
-                    HurtPlayer(gustDamage);
-                    ShovePlayer(forward, gustPush);
-                    MiniBossHud.SandBlind(sandBlindTime);
+                    if (HurtPlayer(gustDamage, gustKnockback, forward)) MiniBossHud.SandBlind(sandBlindTime);
                 }
                 if (dustMaterial != null)
                     for (int i = 1; i <= 6; i++)

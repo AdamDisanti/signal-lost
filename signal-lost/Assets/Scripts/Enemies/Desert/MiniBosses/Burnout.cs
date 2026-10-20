@@ -45,7 +45,7 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(2f)] private float maxDashDistance = 30f;
         [SerializeField, Min(0f)] private float dashDamage = 24f;
         [SerializeField, Min(0.3f)] private float dashHitRadius = 1.6f;
-        [SerializeField, Min(0f)] private float dashShove = 2.5f;
+        [SerializeField] private Knockback dashKnockback = new Knockback(KnockbackMode.Launch, 9f, 5f);
         [SerializeField, Min(0f)] private float dashCooldown = 2.2f;
         [SerializeField, Min(0f)] private float phaseTwoDashCooldown = 1.4f;
 
@@ -68,7 +68,7 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(0.1f)] private float whipWindup = 0.55f;
         [SerializeField, Min(0.5f)] private float whipReach = 3.9f;
         [SerializeField, Min(0f)] private float whipDamage = 16f;
-        [SerializeField, Min(0f)] private float whipShove = 2.2f;
+        [SerializeField] private Knockback whipKnockback = new Knockback(KnockbackMode.Shove, 9f);
         [SerializeField, Min(0f)] private float meleeCooldown = 1.6f;
 
         [Header("Exhaust blast (player behind it)")]
@@ -76,7 +76,7 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(1f)] private float blastLength = 6f;
         [SerializeField, Range(5f, 90f)] private float blastHalfAngle = 50f;
         [SerializeField, Min(0f)] private float blastDamage = 20f;
-        [SerializeField, Min(0f)] private float blastShove = 3f;
+        [SerializeField] private Knockback blastKnockback = new Knockback(KnockbackMode.Launch, 10f, 5f);
 
         [Header("Fire")]
         [SerializeField] private FireStyle fire = new FireStyle { damage = 6f, interval = 0.5f, duration = 3.5f };
@@ -168,7 +168,6 @@ namespace SignalLost.Enemies.Desert
         protected override void TickCombat(float dt)
         {
             stateTime += dt;
-            UpdateShove(dt);
             if (!TargetAlive) return;
             switch (state)
             {
@@ -301,10 +300,7 @@ namespace SignalLost.Enemies.Desert
             if (!dashHit && TouchesPlayer(dashHitRadius))
             {
                 dashHit = true;
-                HurtPlayer(dashDamage);
-                Vector3 side = Vector3.Cross(Vector3.up, dashDirection);
-                if (Vector3.Dot(side, Target.position - transform.position) < 0f) side = -side;
-                ShovePlayer(side + dashDirection * 0.5f, dashShove);
+                HurtPlayer(dashDamage, dashKnockback, dashDirection);
             }
 
             if (dashTravelled < dashLength) return;
@@ -353,8 +349,8 @@ namespace SignalLost.Enemies.Desert
             if (!swingHit && stateTime >= 0.12f)
             {
                 swingHit = true;
-                if (FlatDistance(Target.position) <= whipReach && HurtPlayer(whipDamage))
-                    ShovePlayer(FlatDirectionTo(Target.position), whipShove);
+                if (FlatDistance(Target.position) <= whipReach)
+                    HurtPlayer(whipDamage, whipKnockback);
             }
             if (stateTime >= 0.33f)
             {
@@ -370,8 +366,8 @@ namespace SignalLost.Enemies.Desert
             back.Normalize();
             Vector3 toPlayer = Target.position - transform.position;
             toPlayer.y = 0f;
-            if (toPlayer.magnitude <= blastLength && Vector3.Angle(back, toPlayer) <= blastHalfAngle && HurtPlayer(blastDamage))
-                ShovePlayer(back, blastShove);
+            if (toPlayer.magnitude <= blastLength && Vector3.Angle(back, toPlayer) <= blastHalfAngle)
+                HurtPlayer(blastDamage, blastKnockback, back);
             FireZone.Spawn(fire, transform.position + back * 2.6f, 1.4f, gameObject, transform);
             FireZone.Spawn(fire, transform.position + back * 4.4f, 1.1f, gameObject, transform);
             nextMelee = Time.time + meleeCooldown;

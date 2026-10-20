@@ -1,3 +1,4 @@
+using SignalLost.Combat;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -21,14 +22,30 @@ namespace SignalLost.Player
         private InputActionMap playerMap;
         private InputAction move, look, jump, sprint;
         private float verticalSpeed, pitch;
+        private Vector3 knockbackVelocity;
+        private float knockbackDeceleration;
         private bool captured;
+
+        public void ApplyKnockback(Vector3 impulse, float deceleration)
+        {
+            knockbackVelocity = new Vector3(impulse.x, 0f, impulse.z);
+            knockbackDeceleration = deceleration;
+            if (impulse.y > 0f) verticalSpeed = Mathf.Max(verticalSpeed, impulse.y);
+        }
+
+        public void ClearKnockback()
+        {
+            knockbackVelocity = Vector3.zero;
+            verticalSpeed = 0f;
+        }
 
         public float Impairment { get; set; }
         public float MovementScale => 1f - (0.55f * 2f / 3f) * Mathf.Clamp01(Impairment);
 
         public void ResetMotion()
         {
-            verticalSpeed = pitch = 0f;
+            ClearKnockback();
+            pitch = 0f;
             cameraPivot.localRotation = Quaternion.identity;
         }
 
@@ -62,6 +79,7 @@ namespace SignalLost.Player
         private void OnDisable()
         {
             playerMap?.Disable();
+            ClearKnockback();
             SetCapture(false);
         }
 
@@ -91,6 +109,9 @@ namespace SignalLost.Player
             Cursor.lockState = capture ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = !capture;
         }
+
+        private void OnControllerColliderHit(ControllerColliderHit hit) =>
+            knockbackVelocity = Knockback.SlideAlongWall(knockbackVelocity, hit.normal);
 
         private void Update()
         {
@@ -126,9 +147,10 @@ namespace SignalLost.Player
             axis = new Vector2(axis.x * Mathf.Cos(stagger) + axis.y * Mathf.Sin(stagger),
                 axis.y * Mathf.Cos(stagger) - axis.x * Mathf.Sin(stagger));
             float speed = (canMove && sprint.IsPressed() ? sprintSpeed : walkSpeed) * MovementScale;
-            Vector3 velocity = (transform.right * axis.x + transform.forward * axis.y) * speed;
+            Vector3 velocity = (transform.right * axis.x + transform.forward * axis.y) * speed + knockbackVelocity;
             velocity.y = verticalSpeed;
             CollisionFlags collisions = controller.Move(velocity * Time.deltaTime);
+            knockbackVelocity = Vector3.MoveTowards(knockbackVelocity, Vector3.zero, knockbackDeceleration * Time.deltaTime);
             if ((collisions & CollisionFlags.Above) != 0 && verticalSpeed > 0f) verticalSpeed = 0f;
             if ((collisions & CollisionFlags.Below) != 0 && verticalSpeed < 0f) verticalSpeed = -2f;
         }

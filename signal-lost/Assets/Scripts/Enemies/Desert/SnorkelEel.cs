@@ -55,6 +55,8 @@ namespace SignalLost.Enemies.Desert
         private int lastBodyHitFrame = -1;
         private float pendingPipeDamage;
         private GameObject pendingPipeSource;
+        private Knockback pendingPipeKnockback;
+        private Vector3 pendingPipeDirection;
         private Vector3 wakeRest;
 
         protected override void Awake()
@@ -196,11 +198,15 @@ namespace SignalLost.Enemies.Desert
                 if (sandMaterial != null) ImpactFlash.Spawn(sandMaterial, transform.position + Vector3.up * 0.4f, 1.2f, 0.25f);
                 LastSeen = Time.time;
                 Enter(State.Stunned);
-                Health.TakeDamage(amount * 0.5f, source);
+                Health.TakeDamage(amount * 0.5f, source, pipe.HitKnockback, pipe.HitDirection);
                 return;
             }
             // Exposed: the pipe is part of its head. Applied in LateUpdate and dropped if the same swing hit the body.
-            if (amount > pendingPipeDamage) { pendingPipeDamage = amount; pendingPipeSource = source; }
+            if (amount > pendingPipeDamage)
+            {
+                pendingPipeDamage = amount; pendingPipeSource = source;
+                pendingPipeKnockback = pipe.HitKnockback; pendingPipeDirection = pipe.HitDirection;
+            }
         }
 
         protected override void LateUpdate()
@@ -212,7 +218,7 @@ namespace SignalLost.Enemies.Desert
             pendingPipeDamage = 0f;
             pendingPipeSource = null;
             if (lastBodyHitFrame == Time.frameCount || IsDead) return;
-            Health.TakeDamage(amount, source);
+            Health.TakeDamage(amount, source, pendingPipeKnockback, pendingPipeDirection);
         }
 
         protected override void OnHit(float amount, GameObject source, Vector3 away)

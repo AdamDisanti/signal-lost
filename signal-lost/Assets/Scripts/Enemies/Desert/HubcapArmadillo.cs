@@ -34,7 +34,7 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(0)] private int maxBounces = 2;
         [SerializeField, Min(0f)] private float rollDamage = 18f;
         [SerializeField, Min(0.3f)] private float rollHitRadius = 1f;
-        [SerializeField, Min(0f)] private float playerShove = 1.4f;
+        [SerializeField] private Knockback rollKnockback = new Knockback(KnockbackMode.Launch, 7f, 3f);
         [SerializeField, Min(0f)] private float rollCooldown = 1.2f;
 
         [Header("Openings")]
@@ -62,8 +62,6 @@ namespace SignalLost.Enemies.Desert
         private Vector3 rollDirection;
         private int bounces;
         private bool rollHit;
-        private Vector3 shoveDirection;
-        private float shoveRemaining;
         private Vector3[] limbScales = new Vector3[0];
         private Quaternion shellRest = Quaternion.identity;
 
@@ -87,7 +85,6 @@ namespace SignalLost.Enemies.Desert
         protected override void Tick(float dt)
         {
             stateTime += dt;
-            UpdateShove(dt);
             switch (state)
             {
                 case State.Idle:
@@ -175,9 +172,7 @@ namespace SignalLost.Enemies.Desert
             if (TargetAlive && !rollHit && HitsPlayer())
             {
                 rollHit = true;
-                if (TargetHealth != null) TargetHealth.TakeDamage(rollDamage, gameObject);
-                shoveDirection = rollDirection;
-                shoveRemaining = playerShove;
+                if (TargetHealth != null) TargetHealth.TakeDamage(rollDamage, gameObject, rollKnockback, rollDirection);
                 Enter(State.Recover);
                 return;
             }
@@ -238,14 +233,6 @@ namespace SignalLost.Enemies.Desert
                 return;
             }
             if (state == State.Idle) { LastSeen = Time.time; Enter(State.Approach); }
-        }
-
-        private void UpdateShove(float dt)
-        {
-            if (shoveRemaining <= 0f || TargetBody == null || !TargetBody.enabled) return;
-            float step = Mathf.Min(shoveRemaining, 7f * dt);
-            TargetBody.Move(shoveDirection * step);
-            shoveRemaining -= step;
         }
 
         // ---------- Animation ----------

@@ -88,6 +88,8 @@ namespace SignalLost.Enemies
         private int lastBodyHitFrame = -1;
         private float pendingCanDamage;
         private GameObject pendingCanSource;
+        private Knockback pendingCanKnockback;
+        private Vector3 pendingCanDirection;
 
         // Current hop: crouch, then fly from hopFrom to hopTo.
         private bool hopping;
@@ -149,7 +151,7 @@ namespace SignalLost.Enemies
 
         private void Update()
         {
-            if (!started) return;
+            if (!started || KnockbackReceiver.IsMoving(gameObject)) return;
             stateTime += Time.deltaTime;
 
             if (state == State.Dead)
@@ -403,12 +405,16 @@ namespace SignalLost.Enemies
             {
                 // Not loading: the can is just part of the frog's back, so the frog takes the hit as normal.
                 // Applied in LateUpdate, and dropped if the same swing also hit the body, so it never counts twice.
-                if (amount > pendingCanDamage) { pendingCanDamage = amount; pendingCanSource = source; }
+                if (amount > pendingCanDamage)
+                {
+                    pendingCanDamage = amount; pendingCanSource = source;
+                    pendingCanKnockback = can.HitKnockback; pendingCanDirection = can.HitDirection;
+                }
                 return;
             }
             rig.Backfire();
             Enter(State.Stunned);
-            health.TakeDamage(backfireDamage, source);
+            health.TakeDamage(backfireDamage, source, can.HitKnockback, can.HitDirection);
         }
 
         private void LateUpdate()
@@ -419,7 +425,7 @@ namespace SignalLost.Enemies
             pendingCanDamage = 0f;
             pendingCanSource = null;
             if (lastBodyHitFrame == Time.frameCount || state == State.Dead || health.IsDead) return;
-            health.TakeDamage(amount, source);
+            health.TakeDamage(amount, source, pendingCanKnockback, pendingCanDirection);
         }
 
         private void OnDamaged(Health _, float amount, GameObject source)
@@ -429,7 +435,12 @@ namespace SignalLost.Enemies
             Vector3 away = source != null ? transform.position - source.transform.position : -transform.forward;
             away.y = 0f;
             rig.Flinch(away);
-            if (source != null && !hopping && agent.isOnNavMesh && away.sqrMagnitude > 0.001f)
+            if (_.HitKnockback.mode != KnockbackMode.None)
+            {
+                hopping = false;
+                rig.Hop = -1f;
+            }
+            else if (source != null && !hopping && agent.isOnNavMesh && away.sqrMagnitude > 0.001f)
                 agent.Move(away.normalized * knockback * Mathf.Clamp01(amount / 20f));
             if (state == State.Idle) { lastSeen = Time.time; Enter(State.Engage); }
             // Hit up close: get out of there soon.

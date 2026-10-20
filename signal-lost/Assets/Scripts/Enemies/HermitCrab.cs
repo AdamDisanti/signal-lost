@@ -71,8 +71,8 @@ namespace SignalLost.Enemies
         [Tooltip("Pause after an attack before it can attack again.")]
         [SerializeField, Min(0f)] private float attackCooldown = 0.7f;
         [SerializeField, Min(0f)] private float lungeDistance = 0.6f;
-        [Tooltip("How far a hit shoves the player.")]
-        [SerializeField, Min(0f)] private float playerShove = 0.6f;
+        [Tooltip("The heavy claw impact launches away from the crab; None disables its knockback.")]
+        [SerializeField] private Knockback attackKnockback = new Knockback(KnockbackMode.Launch, 5f, 3f);
 
         [Header("Getting hit")]
         [Tooltip("Hits this strong or stronger knock it back, make it hide in its shell and cancel its attack. " +
@@ -107,7 +107,6 @@ namespace SignalLost.Enemies
         private HermitCrabRig rig;
         private Collider[] colliders;
         private Health targetHealth;
-        private CharacterController targetBody;
         private MiningLaser targetLaser;
         private readonly RaycastHit[] sightHits = new RaycastHit[16];
 
@@ -119,8 +118,6 @@ namespace SignalLost.Enemies
         private Quaternion homeRotation;
         private Vector3 knockDirection;
         private float knockRemaining, knockSpeed;
-        private Vector3 shoveDirection;
-        private float shoveRemaining;
         private float lastChargeSeen, nextGuard, chargeWatched;
 
         public bool IsDead => state == State.Dead;
@@ -162,7 +159,6 @@ namespace SignalLost.Enemies
             if (target != null)
             {
                 targetHealth = target.GetComponentInParent<Health>();
-                targetBody = target.GetComponentInParent<CharacterController>();
                 targetLaser = target.GetComponentInParent<MiningLaser>();
             }
 
@@ -182,10 +178,9 @@ namespace SignalLost.Enemies
 
         private void Update()
         {
-            if (!started) return;
+            if (!started || KnockbackReceiver.IsMoving(gameObject)) return;
             float dt = Time.deltaTime;
             stateTime += dt;
-            UpdateShove(dt);
 
             if (state == State.Dead)
             {
@@ -442,9 +437,7 @@ namespace SignalLost.Enemies
             if (toTarget.magnitude > attackReach) return false;
             if (toTarget.sqrMagnitude > 0.01f && Vector3.Angle(transform.forward, toTarget) > attackArc * 0.5f) return false;
 
-            if (targetHealth != null) targetHealth.TakeDamage(attackDamage, gameObject);
-            shoveDirection = toTarget.sqrMagnitude > 0.01f ? toTarget.normalized : transform.forward;
-            shoveRemaining = playerShove;
+            if (targetHealth != null) targetHealth.TakeDamage(attackDamage, gameObject, attackKnockback, toTarget);
             return true;
         }
 
@@ -487,7 +480,9 @@ namespace SignalLost.Enemies
 
             bool heavy = amount >= staggerThreshold;
             rig.Flinch(heavy);
-            StartKnockback(away, heavy ? knockback * Mathf.Clamp(amount / 20f, 0.6f, 2f) : 0.12f);
+            if (_.HitKnockback.mode == KnockbackMode.None)
+                StartKnockback(away, heavy ? knockback * Mathf.Clamp(amount / 20f, 0.6f, 2f) : 0.12f);
+            else knockRemaining = 0f;
 
             if (heavy && !health.IsDead) { nextGuard = Time.time + guardCooldown; Enter(State.Stagger); }
             else if (state == State.Guard) { lastSeen = Time.time; nextGuard = Time.time + guardCooldown; Enter(State.Chase); } // a melee hit pops it out
@@ -518,15 +513,6 @@ namespace SignalLost.Enemies
             agent.Move(knockDirection * step);
             knockRemaining -= step;
             knockSpeed = Mathf.Max(knockSpeed * (1f - 4f * dt), 1f); // slides to a stop
-        }
-
-        // Pushes the player back a little when the claw connects.
-        private void UpdateShove(float dt)
-        {
-            if (shoveRemaining <= 0f || targetBody == null || !targetBody.enabled) return;
-            float step = Mathf.Min(shoveRemaining, 6f * dt);
-            targetBody.Move(shoveDirection * step);
-            shoveRemaining -= step;
         }
 
         // ---------- Helpers ----------

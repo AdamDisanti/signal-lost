@@ -92,6 +92,8 @@ namespace SignalLost.Enemies.Desert
         private int lastBodyHitFrame = -1;
         private float pendingPartDamage;
         private GameObject pendingPartSource;
+        private Knockback pendingPartKnockback;
+        private Vector3 pendingPartDirection;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
@@ -160,7 +162,9 @@ namespace SignalLost.Enemies.Desert
             if (DamageTakenMultiplier > 1.001f)
             {
                 applyingBonus = true;
-                Health.TakeDamage(amount * (DamageTakenMultiplier - 1f), source);
+                Knockback reaction = Health.HitKnockback;
+                reaction.speed = reaction.upwardSpeed = 0f; // Bonus damage belongs to the same physical hit.
+                Health.TakeDamage(amount * (DamageTakenMultiplier - 1f), source, reaction, Health.HitDirection);
                 applyingBonus = false;
                 if (IsDead || Health.IsDead) return;
             }
@@ -197,7 +201,7 @@ namespace SignalLost.Enemies.Desert
             pendingPartSource = null;
             // The same swing also hit the body: that hit already counted.
             if (lastBodyHitFrame == Time.frameCount || IsDead) return;
-            Health.TakeDamage(amount, source);
+            Health.TakeDamage(amount, source, pendingPartKnockback, pendingPartDirection);
         }
 
         // ---------- For each mini-boss ----------
@@ -261,6 +265,8 @@ namespace SignalLost.Enemies.Desert
                 {
                     pendingPartDamage = forward;
                     pendingPartSource = source;
+                    pendingPartKnockback = h.HitKnockback;
+                    pendingPartDirection = h.HitDirection;
                 }
             };
         }
@@ -276,28 +282,10 @@ namespace SignalLost.Enemies.Desert
             return Vector3.Angle(transform.forward, FlatDirectionTo(Target.position));
         }
 
-        /// <summary>Pushes the player along a direction over a few frames (CharacterController.Move).</summary>
-        protected void ShovePlayer(Vector3 direction, float distance)
-        {
-            direction.y = 0f;
-            if (direction.sqrMagnitude < 0.0001f || TargetBody == null) return;
-            shoveDirection = direction.normalized;
-            shoveRemaining = distance;
-        }
-
-        private Vector3 shoveDirection;
-        private float shoveRemaining;
-
-        protected void UpdateShove(float dt)
-        {
-            if (shoveRemaining <= 0f || TargetBody == null || !TargetBody.enabled) return;
-            float step = Mathf.Min(shoveRemaining, 9f * dt);
-            TargetBody.Move(shoveDirection * step);
-            shoveRemaining -= step;
-        }
-
-        /// <summary>Damages the player if alive. Returns true if it landed.</summary>
-        protected bool HurtPlayer(float damage) => TargetAlive && TargetHealth != null && TargetHealth.TakeDamage(damage, gameObject);
+        /// <summary>Damage and motion share the same accepted hit; direction is world-space, never target facing.</summary>
+        protected bool HurtPlayer(float damage, Knockback knockback = default, Vector3 direction = default) =>
+            TargetAlive && TargetHealth != null && TargetHealth.TakeDamage(damage, gameObject, knockback,
+                direction == Vector3.zero ? Target.position - transform.position : direction);
 
         /// <summary>Flat distance from the player to its home: how far into the arena they are.</summary>
         protected float PlayerDistanceFromHome() => Target == null ? float.MaxValue : Flat(Target.position - Home);
@@ -381,7 +369,6 @@ namespace SignalLost.Enemies.Desert
             shiftEnded = true;
             leashTimer = 0f;
             DamageTakenMultiplier = 1f;
-            shoveRemaining = 0f;
             Health.Restore();
             MiniBossHud.Unregister(this);
             if (fodderSpawner != null)

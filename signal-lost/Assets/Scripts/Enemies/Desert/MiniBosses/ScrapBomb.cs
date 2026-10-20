@@ -14,6 +14,8 @@ namespace SignalLost.Enemies.Desert
 
         private Vector3 velocity, landing, spin;
         private float radius, damage;
+        private Knockback knockback;
+        private bool knockbackEnemies;
         private GameObject source;
         private Transform ignore;
         private Material blast;
@@ -21,7 +23,8 @@ namespace SignalLost.Enemies.Desert
         private GroundMarker marker;
 
         public static ScrapBomb Drop(Material scrap, Material markerMaterial, Material blastMaterial, Vector3 from, Vector3 ground,
-            float radius, float damage, GameObject source, Transform ignore, LayerMask mask)
+            float radius, float damage, GameObject source, Transform ignore, LayerMask mask,
+            Knockback knockback = default, bool knockbackEnemies = false)
         {
             GameObject body = MiningLaser.VisualPrimitive(PrimitiveType.Cube, "Scrap Bomb", scrap);
             body.transform.SetPositionAndRotation(from, Random.rotation);
@@ -30,6 +33,8 @@ namespace SignalLost.Enemies.Desert
             bomb.landing = ground;
             bomb.radius = radius;
             bomb.damage = damage;
+            bomb.knockback = knockback;
+            bomb.knockbackEnemies = knockbackEnemies;
             bomb.source = source;
             bomb.ignore = ignore;
             bomb.blast = blastMaterial;
@@ -51,7 +56,7 @@ namespace SignalLost.Enemies.Desert
             }
             if (transform.position.y > landing.y + 0.1f) return;
 
-            FodderExplosion.Explode(landing, radius, damage, 0.4f, source, ignore, blast, mask);
+            FodderExplosion.Explode(landing, radius, damage, 0.4f, source, ignore, blast, mask, knockback, knockbackEnemies);
             Destroy(gameObject);
         }
 

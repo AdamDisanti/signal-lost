@@ -68,6 +68,7 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Range(10f, 180f)] private float clawArc = 100f;
         [Tooltip("Damage of each of the two snaps.")]
         [SerializeField, Min(0f)] private float clawDamage = 12f;
+        [SerializeField] private Knockback clawKnockback = new Knockback(KnockbackMode.Shove, 5f);
         [SerializeField, Min(0f)] private float clawCooldown = 1.6f;
 
         [Header("Fuel tank weak spot")]
@@ -76,6 +77,7 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(0f)] private float backfireDamage = 70f;
         [SerializeField, Min(0.5f)] private float backfireBlastRadius = 3.2f;
         [SerializeField, Min(0f)] private float backfireBlastDamage = 22f;
+        [SerializeField] private Knockback backfireKnockback = new Knockback(KnockbackMode.Launch, 8f, 5f);
         [SerializeField, Min(0f)] private float backfireStun = 3.2f;
         [SerializeField] private Material blastMaterial;
 
@@ -162,7 +164,6 @@ namespace SignalLost.Enemies.Desert
         protected override void TickCombat(float dt)
         {
             stateTime += dt;
-            UpdateShove(dt);
             if (Phase == 2) Leak();
             if (!TargetAlive) return;
             switch (state)
@@ -279,8 +280,8 @@ namespace SignalLost.Enemies.Desert
             while (snaps < at.Length && stateTime >= at[snaps])
             {
                 snaps++;
-                if (FlatDistance(Target.position) <= clawReach && AngleToTarget() <= clawArc * 0.5f && HurtPlayer(clawDamage))
-                    ShovePlayer(FlatDirectionTo(Target.position), 0.7f);
+                if (FlatDistance(Target.position) <= clawReach && AngleToTarget() <= clawArc * 0.5f)
+                    HurtPlayer(clawDamage, clawKnockback);
             }
             if (stateTime < 0.35f) return;
             nextClaw = Time.time + clawCooldown;
@@ -313,7 +314,7 @@ namespace SignalLost.Enemies.Desert
             Vector3 at = tank != null ? tank.position : transform.position + Vector3.up;
             Enter(State.Backfired);
             MiniBossHud.Message("BACKFIRE!", new Color(1f, 0.6f, 0.2f), 1.5f);
-            FodderExplosion.Explode(at, backfireBlastRadius, backfireBlastDamage, 0.35f, source, transform, blastMaterial, sightMask);
+            FodderExplosion.Explode(at, backfireBlastRadius, backfireBlastDamage, 0.35f, source, transform, blastMaterial, sightMask, backfireKnockback);
             // Its own fuel burning under it: this fire isn't its own doing, so it hurts.
             FireZone.Spawn(fire, transform.position, 1.8f, source, null, backfireStun);
             Health.TakeDamage(backfireDamage, source);

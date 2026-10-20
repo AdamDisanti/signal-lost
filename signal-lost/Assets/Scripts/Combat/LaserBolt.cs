@@ -15,6 +15,7 @@ namespace SignalLost.Combat
         private static readonly RaycastHit[] Hits = new RaycastHit[16];
 
         private Transform owner;
+        private Knockback knockback;
         private Action<Health> onHit;
         private Vector3 direction, previous;
         private float damage, speed, radius, remaining, range;
@@ -28,7 +29,8 @@ namespace SignalLost.Combat
         /// frame (the camera), so a bolt fired with the tool tip inside a wall still hits that wall.
         /// </summary>
         public static LaserBolt Spawn(Material material, Vector3 position, Vector3 direction, Vector3 castFrom,
-            float damage, float speed, float radius, float range, LayerMask mask, Transform owner, Action<Health> onHit)
+            float damage, float speed, float radius, float range, LayerMask mask, Transform owner, Action<Health> onHit,
+            Knockback knockback = default)
         {
             GameObject body = MiningLaser.VisualPrimitive(PrimitiveType.Sphere, "Laser Bolt", material);
             body.transform.SetPositionAndRotation(position, Quaternion.LookRotation(direction));
@@ -45,6 +47,7 @@ namespace SignalLost.Combat
 
             var bolt = body.AddComponent<LaserBolt>();
             bolt.owner = owner;
+            bolt.knockback = knockback;
             bolt.onHit = onHit;
             bolt.direction = direction.normalized;
             bolt.previous = castFrom;
@@ -105,7 +108,7 @@ namespace SignalLost.Combat
             }
 
             Health target = hit.collider.GetComponentInParent<Health>();
-            if (target != null && target.TakeDamage(damage, owner != null ? owner.gameObject : null))
+            if (target != null && target.TakeDamage(damage, owner != null ? owner.gameObject : null, knockback, direction))
                 onHit?.Invoke(target);
 
             var material = GetComponent<Renderer>().sharedMaterial;

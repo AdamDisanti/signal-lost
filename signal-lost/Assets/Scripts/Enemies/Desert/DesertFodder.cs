@@ -128,7 +128,7 @@ namespace SignalLost.Enemies.Desert
                 if (Time.time - DeathTime >= corpseTime) Destroy(gameObject);
                 return;
             }
-            Tick(Time.deltaTime);
+            if (!KnockbackReceiver.IsMoving(gameObject)) Tick(Time.deltaTime);
         }
 
         protected virtual void LateUpdate()
@@ -289,7 +289,8 @@ namespace SignalLost.Enemies.Desert
             away.y = 0f;
             away = away.sqrMagnitude > 0.001f ? away.normalized : -transform.forward;
             if (Health.IsDead) return;
-            if (hitKnockback > 0f && AgentReady) Agent.Move(away * hitKnockback * Mathf.Clamp(amount / 20f, 0.3f, 1.5f));
+            if (_.HitKnockback.mode == KnockbackMode.None && hitKnockback > 0f && AgentReady)
+                Agent.Move(away * hitKnockback * Mathf.Clamp(amount / 20f, 0.3f, 1.5f));
             OnHit(amount, source, away);
         }
 
