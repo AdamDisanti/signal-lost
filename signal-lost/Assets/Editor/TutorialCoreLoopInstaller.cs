@@ -44,6 +44,8 @@ public static class TutorialCoreLoopInstaller
 
         InstallWakeUp(scene, player);
 
+        InstallScannerObjectives(scene);
+
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("TUTORIAL_CORE_LOOP_INSTALLED\n" + string.Join("\n", Log));
@@ -180,6 +182,38 @@ public static class TutorialCoreLoopInstaller
         Vector3 look = Flat(cavendish.position - spot);
         player.transform.SetPositionAndRotation(spot + Vector3.up * 0.08f, Quaternion.LookRotation(look));
         Log.Add($"Moved the player's wake-up spot beside Cavendish at {spot:F1}.");
+    }
+
+    // ---------- Package 4: scanner guidance ----------
+
+    // Quest signals on everyone and everything the tutorial sends the player to; the quest flow switches them on
+    // one at a time. Regular crabs and frogs get creature signals for after the tutorial.
+    private static void InstallScannerObjectives(Scene scene)
+    {
+        var quest = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<TutorialQuestFlow>(true)).First();
+        var merchant = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<MerchantCrab>(true)).First();
+        SetReference(quest, "cavendishSignal", QuestSignal(FindActor(scene, NpcActor.Role.Cavendish).gameObject));
+        SetReference(quest, "laserSignal", QuestSignal(FindPickup(scene, TutorialPickup.Item.Laser).gameObject));
+        SetReference(quest, "merchantSignal", QuestSignal(merchant.gameObject));
+        SetReference(quest, "flaskSignal", QuestSignal(FindPickup(scene, TutorialPickup.Item.Flask).gameObject));
+
+        Transform enemies = FindRoot(scene, "Tutorial Gameplay").transform.Find("Tutorial Targets/Tutorial Enemies");
+        foreach (Transform enemy in enemies)
+        {
+            if (enemy.GetComponent<EnemySignalSource>() != null) continue;
+            enemy.gameObject.AddComponent<EnemySignalSource>();
+            Log.Add("Added a creature signal to " + enemy.name + ".");
+        }
+    }
+
+    private static QuestSignalSource QuestSignal(GameObject target)
+    {
+        var signal = target.GetComponent<QuestSignalSource>();
+        if (signal != null) return signal;
+        signal = target.AddComponent<QuestSignalSource>();
+        signal.enabled = false; // TutorialQuestFlow switches on the current objective
+        Log.Add("Added a quest signal to " + target.name + ".");
+        return signal;
     }
 
     // ---------- Helpers ----------

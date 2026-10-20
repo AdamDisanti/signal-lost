@@ -407,6 +407,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 705859236783955726, guid: 532e4906e73f021449a737d382eb957f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 45432842}
+    - targetCorrespondingSourceObject: {fileID: 705859236783955726, guid: 532e4906e73f021449a737d382eb957f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 45432843}
   m_SourcePrefab: {fileID: 100100000, guid: 532e4906e73f021449a737d382eb957f, type: 3}
 --- !u!4 &45432840 stripped
 Transform:
@@ -433,6 +436,20 @@ MonoBehaviour:
   role: 0
   quest: {fileID: 1108719092}
   merchant: {fileID: 0}
+--- !u!114 &45432843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 45432841}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb414223f909f4f79a8658c5fa884aca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.QuestSignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
 --- !u!1 &45515400
 GameObject:
   m_ObjectHideFlags: 0
@@ -1384,6 +1401,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4307029778071904678, guid: ebf5ba36196b4844497405ecfbecac51, type: 3}
       insertIndex: -1
       addedObject: {fileID: 164403993}
+    - targetCorrespondingSourceObject: {fileID: 4307029778071904678, guid: ebf5ba36196b4844497405ecfbecac51, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 164403994}
   m_SourcePrefab: {fileID: 100100000, guid: ebf5ba36196b4844497405ecfbecac51, type: 3}
 --- !u!4 &164403991 stripped
 Transform:
@@ -1408,6 +1428,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Player.TutorialPickup
   item: 0
+--- !u!114 &164403994
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164403992}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb414223f909f4f79a8658c5fa884aca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.QuestSignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
 --- !u!1 &173094889
 GameObject:
   m_ObjectHideFlags: 0
@@ -1703,13 +1737,36 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2112816268695513050, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 222734665}
   m_SourcePrefab: {fileID: 100100000, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
 --- !u!4 &222734663 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1729438049782149180, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
   m_PrefabInstance: {fileID: 222734662}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &222734664 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2112816268695513050, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
+  m_PrefabInstance: {fileID: 222734662}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &222734665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 222734664}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8238f85b67de7b4ca89648ad977e666, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.EnemySignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
+  isBuried: 0
 --- !u!1 &224760832
 GameObject:
   m_ObjectHideFlags: 0
@@ -2467,6 +2524,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6860099280184028994, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 325423364}
     - targetCorrespondingSourceObject: {fileID: 6969824034062157794, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
@@ -2476,7 +2536,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7899117747059539393, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
   m_PrefabInstance: {fileID: 325423360}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 325423363}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 46b7b426c7cd4b2684113f6dd02826ef, type: 3}
@@ -2487,6 +2547,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1599325469765351412, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
   m_PrefabInstance: {fileID: 325423360}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &325423363 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6860099280184028994, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
+  m_PrefabInstance: {fileID: 325423360}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &325423364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 325423363}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb414223f909f4f79a8658c5fa884aca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.QuestSignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
 --- !u!1 &346979660
 GameObject:
   m_ObjectHideFlags: 0
@@ -3373,13 +3452,36 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4396611760563897212, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 511403431}
   m_SourcePrefab: {fileID: 100100000, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
 --- !u!4 &511403429 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8359211845770697674, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
   m_PrefabInstance: {fileID: 511403428}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &511403430 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4396611760563897212, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+  m_PrefabInstance: {fileID: 511403428}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &511403431
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 511403430}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8238f85b67de7b4ca89648ad977e666, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.EnemySignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
+  isBuried: 0
 --- !u!1 &511494436
 GameObject:
   m_ObjectHideFlags: 0
@@ -4342,13 +4444,36 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2112816268695513050, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 629325757}
   m_SourcePrefab: {fileID: 100100000, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
 --- !u!4 &629325755 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1729438049782149180, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
   m_PrefabInstance: {fileID: 629325754}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &629325756 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2112816268695513050, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
+  m_PrefabInstance: {fileID: 629325754}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &629325757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 629325756}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8238f85b67de7b4ca89648ad977e666, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.EnemySignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
+  isBuried: 0
 --- !u!1 &630591729
 GameObject:
   m_ObjectHideFlags: 0
@@ -6398,13 +6523,36 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2112816268695513050, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 915126222}
   m_SourcePrefab: {fileID: 100100000, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
 --- !u!4 &915126220 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1729438049782149180, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
   m_PrefabInstance: {fileID: 915126219}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &915126221 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2112816268695513050, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
+  m_PrefabInstance: {fileID: 915126219}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &915126222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 915126221}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8238f85b67de7b4ca89648ad977e666, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.EnemySignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
+  isBuried: 0
 --- !u!1 &918133774
 GameObject:
   m_ObjectHideFlags: 0
@@ -7883,6 +8031,10 @@ MonoBehaviour:
   merchant: {fileID: 325423361}
   wakeUp: {fileID: 314572599}
   playIntro: 1
+  cavendishSignal: {fileID: 45432843}
+  laserSignal: {fileID: 164403994}
+  merchantSignal: {fileID: 325423364}
+  flaskSignal: {fileID: 1202309173}
 --- !u!4 &1108719093
 Transform:
   m_ObjectHideFlags: 0
@@ -8560,6 +8712,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6557727463695834638, guid: 4f2d8179547d4e441a7a83d632b72e76, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1202309172}
+    - targetCorrespondingSourceObject: {fileID: 6557727463695834638, guid: 4f2d8179547d4e441a7a83d632b72e76, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1202309173}
   m_SourcePrefab: {fileID: 100100000, guid: 4f2d8179547d4e441a7a83d632b72e76, type: 3}
 --- !u!1 &1202309171 stripped
 GameObject:
@@ -8579,6 +8734,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Player.TutorialPickup
   item: 1
+--- !u!114 &1202309173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1202309171}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb414223f909f4f79a8658c5fa884aca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.QuestSignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
 --- !u!1 &1211733921
 GameObject:
   m_ObjectHideFlags: 0
@@ -12928,13 +13097,36 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4396611760563897212, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1673357579}
   m_SourcePrefab: {fileID: 100100000, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
 --- !u!4 &1673357577 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8359211845770697674, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
   m_PrefabInstance: {fileID: 1673357576}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1673357578 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4396611760563897212, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+  m_PrefabInstance: {fileID: 1673357576}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1673357579
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1673357578}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8238f85b67de7b4ca89648ad977e666, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.EnemySignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
+  isBuried: 0
 --- !u!1001 &1695716432
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13504,13 +13696,36 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4396611760563897212, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1722198844}
   m_SourcePrefab: {fileID: 100100000, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
 --- !u!4 &1722198842 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8359211845770697674, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
   m_PrefabInstance: {fileID: 1722198841}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1722198843 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4396611760563897212, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+  m_PrefabInstance: {fileID: 1722198841}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1722198844
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1722198843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8238f85b67de7b4ca89648ad977e666, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Scanner.EnemySignalSource
+  signalType: 0
+  signalStrengthMultiplier: 1
+  isBuried: 0
 --- !u!1 &1760435749
 GameObject:
   m_ObjectHideFlags: 0

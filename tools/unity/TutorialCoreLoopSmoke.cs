@@ -37,6 +37,7 @@ public static class TutorialCoreLoopSmoke
     private static Terrain terrain;
     private static FirstPersonController movement;
     private static string lastHurtBy = "nothing";
+    private static TrackableTarget scanned;
 
     static TutorialCoreLoopSmoke()
     {
@@ -163,17 +164,30 @@ public static class TutorialCoreLoopSmoke
 
         // ---------- Package 3: flask quest ----------
         Check(quest.Current == TutorialQuestFlow.Step.ReturnToCavendish, "Collecting both items sends the player back to Cavendish.");
+        yield return Scan(null);
+        Check(scanned != null && scanned.GetComponent<NpcActor>() == cav, "The scanner points at Cavendish while he has a quest waiting.");
         Check(!merchant.GetComponent<HermitCrab>().enabled, "The flask crab stays passive before its quest.");
         Aim(cav.GetComponent<Collider>(), cav.transform);
         Check(player.TryInteract() && ui.PopupOpen, "Returning to Cavendish opens the flask quest popup.");
         ReadToEnd(ui);
         Check(quest.Current == TutorialQuestFlow.Step.RecoverFlask && merchant.GetComponent<HermitCrab>().enabled,
             "Accepting Hair of the Crab makes the flask crab hostile.");
+        Vector3 crabSide = cav.transform.position - (merchant.transform.position - cav.transform.position).normalized * 25f;
+        Foot(crabSide);
+        merchant.GetComponent<HermitCrab>().enabled = false; // hold still while the scanner is checked from afar
+        yield return Scan("ScannerToCrab");
+        var scannerController = player.Scanner.GetComponent<ScannerController>();
+        Check(scanned != null && scanned.GetComponent<MerchantCrab>() == merchant &&
+              Vector3.Distance(player.transform.position, merchant.transform.position) > 30f,
+            "The scanner points at the quest crab even beyond its 30 m range.");
+        merchant.GetComponent<HermitCrab>().enabled = true;
         var health = merchant.GetComponent<Health>();
         var drop = Get<TutorialPickup>(merchant, "flaskDrop");
         Check(health.TakeDamage(999f, player.gameObject) && merchant.IsDefeated, "Defeating the crab makes it surrender.");
         yield return 0.2f;
         Check(quest.Current == TutorialQuestFlow.Step.CollectFlask && drop.gameObject.activeSelf, "Its flask drops for the player.");
+        yield return Scan(null);
+        Check(scanned != null && scanned.GetComponent<TutorialPickup>() == drop, "The scanner points at the dropped flask.");
 
         // Leading home: it waits while the player lags behind, but only until they catch up.
         yield return 2f;
@@ -208,11 +222,26 @@ public static class TutorialCoreLoopSmoke
         Check(quest.Current == TutorialQuestFlow.Step.Complete, "The tutorial quest chain completes.");
         yield return 0.3f;
         Check(Get<TextMeshProUGUI>(GameplayOverlay.Instance, "trackerHeader").text == "QUEST COMPLETE", "The tracker shows completion.");
+        yield return Scan(null);
+        Check(!(scanned is QuestSignalSource) && UnityEngine.Object.FindObjectsByType<EnemySignalSource>().Length >= 6,
+            "After the tutorial no quest signal is active; the critters carry creature signals.");
         yield return Capture("TutorialComplete");
         Check(player.TryInteract() && cavSpeech.IsManual && !ui.PopupOpen, "After the tutorial, Cavendish's small talk is overhead.");
         player.TryInteract();
 
         yield return Healing(quest, merchant, wake);
+    }
+
+    // Raises the scanner for a moment and records what it is pointing at in 'scanned'.
+    private static IEnumerator Scan(string capture)
+    {
+        SetRaised(player.Scanner, true);
+        yield return 0.35f;
+        scanned = player.Scanner.GetComponent<ScannerController>().CurrentTarget;
+        report.Add("  scanner target: " + (scanned != null ? scanned.name + " (" + scanned.GetType().Name + ")" : "none"));
+        if (capture != null) yield return Capture(capture);
+        SetRaised(player.Scanner, false);
+        yield return null;
     }
 
     private static void ReadToEnd(DialogueUi ui)
@@ -243,6 +272,8 @@ public static class TutorialCoreLoopSmoke
         Check(card.text == "Scanner" && Get<CanvasGroup>(GameplayOverlay.Instance, "cardGroup").alpha > 0.5f, "Collecting the scanner shows its item card.");
         Check(quest.Current == TutorialQuestFlow.Step.FindGear, "One item is not enough to finish Gear Up.");
         yield return Capture("ScannerCard");
+        yield return Scan("ScannerToLaser");
+        Check(scanned != null && scanned.GetComponent<TutorialPickup>() == laserPickup, "With the scanner found, it points at the missing laser.");
 
         Aim(laserPickup.GetComponent<Collider>(), laserPickup.transform);
         Check(player.TryInteract() && player.HasLaser && laser.enabled, "E collects the laser, which is drawn.");

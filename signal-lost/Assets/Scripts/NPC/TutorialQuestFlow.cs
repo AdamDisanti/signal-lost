@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using SignalLost.Player;
+using SignalLost.Scanner;
 using SignalLost.UI;
 using UnityEngine;
 
@@ -27,6 +28,12 @@ namespace SignalLost.NPC
         [SerializeField] private WakeUpSequence wakeUp;
         [Tooltip("Play the wake-up scene and Cavendish's greeting when the tutorial starts.")]
         [SerializeField] private bool playIntro = true;
+
+        [Header("Scanner objectives (one is switched on per step)")]
+        [SerializeField] private QuestSignalSource cavendishSignal;
+        [SerializeField] private QuestSignalSource laserSignal;
+        [SerializeField] private QuestSignalSource merchantSignal;
+        [SerializeField] private QuestSignalSource flaskSignal;
 
         private DialogueUi ui;
         private int smallTalk;
@@ -138,6 +145,41 @@ namespace SignalLost.NPC
             else if (Current == Step.FollowMerchant && merchant.IsHome) Go(Step.MeetMerchant);
 
             GameplayOverlay.Instance.SetQuest(QuestTitle, Objective, Current == Step.Complete);
+            PointScanner(ScannerObjective);
+        }
+
+        /// <summary>What the scanner should point at for the current step: whoever or whatever the quest needs next.</summary>
+        public QuestSignalSource ScannerObjective
+        {
+            get
+            {
+                switch (Current)
+                {
+                    case Step.WakeUp:
+                    case Step.MeetCavendish:
+                    case Step.ReturnToCavendish:
+                    case Step.ReportToCavendish: return cavendishSignal;
+                    case Step.FindGear: return player.HasLaser ? null : laserSignal;
+                    case Step.RecoverFlask:
+                    case Step.FollowMerchant:
+                    case Step.MeetMerchant: return merchantSignal;
+                    case Step.CollectFlask: return flaskSignal;
+                    default: return null; // tutorial done: the scanner goes back to finding critters
+                }
+            }
+        }
+
+        private void PointScanner(QuestSignalSource objective)
+        {
+            SetSignal(cavendishSignal, objective);
+            SetSignal(laserSignal, objective);
+            SetSignal(merchantSignal, objective);
+            SetSignal(flaskSignal, objective);
+        }
+
+        private static void SetSignal(QuestSignalSource signal, QuestSignalSource objective)
+        {
+            if (signal != null && signal.enabled != (signal == objective)) signal.enabled = signal == objective;
         }
 
         // ---------- Cavendish ----------
