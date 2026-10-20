@@ -19,7 +19,9 @@ namespace SignalLost.Editor
             Transform environment=Find(scene,TutorialCrashSiteBuilder.EnvironmentName);
             Terrain terrain=environment.GetComponentInChildren<Terrain>();
             Vector3 size=terrain.terrainData.size;
-            if(Mathf.Abs(size.x-320)>0.01f || Mathf.Abs(size.z-320)>0.01f) throw new InvalidOperationException("Map is not 320 x 320m.");
+            bool traversal=environment.Find(TutorialTraversalBuilder.LandscapeName)!=null || environment.Find("Lunar Landscape")!=null;
+            float expectedSize=traversal?480:320, perimeterScale=traversal?1.5f:1;
+            if(Mathf.Abs(size.x-expectedSize)>0.01f || Mathf.Abs(size.z-expectedSize)>0.01f) throw new InvalidOperationException("Unexpected tutorial dimensions: "+size);
             if(environment.lossyScale!=Vector3.one) throw new InvalidOperationException("Environment was scaled instead of terrain.");
             Transform ship=Find(scene,"Crashed Ship");
             Transform assembly=Find(scene,"Enhanced Crashed Rocket");
@@ -43,11 +45,11 @@ namespace SignalLost.Editor
             for(int i=0;i<256;i++)
             {
                 float a=i*Mathf.PI*2/256;Vector3 dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
-                Vector3 p=environment.position+dir*110;p.y=terrain.SampleHeight(p)+terrain.transform.position.y+0.9f;
-                if(!wall.Raycast(new Ray(p,dir),out RaycastHit hit,60) || hit.distance>45)
+                Vector3 p=environment.position+dir*(110*perimeterScale);p.y=terrain.SampleHeight(p)+terrain.transform.position.y+0.9f;
+                if(!wall.Raycast(new Ray(p,dir),out RaycastHit hit,60*perimeterScale) || hit.distance>45*perimeterScale)
                     throw new InvalidOperationException("Perimeter collision gap at angle "+a*Mathf.Rad2Deg);
             }
-            var report=new List<string>{"320 x 320m native terrain, environment root unscaled.",
+            var report=new List<string>{expectedSize+" x "+expectedSize+"m native terrain, environment root unscaled.",
                 "Three base engines, blue side porthole and "+contact.childCount+" close-in contact rocks/hull chips.",
                 "Laser fitted at basin floor: "+gun+"; URP materials and collider present.",
                 "Continuous non-convex static cliff collision passed 256 radial gap checks."};
@@ -59,7 +61,7 @@ namespace SignalLost.Editor
                     throw new InvalidOperationException("New prefab missing or invalid: "+path);
             }
             // Optional snapshot assets exist only in the disposable validation project.
-            if(File.Exists("Assets/TestBaseline.unity")) CompareSnapshot(scene,report);
+            if(!traversal && File.Exists("Assets/TestBaseline.unity")) CompareSnapshot(scene,report);
             Directory.CreateDirectory("Logs");File.WriteAllLines("Logs/CrashSiteUpgradeValidation.txt",report);
             Debug.Log("CRASH_SITE_UPGRADE_VALIDATED\n"+string.Join("\n",report));
         }

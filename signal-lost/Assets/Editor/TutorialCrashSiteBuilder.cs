@@ -505,8 +505,10 @@ namespace SignalLost.Editor
                     float h = terrain.terrainData.GetInterpolatedHeight(u, v) + terrain.transform.position.y;
                     minimum = Mathf.Min(minimum, h); maximum = Mathf.Max(maximum, h);
                 }
-            // Rim slope is reported, not constrained: the author explicitly approved the existing hills.
-            if (maximum < 4 || maximum > 8) throw new InvalidOperationException("Crater relief out of range: " + maximum);
+            // The requested traversal redesign intentionally supersedes the original gentle-relief limit.
+            bool traversal = environment.transform.Find("Traversal Landscape") != null;
+            bool lunar = environment.transform.Find("Lunar Landscape") != null;
+            if (maximum < 4 || maximum > (lunar ? 24 : traversal ? 60 : 8)) throw new InvalidOperationException("Crater relief out of range: " + maximum);
             int missing = 0;
             foreach (GameObject root in scene.GetRootGameObjects())
                 foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
@@ -527,12 +529,12 @@ namespace SignalLost.Editor
                 throw new InvalidOperationException("Ship nose is not buried.");
             if (FindRoot(scene.GetRootGameObjects(), "graybox") != null)
                 throw new InvalidOperationException("Old graybox still present.");
-            lines.Add("Terrain: " + terrain.terrainData.size.x.ToString("F0") + "m square, broad ~" +
-                (86f * terrain.terrainData.size.x / 160f).ToString("F0") + "m crater, maximum slope " + maximumSlope.ToString("F2") +
+            lines.Add("Terrain: " + terrain.terrainData.size.x.ToString("F0") + "m square, " +
+                (lunar ? "rolling lunar layout" : traversal ? "traversal layout" : "broad ~" + (86f * terrain.terrainData.size.x / 160f).ToString("F0") + "m crater") + ", maximum slope " + maximumSlope.ToString("F2") +
                 " degrees, elevation " + minimum.ToString("F2") + ".." + maximum.ToString("F2") + "m.");
             lines.Add("Crashed ship nose: " + nose + "; mesh colliders=" + ship.GetComponentsInChildren<MeshCollider>().Length);
             lines.Add("Player input/camera references and scene scripts validated. Existing tutorial props retained.");
-            lines.Add("Existing author-approved terrain relief retained without regeneration; rim slope is informational.");
+            lines.Add(lunar || traversal ? "Authorized relief redesign; the core crash floor is retained." : "Existing author-approved terrain relief retained without regeneration; rim slope is informational.");
             lines.Add("Graybox removed; terrain collider and all generated assets referenced.");
             Directory.CreateDirectory("Logs"); File.WriteAllLines("Logs/TutorialImpactSiteValidation.txt", lines);
             Debug.Log("TUTORIAL_IMPACT_SITE_VALIDATED\n" + string.Join("\n", lines));
