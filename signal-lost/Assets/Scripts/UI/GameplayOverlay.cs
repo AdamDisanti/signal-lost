@@ -89,7 +89,9 @@ namespace SignalLost.UI
 
             float cardIn = UiTheme.Pop((now - cardShown) / 0.35f);
             float cardOut = Mathf.Clamp01((cardUntil - now) / 0.4f);
-            cardGroup.alpha = Mathf.Min(Mathf.Clamp01((now - cardShown) / 0.15f), cardOut);
+            // Popups and menus own the middle of the screen; the card steps aside while they are open.
+            float cardTarget = UiMenus.AnyOpen ? 0f : Mathf.Min(Mathf.Clamp01((now - cardShown) / 0.15f), cardOut);
+            cardGroup.alpha = UiMenus.AnyOpen ? Mathf.MoveTowards(cardGroup.alpha, 0f, Time.unscaledDeltaTime * 8f) : cardTarget;
             cardPanel.anchoredPosition = new Vector2(Mathf.LerpUnclamped(-620f, 36f, cardIn), 20f);
         }
 

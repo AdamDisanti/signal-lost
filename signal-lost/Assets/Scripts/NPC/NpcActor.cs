@@ -11,8 +11,7 @@ namespace SignalLost.NPC
         [SerializeField] private MerchantCrab merchant;
         public bool IsQuestGiver => role == Role.Cavendish;
         public bool CanInteract => role == Role.Cavendish || merchant != null && merchant.IsDefeated;
-        public string Prompt => !CanInteract ? "" : role == Role.Cavendish ? "E  Talk to Cavendish" :
-            merchant != null && merchant.IsDefeated ? "E  Browse merchant (preview)" : "E  Talk to the flask crab";
+        public string Prompt => !CanInteract ? "" : role == Role.Cavendish ? "E  Talk to Cavendish" : "E  Talk to the merchant crab";
 
         public bool Interact(TutorialPlayer player)
         {

@@ -2167,19 +2167,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3215774724429707822, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 39.264923
       objectReference: {fileID: 0}
     - target: {fileID: 3215774724429707822, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.08388863
+      value: 0.083578184
       objectReference: {fileID: 0}
     - target: {fileID: 3215774724429707822, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -10
+      value: 7.09021
       objectReference: {fileID: 0}
     - target: {fileID: 3215774724429707822, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: -0.0000025431061
       objectReference: {fileID: 0}
     - target: {fileID: 3215774724429707822, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
       propertyPath: m_LocalRotation.x
@@ -2187,7 +2187,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3215774724429707822, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3215774724429707822, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
       propertyPath: m_LocalRotation.z
@@ -2233,6 +2233,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1830789744065790307, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 314572598}
+    - targetCorrespondingSourceObject: {fileID: 1830789744065790307, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 314572599}
   m_SourcePrefab: {fileID: 100100000, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
 --- !u!1 &314572591 stripped
 GameObject:
@@ -2378,6 +2381,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b5b15cf1ca2848c59c81a8eda9a737c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Inventory.PlayerInventory
+--- !u!114 &314572599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 314572591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: edb63ffbde44e4fb1a63076f3d4b0a9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Player.WakeUpSequence
+  cameraPivot: {fileID: 314572592}
+  introSeconds: 7
+  respawnSeconds: 2.2
+  introLines:
+  - Ugh... what hit me?
+  - ...oh. The ground. The ground hit me.
 --- !u!1001 &325423360
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7860,6 +7881,8 @@ MonoBehaviour:
   player: {fileID: 314572594}
   cavendish: {fileID: 1500380543}
   merchant: {fileID: 325423361}
+  wakeUp: {fileID: 314572599}
+  playIntro: 1
 --- !u!4 &1108719093
 Transform:
   m_ObjectHideFlags: 0

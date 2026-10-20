@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using SignalLost.Combat;
@@ -16,6 +17,8 @@ namespace SignalLost.NPC
         [SerializeField] private GameObject carriedFlask;
         [SerializeField] private NpcDialogue dialogue;
         [SerializeField] private MerchantShop shop;
+        [Tooltip("After surrendering, the crab leads the player home; it waits while the player is this far behind.")]
+        [SerializeField, Min(2f)] private float leadWaitDistance = 12f;
         private HermitCrab brain;
         private HermitCrabRig rig;
         private Health health;
@@ -23,7 +26,9 @@ namespace SignalLost.NPC
         private bool questStarted;
         private bool returning, encounterGreetingShown, friendlyGreetingShown;
         private TutorialPlayer player;
-        private float nextRoute;
+        private TutorialQuestFlow quest;
+        private float nextRoute, nextLeadCall;
+        private bool waitingForPlayer;
         private int nextHealthDialogue;
         private Coroutine damageDialogueRoutine;
         private readonly Queue<string[]> pendingDamageDialogue = new Queue<string[]>();
@@ -37,10 +42,18 @@ namespace SignalLost.NPC
         };
         public bool IsDefeated { get; private set; }
         public bool IsReturning => returning;
+        /// <summary>True once the friendly crab has walked back and is standing beside Cavendish.</summary>
+        public bool IsHome { get; private set; }
+        /// <summary>True while it stops on the way home to let the player catch up.</summary>
+        public bool IsWaitingForPlayer => returning && waitingForPlayer;
+        public NpcDialogue Dialogue => dialogue;
+        public MerchantShop Shop => shop;
+        public event Action ArrivedHome;
 
         private void Awake()
         {
             player = FindFirstObjectByType<TutorialPlayer>();
+            quest = FindFirstObjectByType<TutorialQuestFlow>();
             brain = GetComponent<HermitCrab>();
             rig = GetComponent<HermitCrabRig>();
             health = GetComponent<Health>();
@@ -93,6 +106,14 @@ namespace SignalLost.NPC
         public void Interact()
         {
             if (!IsDefeated) return;
+            if (quest != null && quest.TalkToMerchant()) return;
+            OpenShop();
+        }
+
+        /// <summary>The friendly crab's own small talk and shop, once the tutorial no longer needs it.</summary>
+        public void OpenShop(bool greet = true)
+        {
+            if (!greet) friendlyGreetingShown = true;
             if (!friendlyGreetingShown)
             {
                 friendlyGreetingShown = true;
@@ -148,6 +169,8 @@ namespace SignalLost.NPC
             }
             if (!returning || !agent.isOnNavMesh || returnPoint == null) return;
             rig.MoveSpeed = agent.velocity.magnitude;
+            UpdateLead();
+            if (waitingForPlayer) return;
             if (Time.time >= nextRoute)
             {
                 nextRoute = Time.time + 1;
@@ -159,6 +182,36 @@ namespace SignalLost.NPC
                 agent.isStopped = true;
                 rig.MoveSpeed = 0;
                 transform.rotation = returnPoint.rotation;
+                IsHome = true;
+                ArrivedHome?.Invoke();
+            }
+        }
+
+        // Leading the player home: stop and wave them on while they lag behind, but never wait for a player who
+        // is already closer to home than the crab (for example after respawning at the crash site).
+        private void UpdateLead()
+        {
+            if (player == null) { waitingForPlayer = false; return; }
+            Vector3 home = returnPoint.position;
+            float gap = Vector3.Distance(player.transform.position, transform.position);
+            bool behind = Vector3.Distance(player.transform.position, home) > Vector3.Distance(transform.position, home) + 2f;
+            bool wait = gap > leadWaitDistance && behind && !player.IsRespawning;
+            if (wait != waitingForPlayer)
+            {
+                waitingForPlayer = wait;
+                agent.isStopped = wait;
+                if (wait) nextLeadCall = Time.time + 1.5f;
+            }
+            if (!wait) return;
+            rig.MoveSpeed = 0f;
+            Vector3 toPlayer = player.transform.position - transform.position;
+            toPlayer.y = 0f;
+            if (toPlayer.sqrMagnitude > 0.01f)
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(toPlayer), 180f * Time.deltaTime);
+            if (Time.time >= nextLeadCall)
+            {
+                nextLeadCall = Time.time + 9f;
+                dialogue.Speak(3.5f, player.HasFlask ? "This way, mechanic! Shop's back at your wreck." : "Grab your flask, then follow me! I'll wait.");
             }
         }
 

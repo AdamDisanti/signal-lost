@@ -36,6 +36,7 @@ public static class TutorialCoreLoopSmoke
     private static Camera view;
     private static Terrain terrain;
     private static FirstPersonController movement;
+    private static string lastHurtBy = "nothing";
 
     static TutorialCoreLoopSmoke()
     {
@@ -85,38 +86,51 @@ public static class TutorialCoreLoopSmoke
 
     private static IEnumerator Run()
     {
-        yield return 0.5f;
+        yield return 0.3f;
         player = UnityEngine.Object.FindFirstObjectByType<TutorialPlayer>();
         body = player.GetComponent<CharacterController>();
         movement = player.GetComponent<FirstPersonController>();
         view = player.GetComponentInChildren<Camera>();
         terrain = UnityEngine.Object.FindFirstObjectByType<Terrain>();
+        var quest = UnityEngine.Object.FindFirstObjectByType<TutorialQuestFlow>();
+        var wake = player.GetComponent<WakeUpSequence>();
         var cav = GameObject.Find("CapybaraAstronaut").GetComponent<NpcActor>();
         var cavSpeech = cav.GetComponentInChildren<NpcDialogue>();
         var merchant = UnityEngine.Object.FindFirstObjectByType<MerchantCrab>();
-        var crabSpeech = merchant.GetComponentInChildren<NpcDialogue>();
+        var crabSpeech = merchant.Dialogue;
         var ui = DialogueUi.Instance;
+
+        // ---------- Package 3: wake-up and Cavendish's greeting ----------
+        Check(quest.Current == TutorialQuestFlow.Step.WakeUp && wake.Playing && !movement.enabled,
+            "The tutorial opens with the wake-up scene; movement waits until it ends.");
+        Check(Vector3.Distance(player.transform.position, cav.transform.position) < 4.5f, "The player wakes up right beside Cavendish.");
+        yield return 1.4f;
+        yield return Capture("WakeUp");
+        for (int i = 0; i < 100 && wake.Playing; i++) yield return 0.1f;
+        Check(!wake.Playing && movement.enabled && view.transform.localRotation == Quaternion.identity,
+            "Wake-up finishes with the view level and control returned.");
         movement.enabled = false; // No physical focus/input in batch mode; drive the real interaction ray instead.
+        yield return 0.3f;
+        Check(quest.Current == TutorialQuestFlow.Step.MeetCavendish && cavSpeech.IsSpeaking && !cavSpeech.IsManual,
+            "Cavendish greets the player with automatic overhead lines.");
 
         // ---------- Package 1: dialogue UI ----------
-        Check(GameObject.Find("Tutorial NPC Windows") == null && ui != null && ui.GetComponent<Canvas>().renderMode == RenderMode.ScreenSpaceOverlay,
+        Check(GameObject.Find("Tutorial NPC Windows") == null && ui.GetComponent<Canvas>().renderMode == RenderMode.ScreenSpaceOverlay,
             "Code-built dialogue canvas replaces the legacy NPC windows.");
         Check(cavSpeech.GetComponent<TextMeshPro>() == null || !cavSpeech.GetComponent<TextMeshPro>().enabled,
             "Legacy world-space NPC text is hidden in favour of speech bubbles.");
-
-        Aim(cav.GetComponent<Collider>(), cav.transform);
-        cavSpeech.Speak(2f, "Bubble line one, mechanic!", "Bubble line two.");
-        yield return 0.4f;
         SpeechBubble bubble = ui.BubbleLayer.GetComponentsInChildren<SpeechBubble>(true).FirstOrDefault(b => b.HasText);
         Check(bubble != null && bubble.GetComponent<CanvasGroup>().alpha > 0.5f, "Overhead chatter shows a visible speech bubble.");
         var subtitle = Get<TextMeshProUGUI>(ui, "subtitleText");
-        Check(subtitle.text.Contains("Bubble line one") && subtitle.text.Contains("Cavendish") &&
+        Check(subtitle.text.Contains("Cavendish") && subtitle.text.Contains(cavSpeech.CurrentLine) &&
               Get<CanvasGroup>(ui, "subtitleGroup").alpha > 0.5f, "The same line appears as a bottom-middle subtitle with the speaker's name.");
-        yield return Capture("BubbleAndSubtitle");
-        yield return 2.2f;
-        Check(cavSpeech.CurrentLine == "Bubble line two." && subtitle.text.Contains("Bubble line two"), "Chatter auto-advances in bubble and subtitle.");
+        yield return Capture("MeetCavendish");
+        string greeting = cavSpeech.CurrentLine;
+        yield return 3.8f;
+        Check(cavSpeech.CurrentLine != greeting, "Chatter auto-advances in bubble and subtitle.");
 
-        // Walk up first: getting close triggers the crab's own greeting, which would replace the warning.
+        // Warnings use a red subtitle and never open a menu. Walking up first: being close triggers the crab's own
+        // greeting, which would replace the warning.
         Foot(merchant.transform.position + merchant.transform.forward * 4f);
         view.transform.LookAt(crabSpeech.transform.position);
         yield return 0.3f;
@@ -134,22 +148,81 @@ public static class TutorialCoreLoopSmoke
         Check(ui.Advance() && ui.CurrentLine == first, "First press finishes the typing instead of skipping the line.");
         yield return Capture("QuestPopup");
         ui.CloseAll();
-        Check(!ui.PopupOpen && !UiMenus.AnyOpen, "Escape/cancel closes the popup and returns the cursor.");
+        Check(!ui.PopupOpen && !UiMenus.AnyOpen && quest.Current == TutorialQuestFlow.Step.MeetCavendish,
+            "Escape/cancel closes the popup without accepting the quest.");
         yield return null;
         Check(player.TryInteract() && ui.CurrentLine == first, "E reopens the popup from the start.");
-        for (int i = 0; i < 12 && ui.PopupOpen; i++) { ui.Advance(); ui.Advance(); }
-        Check(!ui.PopupOpen && !UiMenus.AnyOpen, "Reading to the end closes the popup.");
+        ReadToEnd(ui);
+        Check(!ui.PopupOpen && quest.Current == TutorialQuestFlow.Step.FindGear, "Reading Cavendish's first quest starts Gear Up.");
         yield return 0.5f;
-        var tracker = Get<CanvasGroup>(GameplayOverlay.Instance, "trackerGroup");
-        Check(tracker.alpha > 0.5f, "Accepted quest shows the themed top-right tracker.");
+        Check(Get<CanvasGroup>(GameplayOverlay.Instance, "trackerGroup").alpha > 0.5f &&
+              Get<TextMeshProUGUI>(GameplayOverlay.Instance, "trackerTitle").text == "Gear Up", "The themed tracker shows Gear Up.");
         yield return Capture("QuestTracker");
-        yield return PlayerItems(merchant);
+
+        yield return PlayerItems(quest);
+
+        // ---------- Package 3: flask quest ----------
+        Check(quest.Current == TutorialQuestFlow.Step.ReturnToCavendish, "Collecting both items sends the player back to Cavendish.");
+        Check(!merchant.GetComponent<HermitCrab>().enabled, "The flask crab stays passive before its quest.");
+        Aim(cav.GetComponent<Collider>(), cav.transform);
+        Check(player.TryInteract() && ui.PopupOpen, "Returning to Cavendish opens the flask quest popup.");
+        ReadToEnd(ui);
+        Check(quest.Current == TutorialQuestFlow.Step.RecoverFlask && merchant.GetComponent<HermitCrab>().enabled,
+            "Accepting Hair of the Crab makes the flask crab hostile.");
+        var health = merchant.GetComponent<Health>();
+        var drop = Get<TutorialPickup>(merchant, "flaskDrop");
+        Check(health.TakeDamage(999f, player.gameObject) && merchant.IsDefeated, "Defeating the crab makes it surrender.");
+        yield return 0.2f;
+        Check(quest.Current == TutorialQuestFlow.Step.CollectFlask && drop.gameObject.activeSelf, "Its flask drops for the player.");
+
+        // Leading home: it waits while the player lags behind, but only until they catch up.
+        yield return 2f;
+        Vector3 home = Get<Transform>(merchant, "returnPoint").position;
+        Vector3 away = merchant.transform.position + (merchant.transform.position - home).normalized * 18f;
+        Foot(away);
+        yield return 1.5f;
+        Check(merchant.IsWaitingForPlayer, "The crab waits for a player who falls behind.");
+        Aim(drop.GetComponentInChildren<Collider>(), drop.transform);
+        Check(player.TryInteract() && player.HasFlask, "E collects the dropped flask.");
+        yield return 0.2f;
+        Check(quest.Current == TutorialQuestFlow.Step.FollowMerchant, "With the flask in hand, the objective is to follow the crab.");
+        Aim(merchant.GetComponent<Collider>(), merchant.transform);
+        Check(player.TryInteract() && !ui.PopupOpen && crabSpeech.IsSpeaking, "Talking to the crab on the way home only gets a bubble.");
+        for (int i = 0; i < 600 && !merchant.IsHome; i++)
+        {
+            // Walk just behind it, like a player following.
+            Vector3 behind = merchant.transform.position - (home - merchant.transform.position).normalized * 3f;
+            if (i % 5 == 0) Foot(behind);
+            yield return 0.1f;
+        }
+        Check(merchant.IsHome && quest.Current == TutorialQuestFlow.Step.MeetMerchant, "The crab leads the player home beside Cavendish.");
+        Aim(merchant.GetComponent<Collider>(), merchant.transform);
+        Check(player.TryInteract() && ui.PopupOpen && ui.Owner == merchant.transform, "E on the merchant opens its scrap-and-shop rundown.");
+        Check(ui.CurrentLine.Contains("Bucket & Barter"), "The rundown introduces the shop.");
+        yield return Capture("MerchantRundown");
+        ReadToEnd(ui);
+        Check(quest.Current == TutorialQuestFlow.Step.ReportToCavendish, "After the rundown, the player reports back to Cavendish.");
+        Aim(cav.GetComponent<Collider>(), cav.transform);
+        Check(player.TryInteract() && ui.PopupOpen, "Cavendish's report popup opens.");
+        ReadToEnd(ui);
+        Check(quest.Current == TutorialQuestFlow.Step.Complete, "The tutorial quest chain completes.");
+        yield return 0.3f;
+        Check(Get<TextMeshProUGUI>(GameplayOverlay.Instance, "trackerHeader").text == "QUEST COMPLETE", "The tracker shows completion.");
+        yield return Capture("TutorialComplete");
+        Check(player.TryInteract() && cavSpeech.IsManual && !ui.PopupOpen, "After the tutorial, Cavendish's small talk is overhead.");
+        player.TryInteract();
+
+        yield return Healing(quest, merchant, wake);
     }
 
-    // ---------- Package 2: player items, cooldowns, stun, healing ----------
-    private static IEnumerator PlayerItems(MerchantCrab merchant)
+    private static void ReadToEnd(DialogueUi ui)
     {
-        merchant.GetComponent<HermitCrab>().enabled = false; // keep the quest crab out of these checks
+        for (int i = 0; i < 20 && ui.PopupOpen; i++) { ui.Advance(); ui.Advance(); }
+    }
+
+    // ---------- Package 2: player items, cooldowns, stun ----------
+    private static IEnumerator PlayerItems(TutorialQuestFlow quest)
+    {
         var laser = player.Laser;
         var scanner = player.Scanner;
         var pickups = UnityEngine.Object.FindObjectsByType<TutorialPickup>(FindObjectsInactive.Include);
@@ -168,6 +241,7 @@ public static class TutorialCoreLoopSmoke
         yield return 0.5f;
         var card = Get<TextMeshProUGUI>(GameplayOverlay.Instance, "cardTitle");
         Check(card.text == "Scanner" && Get<CanvasGroup>(GameplayOverlay.Instance, "cardGroup").alpha > 0.5f, "Collecting the scanner shows its item card.");
+        Check(quest.Current == TutorialQuestFlow.Step.FindGear, "One item is not enough to finish Gear Up.");
         yield return Capture("ScannerCard");
 
         Aim(laserPickup.GetComponent<Collider>(), laserPickup.transform);
@@ -185,7 +259,6 @@ public static class TutorialCoreLoopSmoke
         yield return null;
         Check(!player.ScannerRaised && laser.enabled, "Lowering the scanner (Q again) draws the laser.");
 
-        // Charged shot cooldown.
         Invoke(laser, "FireBolt", 1f);
         Check(laser.ShotCooldownRemaining > 9.5f && laser.IsCoolingDown, "A bolt starts the 10 s cooldown.");
 
@@ -203,16 +276,19 @@ public static class TutorialCoreLoopSmoke
         Set(laser, "lastSwingEnd", Time.time);
         Invoke(laser, "StartSwing");
         yield return 0.9f;
-        report.Add($"  armadillo hp={armadillo.GetComponent<Health>().Current} dist={Vector3.Distance(armadillo.transform.position, player.transform.position):0.00} swinging={laser.IsSwinging} step={laser.ComboStep} cd={laser.ComboCooldownRemaining:0.00}");
         Check(armadillo.IsStunned && laser.ComboCooldownRemaining > 1.5f, "The third combo hit stuns desert fodder and starts the 3 s combo cooldown.");
         yield return 3.2f;
         Check(!armadillo.IsStunned && laser.ComboCooldownRemaining <= 0f, "The stun and combo cooldown both wear off.");
         UnityEngine.Object.Destroy(armadillo.gameObject);
-        var crabStun = merchant.GetComponentInParent<IStunnable>();
-        Check(crabStun == null, "Hermit crabs are not stunnable (fodder only).");
+        Check(UnityEngine.Object.FindFirstObjectByType<MerchantCrab>().GetComponent<IStunnable>() == null, "Hermit crabs are not stunnable (fodder only).");
+    }
 
-        // Healing: each sip heals half as much while drunk; the sixth sip in a row blacks out.
-        player.GetComponent<SignalLost.Inventory.PlayerInventory>().Add(SignalLost.Inventory.PlayerItem.Flask);
+    // ---------- Package 2/3: healing, blackout and the short wake-up ----------
+    private static IEnumerator Healing(TutorialQuestFlow quest, MerchantCrab merchant, WakeUpSequence wake)
+    {
+        player.Health.Damaged += (h, amount, source) => lastHurtBy = (source != null ? source.name : "null") + " " + amount;
+        // Frogs and crabs met while following the merchant may still be hunting; the blackout below restores them.
+        GameObject.Find("Tutorial Enemies")?.SetActive(false);
         player.Health.TakeDamage(95f);
         float[] expected = { 35f, 17.5f, 8.75f, 4.375f, 2.1875f };
         for (int sip = 0; sip < expected.Length; sip++)
@@ -220,17 +296,21 @@ public static class TutorialCoreLoopSmoke
             float before = player.Health.Current;
             Check(player.TryDrink(), $"Sip {sip + 1} accepted.");
             yield return 1.3f;
-            Check(Mathf.Abs(player.Health.Current - before - expected[sip]) < 0.01f, $"Sip {sip + 1} heals {expected[sip]} HP.");
+            Check(Mathf.Abs(player.Health.Current - before - expected[sip]) < 0.01f,
+                $"Sip {sip + 1} heals {expected[sip]} HP (got {player.Health.Current - before:0.###}, stacks {player.DrunkStacks}, hurt by {lastHurtBy}).");
         }
         Check(player.DrunkStacks == 5 && !player.IsRespawning, "Five stacks allowed without blackout.");
         Check(player.TryDrink(), "Sixth sip accepted.");
         yield return 0.7f;
         Check(player.IsRespawning, "The sixth sip in a row blacks the player out.");
-        yield return 2.5f;
-        Check(!player.IsRespawning && player.DrunkStacks == 0 && Mathf.Approximately(player.NextSipHeal, 35f) && player.HasScanner && player.HasLaser,
+        for (int i = 0; i < 40 && player.IsRespawning; i++) yield return 0.1f;
+        Check(wake.Playing, "Coming round after a blackout replays a short wake-up.");
+        for (int i = 0; i < 40 && wake.Playing; i++) yield return 0.1f;
+        Check(!player.IsRespawning && player.DrunkStacks == 0 && Mathf.Approximately(player.NextSipHeal, 35f) && player.HasScanner && player.HasLaser && player.HasFlask,
             "After blackout the player is sober, heals fully again and keeps their gear.");
+        Check(quest.Current == TutorialQuestFlow.Step.Complete && merchant.IsDefeated && !merchant.GetComponent<HermitCrab>().enabled,
+            "Quest progress and the friendly merchant survive the blackout.");
         movement.enabled = false;
-        merchant.GetComponent<HermitCrab>().enabled = true;
     }
 
     // ---------- Helpers ----------
@@ -270,7 +350,7 @@ public static class TutorialCoreLoopSmoke
         var texture = new RenderTexture(width, height, 24); texture.Create();
         var overlays = UnityEngine.Object.FindObjectsByType<Canvas>().Where(c => c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay).ToArray();
         view.targetTexture = texture;
-        foreach (var canvas in overlays) { canvas.renderMode = RenderMode.ScreenSpaceCamera; canvas.worldCamera = view; canvas.planeDistance = 0.4f; }
+        foreach (var canvas in overlays) { canvas.renderMode = RenderMode.ScreenSpaceCamera; canvas.worldCamera = view; canvas.planeDistance = view.nearClipPlane + 0.02f; }
         yield return null;
         yield return null;
         Canvas.ForceUpdateCanvases();

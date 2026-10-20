@@ -203,9 +203,8 @@ namespace SignalLost.Player
                 ? $"DRUNK x{DrunkStacks} / {blackoutAfterStacks}   •   Next sip +{NextSipHeal:0.#} HP" : "SOBER";
             messageText.text = UiMenus.AnyOpen ? "" : HasFlask ? $"F: drink Scotch (+{NextSipHeal:0.#} HP)   •   Q: swap scanner / laser" :
                 HasScanner || HasLaser ? (HasScanner && HasLaser ? "Q: swap between scanner and laser" : "") : "";
-            if (quest != null) { hud.SetObjective(quest.Accepted || UiMenus.AnyOpen ? "" : quest.Objective); return; }
-            hud.SetObjective(!HasLaser ? "Recover the mining laser from the basin (E)." :
-                !HasFlask ? "Recover your flask (E)." : "Try your laser on the targets; the red pad deals damage.");
+            // The themed quest tracker (TutorialQuestFlow) replaces the old left-hand objective line.
+            hud.SetObjective("");
         }
 
         private TutorialPickup FindPickup()

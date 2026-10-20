@@ -42,6 +42,8 @@ public static class TutorialCoreLoopInstaller
         InstallPlayerGear(player);
         InstallScannerPickup(scene);
 
+        InstallWakeUp(scene, player);
+
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("TUTORIAL_CORE_LOOP_INSTALLED\n" + string.Join("\n", Log));
@@ -155,7 +157,59 @@ public static class TutorialCoreLoopInstaller
         Log.Add($"Placed the scanner pickup in the wreckage at {spot:F1}.");
     }
 
+    // ---------- Package 3: quest chain ----------
+
+    // The tutorial opens with the player blinking awake right in front of Cavendish (meeting notes item 3).
+    private static void InstallWakeUp(Scene scene, TutorialPlayer player)
+    {
+        var wake = player.GetComponent<WakeUpSequence>();
+        if (wake == null)
+        {
+            wake = player.gameObject.AddComponent<WakeUpSequence>();
+            Log.Add("Added WakeUpSequence to the tutorial player.");
+        }
+        SetReference(wake, "cameraPivot", player.GetComponentInChildren<Camera>(true).transform);
+        var quest = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<TutorialQuestFlow>(true)).First();
+        SetReference(quest, "wakeUp", wake);
+        SetReference(quest, "player", player);
+
+        Transform cavendish = FindActor(scene, NpcActor.Role.Cavendish).transform;
+        if (Vector3.Distance(Flat(player.transform.position), Flat(cavendish.position)) < 5f) return;
+        Transform stand = FindRoot(scene, "Tutorial NPCs").transform.Find("Merchant Stand Beside Cavendish");
+        Vector3 spot = OpenGroundAround(cavendish, 3f, stand.position);
+        Vector3 look = Flat(cavendish.position - spot);
+        player.transform.SetPositionAndRotation(spot + Vector3.up * 0.08f, Quaternion.LookRotation(look));
+        Log.Add($"Moved the player's wake-up spot beside Cavendish at {spot:F1}.");
+    }
+
     // ---------- Helpers ----------
+
+    private static Vector3 Flat(Vector3 value) => new Vector3(value.x, 0f, value.z);
+
+    /// <summary>
+    /// Clear ground about <paramref name="radius"/> metres from <paramref name="center"/>, preferring the side it faces
+    /// and keeping well away from <paramref name="avoid"/>.
+    /// </summary>
+    private static Vector3 OpenGroundAround(Transform center, float radius, Vector3 avoid)
+    {
+        Physics.SyncTransforms();
+        var colliders = new Collider[16];
+        float facing = Mathf.Atan2(center.forward.x, center.forward.z);
+        for (int i = 0; i < 24; i++)
+        {
+            // 0, +15, -15, +30, -30 ... degrees around the direction the NPC faces.
+            float offset = (i + 1) / 2 * 15f * Mathf.Deg2Rad * (i % 2 == 0 ? 1f : -1f);
+            Vector3 probe = center.position + new Vector3(Mathf.Sin(facing + offset), 0f, Mathf.Cos(facing + offset)) * radius;
+            if (Vector3.Distance(Flat(probe), Flat(avoid)) < 2.5f) continue;
+            if (!Physics.Raycast(probe + Vector3.up * 40f, Vector3.down, out RaycastHit hit, 80f, ~0, QueryTriggerInteraction.Ignore)) continue;
+            if (!(hit.collider is TerrainCollider)) continue;
+            int count = Physics.OverlapCapsuleNonAlloc(hit.point + Vector3.up * 0.4f, hit.point + Vector3.up * 1.6f, 0.45f, colliders, ~0, QueryTriggerInteraction.Ignore);
+            bool clear = true;
+            for (int c = 0; c < count; c++) clear &= colliders[c] is TerrainCollider;
+            if (clear) return hit.point;
+        }
+        throw new InvalidOperationException("No clear ground near " + center.name + ".");
+    }
 
     private static TutorialPlayer Require(Scene scene, string what)
     {
