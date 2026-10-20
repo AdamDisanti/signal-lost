@@ -51,6 +51,10 @@ namespace SignalLost.Combat
         [SerializeField, Min(0f)] private float comboWindow = 0.4f;
         [Tooltip("Seconds a strike freezes when it connects, which makes hits feel heavier.")]
         [SerializeField, Min(0f)] private float hitStop = 0.06f;
+        [Tooltip("Seconds after the last swing of a full combo before you can swing again. 0 turns it off.")]
+        [SerializeField, Min(0f)] private float comboCooldown;
+        [Tooltip("Seconds the last swing of the combo stuns small enemies (anything implementing IStunnable).")]
+        [SerializeField, Min(0f)] private float finisherStun = 2f;
 
         [Header("Charge effect")]
         [Tooltip("Colour of the charging electricity, the bolt, and the flash where a bolt lands.")]
@@ -134,7 +138,7 @@ namespace SignalLost.Combat
         private float lastSwingEnd = float.NegativeInfinity;
         private bool hitApplied, queuedSwing;
 
-        private float chargeStart, cooldownUntil, recoil;
+        private float chargeStart, cooldownUntil, comboCooldownUntil, recoil;
 
         // Held-laser motion: smoothed base pose, plus sway, bob and landing offsets added on top.
         private Vector3 basePosition;
@@ -166,6 +170,18 @@ namespace SignalLost.Combat
         public int ComboLength => Mathf.Max(1, Mathf.Min(comboDamage.Length, comboDuration.Length));
         /// <summary>True between firing a shot and being able to charge again.</summary>
         public bool IsCoolingDown => Time.time < cooldownUntil;
+        /// <summary>Seconds until the charged shot can be used again; 0 when ready.</summary>
+        public float ShotCooldownRemaining => Mathf.Max(0f, cooldownUntil - Time.time);
+        /// <summary>Seconds until melee swings are possible again after a full combo; 0 when ready.</summary>
+        public float ComboCooldownRemaining => Mathf.Max(0f, comboCooldownUntil - Time.time);
+        public float ShotCooldown => shotCooldown;
+        public float ComboCooldown => comboCooldown;
+        public float FinisherStun => finisherStun;
+        public float MinShotDamage => minShotDamage;
+        public float MaxShotDamage => maxShotDamage;
+        public float ShotRange => shotRange;
+        /// <summary>Damage of each swing of the combo, in order.</summary>
+        public IReadOnlyList<float> ComboDamage => comboDamage;
         /// <summary>Time.time of the last melee or bolt hit on something with Health, for hit markers.</summary>
         public float LastHitTime { get; private set; } = float.NegativeInfinity;
         /// <summary>The living damageable object under the crosshair within shot range, or null.</summary>
@@ -281,9 +297,9 @@ namespace SignalLost.Combat
             }
 
             // Melee: a press during a swing is remembered and chains into the next swing.
-            if (active && !IsCharging && attack.WasPressedThisFrame())
+            if (active && !IsCharging && attack.WasPressedThisFrame() && ComboCooldownRemaining <= 0f)
             {
-                if (IsSwinging) queuedSwing = true;
+                if (IsSwinging) queuedSwing = !(IsFinisher && comboCooldown > 0f);
                 else StartSwing();
             }
 
@@ -312,7 +328,7 @@ namespace SignalLost.Combat
             if (!hitApplied && t >= strike.HitAt)
             {
                 hitApplied = true;
-                bool connected = MeleeHit(comboDamage[comboStep]);
+                bool connected = MeleeHit(comboDamage[comboStep], IsFinisher ? finisherStun : 0f);
                 if (connected) hitStopUntil = Time.time + hitStop;
                 AddKick(strike.Kick * (connected ? 1f : 0.5f));
             }
@@ -320,6 +336,13 @@ namespace SignalLost.Combat
 
             IsSwinging = false;
             lastSwingEnd = Time.time;
+            if (IsFinisher && comboCooldown > 0f)
+            {
+                // The finisher ends the combo; the laser needs a moment before the next one.
+                comboCooldownUntil = Time.time + comboCooldown;
+                lastSwingEnd = float.NegativeInfinity;
+                queuedSwing = false;
+            }
             if (queuedSwing && active)
             {
                 queuedSwing = false;
@@ -328,8 +351,10 @@ namespace SignalLost.Combat
             queuedSwing = false;
         }
 
-        /// <summary>Damages everything inside the swing. Returns true if anything was hit.</summary>
-        private bool MeleeHit(float damage)
+        private bool IsFinisher => ComboLength > 1 && comboStep == ComboLength - 1;
+
+        /// <summary>Damages everything inside the swing and stuns what can be stunned. Returns true if anything was hit.</summary>
+        private bool MeleeHit(float damage, float stunSeconds)
         {
             Vector3 origin = aimOrigin.position;
             Vector3 forward = aimOrigin.forward;
@@ -363,6 +388,7 @@ namespace SignalLost.Combat
                 if (!target.TakeDamage(damage, gameObject)) continue;
                 LastHitTime = Time.time;
                 connected = true;
+                if (stunSeconds > 0f && !target.IsDead) target.GetComponentInParent<IStunnable>()?.Stun(stunSeconds);
             }
             return connected;
         }

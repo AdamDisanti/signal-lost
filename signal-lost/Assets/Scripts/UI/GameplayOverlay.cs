@@ -74,7 +74,7 @@ namespace SignalLost.UI
             cardTitle.color = color;
             cardStripe.color = color;
             cardBody.text = description;
-            float height = 104f + cardBody.GetPreferredValues(description, 470f, 0f).y;
+            float height = 128f + cardBody.GetPreferredValues(description, 470f, 0f).y;
             cardPanel.sizeDelta = new Vector2(540f, height);
             cardShown = Time.unscaledTime;
             cardUntil = Time.unscaledTime + seconds;
@@ -90,7 +90,7 @@ namespace SignalLost.UI
             float cardIn = UiTheme.Pop((now - cardShown) / 0.35f);
             float cardOut = Mathf.Clamp01((cardUntil - now) / 0.4f);
             cardGroup.alpha = Mathf.Min(Mathf.Clamp01((now - cardShown) / 0.15f), cardOut);
-            cardPanel.anchoredPosition = new Vector2(Mathf.LerpUnclamped(620f, -40f, cardIn), 40f);
+            cardPanel.anchoredPosition = new Vector2(Mathf.LerpUnclamped(-620f, 36f, cardIn), 20f);
         }
 
         private void Build()
@@ -114,8 +114,9 @@ namespace SignalLost.UI
             trackerBody.rectTransform.offsetMin = new Vector2(26f, 16f);
             trackerBody.rectTransform.offsetMax = new Vector2(-26f, -90f);
 
+            // Left side: the held laser and scanner fill the lower right of the view.
             cardPanel = UiTheme.Place(UiTheme.Rect("Item Card", root),
-                new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(620f, 40f), new Vector2(540f, 200f));
+                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(-620f, 20f), new Vector2(540f, 200f));
             cardGroup = cardPanel.gameObject.AddComponent<CanvasGroup>();
             cardGroup.alpha = 0f;
             cardGroup.blocksRaycasts = false;
@@ -133,7 +134,7 @@ namespace SignalLost.UI
             cardBody = UiTheme.Label("Body", cardPanel, 26f, UiTheme.Text, TextAlignmentOptions.TopLeft);
             cardBody.rectTransform.anchorMin = Vector2.zero;
             cardBody.rectTransform.anchorMax = Vector2.one;
-            cardBody.rectTransform.offsetMin = new Vector2(44f, 18f);
+            cardBody.rectTransform.offsetMin = new Vector2(44f, 24f);
             cardBody.rectTransform.offsetMax = new Vector2(-26f, -100f);
         }
     }
