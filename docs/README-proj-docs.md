@@ -5,6 +5,7 @@
 - [Combat prototype](combat-prototype.md): health system, mining laser, training dummies, and test checklist.
 - [Scanner prototype](scanner-prototype.md): scanner controls, target detection, HUD/audio setup, and validation status.
 - [Player HUD](hud.md): HUD prefab, test scene, how other systems feed it, and test checklist.
+- [Desert / Dunes level](desert-dunes.md): first biome prototype, layout, how to build it, and test checklist.
 - [Design](design.md): source-grounded scope and open questions.
 - [Team](team.md): documented responsibilities and pending roster details.
 - [Workflow](workflow.md): step-by-step teammate onboarding, branching, commits, pull requests, conflicts, and project-lead setup.
