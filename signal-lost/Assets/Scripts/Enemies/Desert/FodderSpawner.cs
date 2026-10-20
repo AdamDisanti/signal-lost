@@ -22,7 +22,7 @@ namespace SignalLost.Enemies.Desert
         [Serializable]
         public sealed class Entry
         {
-            [Tooltip("A fodder prefab (Spark Tick, Snorkel Eel, ...). Anything with a DesertFodder works.")]
+            [Tooltip("An enemy prefab with a Health: desert fodder, or the hermit crab and mortar frog.")]
             public GameObject prefab;
             [Tooltip("Relative chance this entry is picked for a wave.")]
             [Min(0f)] public float weight = 1f;
@@ -67,6 +67,15 @@ namespace SignalLost.Enemies.Desert
 
         /// <summary>Stops spawning for good. Enemies already out keep fighting.</summary>
         public void Stop() => stopped = true;
+
+        /// <summary>Removes every enemy it has spawned that is still around (a mini-boss resetting its arena).</summary>
+        public void Clear()
+        {
+            foreach (GameObject item in alive)
+                if (item != null) Destroy(item);
+            alive.Clear();
+            nextWave = -1f;
+        }
 
         private void OnEnable()
         {
@@ -142,6 +151,8 @@ namespace SignalLost.Enemies.Desert
             health.Died -= OnEnemyDied;
             Killed++;
             alive.Remove(health.gameObject);
+            // Desert fodder removes its own body; other enemies (crabs, frogs) only hide theirs, so tidy them up.
+            if (health.GetComponent<DesertFodder>() == null) Destroy(health.gameObject, 6f);
             EnemyKilled?.Invoke(this);
         }
 

@@ -110,7 +110,7 @@ namespace SignalLost.Enemies.Desert
                 return;
             }
             // Twitchy little shuffles near home.
-            if (AgentReady && !Agent.pathPending && Agent.remainingDistance < 0.3f && stateTime > 1.5f)
+            if (AgentReady && !Agent.pathPending && (!Agent.hasPath || Agent.remainingDistance < 0.3f) && stateTime > 1.5f)
             {
                 Vector2 r = Random.insideUnitCircle * 2f;
                 Chase(Home + new Vector3(r.x, 0f, r.y), runSpeed * 0.3f);

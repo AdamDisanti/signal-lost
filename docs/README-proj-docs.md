@@ -7,6 +7,7 @@
 - [Player HUD](hud.md): HUD prefab, test scene, how other systems feed it, and test checklist.
 - [Desert / Dunes level](desert-dunes.md): first biome prototype, layout, how to build it, and test checklist.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
+- [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
 - [Design](design.md): source-grounded scope and open questions.
 - [Team](team.md): documented responsibilities and pending roster details.
 - [Workflow](workflow.md): step-by-step teammate onboarding, branching, commits, pull requests, conflicts, and project-lead setup.

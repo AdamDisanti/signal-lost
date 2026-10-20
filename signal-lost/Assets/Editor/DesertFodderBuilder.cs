@@ -37,8 +37,8 @@ namespace SignalLost.Editor
         private const string Root = "Assets/Prefabs/Enemies/Desert";
         private const string DesertMeshFolder = Root + "/Meshes";
         private const string DesertMaterialFolder = "Assets/Materials/Enemies/Desert";
-        private const string ScannerRigPath = "Assets/Prefabs/Player/Scanner/ScannerRig.prefab";
-        private const string HudPrefabPath = "Assets/Prefabs/UI/PlayerHUD.prefab";
+        internal const string ScannerRigPath = "Assets/Prefabs/Player/Scanner/ScannerRig.prefab";
+        internal const string HudPrefabPath = "Assets/Prefabs/UI/PlayerHUD.prefab";
 
         public const string TickPath = Root + "/SparkTick.prefab";
         public const string EelPath = Root + "/SnorkelEel.prefab";
@@ -149,6 +149,17 @@ namespace SignalLost.Editor
                 if (property.isArray) Require(property.arraySize > 0, path + ": " + field + " is empty.");
                 else Require(property.objectReferenceValue != null, path + ": " + field + " is not assigned.");
             }
+        }
+
+        /// <summary>Builds any of the five fodder prefabs that don't exist yet (for scenes that spawn them).</summary>
+        internal static void EnsureFodderPrefabs()
+        {
+            EnsureDesertFolders();
+            if (Load(TickPath) == null) BuildTick();
+            if (Load(EelPath) == null) BuildEel();
+            if (Load(BeetlePath) == null) BuildBeetle();
+            if (Load(ArmadilloPath) == null) BuildArmadillo();
+            if (Load(MeerkatPath) == null) BuildMeerkat();
         }
 
         // ---------- Single-enemy test scenes (combat test map) ----------
@@ -293,7 +304,7 @@ namespace SignalLost.Editor
             data.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void SetObjective(string text)
+        internal static void SetObjective(string text)
         {
             PlayerHud hud = Object.FindAnyObjectByType<PlayerHud>();
             Text objective = hud != null ? hud.transform.Find("Objective/Text")?.GetComponent<Text>() : null;
@@ -364,7 +375,7 @@ namespace SignalLost.Editor
 
         // A palm-sized tick (about 0.3 m): a flat body, a little head, six legs, and stripped copper wires sprouting
         // from its back.
-        private static GameObject BuildTick()
+        internal static GameObject BuildTick()
         {
             GameObject root = NewRoot("Spark Tick", out Transform visual);
             Material shell = Lit("TickShell", new Color(0.42f, 0.28f, 0.2f), 0.1f, 0.55f);
@@ -424,7 +435,7 @@ namespace SignalLost.Editor
 
         // A sand eel about 1.8 m long. The head is at the front (+Z), the body tapers back in four segments, and a
         // bent exhaust pipe rises from the top of the head: long enough to stick out of the sand when it is buried.
-        private static GameObject BuildEel()
+        internal static GameObject BuildEel()
         {
             GameObject root = NewRoot("Snorkel Eel", out Transform visual);
             Material skin = Lit("EelSkin", new Color(0.66f, 0.55f, 0.3f), 0f, 0.35f);
@@ -463,14 +474,14 @@ namespace SignalLost.Editor
             Part("Pipe", snorkel, pipeMesh, pipe, Vector3.zero, Quaternion.identity, Vector3.one);
             Part("Rust Band", snorkel, rim, rust, new Vector3(0f, 0.3f, -0.01f), Quaternion.identity, Vector3.one);
             Part("Mouth Rim", snorkel, rim, rust, new Vector3(0f, 0.98f, -0.3f), Quaternion.Euler(-90f, 0f, 0f), Vector3.one);
-            var hitbox = new GameObject("Snorkel Hitbox");
+            var hitbox = new GameObject("Snorkel Eel (snorkel)");
             hitbox.transform.SetParent(snorkel, false);
             var pipeCollider = hitbox.AddComponent<BoxCollider>();
             pipeCollider.center = new Vector3(0f, 0.55f, -0.1f);
             pipeCollider.size = new Vector3(0.24f, 1.05f, 0.42f);
             var pipeHealth = hitbox.AddComponent<Health>();
             var pipeData = new SerializedObject(pipeHealth);
-            pipeData.FindProperty("maxHealth").floatValue = 1f;
+            pipeData.FindProperty("maxHealth").floatValue = 100000f; // Damaged reports applied damage, capped at current HP
             pipeData.ApplyModifiedPropertiesWithoutUndo();
 
             var segments = new Transform[4];
@@ -514,7 +525,7 @@ namespace SignalLost.Editor
         // ---------- Jerry-Can Beetle ----------
 
         // A fat beetle about 0.9 m long with a red jerry can strapped across its back, spout dripping fuel.
-        private static GameObject BuildBeetle()
+        internal static GameObject BuildBeetle()
         {
             GameObject root = NewRoot("Jerry-Can Beetle", out Transform visual);
             Material carapace = Lit("BeetleShell", new Color(0.16f, 0.2f, 0.17f), 0.35f, 0.75f);
@@ -598,7 +609,7 @@ namespace SignalLost.Editor
 
         // An armadillo about 1.1 m long. Its banded shell is a ball-ish shape that spins when it rolls, with a chrome
         // ship hubcap fused into each flank so it rolls like a wheel. Head, tail and legs tuck away when it curls.
-        private static GameObject BuildArmadillo()
+        internal static GameObject BuildArmadillo()
         {
             GameObject root = NewRoot("Hubcap Armadillo", out Transform visual);
             Material shellMat = Lit("ArmadilloShell", new Color(0.6f, 0.47f, 0.34f), 0.1f, 0.4f);
@@ -678,7 +689,7 @@ namespace SignalLost.Editor
 
         // A meerkat about 1.15 m tall standing up, with a tiny radar dish on an antenna on its head, sitting in a
         // dirt-ringed burrow. The burrow is a root child so it stays on the ground while the meerkat ducks in.
-        private static GameObject BuildMeerkat()
+        internal static GameObject BuildMeerkat()
         {
             GameObject root = NewRoot("Dish Meerkat", out Transform visual);
             Material fur = Lit("MeerkatFur", new Color(0.8f, 0.64f, 0.44f), 0f, 0.3f);
@@ -870,7 +881,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>The same player setup as the Desert Dunes level: laser, health, respawn, scanner, laser/scanner swap and HUD.</summary>
-        private static void BuildTestPlayer(GameObject playerPrefab, InputActionAsset input, Material beam, GameObject scannerRig, GameObject hudPrefab)
+        internal static void BuildTestPlayer(GameObject playerPrefab, InputActionAsset input, Material beam, GameObject scannerRig, GameObject hudPrefab)
         {
             BuildPlayer(playerPrefab, input, beam);
             MiningLaser laser = Object.FindAnyObjectByType<MiningLaser>();
@@ -897,7 +908,7 @@ namespace SignalLost.Editor
             if (objective != null) objective.text = "Visit the five marker posts to test each fodder enemy";
         }
 
-        private static void BuildDesertLighting()
+        internal static void BuildDesertLighting()
         {
             var light = new GameObject("Desert Sun").AddComponent<Light>();
             light.type = LightType.Directional;
@@ -919,9 +930,9 @@ namespace SignalLost.Editor
 
         // ---------- Asset helpers (own folders, so no other feature's assets are touched) ----------
 
-        private static GameObject Load(string path) => AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        internal static GameObject Load(string path) => AssetDatabase.LoadAssetAtPath<GameObject>(path);
 
-        private static void EnsureDesertFolders()
+        internal static void EnsureDesertFolders()
         {
             foreach (string folder in new[] { "Assets/Prefabs", "Assets/Prefabs/Enemies", Root, DesertMeshFolder,
                          "Assets/Materials", "Assets/Materials/Enemies", DesertMaterialFolder })
@@ -933,7 +944,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>Saves a mesh asset, replacing an existing one's contents so references and GUIDs survive.</summary>
-        private static Mesh SaveDesertMesh(Mesh mesh)
+        internal static Mesh SaveDesertMesh(Mesh mesh)
         {
             string path = DesertMeshFolder + "/" + mesh.name + ".asset";
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
@@ -948,7 +959,7 @@ namespace SignalLost.Editor
             return existing;
         }
 
-        private static GameObject SaveDesertPrefab(GameObject root, string path)
+        internal static GameObject SaveDesertPrefab(GameObject root, string path)
         {
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
@@ -957,7 +968,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>A URP Lit material in the desert enemy folder; an existing one is reused unchanged.</summary>
-        private static Material Lit(string name, Color color, float metallic, float smoothness)
+        internal static Material Lit(string name, Color color, float metallic, float smoothness)
         {
             string path = DesertMaterialFolder + "/" + name + ".mat";
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -973,7 +984,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>A flat-colour URP Unlit material for effects (sparks, dust, blasts, the shriek).</summary>
-        private static Material Unlit(string name, Color color)
+        internal static Material Unlit(string name, Color color)
         {
             string path = DesertMaterialFolder + "/" + name + ".mat";
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
