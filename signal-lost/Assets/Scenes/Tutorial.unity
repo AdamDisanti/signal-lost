@@ -428,7 +428,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 72eb1a46725241f99d031404dd9fccbd, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.NpcActor
   role: 0
   quest: {fileID: 1108719092}
@@ -1405,7 +1405,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a9616bbc8ec24271a0a301352b724080, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Player.TutorialPickup
   item: 0
 --- !u!1 &173094889
@@ -1941,7 +1941,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
@@ -2253,7 +2253,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 547594ad204547c6a00f8ba0164a70b5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Player.TutorialPlayer
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   view: {fileID: 314572593}
@@ -2269,7 +2269,6 @@ MonoBehaviour:
   messageText: {fileID: 4327720923726985263}
   blackoutOverlay: {fileID: 4327720923726985264}
   quest: {fileID: 1108719092}
-  npcUi: {fileID: 6898260812283130729}
   pickupDistance: 3
   healAmount: 35
   drinkSeconds: 0.9
@@ -2286,7 +2285,7 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4767f26ec83a470c8ee56f59dc26f9c9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Combat.CombatDebugHud
   laser: {fileID: 314572596}
   showPlayerHealth: 0
@@ -2300,7 +2299,7 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e63519382a9a4e4e8ea761c264c8c47a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Combat.MiningLaser
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   aimOrigin: {fileID: 314572592}
@@ -2351,7 +2350,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1af0f1d27e774297b8beb763d2317c41, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Combat.Health
   maxHealth: 100
   died:
@@ -2407,19 +2406,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2610125622718312351, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       propertyPath: ui
-      value:
-      objectReference: {fileID: 6898260812283130729}
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 6860099280184028994, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       propertyPath: m_Name
       value: Merchant Crab
       objectReference: {fileID: 0}
     - target: {fileID: 7899117747059539393, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       propertyPath: flaskDrop
-      value:
+      value: 
       objectReference: {fileID: 1202309172}
     - target: {fileID: 7899117747059539393, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       propertyPath: returnPoint
-      value:
+      value: 
       objectReference: {fileID: 1501662949}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2438,7 +2437,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 46b7b426c7cd4b2684113f6dd02826ef, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.MerchantCrab
 --- !u!4 &325423362 stripped
 Transform:
@@ -3446,7 +3445,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
@@ -3966,15 +3965,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2957240939454312393, guid: ff509b54ad5a49944a2ff544a2001c37, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: e2094c06e00b24e49923e10d4b48807f, type: 2}
     - target: {fileID: 2957240939454312393, guid: ff509b54ad5a49944a2ff544a2001c37, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: e6645fa341a994746b1d3b8ef9307f7d, type: 2}
     - target: {fileID: 2957240939454312393, guid: ff509b54ad5a49944a2ff544a2001c37, type: 3}
       propertyPath: 'm_Materials.Array.data[2]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 21bd12a35a9973448b2dbfa9b33bf223, type: 2}
     - target: {fileID: 5913440295307021002, guid: ff509b54ad5a49944a2ff544a2001c37, type: 3}
       propertyPath: m_LocalScale.x
@@ -7654,12 +7653,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f78f39d0d9bb4cb2842c98c852c5d803, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.TutorialQuestFlow
   player: {fileID: 314572594}
   cavendish: {fileID: 1500380543}
   merchant: {fileID: 325423361}
-  ui: {fileID: 6898260812283130729}
 --- !u!4 &1108719093
 Transform:
   m_ObjectHideFlags: 0
@@ -8353,7 +8351,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a9616bbc8ec24271a0a301352b724080, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Player.TutorialPickup
   item: 1
 --- !u!1 &1244095233
@@ -10304,12 +10302,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d0ca333b76544c99a3f2cfbc99f4a83c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.NpcDialogue
   text: {fileID: 1500380544}
   speaker: Cavendish
   secondsPerLine: 6
   visibleDistance: 14
+  subtitleDistance: 20
 --- !u!114 &1500380544
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10320,7 +10319,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9541d86e2fd84c1d9990edf0852d74ab, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshPro
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -10330,7 +10329,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text:
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -11036,7 +11035,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
@@ -12545,7 +12544,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
   m_IsGlobal: 1
   priority: 50
@@ -12594,7 +12593,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7a5ac11cc976e418e8d13136b07e1f52, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshSurface
   m_SerializedVersion: 0
   m_AgentTypeID: 0
@@ -13165,11 +13164,6 @@ Transform:
   - {fileID: 1712178876}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!4 &1778063753 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3215774724429707822, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
-  m_PrefabInstance: {fileID: 314572590}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1782710108
 GameObject:
   m_ObjectHideFlags: 0
@@ -17205,7 +17199,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6394c9b7fd4f84a409c1429fac1cbddf, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HUDController
 --- !u!114 &4327720923726985263 stripped
 MonoBehaviour:
@@ -17216,7 +17210,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!114 &4327720923726985264 stripped
 MonoBehaviour:
@@ -17227,7 +17221,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!114 &4327720923726985265 stripped
 MonoBehaviour:
@@ -17238,7 +17232,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!114 &4327720923726985266 stripped
 MonoBehaviour:
@@ -17249,7 +17243,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!114 &4327720923726985267 stripped
 MonoBehaviour:
@@ -17260,7 +17254,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
 --- !u!1001 &8420469057718517486
 PrefabInstance:
@@ -17324,118 +17318,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8477172736881191524, guid: d2928be113cbdd64b907fd5877029e9c, type: 3}
   m_PrefabInstance: {fileID: 8420469057718517486}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &6898260812283130728
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 6461892613664087271, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_Name
-      value: Tutorial NPC Windows
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_Pivot.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_Pivot.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_AnchorMin.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8488783131634234346, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8914569504867129254, guid: c54660832503b48bc8269948e57a641d, type: 3}
-      propertyPath: player
-      value:
-      objectReference: {fileID: 1778063753}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: c54660832503b48bc8269948e57a641d, type: 3}
---- !u!114 &6898260812283130729 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8914569504867129254, guid: c54660832503b48bc8269948e57a641d, type: 3}
-  m_PrefabInstance: {fileID: 6898260812283130728}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dd1b0d1579bb4772bd80c8cb0e2698ac, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.TutorialNpcUi
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -17452,4 +17334,3 @@ SceneRoots:
   - {fileID: 1774322682}
   - {fileID: 4327720923726985261}
   - {fileID: 1108719093}
-  - {fileID: 6898260812283130728}

@@ -1,4 +1,5 @@
 using SignalLost.Player;
+using SignalLost.UI;
 using UnityEngine;
 
 namespace SignalLost.NPC
@@ -11,7 +12,7 @@ namespace SignalLost.NPC
         private bool completionDiscussed;
         public bool Accepted { get; private set; }
         public bool FlaskRecovered => player != null && player.HasFlask;
-        [SerializeField] private TutorialNpcUi ui;
+        private DialogueUi ui;
         public string Objective => !Accepted ? "Talk to Cavendish (E)." :
             !player.HasLaser ? "Recover the mining laser from the basin (E)." :
             !merchant.IsDefeated ? "Defeat the larger crab carrying your flask." :
@@ -28,9 +29,9 @@ namespace SignalLost.NPC
                 foreach (NpcActor actor in FindObjectsByType<NpcActor>())
                     if (actor.IsQuestGiver && actor.gameObject.scene == gameObject.scene)
                     { cavendish = actor.GetComponentInChildren<NpcDialogue>(true); break; }
-            if (ui == null) ui = FindFirstObjectByType<TutorialNpcUi>();
+            if (ui == null) ui = DialogueUi.Instance;
             if (ui == null || player == null || cavendish == null || merchant == null) return false;
-            if (player != null) player.BindNpcUi(ui);
+            ui.BindPlayer(player.transform);
             return true;
         }
 
@@ -38,12 +39,12 @@ namespace SignalLost.NPC
         {
             if (!ResolveUi())
             {
-                Debug.LogError("Tutorial NPC references are incomplete. Exit Play Mode and use Signal Lost > Tutorial > Repair NPC UI Bindings.", this);
+                Debug.LogError("Tutorial NPC references are incomplete: TutorialQuestFlow needs the player, Cavendish and the merchant crab.", this);
                 return;
             }
             if (!Accepted)
             {
-                ui.BeginConversation(cavendish.transform.parent, "CAVENDISH  /  RECOVER YOUR FLASK", new[]
+                ui.BeginConversation(cavendish.transform.parent, "Cavendish", "RECOVER YOUR FLASK", new[]
                 {
                     "Easy, mechanic. I'm Cavendish. I saw your ship come down. You're lucky to be standing!",
                     "A big crab took your flask. Look for the copper bucket and the bottle strapped to its back.",
@@ -53,13 +54,13 @@ namespace SignalLost.NPC
             }
             if (cavendish.AdvanceManual()) return;
             if (!merchant.IsDefeated)
-                ui.BeginConversation(cavendish.transform.parent, "CAVENDISH  /  QUEST UPDATE", new[]
+                ui.BeginConversation(cavendish.transform.parent, "Cavendish", "QUEST UPDATE", new[]
                 { "The bigger crab has your flask. Get your laser from the basin, defeat it, and recover the flask." });
             else if (!FlaskRecovered)
-                ui.BeginConversation(cavendish.transform.parent, "CAVENDISH  /  RECOVER YOUR FLASK", new[]
+                ui.BeginConversation(cavendish.transform.parent, "Cavendish", "RECOVER YOUR FLASK", new[]
                 { "The crab dropped your flask where you fought. Pick it up with E. It looks like you've made a trading partner, too." });
             else if (!completionDiscussed)
-                ui.BeginConversation(cavendish.transform.parent, "CAVENDISH  /  QUEST COMPLETE", new[]
+                ui.BeginConversation(cavendish.transform.parent, "Cavendish", "QUEST COMPLETE", new[]
                 {
                     "Flask recovered, mechanic! F takes a sip to heal. Go easy: too much will knock you out.",
                     "I'll help you find your ship parts. Our new crab friend wants scrap for its wares, but the shop isn't stocked for this demo."
@@ -69,7 +70,8 @@ namespace SignalLost.NPC
 
         private void Update()
         {
-            if (ui != null && player != null && merchant != null) ui.TrackQuest(Accepted, FlaskRecovered, Objective);
+            if (player != null && merchant != null)
+                GameplayOverlay.Instance.SetQuest(Accepted ? "Recover Your Flask" : null, Objective, FlaskRecovered);
         }
 
         public void OnStageReset() { ui?.CloseAll(); merchant.ResetAfterPlayerRespawn(); }
