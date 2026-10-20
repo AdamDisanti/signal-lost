@@ -51,6 +51,8 @@ public static class TutorialCoreLoopInstaller
 
         InstallScrapAndMerchant(scene);
 
+        InstallShipwreck(scene);
+
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("TUTORIAL_CORE_LOOP_INSTALLED\n" + string.Join("\n", Log));
@@ -260,6 +262,132 @@ public static class TutorialCoreLoopInstaller
         {
             PrefabUtility.UnloadPrefabContents(contents);
         }
+    }
+
+    // ---------- Package 6: crash-site art ----------
+
+    // Debris types and how many of each to scatter (meeting notes item 1: "significantly more cluttered").
+    private static readonly (string name, int count, bool large)[] DebrisMix =
+    {
+        ("HullPanel", 18, true), ("HullPanelSmall", 40, false), ("Crate", 10, true), ("Barrel", 10, true),
+        ("Pipe", 14, false), ("Rib", 6, false), ("Seat", 4, true), ("Gear", 16, false), ("CableBundle", 14, false),
+        ("Strut", 16, false), ("HullChunk", 3, true), ("ScorchMark", 8, false)
+    };
+
+    // The stripped shipwreck replaces the old rocket (whose assets stay, switched off), with the torn-open side
+    // facing Cavendish, a skid trench of scorch marks behind it and a field of junk all around.
+    private static void InstallShipwreck(Scene scene)
+    {
+        Transform site = FindRoot(scene, "Tutorial Impact Site").transform;
+        if (site.Find("Crash Site Wreckage") != null) return;
+        SignalLost.Editor.CrashSiteWreckBuilder.Build();
+
+        Transform rocket = site.Find("Enhanced Crashed Rocket");
+        rocket.gameObject.SetActive(false);
+        Log.Add("Switched off the old crashed rocket (assets kept).");
+
+        Transform cavendish = FindActor(scene, NpcActor.Role.Cavendish).transform;
+        TutorialPlayer player = Require(scene, "TutorialPlayer");
+        Transform stand = FindRoot(scene, "Tutorial NPCs").transform.Find("Merchant Stand Beside Cavendish");
+        Transform basin = FindRoot(scene, "BurntRockBasin").transform;
+        Transform gate = FindRoot(scene, "GrayboxExitGate").transform;
+        MerchantCrab merchant = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<MerchantCrab>(true)).First();
+
+        Vector3 toCavendish = Flat(cavendish.position - rocket.position).normalized;
+        Vector3 forward = Vector3.Cross(toCavendish, Vector3.up);
+        // Far enough back that the nose clears the exit gate, close enough that Cavendish is "by the wreck".
+        Vector3 centre = Ground(cavendish.position - toCavendish * 18f - forward * 5f);
+        var wreckage = new GameObject("Crash Site Wreckage").transform;
+        wreckage.SetParent(site, true);
+        var ship = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(SignalLost.Editor.CrashSiteWreckBuilder.ShipPath), wreckage);
+        ship.transform.SetPositionAndRotation(centre, Quaternion.LookRotation(forward));
+        Log.Add($"Placed the stripped shipwreck at {centre:F1}.");
+
+        // The scanner now lies beside the empty engine bay, on the side facing Cavendish.
+        TutorialPickup scanner = FindPickup(scene, TutorialPickup.Item.Scanner);
+        Vector3 scannerSpot = Ground(centre - forward * 10.5f + toCavendish * 6.5f);
+        scanner.transform.position = scannerSpot;
+        Log.Add($"Moved the scanner pickup beside the engine bay at {scannerSpot:F1}.");
+
+        var keepClear = new List<(Vector3 point, float radius)>
+        {
+            (cavendish.position, 7f), (player.transform.position, 6f), (stand.position, 5f), (basin.position, 5f), (scannerSpot, 3.5f),
+            (gate.position, 5f)
+        };
+        var random = new System.Random(20261020);
+        float Range(float min, float max) => min + (float)random.NextDouble() * (max - min);
+        Vector3 tail = centre - forward * 12f;
+        Vector3 merchantStart = merchant.transform.position;
+
+        // Skid trench: scorch marks trailing back from the tail along the crash path.
+        for (int i = 0; i < 16; i++)
+        {
+            Vector3 at = tail - forward * (i * 3f + Range(-0.8f, 0.8f)) + toCavendish * Range(-1.5f, 1.5f);
+            Place(wreckage, "ScorchMark", at, Quaternion.LookRotation(forward) * Quaternion.Euler(0f, 90f + Range(-15f, 15f), 0f), Range(1.1f, 2f), random);
+        }
+        // The snapped right wing and a big hull section lie out along the trench.
+        Place(wreckage, "BrokenWing", tail - forward * 14f + toCavendish * 5f, Quaternion.LookRotation(forward) * Quaternion.Euler(0f, 160f, 8f), 1f, random);
+        Place(wreckage, "HullChunk", tail - forward * 24f - toCavendish * 3f, Quaternion.Euler(0f, Range(0f, 360f), 0f), 1f, random);
+        Place(wreckage, "HullChunk", centre + forward * 6f + toCavendish * 9f, Quaternion.Euler(0f, Range(0f, 360f), -6f), 0.8f, random);
+
+        int placed = 0;
+        foreach ((string name, int count, bool large) in DebrisMix)
+        {
+            for (int n = 0, tries = 0; n < count && tries < count * 40; tries++)
+            {
+                // Most junk trails behind the ship; the rest rings it.
+                Vector3 at;
+                if (random.NextDouble() < 0.6)
+                {
+                    float back = Range(0f, 45f);
+                    at = tail - forward * back + toCavendish * Range(-1f, 1f) * (4f + back * 0.25f);
+                }
+                else
+                {
+                    float angle = Range(0f, Mathf.PI * 2f), radius = Range(9f, 22f);
+                    at = centre + (forward * Mathf.Cos(angle) * 1.3f + toCavendish * Mathf.Sin(angle)) * radius;
+                }
+                Vector3 local = Quaternion.Inverse(Quaternion.LookRotation(forward)) * (at - centre);
+                if (Mathf.Abs(local.x) < 7f && Mathf.Abs(local.z) < 14f) continue;   // inside the ship and its wings
+                if (keepClear.Any(c => Vector3.Distance(Flat(c.point), Flat(at)) < c.radius)) continue;
+                if (DistanceToSegment(Flat(at), Flat(merchantStart), Flat(stand.position)) < 3f) continue; // the merchant's walk home
+                Quaternion rotation = Quaternion.Euler(Range(-8f, 8f), Range(0f, 360f), Range(-8f, 8f));
+                if (Place(wreckage, name, at, rotation, Range(0.8f, 1.25f), random) == null) continue;
+                if (large) keepClear.Add((at, 2.2f));
+                n++;
+                placed++;
+            }
+        }
+        Log.Add($"Scattered {placed + 19} pieces of wreckage.");
+        // The encounter NavMesh is deliberately not rebaked: the wreck lies west of every NPC and enemy route, and
+        // the tutorial's crabs and frogs currently sit below the lunar terrain, matching only the old bake (see
+        // docs/design.md). Rebake after those enemies are moved onto the terrain.
+    }
+
+    private static GameObject Place(Transform parent, string debris, Vector3 at, Quaternion rotation, float scale, System.Random random)
+    {
+        if (!Physics.Raycast(Flat(at) + Vector3.up * 60f, Vector3.down, out RaycastHit hit, 120f, ~0, QueryTriggerInteraction.Ignore) ||
+            !(hit.collider is TerrainCollider)) return null;
+        var asset = AssetDatabase.LoadAssetAtPath<GameObject>(SignalLost.Editor.CrashSiteWreckBuilder.DebrisPath(debris));
+        var piece = (GameObject)PrefabUtility.InstantiatePrefab(asset, parent);
+        piece.transform.SetPositionAndRotation(hit.point - hit.normal * 0.04f, Quaternion.FromToRotation(Vector3.up, hit.normal) * rotation);
+        piece.transform.localScale = Vector3.one * scale;
+        return piece;
+    }
+
+    private static Vector3 Ground(Vector3 point)
+    {
+        Physics.SyncTransforms();
+        foreach (RaycastHit hit in Physics.RaycastAll(Flat(point) + Vector3.up * 60f, Vector3.down, 120f, ~0, QueryTriggerInteraction.Ignore))
+            if (hit.collider is TerrainCollider) return hit.point;
+        throw new InvalidOperationException("No terrain under " + point + ".");
+    }
+
+    private static float DistanceToSegment(Vector3 point, Vector3 a, Vector3 b)
+    {
+        Vector3 ab = b - a;
+        float t = Mathf.Clamp01(Vector3.Dot(point - a, ab) / Mathf.Max(ab.sqrMagnitude, 0.0001f));
+        return Vector3.Distance(point, a + ab * t);
     }
 
     // ---------- Helpers ----------
