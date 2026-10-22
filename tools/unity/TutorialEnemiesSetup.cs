@@ -12,7 +12,7 @@ using UnityEngine.AI;
 // Copy into Assets/Editor of a disposable project to author this integration using Unity serialization.
 public static class TutorialEnemiesSetup
 {
-    public const string ScenePath = "Assets/Scenes/Tutorial.unity";
+    public const string ScenePath = "Assets/Scenes/Tutorial Testing.unity";
     public const string NavPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Gameplay/TutorialEncounterNavMesh.asset";
 
     public static void Create()

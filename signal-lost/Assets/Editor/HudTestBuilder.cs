@@ -20,7 +20,7 @@ namespace SignalLost.Editor
     /// </summary>
     public static class HudTestBuilder
     {
-        public const string ScenePath = "Assets/Scenes/HudTest.unity";
+        public const string ScenePath = "Assets/Scenes/Initial Test Scenes/HudTest.unity";
         public const string HudPrefabPath = UiFolder + "/PlayerHUD.prefab";
         private const string UiFolder = "Assets/Prefabs/UI";
         private const int UiLayer = 5;

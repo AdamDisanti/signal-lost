@@ -12,7 +12,7 @@ This builds on the [desert fodder](desert-fodder.md) branch and lives entirely i
 
 ## Open the delivered assets
 
-The local `tutorial-zone` integration now contains the **saved mini-boss prefabs, their meshes/materials, all fodder assets and all three test scenes**. Open `Assets/Scenes/BurnoutTest.unity`, `OldBuzzardTest.unity` or `SludgeTest.unity` and press Play. The prefabs are under `Assets/Prefabs/Enemies/Desert/MiniBosses/`. No generator needs to be run over the delivered scenes, and the tutorial and Desert Dunes scene have not been populated with new enemies.
+The local `tutorial-zone` integration now contains the **saved mini-boss prefabs, their meshes/materials, all fodder assets and all three test scenes**. Open `Assets/Scenes/Bosses/BurnoutTest.unity`, `OldBuzzardTest.unity` or `SludgeTest.unity` and press Play. The prefabs are under `Assets/Prefabs/Enemies/Desert/MiniBosses/`. No generator needs to be run over the delivered scenes, and the tutorial and Desert Dunes scene have not been populated with new enemies.
 
 ## Create the prefabs and test scenes
 
@@ -27,7 +27,7 @@ It creates:
 - `Assets/Prefabs/Enemies/Desert/MiniBosses/`: `Burnout`, `OldBuzzard` and `Sludge` prefabs. Their meshes go in `Assets/Prefabs/Enemies/Desert/Meshes/`.
 - `Assets/Materials/Enemies/Desert/`: their materials.
 - Any missing desert fodder prefabs.
-- `Assets/Scenes/BurnoutTest.unity`, `OldBuzzardTest.unity` and `SludgeTest.unity`.
+- `Assets/Scenes/Bosses/BurnoutTest.unity`, `OldBuzzardTest.unity` and `SludgeTest.unity`.
 
 Scenes that already exist are skipped, never overwritten. **Regenerate Prefabs** rebuilds the three prefabs with the same GUIDs, throwing away edits made to them. **Validate** re-runs the checks. Commit everything with its `.meta` files.
 

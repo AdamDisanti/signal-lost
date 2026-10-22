@@ -6,7 +6,7 @@ This feature lives entirely in new files. It does not change the tutorial, the D
 
 ## Open the delivered assets
 
-The local `tutorial-zone` integration now includes the **saved prefabs, meshes, materials and all six fodder test scenes**; there is no generation step needed to see them. Open `Assets/Scenes/DesertFodderTest.unity`, or a single-enemy scene from the table below, and press Play. Prefabs are under `Assets/Prefabs/Enemies/Desert/`. The existing `EnemyTest.unity` remains the original crab test, not the fodder arena.
+The local `tutorial-zone` integration now includes the **saved prefabs, meshes, materials and all six fodder test scenes**; there is no generation step needed to see them. Open `Assets/Scenes/Enemies/DesertFodderTest.unity`, or a single-enemy scene from the table below, and press Play. Prefabs are under `Assets/Prefabs/Enemies/Desert/`. The existing `EnemyTest.unity` remains the original crab test, not the fodder arena.
 
 ## Create the prefabs and test scene
 
@@ -14,13 +14,13 @@ For a checkout that contains only the scripts, or to reproduce the assets in a d
 
 1. Open the `signal-lost/` project in Unity **6000.6.2f1** with `feature/desert-fodder` merged and wait for scripts to compile.
 2. Choose **Signal Lost > Desert Fodder > Create Test Scene**.
-3. The Console should print `DESERT_FODDER_TEST_SCENE_CREATED_AND_VALIDATED`, and `Assets/Scenes/DesertFodderTest.unity` opens.
+3. The Console should print `DESERT_FODDER_TEST_SCENE_CREATED_AND_VALIDATED`, and `Assets/Scenes/Enemies/DesertFodderTest.unity` opens.
 
 It creates:
 
 - `Assets/Prefabs/Enemies/Desert/`: `SparkTick`, `SnorkelEel`, `JerryCanBeetle`, `HubcapArmadillo` and `DishMeerkat` prefabs, plus their meshes in `Meshes/`.
 - `Assets/Materials/Enemies/Desert/`: their materials.
-- `Assets/Scenes/DesertFodderTest.unity`: the mixed test, a 100 x 100 m sandy arena with rocks and hull plates, the player (same setup as the Desert Dunes level: laser, 100 HP, placeholder respawn, scanner on **Q**, HUD), and five spawner stations.
+- `Assets/Scenes/Enemies/DesertFodderTest.unity`: the mixed test, a 100 x 100 m sandy arena with rocks and hull plates, the player (same setup as the Desert Dunes level: laser, 100 HP, placeholder respawn, scanner on **Q**, HUD), and five spawner stations.
 
 Commit all of these, with their `.meta` files: prefabs and meshes under `Assets/Prefabs/Enemies/Desert/`, materials under `Assets/Materials/Enemies/Desert/`, scenes under `Assets/Scenes/`. The menu refuses to run again once the scene exists. **Signal Lost > Desert Fodder > Regenerate Prefabs** rebuilds the five prefabs and meshes from the script with the same GUIDs, throwing away edits made to them. **Validate Test Scene** re-runs the checks.
 

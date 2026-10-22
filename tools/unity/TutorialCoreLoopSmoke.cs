@@ -53,7 +53,7 @@ public static class TutorialCoreLoopSmoke
     public static void Start()
     {
         RequireTemp();
-        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial Testing.unity");
         SessionState.SetBool(Key, true);
         SessionState.SetFloat(Key + "Time", (float)EditorApplication.timeSinceStartup);
         EditorApplication.EnterPlaymode();

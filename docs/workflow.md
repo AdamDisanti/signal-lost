@@ -25,7 +25,7 @@ Unity must use **6000.6.2f1**, Force Text serialization, and Visible Meta Files.
    ```
 
 3. In Unity Hub, add the **inner `signal-lost/` folder** containing `Assets`, `Packages`, and `ProjectSettings`. Do not create another project. Wait for asset imports to finish.
-4. Read the root README, AGENTS.md, [design summary](design.md), and original design document before gameplay work. Open `Assets/Scenes/Prototype.unity`, check the Console, and enter Play Mode.
+4. Read the root README, AGENTS.md, [design summary](design.md), and original design document before gameplay work. Open `Assets/Scenes/Initial Test Scenes/Prototype.unity`, check the Console, and enter Play Mode.
 5. Confirm Force Text and Visible Meta Files remain enabled. Run `git status` after opening the project; investigate unexpected changes rather than committing them automatically.
 
 If models/textures/audio fail to import, close Unity, confirm `git lfs version` works, and run `git lfs pull` from the repository root. If that fails, check repository access and share the error with the lead before modifying assets.

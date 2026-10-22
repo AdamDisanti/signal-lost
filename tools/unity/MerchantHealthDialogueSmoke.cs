@@ -17,7 +17,7 @@ public static class MerchantHealthDialogueSmoke
     public static void Start()
     {
         TutorialEnemiesSetup.RequireTemp();
-        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial Testing.unity");
         SessionState.SetBool(Key, true);
         SessionState.SetFloat(Key + "Start", (float)EditorApplication.timeSinceStartup);
         EditorApplication.EnterPlaymode();

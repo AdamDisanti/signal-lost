@@ -6,7 +6,7 @@ The current tutorial is a **480 x 480-meter, moon-inspired crash site**: rolling
 
 ## Open and edit
 
-Open **`signal-lost/Assets/Scenes/Tutorial.unity`** in Unity **6000.6.2f1**. The scene is already authored; **do not rerun creation tools**. Reopen from disk rather than saving a stale in-memory scene over the revision.
+Open **`signal-lost/Assets/Scenes/Tutorial Testing.unity`** in Unity **6000.6.2f1**. The scene is already authored; **do not rerun creation tools**. Reopen from disk rather than saving a stale in-memory scene over the revision.
 
 Under **Tutorial Impact Site**:
 

@@ -23,7 +23,7 @@ public static class TutorialNpcSetup
     public static void Create()
     {
         TutorialEnemiesSetup.RequireTemp();
-        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial Testing.unity");
         if (UnityEngine.Object.FindFirstObjectByType<TutorialQuestFlow>() != null) throw new InvalidOperationException("NPC quest already exists.");
         Folder(Root); Folder(Root + "/Materials");
         copper = Mat("MerchantCopper", new Color(0.7f, 0.32f, 0.12f), 0.65f);

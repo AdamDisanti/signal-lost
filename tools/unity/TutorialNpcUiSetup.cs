@@ -13,7 +13,7 @@ public static class TutorialNpcUiSetup
     public static void Apply()
     {
         TutorialEnemiesSetup.RequireTemp();
-        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial Testing.unity");
         if (UnityEngine.Object.FindFirstObjectByType<TutorialNpcUi>() != null) throw new InvalidOperationException("Screen-space NPC windows already installed.");
         // Remove the obsolete world-space panel from the reusable merchant variant, not just its scene instance.
         var merchantPrefab = PrefabUtility.LoadPrefabContents(TutorialNpcSetup.MerchantPath);

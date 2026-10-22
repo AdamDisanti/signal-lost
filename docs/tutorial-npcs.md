@@ -2,7 +2,7 @@
 
 > **Partly superseded (10-20-26):** quests now run Gear Up, then Hair of the Crab. Dialogue uses subtitles, speech bubbles and code-built popups instead of the TutorialNpcWindows prefab (removed). The friendly crab leads the player home and opens the Bucket & Barter menu, and it calls an ambush if hit. See [tutorial core loop](tutorial-core-loop.md) for the current behaviour.
 
-Open `Assets/Scenes/Tutorial.unity` in Unity **6000.6.2f1**. Gameplay is already authored; do not rerun creation tools. This implements the design document's Cavendish quest giver and flask-crab-to-merchant introduction, with the project lead's interaction clarifications.
+Open `Assets/Scenes/Tutorial Testing.unity` in Unity **6000.6.2f1**. Gameplay is already authored; do not rerun creation tools. This implements the design document's Cavendish quest giver and flask-crab-to-merchant introduction, with the project lead's interaction clarifications.
 
 ## Play the sequence
 

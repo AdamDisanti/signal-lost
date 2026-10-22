@@ -32,7 +32,7 @@ namespace SignalLost.Editor
     /// </summary>
     public static class DesertDunesBuilder
     {
-        public const string ScenePath = "Assets/Scenes/DesertDunes.unity";
+        public const string ScenePath = "Assets/Scenes/Large Areas/DesertDunes.unity";
         private const string Root = "Assets/Prefabs/Enviornment objects/DesertDunes";
         private const string MeshFolder = Root + "/Meshes";
         private const string MaterialFolder = Root + "/Materials";

@@ -2,7 +2,7 @@
 
 ## Run it
 
-Open the existing Unity project in **6000.6.2f1**. Let scripts compile/import, open `Assets/Scenes/MovementGraybox.unity`, and press Play. Click the Game view to capture the cursor if needed.
+Open the existing Unity project in **6000.6.2f1**. Let scripts compile/import, open `Assets/Scenes/Initial Test Scenes/MovementGraybox.unity`, and press Play. Click the Game view to capture the cursor if needed.
 
 | Input | Action |
 | --- | --- |
@@ -19,7 +19,7 @@ The existing input asset also provides gamepad move/look, left-stick-click sprin
 
 - `Assets/Prefabs/Player/FirstPersonPlayer.prefab`: CharacterController, movement script, child camera, and audio listener. Place its root at foot level; do not add a Rigidbody. Use only one active player/camera/listener in the test scene.
 - `Assets/Scripts/Player/FirstPersonController.cs`: reads an instance of the existing Player action map and handles movement, gravity, grounded jump, yaw/pitch limits, ceiling collision, and cursor focus.
-- `Assets/Scenes/MovementGraybox.unity`: enclosed floor, collision obstacle, four steps, ramp, and jump platforms; player starts at the south end facing the obstacle.
+- `Assets/Scenes/Initial Test Scenes/MovementGraybox.unity`: enclosed floor, collision obstacle, four steps, ramp, and jump platforms; player starts at the south end facing the obstacle.
 - `Assets/Materials/Graybox/`: simple URP materials, no imported asset packs.
 - `Assets/Editor/MovementGrayboxBuilder.cs`: asset creation/validation helper. The menu `Signal Lost > Create Movement Graybox` is for initial generation only and refuses to overwrite existing scene/prefab assets. Edit the generated assets normally in Unity.
 

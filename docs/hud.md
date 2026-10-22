@@ -7,7 +7,7 @@ Sequence step 5 from the [work guidelines](WORK_GUIDELINES_README.md) (HUD part;
 Open the `signal-lost/` project, then choose **Signal Lost → Create HUD Test Scene**. It creates:
 
 - `Assets/Prefabs/UI/PlayerHUD.prefab`: the HUD itself (a Canvas built with Unity UI, so it can be edited in the Scene/Prefab view).
-- `Assets/Scenes/HudTest.unity`: the enemy test arena with two hermit crabs, the player with the mining laser and health, the real HUD instead of the debug HUD, a **Signal Beacon (test)** sphere on the platform, and a **HUD Test Driver**.
+- `Assets/Scenes/Initial Test Scenes/HudTest.unity`: the enemy test arena with two hermit crabs, the player with the mining laser and health, the real HUD instead of the debug HUD, a **Signal Beacon (test)** sphere on the platform, and a **HUD Test Driver**.
 
 Like the other builders, it refuses to overwrite the scene. Commit the scene, prefab, new scripts and all their `.meta` files.
 
