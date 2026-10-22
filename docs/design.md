@@ -93,6 +93,21 @@ Lawson requested these changes after playing the mini-bosses. See [desert mini-b
   - Its body was too stiff. It is now a segmented scorpion: five bending body plates, jointed legs in an alternating gait, claw elbows and a five-joint whipping tail.
 - **Numbers:** timings and damage values for the new moves are placeholders, not agreed balance.
 
+## Desert stage boss decisions
+
+Lawson requested a main boss for the desert stage. See [desert stage boss](desert-boss.md).
+
+- **Scope:** it is a stage boss, not the game's final boss. It is substantially harder than the mini-bosses, with four main phases, grander effects and more attack variety.
+- **Design (from Lawson's quiz):** a giant sandworm with the **Engine Core** built in. It has its own moveset rather than echoing the mini-bosses. Each phase changes the arena (sandstorm, collapsing ground, fire field), and the attacks are dense and overlap, needing precise dodging.
+- **Story beat (Lawson's direction):** when the player leaves the stage to put the parts on the ship, the boss rockets out of the ground where they were about to exit, grabs them and drags them to its arena, in a cutscene.
+- **Progression (Lawson's direction):** the Engine Core is one of the main ship parts needed to complete the game. Beating the boss unlocks the next stage, which doesn't exist yet.
+- **Implemented as placeholders:**
+  - A session-only `StageProgress`; no save system was invented.
+  - The exit requires the three mini-boss parts.
+  - A configurable next-stage scene name, with a message until that stage exists.
+  - The name "Core Worm".
+- **Not decided, so not invented:** placement in Nicole's Desert Dunes scene; saving and death persistence of parts and cleared stages; what the next stage is; balance numbers.
+
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
 
 ## Cavendish and merchant tutorial integration
