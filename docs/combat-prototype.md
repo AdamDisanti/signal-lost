@@ -6,7 +6,7 @@ Sequence step 2 from the [work guidelines](WORK_GUIDELINES_README.md): the minin
 
 1. Open the project in Unity **6000.6.2f1** and wait for scripts to compile. The Console should have no red errors.
 2. Choose **Signal Lost > Create Combat Test Scene** from the top menu bar.
-3. The Console should print `COMBAT_TEST_SCENE_CREATED_AND_VALIDATED`, and `Assets/Scenes/CombatTest.unity` opens.
+3. The Console should print `COMBAT_TEST_SCENE_CREATED_AND_VALIDATED`, and `Assets/Scenes/Initial Test Scenes/CombatTest.unity` opens.
 
 The menu refuses to run again once the scene exists. Commit the generated scene, materials in `Assets/Materials/Combat/`, and their `.meta` files with this feature. The shared `FirstPersonPlayer` prefab is not changed: the laser, muzzle, and debug HUD are added to the player in this scene only. Moving the laser onto the prefab is an integration decision for the lead.
 
@@ -20,7 +20,7 @@ The laser in your hand is Lawson's mining-laser model from the `tutorial-zone` b
 
 ## Run it
 
-Open `Assets/Scenes/CombatTest.unity`, press Play, and click the Game view. Movement controls are unchanged (see [movement prototype](movement-prototype.md)).
+Open `Assets/Scenes/Initial Test Scenes/CombatTest.unity`, press Play, and click the Game view. Movement controls are unchanged (see [movement prototype](movement-prototype.md)).
 
 | Input | Action |
 | --- | --- |

@@ -44,7 +44,7 @@ public static class TutorialNpcSmoke
     public static void Start()
     {
         TutorialEnemiesSetup.RequireTemp();
-        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial Testing.unity");
         Check(UnityEngine.Object.FindObjectsByType<TrainingDummy>().Length == 3, "Three original dummies authored.");
         var authoredRoots = SceneManager.GetActiveScene().GetRootGameObjects();
         SessionState.SetInt(Key + "Crabs", authoredRoots.SelectMany(r => r.GetComponentsInChildren<HermitCrab>(true)).Count(c => c.gameObject.activeInHierarchy));

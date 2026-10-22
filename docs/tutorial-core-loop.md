@@ -1,6 +1,6 @@
 # Tutorial core loop
 
-The playable tutorial built from the "Remaining core features to implement" section of the 10-20-26 meeting notes (Adam and Lawson). Open `signal-lost/Assets/Scenes/Tutorial.unity` in Unity **6000.6.2f1** and press Play. Everything is already installed in the scene; you do not need to run a tool.
+The playable tutorial built from the "Remaining core features to implement" section of the 10-20-26 meeting notes (Adam and Lawson). Open `signal-lost/Assets/Scenes/Tutorial Testing.unity` in Unity **6000.6.2f1** and press Play. Everything is already installed in the scene; you do not need to run a tool.
 
 This supersedes parts of [tutorial gameplay](tutorial-gameplay.md), [tutorial NPCs](tutorial-npcs.md) and [the impact site](tutorial-impact-site.md): the quest order, healing numbers, NPC windows and the crashed rocket changed. Those pages note what is out of date.
 

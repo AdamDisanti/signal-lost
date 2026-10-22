@@ -23,7 +23,7 @@ public static class TutorialNpcInteractionSmoke
     public static void Start()
     {
         TutorialEnemiesSetup.RequireTemp();
-        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial Testing.unity");
         var player = UnityEngine.Object.FindFirstObjectByType<TutorialPlayer>();
         var quest = UnityEngine.Object.FindFirstObjectByType<TutorialQuestFlow>();
         var ui = UnityEngine.Object.FindFirstObjectByType<TutorialNpcUi>();

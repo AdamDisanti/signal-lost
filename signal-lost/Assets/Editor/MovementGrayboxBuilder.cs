@@ -12,7 +12,7 @@ namespace SignalLost.Editor
 {
     public static class MovementGrayboxBuilder
     {
-        public const string ScenePath = "Assets/Scenes/MovementGraybox.unity";
+        public const string ScenePath = "Assets/Scenes/Initial Test Scenes/MovementGraybox.unity";
         public const string PrefabPath = "Assets/Prefabs/Player/FirstPersonPlayer.prefab";
 
         [MenuItem("Signal Lost/Create Movement Graybox")]

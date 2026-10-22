@@ -21,7 +21,7 @@ namespace SignalLost.Editor
     /// </summary>
     public static class FrogTestBuilder
     {
-        public const string ScenePath = "Assets/Scenes/FrogTest.unity";
+        public const string ScenePath = "Assets/Scenes/Enemies/FrogTest.unity";
         public const string FrogPrefabPath = EnemyFolder + "/MortarFrog.prefab";
 
         [MenuItem("Signal Lost/Create Frog Test Scene")]

@@ -50,9 +50,9 @@ namespace SignalLost.Editor
 
         private static readonly BossTest[] Tests =
         {
-            new BossTest("Assets/Scenes/BurnoutTest.unity", BurnoutPath, "Burnout", Theme.MesaPass),
-            new BossTest("Assets/Scenes/OldBuzzardTest.unity", BuzzardPath, "Old Buzzard", Theme.WreckField),
-            new BossTest("Assets/Scenes/SludgeTest.unity", SludgePath, "Sludge", Theme.BuriedHull),
+            new BossTest("Assets/Scenes/Bosses/BurnoutTest.unity", BurnoutPath, "Burnout", Theme.MesaPass),
+            new BossTest("Assets/Scenes/Bosses/OldBuzzardTest.unity", BuzzardPath, "Old Buzzard", Theme.WreckField),
+            new BossTest("Assets/Scenes/Bosses/SludgeTest.unity", SludgePath, "Sludge", Theme.BuriedHull),
         };
 
         // ---------- Menus ----------

@@ -52,7 +52,7 @@ public static class ScannerPlayModeSmoke
         EditorSettings.enterPlayModeOptions = fast
             ? EnterPlayModeOptions.DisableDomainReload | EnterPlayModeOptions.DisableSceneReload
             : EnterPlayModeOptions.None;
-        EditorSceneManager.OpenScene("Assets/Scenes/ScannerTest.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Initial Test Scenes/ScannerTest.unity");
         errors.Clear(); SessionState.SetString(Key + "Errors", "");
         SessionState.SetInt(Key, 1);
         SessionState.SetInt(Key + "Cycle", 0);

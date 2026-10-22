@@ -2,7 +2,7 @@
 
 ## Scope
 
-This is a first-pass scanner prototype in the separate [`ScannerTest` scene](../signal-lost/Assets/Scenes/ScannerTest.unity). It is not integrated into the shared player prefab or the main `Prototype` scene. The scanner currently detects above-ground enemy signal sources; subterranean discovery and emergence behavior are future work.
+This is a first-pass scanner prototype in the separate [`ScannerTest` scene](../signal-lost/Assets/Scenes/Initial%20Test%20Scenes/ScannerTest.unity). It is not integrated into the shared player prefab or the main `Prototype` scene. The scanner currently detects above-ground enemy signal sources; subterranean discovery and emergence behavior are future work.
 
 The design reference calls for a directional indicator, signal strength, and audio feedback. Exact tuning values here are provisional and should be adjusted through playtesting. See the [design summary](design.md) and [work guidelines](WORK_GUIDELINES_README.md).
 
@@ -17,7 +17,7 @@ The `ToggleScanner` action is in the existing Player action map. The toggle scri
 
 ## Scene setup
 
-Open `signal-lost/Assets/Scenes/ScannerTest.unity` in Unity 6000.6.2f1 and enter Play Mode. The scene contains a player prefab instance, a `ScannerRig` prefab under the camera with a `ScannerVisualRoot`, imported scanner model, world-space display, and a `ScannerTarget_AboveGround` test object.
+Open `signal-lost/Assets/Scenes/Initial Test Scenes/ScannerTest.unity` in Unity 6000.6.2f1 and enter Play Mode. The scene contains a player prefab instance, a `ScannerRig` prefab under the camera with a `ScannerVisualRoot`, imported scanner model, world-space display, and a `ScannerTarget_AboveGround` test object.
 
 Keep `ScannerVisualRoot` as the toggle target. The model and scanner display are children of that root, so they show and hide together. Keep the toggle/controller on the active `ScannerRig` parent, outside the hidden visual root. Do not apply the scene overrides to the shared player prefab without coordinating integration.
 

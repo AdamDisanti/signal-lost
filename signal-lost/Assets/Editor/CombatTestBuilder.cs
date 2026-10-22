@@ -18,7 +18,7 @@ namespace SignalLost.Editor
     /// </summary>
     public static class CombatTestBuilder
     {
-        public const string ScenePath = "Assets/Scenes/CombatTest.unity";
+        public const string ScenePath = "Assets/Scenes/Initial Test Scenes/CombatTest.unity";
         private const string PlayerPrefabPath = "Assets/Prefabs/Player/FirstPersonPlayer.prefab";
         private const string InputPath = "Assets/InputSystem_Actions.inputactions";
         private const string MaterialFolder = "Assets/Materials/Combat";

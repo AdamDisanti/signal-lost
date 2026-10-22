@@ -17,6 +17,10 @@ public static class DesertEnemySmoke
 {
     private const string Key = "SignalLost.DesertEnemySmoke";
     private static readonly string[] Scenes = { "DesertFodderTest", "SparkTickTest", "SnorkelEelTest", "JerryCanBeetleTest", "HubcapArmadilloTest", "DishMeerkatTest", "BurnoutTest", "OldBuzzardTest", "SludgeTest" };
+
+    // Mini-boss tests live in Scenes/Bosses, fodder tests in Scenes/Enemies.
+    private static string ScenePath(string name) =>
+        "Assets/Scenes/" + (name is "BurnoutTest" or "OldBuzzardTest" or "SludgeTest" ? "Bosses" : "Enemies") + "/" + name + ".unity";
     private static readonly List<string> Report = new List<string>();
     private static float started;
     private static int peakAlive;
@@ -43,7 +47,7 @@ public static class DesertEnemySmoke
     public static void Generate()
     {
         Guard();
-        if (!File.Exists("Assets/Scenes/DesertFodderTest.unity")) DesertFodderBuilder.Create();
+        if (!File.Exists("Assets/Scenes/Enemies/DesertFodderTest.unity")) DesertFodderBuilder.Create();
         DesertFodderBuilder.CreateSingleEnemyScenes();
         DesertMiniBossBuilder.CreateTestScenes();
         Validate();
@@ -52,7 +56,7 @@ public static class DesertEnemySmoke
     public static void Validate()
     {
         Guard();
-        foreach (string name in Scenes) Require(File.Exists("Assets/Scenes/" + name + ".unity"), "Missing test scene: " + name);
+        foreach (string name in Scenes) Require(File.Exists(ScenePath(name)), "Missing test scene: " + name);
         DesertFodderBuilder.Validate();
         DesertFodderBuilder.ValidateSingleEnemyScenes();
         DesertMiniBossBuilder.Validate();
@@ -61,7 +65,7 @@ public static class DesertEnemySmoke
     public static void Start()
     {
         Guard(); Validate();
-        EditorSceneManager.OpenScene("Assets/Scenes/" + Scenes[0] + ".unity");
+        EditorSceneManager.OpenScene(ScenePath(Scenes[0]));
         SessionState.SetInt(Key + "Index", 0);
         SessionState.SetBool(Key, true);
         SessionState.SetFloat(Key + "Deadline", (float)EditorApplication.timeSinceStartup + 210);
@@ -110,7 +114,7 @@ public static class DesertEnemySmoke
             SessionState.SetInt(Key + "Index", index);
             initialized = moved = engaged = false;
             peakAlive = 0;
-            EditorSceneManager.LoadSceneInPlayMode("Assets/Scenes/" + Scenes[index] + ".unity", new LoadSceneParameters(LoadSceneMode.Single));
+            EditorSceneManager.LoadSceneInPlayMode(ScenePath(Scenes[index]), new LoadSceneParameters(LoadSceneMode.Single));
         }
         catch (Exception exception)
         {

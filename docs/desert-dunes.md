@@ -7,7 +7,7 @@ First biome after the tutorial, built from the design document's level descripti
 Open the `signal-lost/` project, then choose **Signal Lost → Create Desert Dunes Level**. It creates:
 
 - `Assets/Prefabs/Enviornment objects/DesertDunes/DesertEnvironment.prefab`: terrain, perimeter dunes, mesas, rocks, alien plants, wreckage, ribcage and boss-arena spires. Its meshes and materials are in `Meshes/` and `Materials/` beside it.
-- `Assets/Scenes/DesertDunes.unity`: the environment, desert lighting/fog/sky, the player, five hermit crabs at three encounter sites, and placeholder markers.
+- `Assets/Scenes/Large Areas/DesertDunes.unity`: the environment, desert lighting/fog/sky, the player, five hermit crabs at three encounter sites, and placeholder markers.
 
 Like the other builders, it refuses to overwrite the scene. Commit the scene, the `DesertDunes` folder, the builder script and all `.meta` files.
 

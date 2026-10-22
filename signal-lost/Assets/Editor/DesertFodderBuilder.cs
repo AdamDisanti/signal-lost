@@ -27,13 +27,13 @@ namespace SignalLost.Editor
     /// DesertFodderTest.unity, with one FodderSpawner "station" per enemy around a sandy arena.
     ///
     /// It only creates new files under Assets/Prefabs/Enemies/Desert, Assets/Materials/Enemies/Desert and
-    /// Assets/Scenes/DesertFodderTest.unity (plus the five single-enemy test scenes, see CreateSingleEnemyScenes). It does not touch the tutorial, the Desert Dunes scene, the shared player
+    /// Assets/Scenes/Enemies/DesertFodderTest.unity (plus the five single-enemy test scenes, see CreateSingleEnemyScenes). It does not touch the tutorial, the Desert Dunes scene, the shared player
     /// or HUD prefabs, or any existing enemy. Like the other builders it refuses to overwrite the test scene;
     /// "Regenerate Prefabs" rebuilds the five prefabs and their meshes in place (same GUIDs).
     /// </summary>
     public static class DesertFodderBuilder
     {
-        public const string ScenePath = "Assets/Scenes/DesertFodderTest.unity";
+        public const string ScenePath = "Assets/Scenes/Enemies/DesertFodderTest.unity";
         private const string Root = "Assets/Prefabs/Enemies/Desert";
         private const string DesertMeshFolder = Root + "/Meshes";
         private const string DesertMaterialFolder = "Assets/Materials/Enemies/Desert";
@@ -178,11 +178,11 @@ namespace SignalLost.Editor
         // (to test chain explosions); the others one at a time.
         private static readonly SingleTest[] SingleTests =
         {
-            new SingleTest("Assets/Scenes/SparkTickTest.unity", TickPath, "Spark Ticks", 4, 4),
-            new SingleTest("Assets/Scenes/SnorkelEelTest.unity", EelPath, "Snorkel Eel", 1, 1),
-            new SingleTest("Assets/Scenes/JerryCanBeetleTest.unity", BeetlePath, "Jerry-Can Beetles", 2, 2),
-            new SingleTest("Assets/Scenes/HubcapArmadilloTest.unity", ArmadilloPath, "Hubcap Armadillo", 1, 1),
-            new SingleTest("Assets/Scenes/DishMeerkatTest.unity", MeerkatPath, "Dish Meerkat", 1, 1),
+            new SingleTest("Assets/Scenes/Enemies/SparkTickTest.unity", TickPath, "Spark Ticks", 4, 4),
+            new SingleTest("Assets/Scenes/Enemies/SnorkelEelTest.unity", EelPath, "Snorkel Eel", 1, 1),
+            new SingleTest("Assets/Scenes/Enemies/JerryCanBeetleTest.unity", BeetlePath, "Jerry-Can Beetles", 2, 2),
+            new SingleTest("Assets/Scenes/Enemies/HubcapArmadilloTest.unity", ArmadilloPath, "Hubcap Armadillo", 1, 1),
+            new SingleTest("Assets/Scenes/Enemies/DishMeerkatTest.unity", MeerkatPath, "Dish Meerkat", 1, 1),
         };
 
         /// <summary>

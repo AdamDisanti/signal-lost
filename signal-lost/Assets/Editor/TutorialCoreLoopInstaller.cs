@@ -19,7 +19,7 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public static class TutorialCoreLoopInstaller
 {
-    private const string ScenePath = "Assets/Scenes/Tutorial.unity";
+    private const string ScenePath = "Assets/Scenes/Tutorial Testing.unity";
     private const string ScannerRigPath = "Assets/Prefabs/Player/Scanner/ScannerRig.prefab";
     private const string CrabPath = "Assets/Prefabs/Enemies/HermitCrab.prefab";
     private const string FrogPath = "Assets/Prefabs/Enemies/MortarFrog.prefab";

@@ -8,7 +8,7 @@ The enemy is a goofy low-poly hermit crab that wears a swappable shell. Its firs
 
 1. Open the project in Unity **6000.6.2f1** on the `feature/basic-enemy` branch and wait for scripts to compile. The Console should have no red errors.
 2. Choose **Signal Lost > Create Enemy Test Scene** from the top menu bar.
-3. The Console should print `ENEMY_TEST_SCENE_CREATED_AND_VALIDATED`, and `Assets/Scenes/EnemyTest.unity` opens.
+3. The Console should print `ENEMY_TEST_SCENE_CREATED_AND_VALIDATED`, and `Assets/Scenes/Initial Test Scenes/EnemyTest.unity` opens.
 
 The menu refuses to run again once the scene exists. It also creates, the first time:
 
@@ -22,7 +22,7 @@ The scene's player is the shared `FirstPersonPlayer` prefab with the mining lase
 
 ## Run it
 
-Open `Assets/Scenes/EnemyTest.unity`, press Play, and click the Game view. Controls are unchanged: see the [movement](movement-prototype.md) and [combat](combat-prototype.md) prototypes.
+Open `Assets/Scenes/Initial Test Scenes/EnemyTest.unity`, press Play, and click the Game view. Controls are unchanged: see the [movement](movement-prototype.md) and [combat](combat-prototype.md) prototypes.
 
 The arena has two crabs. **Hermit Crab A** waits ahead of you; **Hermit Crab B** is further back on the left. There is cover, a pillar to hide behind, and a ramp up to a platform. The HUD shows your health in the top left and the crab under the crosshair.
 

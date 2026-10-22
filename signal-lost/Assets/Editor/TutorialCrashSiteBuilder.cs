@@ -14,7 +14,7 @@ namespace SignalLost.Editor
     /// <summary>One-shot saved-scene conversion; never regenerates over authored crash-site edits.</summary>
     public static class TutorialCrashSiteBuilder
     {
-        public const string ScenePath = "Assets/Scenes/Tutorial.unity";
+        public const string ScenePath = "Assets/Scenes/Tutorial Testing.unity";
         public const string AssetRoot = "Assets/Prefabs/Enviornment objects/TutorialCrashSite";
         public const string EnvironmentName = "Tutorial Impact Site";
         public const float TerrainSize = 160f;

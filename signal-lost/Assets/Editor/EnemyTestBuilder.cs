@@ -25,7 +25,7 @@ namespace SignalLost.Editor
     /// </summary>
     public static class EnemyTestBuilder
     {
-        public const string ScenePath = "Assets/Scenes/EnemyTest.unity";
+        public const string ScenePath = "Assets/Scenes/Initial Test Scenes/EnemyTest.unity";
         public const string CrabPrefabPath = EnemyFolder + "/HermitCrab.prefab";
         public const string BucketPrefabPath = ShellFolder + "/MetalBucket.prefab";
 
