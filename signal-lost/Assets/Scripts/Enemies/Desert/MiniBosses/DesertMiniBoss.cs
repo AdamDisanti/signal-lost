@@ -14,8 +14,9 @@ namespace SignalLost.Enemies.Desert
     /// - Patrol: walks a loop around its home until the player enters its arena (or hits it).
     /// - Engaged: a boss health bar appears (<see cref="MiniBossHud"/>), and its FodderSpawner starts sending fodder.
     /// - Two phases: at Phase Two At (default half health) the stolen part is damaged and the fight changes.
-    /// - Leash: if the player leaves the arena for a few seconds, or dies, it resets to full health, phase 1, and
-    ///   clears its fodder.
+    /// - Leash: if the player clearly runs away (well past the arena edge, not hitting it) for several seconds, it
+    ///   warns, then gives up and resets to full health, phase 1, at home, and clears its fodder. It also resets when
+    ///   the player dies. A banner says why either way.
     /// - Defeat: the fodder spawner stops (fodder already out keeps fighting), and the stolen ship part drops as a
     ///   glowing pickup (<see cref="ShipPartDrop"/>). <see cref="Defeated"/> and <see cref="DefeatedCount"/> let a
     ///   future encounter/boss-unlock system count the three.
@@ -36,10 +37,12 @@ namespace SignalLost.Enemies.Desert
         [SerializeField] private string displayName = "Mini-boss";
         [Tooltip("The ship part it stole, shown when it is recovered.")]
         [SerializeField] private string partName = "Ship part";
-        [Tooltip("It engages when the player is within this distance of its home, and resets if they leave.")]
+        [Tooltip("It engages when the player comes within this distance of its home.")]
         [SerializeField, Min(5f)] private float arenaRadius = 20f;
-        [Tooltip("Seconds the player can be outside the arena before it gives up and resets.")]
-        [SerializeField, Min(0f)] private float leashTime = 5f;
+        [Tooltip("How far past the arena edge the player can go (dodging, kiting) before it starts to give up.")]
+        [SerializeField, Min(0f)] private float leashMargin = 12f;
+        [Tooltip("Seconds the player must stay that far away, without hitting it, before it gives up and resets.")]
+        [SerializeField, Min(1f)] private float giveUpTime = 8f;
         [Tooltip("Phase 2 starts at or below this fraction of its health.")]
         [SerializeField, Range(0.05f, 0.95f)] private float phaseTwoAt = 0.5f;
         [Tooltip("Seconds the phase change takes (the part breaking). It doesn't attack meanwhile.")]
@@ -88,7 +91,8 @@ namespace SignalLost.Enemies.Desert
         private readonly List<Vector3> route = new List<Vector3>();
         private int routeIndex;
         private float routeWait, leashTimer, phaseShiftUntil, phaseShiftStart = float.NegativeInfinity;
-        private bool applyingBonus, shiftEnded = true, patrolStarted;
+        private bool applyingBonus, shiftEnded = true, patrolStarted, leashWarned;
+        private float lastHurt = float.NegativeInfinity;
         private int lastBodyHitFrame = -1;
         private float pendingPartDamage;
         private GameObject pendingPartSource;
@@ -160,6 +164,7 @@ namespace SignalLost.Enemies.Desert
         protected sealed override void OnHit(float amount, GameObject source, Vector3 away)
         {
             if (applyingBonus) return; // the bonus part of a hit: nothing more to react to
+            lastHurt = Time.time;
             if (DamageTakenMultiplier > 1.001f)
             {
                 applyingBonus = true;
@@ -347,14 +352,28 @@ namespace SignalLost.Enemies.Desert
             OnEngaged();
         }
 
+        /// <summary>
+        /// Gives up only when the player has really left: well past the arena edge and not hurting it, for
+        /// <see cref="giveUpTime"/> seconds. Dodging out to the walls or fighting from range never triggers it.
+        /// </summary>
         private void UpdateLeash(float dt)
         {
-            if (TargetAlive && PlayerDistanceFromHome() > arenaRadius + 4f)
+            bool away = TargetAlive && PlayerDistanceFromHome() > arenaRadius + leashMargin && Time.time - lastHurt > 4f;
+            if (!away)
             {
-                leashTimer += dt;
-                if (leashTimer >= leashTime) ResetBoss();
+                leashTimer = 0f;
+                leashWarned = false;
+                return;
             }
-            else leashTimer = 0f;
+            leashTimer += dt;
+            if (!leashWarned && leashTimer >= giveUpTime * 0.5f)
+            {
+                leashWarned = true;
+                MiniBossHud.Message($"You're leaving the fight: {displayName} is losing interest...", new Color(1f, 0.85f, 0.5f), 3f);
+            }
+            if (leashTimer < giveUpTime) return;
+            ResetBoss();
+            MiniBossHud.Message($"{displayName} gave up and went home (full health).", new Color(1f, 0.85f, 0.5f), 3f);
         }
 
         private void BeginPhaseTwo()
@@ -371,7 +390,9 @@ namespace SignalLost.Enemies.Desert
 
         private void OnPlayerDied(Health _)
         {
-            if (!IsDead && Engaged) ResetBoss();
+            if (IsDead || !Engaged) return;
+            ResetBoss();
+            MiniBossHud.Message($"{displayName} reset (you died).", new Color(1f, 0.6f, 0.5f), 3f);
         }
 
         /// <summary>Back to full health, phase 1, at home, not engaged; its fodder is cleared.</summary>
@@ -383,6 +404,8 @@ namespace SignalLost.Enemies.Desert
             phaseShiftUntil = 0f;
             shiftEnded = true;
             leashTimer = 0f;
+            leashWarned = false;
+            lastHurt = float.NegativeInfinity;
             DamageTakenMultiplier = 1f;
             shoveRemaining = 0f;
             Health.Restore();
@@ -425,12 +448,18 @@ namespace SignalLost.Enemies.Desert
         private void OnDrawGizmosSelected()
         {
             Vector3 centre = Application.isPlaying ? Home : transform.position;
-            Gizmos.color = new Color(1f, 0.3f, 0.2f, 0.8f);
-            Vector3 previous = centre + Vector3.right * arenaRadius;
+            DrawCircle(centre, arenaRadius, new Color(1f, 0.3f, 0.2f, 0.8f));             // engages inside this
+            DrawCircle(centre, arenaRadius + leashMargin, new Color(1f, 0.75f, 0.2f, 0.6f)); // gives up beyond this
+        }
+
+        private static void DrawCircle(Vector3 centre, float radius, Color color)
+        {
+            Gizmos.color = color;
+            Vector3 previous = centre + Vector3.right * radius;
             for (int i = 1; i <= 48; i++)
             {
                 float a = i * Mathf.PI * 2f / 48f;
-                Vector3 next = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * arenaRadius;
+                Vector3 next = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * radius;
                 Gizmos.DrawLine(previous, next);
                 previous = next;
             }

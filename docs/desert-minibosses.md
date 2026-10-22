@@ -67,7 +67,8 @@ The mini-boss patrols near the middle. You start at the south edge, outside its 
   - A boss health bar appears at the top of the screen, with a notch where phase 2 starts.
   - Its fodder spawner starts sending waves at the arena's edge, preferring spots behind you, with a cap on how many are alive at once.
 - **Phase 2 at half health:** the stolen part breaks. A banner says so, the boss pauses for a moment, and then it fights differently.
-- **Leash and reset:** leave the arena for 5 s, or die, and it resets: full health, phase 1, back home, fodder cleared.
+- **Leash and reset:** it resets (full health, phase 1, back home, fodder cleared) when you die, or when you really run away. Running away means going more than 12 m past its 20 m arena (32 m from its home) and not hitting it for 8 s. Halfway through, a banner warns that it is losing interest, and another banner says why when it resets. Dodging out to the walls or fighting from range doesn't count, and any hit on it restarts the count. The Scene view shows both rings when the boss is selected.
+  - *Fixed bug:* the leash used to be 24 m from home for 5 s, with no warning. In the 64 m test arenas you could trip it just by dodging Burnout's dashes or the Buzzard's dives, so the boss seemed to reset for no reason. Old prefabs' 5 s leash value is ignored (the setting was renamed **Give Up Time**).
 - **Defeat:**
   - Spawning stops; fodder already out keeps fighting.
   - The stolen part drops as a glowing, spinning pickup. Walk up to it: **RECOVERED: … (n/3)**.
