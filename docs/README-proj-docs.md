@@ -8,6 +8,7 @@
 - [Desert / Dunes level](desert-dunes.md): first biome prototype, layout, how to build it, and test checklist.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
 - [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
+- [Fire effect](fire-effect.md): the reusable particle fire (and sand/smoke/spark bursts) for stage design and gameplay.
 - [Tutorial core loop](tutorial-core-loop.md): the playable tutorial: wake-up, two quests, dialogue UI, scanner guidance, scrap, inventory, merchant menu and the stripped shipwreck.
 - [Tutorial NPCs](tutorial-npcs.md): Cavendish quest, flask-carrying merchant crab, world dialogue, and shop preview (partly superseded by the core loop).
 - [Design](design.md): source-grounded scope and open questions.

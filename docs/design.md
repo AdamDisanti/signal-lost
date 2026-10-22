@@ -75,6 +75,24 @@ The source proposes an eight-week sequence: foundation/prototype (weeks 1–3), 
 - At Lawson's request, each one patrols a set area while fodder keeps spawning around it during the fight. Phase 2 starts at half health. Leaving the arena or dying resets the mini-boss. On defeat the stolen part drops as a placeholder pickup.
 - Not decided, so not invented: whether the parts count toward progression, the boss becoming scannable after three defeats, placement in the Desert Dunes scene, scanner priority, and death persistence.
 
+### Mini-boss polish pass
+
+Lawson requested these changes after playing the mini-bosses. See [desert mini-bosses](desert-minibosses.md#polish-pass-fire-animation-new-moves).
+
+- **Fire:** the bosses' fire should look like proper fire, not spheres in a puddle, and the effect should be reusable elsewhere, for example in stage design. It is now the general [fire effect](fire-effect.md), a code-built particle fire with prefabs and a GameObject menu. It does no damage on its own.
+- **Old Buzzard:**
+  - Its animation was too stiff. Now every pose eases in, the wings have elbows, flapping has a proper cycle, and the head tracks the player.
+  - The sand attack should reach to the ground and fling sand rather than raise a wing. It now scoops with the wing down in the sand, then flings it forward.
+- **Burnout:**
+  - Follow-up dashes should target the player. Each follow-up now re-aims at the player with a short lead, curves toward them mid-dash and banks off walls toward them. This resolves the "targeted multi-dash" item in the meeting notes below.
+  - At its last 15% of health it stays in a rapid dashing state until defeated (the redline).
+- **Sludge:**
+  - It felt uninteresting, so it now fires more oil puddles in one attack: 6, or 9 in phase 2.
+  - New charged explosive shot that the player must take cover from. The blast checks line of sight, so cover fully protects; creatures and puddles are not cover. A sight line shows whether you are covered, and a heavy hit on the tank while it charges backfires it (consistent with its existing weak spot).
+  - It was weak up close, so it now has a claw combo, a tail sting that reaches any side, and a short flamethrower, and it no longer backs away.
+  - Its body was too stiff. It is now a segmented scorpion: five bending body plates, jointed legs in an alternating gait, claw elbows and a five-joint whipping tail.
+- **Numbers:** timings and damage values for the new moves are placeholders, not agreed balance.
+
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
 
 ## Cavendish and merchant tutorial integration
@@ -111,5 +129,5 @@ Adam and Lawson's meeting notes asked for a complete tutorial before the demo. T
 - **Not done:**
   - Moving the tutorial enemies out from under the terrain was not selected, so the encounter NavMesh was not rebaked around the wreck.
   - The next-stage transition (heal and black out after a stage) and the other UI ideas (Doom-style HUD, on-screen hands, skyboxes) are still open.
-  - The "screeb" spotter behaviour and Burnout's targeted multi-dash are still open.
+  - The "screeb" spotter behaviour is still open. Burnout's targeted multi-dash was done in the [mini-boss polish pass](#mini-boss-polish-pass).
 

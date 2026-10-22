@@ -10,6 +10,25 @@ The three mini-bosses of the Desert / Dunes biome. When the ship broke up, the T
 
 This builds on the [desert fodder](desert-fodder.md) branch and lives entirely in new files, apart from small changes to the fodder scripts listed under [Changes to the fodder code](#changes-to-the-fodder-code). It does not touch the tutorial, the Desert Dunes scene, the crash-site assets it borrows, the shared player, scanner or HUD prefabs, or the crab and frog.
 
+## Polish pass (fire, animation, new moves)
+
+The `feature/desert-boss-polish` branch reworks all three. See each boss below for the details.
+
+- **Fire:** every fire the bosses make is now a real particle fire, the general [fire effect](fire-effect.md): flames, a white-hot core, a glowing bed, embers, smoke and a flickering light. Burnout's exhaust is a particle jet. Sand, sparks, smoke and explosions are particle bursts.
+- **Burnout:** follow-up dashes now re-target the player. Below 15% health it redlines and never stops dashing.
+- **Old Buzzard:**
+  - Smooth, layered animation: elbows, a flap cycle, banking, a head that tracks you, and a waddle.
+  - The sand attack now reaches down, scoops sand with the wing and flings it at you.
+- **Sludge:**
+  - Bigger oil volleys.
+  - A charged **fuel cannon** you have to take cover from.
+  - A close-range claw combo, tail sting and flamethrower.
+  - A segmented body with jointed legs and claws that moves like a scorpion.
+
+**After pulling this branch, run Signal Lost > Desert Mini-Bosses > Regenerate Prefabs once.** Old Buzzard's elbows and tail joint, and Sludge's segmented body, jointed legs, claw elbows and five-joint tail, only exist in regenerated prefabs. The old prefabs still run, but stiffly, and the Console warns about this on every script reload until you regenerate.
+
+Regenerating keeps the prefab GUIDs. It then opens the three boss test scenes and re-links each boss to its fodder spawner and start position if the rebuild knocked them loose. Commit the regenerated prefabs and meshes, and any scenes it re-saved.
+
 ## Open the delivered assets
 
 The local `tutorial-zone` integration now contains the **saved mini-boss prefabs, their meshes/materials, all fodder assets and all three test scenes**. Open `Assets/Scenes/Bosses/BurnoutTest.unity`, `OldBuzzardTest.unity` or `SludgeTest.unity` and press Play. The prefabs are under `Assets/Prefabs/Enemies/Desert/MiniBosses/`. No generator needs to be run over the delivered scenes, and the tutorial and Desert Dunes scene have not been populated with new enemies.
@@ -63,10 +82,11 @@ The mini-boss patrols near the middle. You start at the south edge, outside its 
 | 1 | **Crash** | Dashing into a mesa or wall stuns it for 2.2 s. | A bigger opening. |
 | 1, 2 | **Tail whip** | Close in front or beside it: 0.55 s crouch, then a full spin with the tail (16 damage). | Back off on the crouch. |
 | 1, 2 | **Exhaust blast** | Close behind it: the nozzle flares for 0.6 s, then a cone of fire blasts backwards (20 damage, a shove, fire left behind). | Don't hug its back. |
-| 2 | **Chain dash** | Shorter wind-ups (0.7 s, then 0.4 s re-aims). It chains three sputtering dashes and banks off walls. | Keep moving; watch each re-aim. |
+| 2 | **Chain dash** | Shorter wind-ups (0.7 s, then 0.4 s re-aims). It chains three sputtering dashes. **Every follow-up targets you:** it whips round to face you (whatever the angle) during the re-aim, aims a little ahead of where you're running, curves gently toward you mid-dash (28°/s, only while you're still in front of it), and banks off walls back toward you instead of a plain bounce. | Keep moving; sidestep late on each re-aim. |
 | 2 | **Overheat** | After a chain it stalls for 3 s, smoking, and takes **1.6x damage**. | Unload on it. |
+| 2 | **Redline** | At **15% health** the engine runs away with it: "BURNOUT IS REDLINING!". It never stops dashing again: 0.45 s re-aims, faster dashes (29 m/s), stronger homing (40°/s), banking off every wall toward you, sparks and smoke pouring off it, until it dies. Each dash does 18 and its fire burns for 2.4 s. | Sidestep each dash late and shoot it during the re-aims. |
 
-420 HP.
+420 HP. The exhaust is a particle flame jet that flares in the wind-up, roars during dashes and blasts out of the exhaust attack.
 
 ## Old Buzzard (wing panels)
 
@@ -79,33 +99,41 @@ The mini-boss patrols near the middle. You start at the south edge, outside its 
 | 2 | **Wing torn off** | The wing that took more damage tears away and it crashes. It's grounded and lopsided from then on. | |
 | 2 | **Peck** | 0.55 s pull-back, then a lunge (16 damage). | Sidestep. |
 | 2 | **Hop-stomp** | Crouches 0.7 s, hops onto you (20 damage in 2.4 m). | Move on the crouch. |
-| 2 | **Wing gust** | Raises its wing for 1 s, then gusts a cone in front: 8 damage, a 4 m shove, and **sand in your eyes** for 2.5 s. | Get out of the cone. |
+| 2 | **Sand fling** | Leans forward, twists and reaches its good wing down into the sand, dragging it back to scoop (sand puffs off the wingtip) for 1 s, then whips the wing forward and up and flings a spray of sand at you: 8 damage, a 4 m shove, and **sand in your eyes** for 2.5 s. | Get out of the cone in front of it while it scoops. |
 | 2 | **Failed take-off** | Every 9-13 s it flaps frantically, gets 2 m up and drops, then sits dazed for 1.8 s. | Your opening. |
 | 2 | **Wing shield** | Bolts from its front glance off its remaining wing (back at you, 30% damage). | Melee, or shoot from behind or while it's dazed. |
 
 380 HP. The torn-off wing is the part it drops.
 
+Animation: every joint now eases into its poses instead of snapping. Each wing bends at an elbow. Flapping has a quick downstroke and slower upstroke, with the wingtips trailing. Between flap bursts it glides with the wings held up in a V. It banks into turns and bobs with each wingbeat, and its head keeps watching you. The dive tucks the wings back and swings the talons forward at the end. On the ground it waddles with a bird-like head bob, keeps its remaining wing half-open for balance, and flaps once on the hop-stomp.
+
 ## Sludge (fuel tank)
 
 | Phase | Move | What happens | Counter |
 | --- | --- | --- | --- |
-| 1 | **Oil spray** | The tail curls forward and the tank gurgles for 0.8 s, then it lobs 3 globs. The first lands on you, the rest scatter around you, each marked by a ring. Each leaves a slick for 14 s that **slows you by half**. | Move out of the rings. |
-| 1 | **Ignite** | When you are near one of its slicks, the blue pilot light on its tail flickers hot for 0.6 s, then it sparks the slick into fire (9 damage per half second). It never lights a slick it's standing in. | Leave the oil when the igniter flickers. |
-| 1, 2 | **Claw snap** | Close in front: pincers open for 0.5 s, then snap twice (12 each). | Back off on the open. |
-| 2 | **Punctured tank** | Fuel gushes into four slicks around it. It leaves a burning trail as it walks and sprays 5 globs, more often. | |
+| 1 | **Oil spray** | The tail curls forward and the tank gurgles for 0.8 s, then it lobs a volley of **6 globs** over 0.9 s. The first lands on you (a little ahead if you're running), and the rest fill a disc about 4.5 m around you in a spiral, each marked by a ring. Each leaves a slick for 14 s that **slows you by half**. | Run out of the disc as the rings appear. |
+| 1 | **Ignite** | When you are near one of its slicks, the blue pilot light on its tail flickers hot for 0.6 s, then it sends sparks at the slick and it bursts into flame (9 damage per half second). It never lights a slick it's standing in. | Leave the oil when the igniter flickers. |
+| 1, 2 | **Fuel cannon** | Plants its legs, raises the hose and pressurises the tank for **2.4 s** (2 s in phase 2): "TAKE COVER!", sparks at the hose, and a **red sight line** that ends on you if you're exposed, or on your cover if you're not. The aim locks at 85%, then it fires a blazing shell that bursts on the first thing it hits: **45 damage** in 7 m (falling to 40% at the edge), plus a fire. **The blast only hurts what it can see**: a rock or hull plate between you and it means no damage. About 8 s into the fight, then every 15 s (11 s in phase 2). | Get behind cover while it charges. Or backfire it. |
+| 1, 2 | **Claw combo** | Close in front: pincers open and rise for 0.4 s, then it lunges and the claws snap alternately, twice (three times in phase 2), 11 each. | Back off on the open. |
+| 1, 2 | **Tail sting** | Close (4.2 m) on **any side**: it swings round and rears its tail while a ring marks your spot for 0.6 s (it follows you until 70%), then stabs the hose down: 22 damage and a lick of fire. | Get out of the ring. |
+| 1, 2 | **Torch** | 2.5–6.5 m in front: lights the hose for 0.5 s, then sweeps a short flamethrower across you for 1.4 s (6 damage every quarter second while you're in it). It lights its oil as it passes and drips burning fuel. | Get behind it or out of reach. |
+| 2 | **Punctured tank** | Fuel gushes into four slicks around it. It leaves a burning trail as it walks, sprays **9 globs** more often, does three-snap claw combos and charges the cannon faster. | |
 
-440 HP. Ways to hurt it:
+440 HP. Up close it no longer backs away: it presses in to claw range and turns to keep its claws on you. Ways to hurt it:
 
-- **Backfire:** a heavy hit (20+, a charged shot or the slam) on the **fuel tank** while it is winding up or spraying. The tank explodes on its back (it takes 70, and anything near it 22), and it is stunned for 3.2 s lying in burning fuel.
+- **Backfire:** a heavy hit (20+, a charged shot or the slam) on the **fuel tank** while it is winding up or spraying, **or while it charges the cannon**. The tank explodes on its back (it takes 70, and anything near it 22), and it is stunned for 3.2 s lying in burning fuel.
 - **Your fires hurt it:** fires it starts don't hurt it, but fires you start do. Shoot a slick it is standing in.
-- **Chain reactions:** beetle blasts light slicks too, and fire hurts fodder, so lure them into the flames.
+- **Chain reactions:** beetle blasts light slicks, the cannon's blast hurts any fodder it can see, and fire hurts fodder. Lure them in.
+
+Animation: the body is now a chain of five plates. Each bends against turns, so the rear swings wide, and ripples as it walks. The eight legs have knees and walk in two alternating sets of four, bracing for the cannon and flamethrower. Each claw has an elbow and opens, lunges and snaps alternately. The five-joint tail sways in a wave, rears and whips on the sting, recoils from the cannon, and trembles under pressure. The mouthparts chew. Nothing snaps between poses.
 
 ## Shared systems added
 
 - **`DesertMiniBoss`:** the base for all three. It handles patrol, engage, the boss bar, phase 2, leash/reset, fodder control, the part drop, and a weak-spot relay. `DesertMiniBoss.Defeated` and `DefeatedCount` are there for a future encounter counter or boss unlock; nothing uses them yet.
 - **`MiniBossHud`:** **PLACEHOLDER** IMGUI boss bar, banners and sand-blind overlay. The shared HUD prefab is untouched.
 - **`ShipPartDrop`:** the dropped part pickup. **PLACEHOLDER**: it only records the part's name (`ShipPartDrop.Recovered`). There is no inventory or ship repair yet.
-- **`FireZone` / `FireStyle`:** ground fire that hurts every `Health` inside it once per tick and ignites oil and beetles. It can be immune to whoever started it.
+- **`FireZone` / `FireStyle`:** ground fire that hurts every `Health` inside it once per tick and ignites oil and beetles. It can be immune to whoever started it. It looks like the general [fire effect](fire-effect.md) (it flares up, burns, then dies down rather than vanishing). `FireStyle` now sets a tint, a smoke amount and a fierceness instead of two flat materials.
+- **`FuelShell`:** Sludge's cannon shell, and a blast that only hurts targets it has a clear line to. Creatures and oil puddles aren't cover; scenery is.
 - **`OilSlick`, `OilGlob`, `PlayerSlowReceiver`:**
   - Oil puddles slow the player by undoing part of each frame's movement, without changing `FirstPersonController`.
   - Oil burns when fire, a blast or a laser bolt touches it.
@@ -137,7 +165,10 @@ For each scene: press Play. No Console errors (a short pause while the NavMesh b
 1. The nozzle glows and it crouches before every dash. Strafe late: it misses, skids, spins and wobbles dizzy. A fire streak follows its path and hurts you if you stand in it, but never hurts Burnout.
 2. Lure it into a mesa: it crashes and lies stunned.
 3. Stand close in front: tail whip. Stand close behind: the exhaust blast shoots fire back.
-4. Phase 2: the engine is tilted and dark and smokes. It chains three sputtering dashes, banks off walls, then "OVERHEATED!": it stalls, smoking, and takes visibly more damage.
+4. Phase 2: the engine is tilted and dark and smokes. It chains three sputtering dashes, then "OVERHEATED!": it stalls, smoking, and takes visibly more damage.
+5. During a chain, run sideways or behind it: each follow-up swings round to face you and leads you, and bends toward you a little in flight. Dashing into a wall banks it back toward you.
+6. Get it to 15% health: "REDLINING!". It dashes non-stop with short re-aims until it dies, sparking and smoking. It never stalls or goes back to walking.
+7. The fire streak and exhaust look like real flames with smoke and embers. The streak dies down rather than popping out, and burns more briefly while redlining.
 
 **Old Buzzard**
 
@@ -148,18 +179,22 @@ For each scene: press Play. No Console errors (a short pause while the NavMesh b
    - It walks lopsided.
    - Bolts from the front glance off.
    - It pecks and hop-stomps.
-   - The wing gust shoves you and fills the screen with sand.
+   - Sand fling: it leans in, reaches its remaining wing down into the sand and drags it back (sand puffing off the tip), then whips the wing forward and up, flinging a spray of sand from the tip. If you were in front, you're shoved and the screen fills with sand.
    - Now and then it tries to fly, fails, and sits dazed.
 5. When it dies, the torn wing on the ground becomes the pickup.
+6. Motion: nothing snaps between poses. Wings bend at the elbow, the tips trail each beat, it glides between flap bursts, banks into turns, and its head follows you. On the ground it waddles and bobs its head.
 
 **Sludge**
 
-1. The tail curls and the tank shakes, then three globs land around you with rings, leaving dark puddles. Standing in a puddle slows you.
+1. The tail curls and the tank shakes, then six globs land on and around you with rings, leaving dark puddles across the area. Standing in a puddle slows you.
 2. Near a puddle, the pilot light flickers, sparks fly, and the puddle bursts into flame. Fire spreads to touching puddles.
 3. Shoot a puddle it is standing in: it catches fire and Sludge takes damage.
 4. Charge a shot and hit the yellow tank while it is curling or spraying: **BACKFIRE!**. A blast, a big chunk of health gone, and it lies on its side in fire for about 3 s.
-5. Phase 2: oil gushes around it, it leaves burning patches as it walks, and it sprays five globs.
+5. Phase 2: oil gushes around it, it leaves burning patches as it walks, and it sprays nine globs.
 6. Beetles that wander into the fire chain-explode.
+7. Cannon: stand in the open at mid range. "TAKE COVER!" and a red line to you appear. Duck behind the buried hull, a plate or a rock: the line now ends on the cover, the shell bursts against it, and you take no damage. Stay in the open and you take a big hit. Hit the tank with a charged shot while it charges: backfire.
+8. Close range: stand right next to it. It claws when you're in front, stings your spot (a ring, then a stab and a little fire) when you're beside or behind it, and torches you at a few metres. It no longer backs off.
+9. Motion: the body plates curve when it turns and ripple when it walks, the legs step in alternating sets, the claws open and snap one after the other, and the tail sways and whips.
 
 ## Open questions
 
@@ -173,6 +208,10 @@ For each scene: press Play. No Console errors (a short pause while the NavMesh b
 - **Frogs:** Burnout's arena reuses Christian's mortar frog prefab unchanged, so the tin-can damage note above applies there.
 
 ## Validation performed
+
+**Polish pass:** every script, including the whole project, was compiled with the C# compiler against the Unity **6000.6.2f1** assemblies, with the project's defines and C# 9. There were no errors and no new warnings. Nothing from this pass has been run in Unity yet: regenerating the prefabs, the new rigs' proportions, the particle look, the moves' timing and the checks above all need a first run in the Editor. The rig changes were checked by working through the joint positions by hand (Sludge's feet reach the ground and its tail clears the tank; Old Buzzard's scooping wingtip reaches the sand), not by looking at them.
+
+Earlier passes:
 
 - All scripts, including the whole existing project, were compiled with the C# compiler against the Unity **6000.6.2f1** engine, editor and package assemblies from a teammate's Unity install, with the project's own defines and C# 9. No errors, and no warnings in the new code. That check caught one Unity 6.6 API removal (`GetInstanceID`), which was fixed.
 - The subsequent local integration performed actual Unity **6000.6.2f1** import, compilation and generation in a disposable project, then passed the builder's checks for all three prefab/scene bindings, player/laser/scanner/HUD, one camera/listener, NavMesh, spawner entries and missing scripts. All generated files were delivered with matching `.meta` files/GUIDs; existing assets, including the lunar tutorial and borrowed rocket/hull sources, remain byte-identical.

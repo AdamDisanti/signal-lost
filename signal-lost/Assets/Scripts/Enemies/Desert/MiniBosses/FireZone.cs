@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SignalLost.Combat;
+using SignalLost.Effects;
 using UnityEngine;
 
 namespace SignalLost.Enemies.Desert
@@ -9,10 +10,12 @@ namespace SignalLost.Enemies.Desert
     [Serializable]
     public sealed class FireStyle
     {
-        [Tooltip("Flames (bright).")]
-        public Material flame;
-        [Tooltip("Glowing ground under the flames.")]
-        public Material embers;
+        [Tooltip("Multiplies the flame colours. White is an ordinary orange fire.")]
+        public Color tint = Color.white;
+        [Tooltip("How much smoke rises off it (burning fuel is smokier).")]
+        [Range(0f, 1f)] public float smoke = 0.45f;
+        [Tooltip("Flame density and brightness. Lower it for fires that appear in large numbers.")]
+        [Range(0.2f, 2f)] public float fierceness = 1f;
         [Min(0f)] public float damage = 7f;
         [Tooltip("Seconds between damage ticks.")]
         [Min(0.05f)] public float interval = 0.5f;
@@ -27,7 +30,7 @@ namespace SignalLost.Enemies.Desert
     ///
     /// A fire can be immune to the one who started it (Burnout running through its own streak, Sludge lighting its own
     /// oil). Fires the player starts (shooting a slick) or a beetle blast starts hurt everyone, mini-bosses included.
-    /// Visuals are placeholder flickering primitives.
+    /// It looks like a <see cref="FireEffect"/> (the general particle fire); this adds the damage on top.
     /// </summary>
     public sealed class FireZone : MonoBehaviour
     {
@@ -39,19 +42,25 @@ namespace SignalLost.Enemies.Desert
         private GameObject source;
         private Transform immune;
         private LayerMask mask;
-        private Transform[] flames = new Transform[0];
-        private Vector3[] flameSizes = new Vector3[0];
-        private Transform embers;
+        private FireEffect effect;
+        private bool spent;
 
         /// <param name="source">Credited with the damage (can be null).</param>
         /// <param name="immune">This object and its children are not hurt (can be null).</param>
         public static FireZone Spawn(FireStyle style, Vector3 point, float radius, GameObject source, Transform immune,
             float duration = -1f)
         {
-            var go = new GameObject("Fire");
-            go.transform.position = point;
-            var fire = go.AddComponent<FireZone>();
-            fire.radius = Mathf.Max(0.2f, radius);
+            style ??= new FireStyle();
+            radius = Mathf.Max(0.2f, radius);
+            // The effect owns the GameObject: once the fire is spent it dies down and removes it.
+            // Data saved before these settings existed reads as black and 0: fall back to an ordinary fire.
+            Color tint = style.tint.a > 0f ? style.tint : Color.white;
+            float fierceness = style.fierceness > 0f ? style.fierceness : 1f;
+            FireEffect effect = FireEffect.Spawn(point, radius, 0f, 0f, null, tint, style.smoke, fierceness);
+            effect.Strength = 0f;
+            var fire = effect.gameObject.AddComponent<FireZone>();
+            fire.effect = effect;
+            fire.radius = radius;
             fire.life = duration > 0f ? duration : style.duration;
             fire.damage = style.damage;
             fire.interval = style.interval;
@@ -59,57 +68,23 @@ namespace SignalLost.Enemies.Desert
             fire.source = source;
             fire.immune = immune;
             fire.nextTick = Time.time + 0.15f; // a beat to see it before it hurts
-            fire.Build(style);
             return fire;
-        }
-
-        private void Build(FireStyle style)
-        {
-            GameObject disc = MiningLaser.VisualPrimitive(PrimitiveType.Cylinder, "Embers", style.embers);
-            embers = disc.transform;
-            embers.SetParent(transform, false);
-            embers.localPosition = Vector3.up * 0.02f;
-            embers.localScale = new Vector3(radius * 2f, 0.01f, radius * 2f);
-
-            int count = Mathf.Clamp(Mathf.RoundToInt(radius * 4f), 3, 12);
-            flames = new Transform[count];
-            flameSizes = new Vector3[count];
-            var random = new System.Random(UnityEngine.Random.Range(0, int.MaxValue));
-            for (int i = 0; i < count; i++)
-            {
-                GameObject flame = MiningLaser.VisualPrimitive(PrimitiveType.Sphere, "Flame", style.flame);
-                Transform t = flame.transform;
-                t.SetParent(transform, false);
-                float a = (float)random.NextDouble() * Mathf.PI * 2f;
-                float r = Mathf.Sqrt((float)random.NextDouble()) * radius * 0.8f;
-                float size = 0.2f + (float)random.NextDouble() * 0.25f + radius * 0.08f;
-                t.localPosition = new Vector3(Mathf.Cos(a) * r, size, Mathf.Sin(a) * r);
-                flameSizes[i] = new Vector3(size, size * 2.6f, size);
-                t.localScale = flameSizes[i];
-                flames[i] = t;
-            }
         }
 
         private void Update()
         {
+            if (spent) return;
             age += Time.deltaTime;
             if (age >= life)
             {
-                Destroy(gameObject);
+                spent = true;
+                if (effect != null) effect.Extinguish();
+                else Destroy(gameObject);
                 return;
             }
 
-            // Grow in quickly, flicker, shrink away at the end.
-            float grow = Mathf.Clamp01(age / 0.2f) * Mathf.Clamp01((life - age) / 0.6f);
-            for (int i = 0; i < flames.Length; i++)
-            {
-                float flicker = 0.65f + 0.55f * Mathf.PerlinNoise(Time.time * 7f + i * 3.1f, i * 0.7f);
-                Vector3 size = flameSizes[i] * grow;
-                flames[i].localScale = new Vector3(size.x, size.y * flicker, size.z);
-                Vector3 p = flames[i].localPosition;
-                flames[i].localPosition = new Vector3(p.x, size.y * flicker * 0.4f, p.z);
-            }
-            if (embers != null) embers.localScale = new Vector3(radius * 2f * grow, 0.01f, radius * 2f * grow);
+            // Flares up quickly, dies down over its last moments.
+            if (effect != null) effect.Strength = Mathf.Clamp01(age / 0.25f) * Mathf.Lerp(0.35f, 1f, Mathf.Clamp01((life - age) / 0.8f));
 
             if (Time.time < nextTick) return;
             nextTick = Time.time + interval;
