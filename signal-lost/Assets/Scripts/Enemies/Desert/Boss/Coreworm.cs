@@ -62,8 +62,6 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Range(10f, 90f)] private float maxNeckBend = 55f;
         [Tooltip("How deep it swims under the sand (keep its back below the floor).")]
         [SerializeField, Min(1f)] private float swimDepth = 3.6f;
-        [Tooltip("How quickly the part of its body still above the sand sinks after its head has gone under (higher: faster).")]
-        [SerializeField, Min(0f)] private float trailSinkRate = 3f;
         [Tooltip("The three jaws around the mouth, which open outward.")]
         [SerializeField] private Transform[] jaws = new Transform[0];
         [Tooltip("The Engine Core in its throat: the weak spot, and the part it drops.")]
@@ -190,6 +188,7 @@ namespace SignalLost.Enemies.Desert
                 Camera view = controller.GetComponentInChildren<Camera>();
                 playerView = view != null ? view.transform : player;
             }
+            ParticleBurst.Prewarm();
             if (head != null && mouthFlame == null)
             {
                 mouthFlame = FireEffect.SpawnJet(head, new Vector3(0f, 0f, 2.2f), Quaternion.identity, 0.45f, 3.5f);
@@ -684,7 +683,7 @@ namespace SignalLost.Enemies.Desert
                 yield return null;
             }
             GroundMarker marker = Marker(to, 2f);
-            yield return Countdown(marker, 0.45f);
+            yield return Countdown(marker, 0.45f, false); // a fake: the worm itself is elsewhere
             Destroy(marker.gameObject);
             ParticleBurst.Spawn(ParticleBurst.Kind.Sand, to, Vector3.up, 26, 1.2f, 9f, 18f);
             AreaHit(to, 2f, geyserDamage, 1.5f);
@@ -1158,15 +1157,37 @@ namespace SignalLost.Enemies.Desert
             }
         }
 
-        private IEnumerator Countdown(GroundMarker marker, float time)
+        private IEnumerator Countdown(GroundMarker marker, float time, bool lurk = true)
         {
-            float t = 0f;
+            float t = 0f, v = currentSpeed;
+            Vector3 spot = marker != null ? marker.transform.position : head.position;
             while (t < time)
             {
                 t += Time.deltaTime;
                 if (marker != null) marker.Progress = t / time;
+                if (lurk) v = Lurk(spot, v);
                 yield return null;
             }
+        }
+
+        /// <summary>
+        /// While it waits under the sand it keeps moving, slowly circling just beneath a spot, so its body keeps
+        /// following its head down into the sand rather than freezing with the tail in the air.
+        /// </summary>
+        private float Lurk(Vector3 spot, float v)
+        {
+            if (head.position.y > GroundY - 1f) return v;
+            Vector3 radial = Flat(head.position - spot);
+            if (radial.sqrMagnitude < 0.01f) radial = -Flat(heading);
+            if (radial.sqrMagnitude < 0.01f) radial = Vector3.forward;
+            Vector3 goal = spot + Quaternion.Euler(0f, 60f, 0f) * radial.normalized * 2.5f;
+            Vector3 flat = Flat(goal - head.position);
+            if (flat.sqrMagnitude > 0.0001f) heading = Vector3.RotateTowards(Flat(heading).normalized, flat.normalized, 6f * Time.deltaTime, 0f);
+            v = Mathf.MoveTowards(v, 7f, SwimAcceleration * Time.deltaTime);
+            Vector3 p = head.position + heading * v * Time.deltaTime;
+            p.y = Mathf.MoveTowards(head.position.y, UnderY, 12f * Time.deltaTime);
+            MoveHead(p);
+            return v;
         }
 
         private void MoveHead(Vector3 position)
@@ -1214,31 +1235,6 @@ namespace SignalLost.Enemies.Desert
                 previous = point;
             }
             return previous;
-        }
-
-        /// <summary>
-        /// Once its head is under the sand, whatever of its body is still sticking out sinks after it, so the tail
-        /// slides under smoothly instead of hanging in the air while the head waits or swims off.
-        /// </summary>
-        private void SinkTrail(float dt)
-        {
-            if (IsDefeated) return;
-            // Eases in as the head gets deeper (no sudden start), sinks each point in proportion to its height (no hard
-            // stop at the bottom), and leaves the neck alone so the head's own movement stays smooth.
-            float depth = Mathf.SmoothStep(0f, 1f, (GroundY - 0.5f - head.position.y) / 2f);
-            if (depth <= 0f) return;
-            float floor = UnderY + 0.5f, amount = (1f - Mathf.Exp(-trailSinkRate * dt)) * depth, along = 0f;
-            Vector3 previous = head.position;
-            for (int i = 0; i < trail.Count; i++)
-            {
-                Vector3 point = trail[i];
-                along += Vector3.Distance(previous, point);
-                previous = point;
-                if (point.y <= floor) continue;
-                float weight = Mathf.SmoothStep(0f, 1f, (along - 2f) / 4f);
-                point.y -= (point.y - floor) * amount * weight;
-                trail[i] = point;
-            }
         }
 
         private void TrackPlayer(float rate)
@@ -1323,7 +1319,6 @@ namespace SignalLost.Enemies.Desert
         {
             if (!movedThisFrame) currentSpeed = 0f;
             movedThisFrame = false;
-            SinkTrail(Time.deltaTime);
             PlaceBody();
             if (pendingDamage > 0f)
             {

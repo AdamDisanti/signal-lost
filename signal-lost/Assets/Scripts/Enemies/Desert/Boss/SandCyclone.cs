@@ -73,7 +73,10 @@ namespace SignalLost.Enemies.Desert
             var velocity = swirl.velocityOverLifetime;
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.Local;
+            // Unity needs all three orbital curves in the same mode (here: random between two constants).
+            velocity.orbitalX = new ParticleSystem.MinMaxCurve(0f, 0f);
             velocity.orbitalY = new ParticleSystem.MinMaxCurve(4f, 6f);
+            velocity.orbitalZ = new ParticleSystem.MinMaxCurve(0f, 0f);
             velocity.radial = new ParticleSystem.MinMaxCurve(0.4f);
             var size = swirl.sizeOverLifetime;
             size.enabled = true;

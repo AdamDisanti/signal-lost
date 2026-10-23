@@ -54,7 +54,7 @@ jet.Extinguish();      // dies down; Reignite() lights it again
 
 `FireZone.Spawn(style, point, radius, source, immune, duration)` (namespace `SignalLost.Enemies.Desert`) is a `FireEffect` that also damages every `Health` standing in it and sets off oil and beetles. A `FireStyle` sets its tint, smoke, fierceness, damage and duration.
 
-`ParticleBurst.Spawn(kind, position, direction, ...)` makes one-shot bursts with the same look: `Sand`, `Smoke`, `Sparks`, `Fireball`. `ParticleBurst.Explosion(position, radius)` combines them into an explosion.
+`ParticleBurst.Spawn(kind, position, direction, ...)` makes one-shot bursts with the same look: `Sand`, `Smoke`, `Sparks`, `Fireball`. `ParticleBurst.Explosion(position, radius)` combines them into an explosion. Each kind has one shared, long-lived particle system that bursts are emitted into, so a burst creates no objects. Call `ParticleBurst.Prewarm()` when a scene or fight loads to build them up front.
 
 ## How it is built
 
