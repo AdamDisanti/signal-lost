@@ -130,6 +130,52 @@ namespace SignalLost.UI
             return slider;
         }
 
+        /// <summary>
+        /// Makes <paramref name="area"/> a vertical list that scrolls with the mouse wheel or a drag when its rows don't
+        /// fit, with a thin scrollbar just right of it (hidden while everything fits). Put the rows in the returned
+        /// content, top-anchored, and set its height (sizeDelta.y) to theirs.
+        /// </summary>
+        public static RectTransform ScrollList(RectTransform area)
+        {
+            var catcher = area.gameObject.AddComponent<Image>(); // invisible, so the wheel works between rows too
+            catcher.color = Color.clear;
+            area.gameObject.AddComponent<RectMask2D>();
+            RectTransform content = Rect("Content", area);
+            content.anchorMin = new Vector2(0f, 1f);
+            content.anchorMax = Vector2.one;
+            content.pivot = new Vector2(0.5f, 1f);
+            content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = Vector2.zero;
+
+            Image track = Panel(area.name + " Scrollbar", area.parent, new Color(0f, 0f, 0f, 0.35f), null, 0.3f);
+            track.raycastTarget = true;
+            RectTransform bar = track.rectTransform;
+            bar.anchorMin = area.anchorMin;
+            bar.anchorMax = area.anchorMax;
+            bar.pivot = new Vector2(0f, area.pivot.y);
+            bar.sizeDelta = new Vector2(10f, area.sizeDelta.y);
+            bar.anchoredPosition = area.anchoredPosition + new Vector2((1f - area.pivot.x) * area.sizeDelta.x + 8f, 0f);
+            RectTransform slide = Stretch(Rect("Sliding Area", bar));
+            Image handle = Panel("Handle", slide, Accent, null, 0.3f);
+            handle.raycastTarget = true;
+            Stretch(handle.rectTransform);
+            var scrollbar = bar.gameObject.AddComponent<Scrollbar>();
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.handleRect = handle.rectTransform;
+            scrollbar.targetGraphic = handle;
+
+            var scroll = area.gameObject.AddComponent<ScrollRect>();
+            scroll.content = content;
+            scroll.viewport = area;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.inertia = false;
+            scroll.scrollSensitivity = 40f;
+            scroll.verticalScrollbar = scrollbar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            return content;
+        }
+
         public static RectTransform Rect(string name, Transform parent)
         {
             var item = new GameObject(name, typeof(RectTransform));

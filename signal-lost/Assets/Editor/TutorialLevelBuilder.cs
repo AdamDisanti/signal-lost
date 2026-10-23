@@ -782,6 +782,10 @@ namespace SignalLost.Editor
             var player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CorePrefabBuilder.PlayerPath));
             player.transform.SetPositionAndRotation(spawnAt + Vector3.up * 0.05f, spawnFacing);
             player.GetComponentInChildren<Camera>(true).clearFlags = CameraClearFlags.Skybox; // the shared player clears to a flat colour
+            // Amanda's scanner rework: the tutorial's scene-wide scanner range (signal strength and creature pickup).
+            var scanner = new SerializedObject(player.GetComponentInChildren<SignalLost.Scanner.ScannerController>(true));
+            scanner.FindProperty("levelRangeOverride").floatValue = 200f;
+            scanner.ApplyModifiedPropertiesWithoutUndo();
             PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CorePrefabBuilder.SystemsPath));
             return gameplay;
         }

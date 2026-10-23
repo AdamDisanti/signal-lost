@@ -21,12 +21,32 @@ The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework"),
    - If the crab gives up first, it drops the bottle (the Scotch flask, glowing amber like the hidden gear, visible from any distance) and waits for the brawl to end.
    - Once the whole family is down, it leads the mechanic back to camp.
 6. **Bucket & Barter.** At camp the crab introduces itself as **Eugene** and its shop opens. The fight leaves enough scrap for a first upgrade (each cousin drops a guaranteed wire). See [upgrades](upgrades.md).
-7. **Kitted Out.** Cavendish won't give his next job until an upgrade is bought; then the scanner points back to him.
-8. **Pond Life.** Cavendish sends the mechanic to the pond due north of camp. **20 mortar frogs** come in three growing waves (5, then 7, then 8), each hopping in from the bank once the last is beaten. The scanner points at the nearest frog; the tracker counts them. Frogs drop scrap metal and fuel cells, about two more upgrades' worth.
+7. **Kitted Out.** Cavendish won't give his next job until an upgrade is bought; then the scanner locks back onto him.
+8. **Pond Life.** Cavendish sends the mechanic to the pond due north of camp. **20 mortar frogs** come in three growing waves (5, then 7, then 8), each hopping in from the bank once the last is beaten. The scanner locks onto the nearest frog (its beeps quicken as you close in); the tracker counts them. Frogs drop scrap metal and fuel cells, about two more upgrades' worth.
 9. **The Chief Toad.** Back at camp, Cavendish hears a deep croak: the frogs have annoyed the Chief Toad (Lawson's boss, see [chief toad](chief-toad.md)). He is not in the world until this quest is given.
-10. **The fight.** Coming within his arena of the pond (40 m, widened for our pond) cuts to a short scene from the bank: the toad rises out of the middle of the pond in a burst of water and his boss bar appears (Space skips). Then the fight, with 3-5 frogs always hopping in (they drop no scrap).
-11. **The trophy and the part.** Beaten, he leaves a loot pile: his cooling system, scrap, and **his crown**. Set the crown on one of the camp's **trophy stands** by the tent, and give the cooling system to Cavendish, who keeps the ship's parts "for... safe keeping" (every boss's main part will go to him). It is saved to disk, so it stays in the camp in later sessions and later levels (New Game clears it).
+10. **The fight.** Coming within his arena of the pond (40 m, widened for our pond) cuts to a short scene from the bank: the toad rises out of the middle of the pond in a burst of water and his boss bar appears, notched where phases 2 and 3 start; it turns red-orange and then red, labelled "enraged" and then "furious" (Space skips). Then the fight, with 3-5 frogs always hopping in (they drop no scrap).
+11. **The trophy and the part.** Beaten, he leaves a loot pile: his cooling system, scrap, and **his crown**. Set the crown on one of the camp's **trophy stands** by the tent, and give the cooling system to Cavendish, who keeps the ship's parts "for... safe keeping" (every boss's main part will go to him). He says it once and moves on: he is the story's final villain, so this is a light hint, not a tell. It is saved to disk, so it stays in the camp in later sessions and later levels (New Game clears it).
 12. **The end.** Cavendish wraps up the demo, and a "Thanks for playing" card offers Keep Exploring or Main Menu.
+
+## Completion time (playtest metric)
+
+The tutorial is timed for our testing requirements (`TutorialRunTimer`). The clock starts when the opening begins and stops when Cavendish finishes his wrap-up. It counts game time, so time in the pause menu doesn't count; cutscenes, dialogue and death screens do. The end card shows the time and the number of knockouts (deaths and blackouts).
+
+Each finished run adds a row to `tutorial-times.csv` in the game's data folder (`Application.persistentDataPath`). The end card shows the exact path. It is usually:
+
+- **Mac:** `~/Library/Application Support/Signal Lost/Signal Lost/`
+- **Windows:** `%USERPROFILE%\AppData\LocalLow\Signal Lost\Signal Lost\`
+
+The columns are:
+
+- `finished_utc`, `version`;
+- `total_seconds` and `total` (m:ss);
+- `deaths`;
+- one `<Stage>_at` column per story stage: seconds into the run when that stage began (blank if skipped).
+
+The splits show where testers spend their time: for example, `Fight_at` minus `SearchGear_at` is the gear hunt. The time is also logged as `TUTORIAL_COMPLETE` in the Console and in `Player.log`.
+
+If the stage list ever changes, the old file is renamed with a timestamp so columns never mix.
 
 After that Eugene is an ordinary friendly shop. Its sixth hit within the anger window brings back **the same ten cousins** around it (the angry-merchant ambush); called-back cousins drop no scrap, so the ambush cannot be farmed.
 

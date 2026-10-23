@@ -8,21 +8,33 @@ namespace SignalLost.UI
 {
     /// <summary>
     /// "Thanks for playing" at the end of the tutorial demo (meeting notes 10-23). It waits for the player: Keep
-    /// Exploring closes it and leaves them free to roam the meadow, Main Menu returns to the title screen.
+    /// Exploring closes it and leaves them free to roam the meadow, Main Menu returns to the title screen. It shows the
+    /// tutorial completion time for playtests (<see cref="SignalLost.Story.TutorialRunTimer"/>).
     /// </summary>
     public sealed class DemoEndCard : MonoBehaviour
     {
         private static DemoEndCard instance;
         private GameObject root;
         private RectTransform panel;
+        private TextMeshProUGUI time, saved;
         private float shownAt;
 
         public static DemoEndCard Current => instance;
         public bool IsOpen => root != null && root.activeSelf;
 
-        public static DemoEndCard Show()
+        /// <summary>Shows the card with the run's completion time in seconds (negative hides it) and how often the player went down.</summary>
+        public static DemoEndCard Show(float seconds = -1f, int deaths = 0)
         {
             if (instance == null) instance = UiTheme.CreateCanvas("Demo End Card", 75).gameObject.AddComponent<DemoEndCard>();
+            bool timed = seconds >= 0f;
+            instance.time.gameObject.SetActive(timed);
+            instance.saved.gameObject.SetActive(timed);
+            if (timed)
+            {
+                instance.time.text = $"Completion time  <color={UiTheme.Hex(UiTheme.Accent)}><b>{SignalLost.Story.TutorialRunTimer.Format(seconds)}</b></color>" +
+                                     $"<color={UiTheme.Hex(UiTheme.Muted)}>   ·   {deaths} {(deaths == 1 ? "knockout" : "knockouts")}</color>";
+                instance.saved.text = "Saved for playtesting: " + SignalLost.Story.TutorialRunTimer.FilePath;
+            }
             instance.Open();
             return instance;
         }
@@ -76,14 +88,20 @@ namespace SignalLost.UI
             Image background = UiTheme.Panel("Panel", root.transform, UiTheme.PanelColor, UiTheme.Accent, 1.4f);
             panel = UiTheme.Place(background.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, 560f));
             TextMeshProUGUI title = UiTheme.Label("Title", panel, 72f, UiTheme.Accent, TextAlignmentOptions.Top, FontStyles.Bold);
-            UiTheme.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(900f, 90f));
+            UiTheme.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(900f, 90f));
             title.text = "THANKS FOR PLAYING";
             title.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 1.5f);
-            TextMeshProUGUI body = UiTheme.Label("Body", panel, 30f, UiTheme.Text, TextAlignmentOptions.Top);
-            UiTheme.Place(body.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -170f), new Vector2(860f, 200f));
+            time = UiTheme.Label("Time", panel, 36f, UiTheme.Text, TextAlignmentOptions.Center);
+            UiTheme.Place(time.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(900f, 50f));
+            time.textWrappingMode = TextWrappingModes.NoWrap;
+            TextMeshProUGUI body = UiTheme.Label("Body", panel, 28f, UiTheme.Text, TextAlignmentOptions.Top);
+            UiTheme.Place(body.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -205f), new Vector2(860f, 170f));
             body.text = "That's the end of the <b>Signal Lost</b> demo.\n" +
-                        $"<color={UiTheme.Hex(UiTheme.Muted)}>The Chief Toad's crown is on the stand, the cooling system is back, and the desert awaits.\n" +
+                        $"<color={UiTheme.Hex(UiTheme.Muted)}>The Chief Toad's crown is on the stand, the cooling system is recovered, and the desert awaits.\n" +
                         "Keep exploring the meadow, or head back to the title screen.</color>";
+            saved = UiTheme.Label("Saved", panel, 17f, UiTheme.Muted, TextAlignmentOptions.Bottom);
+            UiTheme.Place(saved.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 134f), new Vector2(920f, 46f));
+            saved.overflowMode = TextOverflowModes.Ellipsis;
             (string label, UnityEngine.Events.UnityAction action)[] buttons = { ("Keep Exploring", KeepExploring), ("Main Menu", ToMainMenu) };
             for (int i = 0; i < buttons.Length; i++)
             {

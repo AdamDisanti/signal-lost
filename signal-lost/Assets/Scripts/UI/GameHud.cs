@@ -215,7 +215,7 @@ namespace SignalLost.UI
 
             if (laser == null || !gear.Has(PlayerItem.MiningLaser))
             {
-                handInfo.text = gear != null && gear.Has(PlayerItem.Scanner) ? "Follow the arrow on the scanner" : "Find your gear in the wreck";
+                handInfo.text = gear != null && gear.Has(PlayerItem.Scanner) ? "Faster beeps: getting closer" : "Find your gear in the wreck";
                 cooldownFill.rectTransform.anchorMax = new Vector2(0f, 1f);
                 foreach (Image pip in comboPips) pip.color = new Color(1f, 1f, 1f, 0.08f);
                 foreach (Image fill in comboFills) SetFill(fill, 0f, false);
@@ -390,6 +390,7 @@ namespace SignalLost.UI
             }
             flaskInfo = UiTheme.Label("Info", flaskBlock, 21f, UiTheme.Text, TextAlignmentOptions.BottomLeft);
             UiTheme.Place(flaskInfo.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 10f), new Vector2(280f, 30f));
+            OneLine(flaskInfo);
 
             portrait = MechanicPortrait.Create(barRect, 116f);
             UiTheme.Place((RectTransform)portrait.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(116f, 116f));
@@ -406,6 +407,7 @@ namespace SignalLost.UI
             cooldownFill = Meter(handBlock, new Vector2(110f, -46f), new Vector2(210f, 12f), new Vector2(0f, 1f));
             handInfo = UiTheme.Label("Info", handBlock, 21f, UiTheme.Text, TextAlignmentOptions.BottomLeft);
             UiTheme.Place(handInfo.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 10f), new Vector2(340f, 30f));
+            OneLine(handInfo);
 
             RectTransform scrapBlock = Block(barRect, "Scrap", 1196f, 300f, "SCRAP  <size=80%>[Tab]</size>");
             for (int i = 0; i < ScrapInfo.All.Length; i++)
@@ -459,6 +461,15 @@ namespace SignalLost.UI
             RectTransform meter = UiTheme.Place(UiTheme.Rect("Meter", parent), a, new Vector2(a.x, 1f), position, size);
             UiTheme.Stretch(UiTheme.Panel("Back", meter, new Color(0f, 0f, 0f, 0.55f), null, 0.4f).rectTransform);
             return FillBar(meter, new Color(0.4f, 0.9f, 1f));
+        }
+
+        // Status lines shrink to fit rather than wrap up into the title above them.
+        private static void OneLine(TextMeshProUGUI text)
+        {
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 15f;
+            text.fontSizeMax = text.fontSize;
         }
     }
 }

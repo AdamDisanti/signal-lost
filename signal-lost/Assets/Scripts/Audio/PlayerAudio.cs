@@ -21,6 +21,9 @@ namespace SignalLost.Audio
     [DefaultExecutionOrder(1000)] // after the laser's LateUpdate, so a shot and its cooldown show up the same frame
     public sealed class PlayerAudio : MonoBehaviour
     {
+        /// <summary>Footsteps are switched off for now (lead's request, 10-23); the clips and stride timing stay for later.</summary>
+        public static bool FootstepsEnabled = false;
+
         private MiningLaser laser;
         private PlayerGear gear;
         private PlayerFlask flask;
@@ -227,7 +230,7 @@ namespace SignalLost.Audio
             {
                 stride += speed * Time.deltaTime;
                 float strideLength = speed > 5.5f ? 2.4f : 1.9f;
-                if (stride >= strideLength)
+                if (stride >= strideLength && FootstepsEnabled)
                 {
                     stride = 0f;
                     Sfx.Play(Sfx.Pick("footstep_" + surface, 4), speed > 5.5f ? 0.3f : 0.22f, Random.Range(0.95f, 1.05f));

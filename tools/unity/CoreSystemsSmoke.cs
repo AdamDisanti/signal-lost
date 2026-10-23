@@ -232,6 +232,15 @@ public static class CoreSystemsSmoke
         MerchantMenuUi.Instance.ShowTab(4);
         yield return 0.2f;
         yield return Capture("ShopSupplies");
+        MerchantMenuUi.Instance.ShowPurchased();
+        yield return 0.2f;
+        var list = MerchantMenuUi.Instance.GetComponentInChildren<UnityEngine.UI.ScrollRect>();
+        Check(MerchantMenuUi.Instance.ListingCount == 7 && list != null && list.content.rect.height > list.viewport.rect.height,
+            "All seven upgrades show under Purchased, in a list that scrolls.");
+        yield return Capture("ShopPurchased");
+        list.verticalNormalizedPosition = 0f;
+        yield return 0.2f;
+        yield return Capture("ShopPurchasedEnd");
         MerchantMenuUi.Instance.Close();
         yield return null;
         while (GameplayOverlay.Instance.CardOpen) GameplayOverlay.Instance.DismissCard();

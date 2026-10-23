@@ -62,7 +62,7 @@ All clips are in `Assets/Audio/Resources/SignalLostAudio/` and are played by fil
 2. Start the Tutorial:
    - The wake-up has a ringing tone.
    - The campfire crackles louder as you approach, the wreck's fires crackle and fizz, and the pond laps.
-3. Walk, sprint and jump on grass: you hear footsteps, the jump and the landing.
+3. Walk, sprint and jump on grass: you hear the jump and the landing. Footsteps are switched off for now (`PlayerAudio.FootstepsEnabled`); the clips stay for later.
 4. With the laser:
    - Swing twice, then slam.
    - Hold right-click: a rising hum, a ding at full charge, then a steady crackle.

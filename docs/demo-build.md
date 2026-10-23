@@ -15,6 +15,8 @@ Batch builds: `Unity -batchmode -quit -projectPath signal-lost -executeMethod Si
 
 Share the zip. Testers unzip it and run `Signal Lost Demo.exe` (Windows) or `Signal Lost Demo.app` (Mac). Builds are unsigned, so Windows SmartScreen asks to "Run anyway", and on a Mac the first launch needs right-click > Open.
 
+Ask testers to send back `tutorial-times.csv` after finishing the demo. It holds their completion times, and the end card shows where it is (see [tutorial](tutorial.md#completion-time-playtest-metric)).
+
 The build script (`Editor/DemoBuild.cs`) also sets the product name ("Signal Lost"), version (0.1.0-demo), app id (com.signallost.demo) and a resizable full-screen window.
 
 ## Mac: Apple silicon or universal

@@ -46,9 +46,12 @@ namespace SignalLost.UI
             return price.ToString().TrimEnd();
         }
 
-        /// <summary>A panel row with an icon, a title and a line of text; returns the row.</summary>
+        /// <summary>
+        /// A panel row with an icon, a title and a line of text; returns the row. The text keeps clear of the
+        /// <paramref name="rightReserve"/> (prices, buttons) and <paramref name="bottomReserve"/> strips.
+        /// </summary>
         public static RectTransform Row(Transform parent, string name, Sprite icon, string title, Color titleColor, string body,
-            Vector2 position, Vector2 size, float rightReserve = 250f)
+            Vector2 position, Vector2 size, float rightReserve = 250f, float bottomReserve = 0f)
         {
             Image row = UiTheme.Panel(name, parent, UiTheme.PanelLight, null, 0.7f);
             RectTransform rect = UiTheme.Place(row.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), position, size);
@@ -62,9 +65,16 @@ namespace SignalLost.UI
             }
             TextMeshProUGUI heading = UiTheme.Label("Title", rect, 28f, titleColor, TextAlignmentOptions.TopLeft, FontStyles.Bold);
             UiTheme.Place(heading.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(left, -10f), new Vector2(size.x - left - 20f, 36f));
+            heading.textWrappingMode = TextWrappingModes.NoWrap;
+            heading.overflowMode = TextOverflowModes.Ellipsis;
             heading.text = title;
+            // The body fills the rest of the row and shrinks a little rather than spill out of it.
             TextMeshProUGUI text = UiTheme.Label("Body", rect, 21f, UiTheme.Muted, TextAlignmentOptions.TopLeft);
-            UiTheme.Place(text.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(left, -44f), new Vector2(Mathf.Max(80f, size.x - left - rightReserve), size.y - 50f));
+            UiTheme.Place(text.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(left, -44f), new Vector2(Mathf.Max(80f, size.x - left - rightReserve), size.y - 52f - bottomReserve));
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 15f;
+            text.fontSizeMax = 21f;
+            text.overflowMode = TextOverflowModes.Ellipsis;
             text.text = body;
             return rect;
         }

@@ -115,7 +115,7 @@ namespace SignalLost.Player
                 overlay.ShowItemCard("Scanner",
                     "Sniffs out ship junk, critters and anyone with a job for you.\n" +
                     "<b>Q</b>  swap between the scanner and the laser.\n" +
-                    "The arrow points at your current objective; the bar fills as you get close.",
+                    "It locks onto your current objective; the bar fills and the beeps quicken as you get close.",
                     UiTheme.SpeakerColor("Cavendish"));
             }
             else if (item == PlayerItem.Flask)

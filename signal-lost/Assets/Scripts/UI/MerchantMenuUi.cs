@@ -19,6 +19,7 @@ namespace SignalLost.UI
     public sealed class MerchantMenuUi : MonoBehaviour
     {
         private const float Range = 6f;
+        private const float RowHeight = 108f, RowGap = 8f;
 
         private static readonly (string label, UpgradeSlot slot)[] Filters =
         {
@@ -32,7 +33,7 @@ namespace SignalLost.UI
         private static MerchantMenuUi instance;
 
         private GameObject root;
-        private RectTransform panel, listArea;
+        private RectTransform panel, listArea, listContent;
         private TextMeshProUGUI balanceText, emptyText;
         private Button purchasedButton;
         private readonly List<Button> tabButtons = new List<Button>();
@@ -152,6 +153,8 @@ namespace SignalLost.UI
             rows.Clear();
             int slot = 0;
             foreach (Upgrade listing in Listings(inventory)) rows.Add(Row(listing, slot++, inventory));
+            listContent.sizeDelta = new Vector2(0f, rows.Count * (RowHeight + RowGap));
+            listContent.anchoredPosition = Vector2.zero; // back to the top
             emptyText.text = rows.Count > 0 ? "" : showPurchased ? "Nothing bought yet." : "Sold out! Everything here is already yours: see Purchased.";
             RefreshBalance();
         }
@@ -235,7 +238,9 @@ namespace SignalLost.UI
                 tabButtons.Add(button);
             }
 
-            listArea = UiTheme.Place(UiTheme.Rect("Listings", panel), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(46f, -226f), new Vector2(1208f, 560f));
+            // Up to five rows show at once; the Purchased list can be longer, so it scrolls.
+            listArea = UiTheme.Place(UiTheme.Rect("Listings", panel), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(46f, -226f), new Vector2(1208f, 576f));
+            listContent = UiTheme.ScrollList(listArea);
             emptyText = UiTheme.Label("Empty", listArea, 26f, UiTheme.Muted, TextAlignmentOptions.Center, FontStyles.Italic);
             UiTheme.Place(emptyText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1000f, 40f));
 
@@ -265,14 +270,19 @@ namespace SignalLost.UI
             string body = listing.IsTrade ? TradeText(listing) : listing.Description;
             if (listing.IsSupply && inventory != null) body += $"   <color={UiTheme.Hex(UiTheme.Text)}>(you have {inventory.SupplyCount(listing.Id)})</color>";
             if (showPurchased) body = $"<color={UiTheme.Hex(ItemRows.SlotColor(listing.Slot))}>{ItemRows.SlotName(listing.Slot)}</color>  " + body;
-            RectTransform row = ItemRows.Row(listArea, listing.Name, icon, listing.Name, isSelected ? UiTheme.Accent : UiTheme.Text, body,
-                new Vector2(0f, -index * 90f), new Vector2(1208f, 84f), 560f);
+            // The description stops short of the price and button (just the button when it's already yours).
+            RectTransform row = ItemRows.Row(listContent, listing.Name, icon, listing.Name, isSelected ? UiTheme.Accent : UiTheme.Text, body,
+                new Vector2(0f, -index * (RowHeight + RowGap)), new Vector2(1208f, RowHeight), owned ? 240f : 580f);
             if (isSelected) row.GetComponent<Image>().color = Color.Lerp(UiTheme.PanelLight, UiTheme.Accent, 0.25f);
 
             if (!owned)
             {
                 TextMeshProUGUI cost = UiTheme.Label("Price", row, 28f, UiTheme.Text, TextAlignmentOptions.MidlineRight, FontStyles.Bold);
-                UiTheme.Place(cost.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-230f, 0f), new Vector2(330f, 80f));
+                UiTheme.Place(cost.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-228f, 0f), new Vector2(330f, 80f));
+                cost.textWrappingMode = TextWrappingModes.NoWrap;
+                cost.enableAutoSizing = true;
+                cost.fontSizeMin = 18f;
+                cost.fontSizeMax = 28f;
                 cost.text = ItemRows.Price(listing, inventory);
             }
 

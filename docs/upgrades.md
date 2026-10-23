@@ -42,7 +42,7 @@ The shop shows only the current region's upgrades (`MerchantMenuUi.Region`); sup
 
 ## Menus
 
-- **Bucket & Barter** (talk to Eugene): filters by type (Laser, Scanner, Flask, Player, Supplies, Trades; keys 1-6) and a **Purchased** filter at the bottom for what you own, kept out of the way. Prices are amounts with scrap icons ("10 [icon]"), red when you are short. **BUY** selects an item and previews your scrap after the purchase ("60 → 50"); **CONFIRM** buys it. A purchase shows an "upgrade installed" card.
+- **Bucket & Barter** (talk to Eugene): filters by type (Laser, Scanner, Flask, Player, Supplies, Trades; keys 1-6) and a **Purchased** filter at the bottom for what you own, kept out of the way. Prices are amounts with scrap icons ("10 [icon]"), red when you are short. **BUY** selects an item and previews your scrap after the purchase ("60 → 50"); **CONFIRM** buys it. A purchase shows an "upgrade installed" card. Up to five rows show at once; longer lists (Purchased can hold all seven upgrades) scroll with the mouse wheel or the bar on the right. Descriptions get two lines and shrink slightly rather than spill out of their row.
 - **Scrap amounts everywhere** (shop, HUD toast, trades) are written as a number and the scrap's icon, using the TextMeshPro sprite asset `Resources/SignalLost/ScrapIcons` (built with the scrap assets; `ScrapInfo.Inline`).
 - **Pockets** (Tab): four tabs, 1-4.
   - **Materials:** scrap with icons and counts; key items.

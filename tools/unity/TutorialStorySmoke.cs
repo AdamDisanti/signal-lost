@@ -89,6 +89,8 @@ public static class TutorialStorySmoke
         var gear = life.GetComponent<PlayerGear>();
         var interactor = life.GetComponent<PlayerInteractor>();
         var inventory = life.GetComponent<PlayerInventory>();
+        Check(!SignalLost.Audio.PlayerAudio.FootstepsEnabled, "Player footsteps are switched off for now.");
+        Check(life.GetComponentInChildren<ScannerController>(true).Range >= 200f, "The tutorial scanner uses its 200 m level range (Amanda's rework).");
         view = life.GetComponentInChildren<Camera>();
         NpcActor cavendish = UnityEngine.Object.FindObjectsByType<NpcActor>().First(n => n.Kind == NpcActor.Role.Cavendish);
         MerchantCrab merchant = UnityEngine.Object.FindAnyObjectByType<MerchantCrab>(FindObjectsInactive.Include);
@@ -249,17 +251,21 @@ public static class TutorialStorySmoke
         Check(encounter.Toad.enabled && view.enabled && life.GetComponent<FirstPersonController>().enabled, "The player can move again.");
         yield return 1.5f;
         Check(encounter.Toad.Engaged, "The Chief Toad engages (his boss bar is up).");
+        Check(encounter.Toad.PhaseThreeAt > 0f && encounter.Toad.PhaseThreeAt < encounter.Toad.PhaseTwoAt, "His boss bar marks where phases 2 and 3 start.");
         yield return 4f;
         Check(frogs.Sustaining && frogs.Alive.Count >= 3 && frogs.Alive.Count <= 5, $"3-5 frogs keep him company ({frogs.Alive.Count} out).");
         yield return Capture("ToadFight");
         life.Health.Invulnerable = true;
         var toadHealth = encounter.Toad.GetComponent<Health>();
+        int topPhase = 1;
         for (int i = 0; i < 200 && encounter.Current != ChiefToadEncounter.State.Defeated; i++)
         {
+            topPhase = Mathf.Max(topPhase, encounter.Toad.DisplayPhase);
             toadHealth.TakeDamage(120f, life.gameObject);
             yield return 0.2f;
         }
         Check(encounter.Current == ChiefToadEncounter.State.Defeated && story.Current == TutorialStory.Stage.ToadBeaten, "The Chief Toad is beaten.");
+        Check(topPhase == 3, "His bar went through all three phases.");
         yield return 0.5f;
         Check(!frogs.Sustaining && frogs.Alive.Count == 0, "His frogs leave with him.");
         Check(encounter.Trophy != null && UnityEngine.Object.FindObjectsByType<ScrapPickup>().Length > 0, "He leaves a loot pile: scrap, the cooling system and his crown.");
@@ -286,9 +292,18 @@ public static class TutorialStorySmoke
         Check(story.Current == TutorialStory.Stage.TrophyPlaced, "...for 'safe keeping'. Then: talk to Cavendish.");
         view.transform.LookAt(stand.transform.position + Vector3.up);
         yield return Capture("Trophy");
+        string timesPath = TutorialRunTimer.FilePath;
+        string timesBefore = File.Exists(timesPath) ? File.ReadAllText(timesPath) : null; // put back afterwards
+        Check(story.Timer.Running && story.Timer.Elapsed > 0f, $"The tutorial clock is running ({TutorialRunTimer.Format(story.Timer.Elapsed)}).");
         Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("You did it"), "Cavendish wraps up the demo.");
         yield return ReadToEnd(ui);
         Check(story.Current == TutorialStory.Stage.DemoComplete && DemoEndCard.Current != null && DemoEndCard.Current.IsOpen, "The 'Thanks for playing' card appears.");
+        string[] times = File.Exists(timesPath) ? File.ReadAllLines(timesPath) : new string[0];
+        Check(!story.Timer.Running && times.Length >= 2 && times[0].StartsWith("finished_utc") && times[times.Length - 1].Contains(TutorialRunTimer.Format(story.Timer.Elapsed)),
+            $"The completion time stops and is saved for playtesting: {times.LastOrDefault()}");
+        Check(DemoEndCard.Current.GetComponentsInChildren<TMPro.TMP_Text>().Any(t => t.text.Contains("Completion time") && t.text.Contains(TutorialRunTimer.Format(story.Timer.Elapsed))),
+            "The end card shows the completion time.");
+        if (timesBefore != null) File.WriteAllText(timesPath, timesBefore); else File.Delete(timesPath);
         yield return Capture("EndCard");
         DemoEndCard.Current.KeepExploring();
         Check(!DemoEndCard.Current.IsOpen && !UiMenus.AnyOpen, "Keep Exploring returns the player to the meadow.");

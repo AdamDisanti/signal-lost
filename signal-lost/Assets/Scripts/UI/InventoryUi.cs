@@ -214,6 +214,9 @@ namespace SignalLost.UI
                 string[] fitted = inventory.Upgrades.Select(UpgradeCatalog.Find).Where(u => u != null && u.Slot == slot).Select(u => "+ " + u.Name).ToArray();
                 TextMeshProUGUI body = UiTheme.Label("Fitted", rect, 21f, UiTheme.Text, TextAlignmentOptions.TopLeft);
                 UiTheme.Place(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(214f, -48f), new Vector2(330f, 92f));
+                body.enableAutoSizing = true;
+                body.fontSizeMin = 15f;
+                body.fontSizeMax = 21f;
                 body.text = !inventory.Has(item) ? $"<color={UiTheme.Hex(UiTheme.Muted)}><i>Not found yet. {missing}</i></color>" :
                     fitted.Length > 0 ? string.Join("\n", fitted) : $"<color={UiTheme.Hex(UiTheme.Muted)}>No upgrades fitted yet.</color>";
             }
@@ -230,7 +233,11 @@ namespace SignalLost.UI
             {
                 int count = inventory.SupplyCount(supply.Id);
                 RectTransform rect = ItemRows.Row(page, supply.Name, ItemCatalog.Icon(supply.Id), supply.Name,
-                    count > 0 ? UiTheme.Text : UiTheme.Muted, $"<b><color={UiTheme.Hex(UiTheme.Text)}>You have {count}</color></b>\n{supply.Description}", new Vector2(1020f, -44f - row * 176f), new Vector2(370f, 166f), 16f);
+                    count > 0 ? UiTheme.Text : UiTheme.Muted, supply.Description, new Vector2(1020f, -44f - row * 176f), new Vector2(370f, 166f), 16f, 52f);
+                TextMeshProUGUI have = UiTheme.Label("Count", rect, 21f, count > 0 ? UiTheme.Text : UiTheme.Muted, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
+                UiTheme.Place(have.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(110f, 10f), new Vector2(136f, 40f));
+                have.textWrappingMode = TextWrappingModes.NoWrap;
+                have.text = $"You have {count}";
                 Button use = UiTheme.Button("Use", rect, "Use", 22f);
                 UiTheme.Place((RectTransform)use.transform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-12f, 10f), new Vector2(100f, 40f));
                 string id = supply.Id;
@@ -272,10 +279,10 @@ namespace SignalLost.UI
                     foreach (Upgrade upgrade in group)
                     {
                         RectTransform row = ItemRows.Row(page, upgrade.Name, ItemCatalog.Icon(upgrade.Id), upgrade.Name, UiTheme.Text,
-                            upgrade.Description, new Vector2(c * 700f, y), new Vector2(680f, 100f), 160f);
+                            upgrade.Description, new Vector2(c * 700f, y), new Vector2(680f, 116f), 180f);
                         TextMeshProUGUI installed = ItemRows.RightLabel(row, "INSTALLED", 20f, UiTheme.Good, 150f);
                         installed.textWrappingMode = TextWrappingModes.NoWrap;
-                        y -= 108f;
+                        y -= 124f;
                     }
                     y -= 12f;
                 }
@@ -320,12 +327,23 @@ namespace SignalLost.UI
                 Image row = UiTheme.Panel(rows[i].label, page, i % 2 == 0 ? UiTheme.PanelLight : new Color(1f, 1f, 1f, 0.03f), null, 0.5f);
                 RectTransform rect = UiTheme.Place(row.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(x, -i * 70f), new Vector2(680f, 62f));
                 TextMeshProUGUI label = UiTheme.Label("Label", rect, 24f, UiTheme.Muted, TextAlignmentOptions.MidlineLeft);
-                UiTheme.Place(label.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(20f, 0f), new Vector2(300f, 50f));
+                UiTheme.Place(label.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(20f, 0f), new Vector2(270f, 50f));
+                Fit(label, 16f);
                 label.text = rows[i].label;
                 TextMeshProUGUI value = UiTheme.Label("Value", rect, 26f, UiTheme.Text, TextAlignmentOptions.MidlineRight, FontStyles.Bold);
-                UiTheme.Place(value.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-20f, 0f), new Vector2(380f, 50f));
+                UiTheme.Place(value.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-20f, 0f), new Vector2(360f, 50f));
+                Fit(value, 16f);
                 value.text = rows[i].value;
             }
+        }
+
+        // One line that shrinks to fit rather than wrap into its neighbour.
+        private static void Fit(TextMeshProUGUI text, float smallest)
+        {
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = smallest;
+            text.fontSizeMax = text.fontSize;
         }
 
         // ---------- Layout ----------

@@ -162,6 +162,8 @@ namespace SignalLost.Enemies.Meadow
 
         /// <summary>1, 2 or 3.</summary>
         public int Stage => overflow ? 3 : Phase;
+        public override int DisplayPhase => Stage;
+        public override float PhaseThreeAt => phaseThreeAt;
         public string StateName => state.ToString();
 
         /// <summary>Moments worth a sound (or other feedback), for ToadAudio.</summary>

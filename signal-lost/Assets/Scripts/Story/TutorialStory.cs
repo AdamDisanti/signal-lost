@@ -110,8 +110,8 @@ namespace SignalLost.Story
         private static readonly string[] SafeKeeping =
         {
             "Is that the ship's cooling system? Well I never. Hand it here, mechanic.",
-            "I'll hold on to that for... safe keeping. Yes. Safe keeping.",
-            "Don't you worry about it. It'll be perfectly safe with me. Perfectly."
+            "I'll hold on to that for... safe keeping.",
+            "Fine work out there, mechanic. Truly."
         };
         private static readonly string[] WrapUp =
         {
@@ -137,6 +137,8 @@ namespace SignalLost.Story
         private int nextReminder;
 
         public Stage Current => stage;
+        /// <summary>Tutorial completion time, for playtests.</summary>
+        public TutorialRunTimer Timer { get; } = new TutorialRunTimer();
         public event Action<Stage> StageChanged;
 
         private void Awake()
@@ -180,6 +182,7 @@ namespace SignalLost.Story
             Signal(cavendish, false);
             Signal(merchant, false);
             Signal(laserPickup, false);
+            Timer.Begin();
             if (playOpening) StartCoroutine(Opening());
             else BeginGreeting();
         }
@@ -291,6 +294,7 @@ namespace SignalLost.Story
         private void SetStage(Stage next)
         {
             stage = next;
+            Timer.Mark(next);
             StageChanged?.Invoke(next);
         }
 
@@ -328,7 +332,7 @@ namespace SignalLost.Story
             }
             GameplayOverlay.Instance.SetQuest(SearchTitle,
                 "Search the crash site for your tools. Follow the smoke.\n" + Check(laser, "Mining laser") + "\n" + Check(scanner, "Scanner"));
-            Signal(laserPickup, scanner && !laser); // once the scanner is back, it points at the laser
+            Signal(laserPickup, scanner && !laser); // once the scanner is back, it locks onto the laser
         }
 
         private static string Check(bool done, string label) =>
@@ -410,7 +414,7 @@ namespace SignalLost.Story
         {
             if (frogs == null) return;
             GameplayOverlay.Instance.SetQuest(PondTitle,
-                $"Clear out the frogs at the pond, due north of camp. The scanner points at the nearest one.\n" +
+                $"Clear out the frogs at the pond, due north of camp. The scanner beeps faster as you near one.\n" +
                 $"Frogs: {frogs.Defeated} / {frogs.Total}   (wave {Mathf.Max(1, frogs.Wave)} of {frogs.WaveCount})");
         }
 
@@ -484,7 +488,7 @@ namespace SignalLost.Story
             SetStage(Stage.TrophyPlaced);
             foreach (var stand in FindObjectsByType<SignalLost.Progression.TrophyStand>()) Signal(stand, false);
             Signal(cavendish, true);
-            GameplayOverlay.Instance.SetQuest(ToadTitle, "The crown is on the stand and the cooling system is... safe. Talk to Cavendish.");
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "The crown is on the stand and Cavendish has the cooling system. Talk to him.");
         }
 
         private void EnterDemoComplete()
@@ -492,11 +496,12 @@ namespace SignalLost.Story
             SetStage(Stage.DemoComplete);
             Signal(cavendish, false);
             GameplayOverlay.Instance.SetQuest(ToadTitle, "Chief Toad defeated. Thanks for playing the demo!", true);
-            DemoEndCard.Show();
+            DemoEndCard.Show(Timer.Finish(), Timer.Deaths);
         }
 
         private void OnRespawned()
         {
+            Timer.CountDeath();
             merchant.ResetAfterPlayerRespawn();
             if (stage == Stage.MerchantComing && merchant.IsHome) OnMerchantHome();
         }

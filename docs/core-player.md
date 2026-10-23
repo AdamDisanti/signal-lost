@@ -48,7 +48,7 @@ The hands stay fixed at the bottom of the screen, just above the status bar.
 
 - **Right hand:** holds the laser or the scanner (Q cycles), so laser swings carry it along. With nothing out it rests as a fist.
 - **Left hand:** on F it reaches down out of view for the flask, snaps it up to the mouth, swigs, and stows it again.
-- **Footsteps:** a soft, low bass note per step (pitched per surface), replacing the old crunch.
+- **Footsteps:** a soft, low bass note per step (pitched per surface), replacing the old crunch. **Switched off for now** (lead's request, 10-23): set `PlayerAudio.FootstepsEnabled` to bring them back.
 
 Everything is built from boxes at runtime. Colours, size and poses are at the top of `FirstPersonHands.cs`.
 

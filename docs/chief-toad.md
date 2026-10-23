@@ -40,7 +40,7 @@ Batch builds use `SignalLost.Editor.ChiefToadBuilder.BuildBatch`.
 **Weak spot:** the glowing coolant core on his chest takes ×1.5 damage.
 
 **Shared rules:** he follows the mini-boss rules:
-- the boss bar appears when he engages;
+- the boss bar appears when he engages, notched at phase 2 (`phaseTwoAt`) and phase 3 (`phaseThreeAt`), and labelled "enraged" and then "furious";
 - the combo finisher can't stun him;
 - he resets (full health, phase 1, home) if you die or get twice his 26 m arena radius away.
 
