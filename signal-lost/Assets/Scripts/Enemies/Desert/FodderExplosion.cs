@@ -43,6 +43,7 @@ namespace SignalLost.Enemies.Desert
 
                 Health health = hit.GetComponentInParent<Health>();
                 if (health == null || health.IsDead || !Damaged.Add(health)) continue;
+                if (!EnemyAllegiance.CanHurt(source, health)) continue; // an enemy's blast never hurts enemies
                 float distance = Vector3.Distance(point, hit.ClosestPoint(point));
                 float falloff = Mathf.Lerp(1f, Mathf.Clamp01(edgeDamage), Mathf.Clamp01(distance / radius));
                 health.TakeDamage(damage * falloff, source);

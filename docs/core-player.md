@@ -1,6 +1,6 @@
 # Shared player, HUD and menus
 
-The game-wide player and UI from the 10-22-26 meeting notes. Every playable scene uses them: Tutorial, Tutorial Testing and Desert Dunes. They supersede the old [Player HUD](hud.md) and the tutorial-only player.
+The game-wide player and UI from the 10-22-26 meeting notes. Every playable scene uses them: Tutorial, Testing Sandbox and Desert Dunes. They supersede the old [Player HUD](hud.md) and the tutorial-only player.
 
 ## Prefabs
 
@@ -18,7 +18,7 @@ Player components:
 | --- | --- |
 | `PlayerGear` | Items (laser, scanner, flask), Q to swap, holstering, starting items, "new gear" cards |
 | `PlayerFlask` | F to sip: heals 35, halved per drunk stack; blackout after 5 stacks |
-| `PlayerLife` | Death and blackout, fade, respawn at the spawn point, short wake-up |
+| `PlayerLife` | Death ("SIGNAL LOST") and blackout, fade, respawn at the spawn point, short wake-up |
 | `PlayerInteractor` | E on whatever is under the crosshair (`IInteractable`) |
 | `FirstPersonHands` | On-screen gloves |
 | `WakeUpSequence` | Eyelid wake-ups (tutorial intro, respawns) |

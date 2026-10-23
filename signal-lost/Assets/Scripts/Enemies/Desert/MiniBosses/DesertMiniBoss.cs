@@ -14,8 +14,8 @@ namespace SignalLost.Enemies.Desert
     /// - Patrol: walks a loop around its home until the player enters its arena (or hits it).
     /// - Engaged: a boss health bar appears (<see cref="MiniBossHud"/>), and its FodderSpawner starts sending fodder.
     /// - Two phases: at Phase Two At (default half health) the stolen part is damaged and the fight changes.
-    /// - Leash: if the player leaves the arena for a few seconds, or dies, it resets to full health, phase 1, and
-    ///   clears its fodder.
+    /// - Leash: if the player gets twice the arena radius from home (the shared Territory rule), or dies, it resets
+    ///   to full health, phase 1, and clears its fodder. A banner says why.
     /// - Defeat: the fodder spawner stops (fodder already out keeps fighting), and the stolen ship part drops as a
     ///   glowing pickup (<see cref="ShipPartDrop"/>). <see cref="Defeated"/> and <see cref="DefeatedCount"/> let a
     ///   future encounter/boss-unlock system count the three.
@@ -346,7 +346,9 @@ namespace SignalLost.Enemies.Desert
 
         private void UpdateLeash(float dt)
         {
-            if (TargetAlive && PlayerDistanceFromHome() > arenaRadius * Territory.LeashMultiplier) ResetBoss();
+            if (!TargetAlive || PlayerDistanceFromHome() <= arenaRadius * Territory.LeashMultiplier) return;
+            ResetBoss();
+            MiniBossHud.Message($"{displayName} gave up and went home (full health).", new Color(1f, 0.85f, 0.5f), 3f);
         }
 
         private void BeginPhaseTwo()
@@ -363,7 +365,9 @@ namespace SignalLost.Enemies.Desert
 
         private void OnPlayerDied(Health _)
         {
-            if (!IsDead && Engaged) ResetBoss();
+            if (IsDead || !Engaged) return;
+            ResetBoss();
+            MiniBossHud.Message($"{displayName} reset (you died).", new Color(1f, 0.6f, 0.5f), 3f);
         }
 
         /// <summary>Back to full health, phase 1, at home, not engaged; its fodder is cleared.</summary>

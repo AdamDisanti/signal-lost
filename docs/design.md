@@ -75,6 +75,43 @@ The source proposes an eight-week sequence: foundation/prototype (weeks 1–3), 
 - At Lawson's request, each one patrols a set area while fodder keeps spawning around it during the fight. Phase 2 starts at half health. Leaving the arena or dying resets the mini-boss. On defeat the stolen part drops as a placeholder pickup.
 - Not decided, so not invented: whether the parts count toward progression, the boss becoming scannable after three defeats, placement in the Desert Dunes scene, scanner priority, and death persistence.
 
+### Mini-boss polish pass
+
+Lawson requested these changes after playing the mini-bosses. See [desert mini-bosses](desert-minibosses.md#polish-pass-fire-animation-new-moves).
+
+- **Fire:** the bosses' fire should look like proper fire, not spheres in a puddle, and the effect should be reusable elsewhere, for example in stage design. It is now the general [fire effect](fire-effect.md), a code-built particle fire with prefabs and a GameObject menu. It does no damage on its own.
+- **Old Buzzard:**
+  - Its animation was too stiff. Now every pose eases in, the wings have elbows, flapping has a proper cycle, and the head tracks the player.
+  - The sand attack should reach to the ground and fling sand rather than raise a wing. It now scoops with the wing down in the sand, then flings it forward.
+- **Burnout:**
+  - Follow-up dashes should target the player. Each follow-up now re-aims at the player with a short lead, curves toward them mid-dash and banks off walls toward them. This resolves the "targeted multi-dash" item in the meeting notes below.
+  - At its last 15% of health it stays in a rapid dashing state until defeated (the redline).
+- **Sludge:**
+  - It felt uninteresting, so it now fires more oil puddles in one attack: 6, or 9 in phase 2.
+  - New charged explosive shot that the player must take cover from. The blast checks line of sight, so cover fully protects; creatures and puddles are not cover. A sight line shows whether you are covered, and a heavy hit on the tank while it charges backfires it (consistent with its existing weak spot).
+  - It was weak up close, so it now has a claw combo, a tail sting that reaches any side, and a short flamethrower, and it no longer backs away.
+  - Its body was too stiff. It is now a segmented scorpion: five bending body plates, jointed legs in an alternating gait, claw elbows and a five-joint whipping tail.
+- **Numbers:** timings and damage values for the new moves are placeholders, not agreed balance.
+- **Sludge pressure follow-up:** Lawson requested faster projectiles, wider oil coverage, longer flamethrower reach, quicker movement/turning and more frequent shooting. Combat speed is now 4.5 m/s, oil slick radius 2.6 m, flamethrower reach 10 m and cannon speed 60 m/s, with shorter ranged wind-ups/cooldowns in both phases. Health and damage per hit are unchanged; these are provisional tuning values, not a new progression rule. See the [Sludge tuning](desert-minibosses.md#sludge-fuel-tank).
+
+## Desert stage boss decisions
+
+Lawson requested a main boss for the desert stage. See [desert stage boss](desert-boss.md).
+
+- **Scope:** it is a stage boss, not the game's final boss. It is substantially harder than the mini-bosses, with four main phases, grander effects and more attack variety.
+- **Design (from Lawson's quiz):** a giant sandworm with the **Engine Core** built in. It has its own moveset rather than echoing the mini-bosses. Each phase changes the arena (sandstorm, collapsing ground, fire field), and the attacks are dense and overlap, needing precise dodging.
+- **Story beat (Lawson's direction):** when the player leaves the stage to put the parts on the ship, the boss rockets out of the ground where they were about to exit, grabs them and drags them to its arena, in a cutscene.
+- **Progression (Lawson's direction):** the Engine Core is one of the main ship parts needed to complete the game. Beating the boss unlocks the next stage, which doesn't exist yet.
+- **Implemented as placeholders:**
+  - A session-only `StageProgress`; no save system was invented.
+  - The exit requires the three mini-boss parts.
+  - A configurable next-stage scene name, with a message until that stage exists.
+  - The name "Core Worm".
+- **Not decided, so not invented:** placement in Nicole's Desert Dunes scene; saving and death persistence of parts and cleared stages; what the next stage is; balance numbers.
+- **Look (Lawson's direction, superseding the earlier ship-fused version):** a biological, desert-coloured worm, darker than the sand for contrast, with veins of energy pulsing across one solid bending body (no segments), keeping the petal mouth. Machine parts were removed apart from the Engine Core's brace. Its health is 825, lowered at Lawson's request.
+- **No friendly fire (Lawson's request):** enemies are never hurt by their own attacks or each other's: fire, blasts, the cannon shell, the worm's shrapnel and the mortar frog's goo all skip enemies (`EnemyAllegiance`). This supersedes the earlier "fire and blasts hurt fodder" notes. Hazards the player sets off still count as the player's: shooting an oil slick, a fire the player started, or a Jerry-Can Beetle the player shot or ignited.
+- **Flask in the fight (Lawson's request):** the player has the Scotch flask during the Core Worm fight, with the tutorial's healing and intoxication rules. The tutorial's blackout sends you back to the start, so here a blackout counts as going down. Whether the flask comes from the inventory once stages are linked is still open.
+
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
 
 ## Cavendish and merchant tutorial integration
@@ -111,7 +148,7 @@ Adam and Lawson's meeting notes asked for a complete tutorial before the demo. T
 - **Not done:**
   - Moving the tutorial enemies out from under the terrain was not selected, so the encounter NavMesh was not rebaked around the wreck.
   - The next-stage transition (heal and black out after a stage) and the other UI ideas (Doom-style HUD, on-screen hands, skyboxes) are still open.
-  - The "screeb" spotter behaviour and Burnout's targeted multi-dash are still open.
+  - The "screeb" spotter behaviour is still open. Burnout's targeted multi-dash was done in the [mini-boss polish pass](#mini-boss-polish-pass).
 
 
 ## Tutorial overhaul (meeting notes 10-22-26)
@@ -119,7 +156,7 @@ Adam and Lawson's meeting notes asked for a complete tutorial before the demo. T
 The "Major tutorial rework" prompt, with the project lead's answers. See [tutorial](tutorial.md), [enemy rules](enemy-rules.md) and [shared player, HUD and menus](core-player.md). Where it conflicts with the 10-20 decisions above, this section wins.
 
 - **New scene:**
-  - The tutorial is a new generated scene. Tutorial Testing is reference only and becomes a free-play sandbox; none of its dummies, rock basin, gate or damage pad carry over.
+  - The tutorial is a new generated scene. Tutorial Testing is reference only and becomes a free-play sandbox (renamed Testing Sandbox); none of its dummies, rock basin, gate or damage pad carry over.
   - New Game loads it.
   - All art is generated in-project, with no asset packs.
 - **Look:**

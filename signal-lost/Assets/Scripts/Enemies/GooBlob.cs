@@ -142,7 +142,9 @@ namespace SignalLost.Enemies
                 if (owner != null && Overlaps[i].transform.IsChildOf(owner)) continue;
                 Health target = Overlaps[i].GetComponentInParent<Health>();
                 if (target == null || target.IsDead || !damaged.Add(target)) continue;
-                target.TakeDamage(damage, owner != null ? owner.gameObject : null);
+                GameObject source = owner != null ? owner.gameObject : null;
+                if (!EnemyAllegiance.CanHurt(source, target)) continue; // the frog's goo never hurts enemies
+                target.TakeDamage(damage, source);
             }
 
             ImpactFlash.Spawn(material, point, splashRadius * 0.9f, 0.18f);

@@ -16,7 +16,8 @@ namespace SignalLost.Enemies.Desert
     /// - A heavy hit (a charged shot) on a wing panel makes it wobble, interrupting the attack.
     ///
     /// Phase 2 (one wing shot off): the wing that took more damage tears away and it crashes down. Grounded, it stomps
-    /// around lopsided: pecks, hop-stomps, a wing gust that shoves the player and throws sand in their eyes, and every
+    /// around lopsided: pecks, hop-stomps, a sand fling (it reaches its wing down into the sand and flings a spray of it
+    /// at the player, shoving them and throwing sand in their eyes), and every
     /// so often a failed attempt to take off that leaves it dazed. Its remaining wing shields its front: bolts from the
     /// front glance off, so close in with melee or shoot it from behind.
     ///
@@ -102,7 +103,13 @@ namespace SignalLost.Enemies.Desert
         [Header("Rig")]
         [Tooltip("Wing pivots, left then right.")]
         [SerializeField] private Transform[] wings = new Transform[2];
+        [Tooltip("Elbow pivots (the outer half of each wing), left then right. Optional: without them the wings bend at the shoulder only.")]
+        [SerializeField] private Transform[] wingTips = new Transform[0];
         [SerializeField] private Transform neck;
+        [Tooltip("Turns to watch the player. Optional: found under the neck by name if empty.")]
+        [SerializeField] private Transform head;
+        [Tooltip("Tail-feather pivot. Optional.")]
+        [SerializeField] private Transform tail;
         [SerializeField] private Transform[] legs = new Transform[0];
         [SerializeField] private Material shadowMaterial;
         [SerializeField] private Material warningMaterial;
@@ -134,9 +141,20 @@ namespace SignalLost.Enemies.Desert
         {
             base.Awake();
             for (int i = 0; i < wings.Length && i < 2; i++) wingRest[i] = wings[i] != null ? wings[i].localRotation : Quaternion.identity;
+            for (int i = 0; i < wingTips.Length && i < 2; i++) tipRest[i] = wingTips[i] != null ? wingTips[i].localRotation : Quaternion.identity;
             legRest = new Quaternion[legs.Length];
-            for (int i = 0; i < legs.Length; i++) legRest[i] = legs[i] != null ? legs[i].localRotation : Quaternion.identity;
+            legPose = new Quaternion[legs.Length];
+            for (int i = 0; i < legs.Length; i++)
+            {
+                legRest[i] = legs[i] != null ? legs[i].localRotation : Quaternion.identity;
+                legPose[i] = Quaternion.identity;
+            }
             if (neck != null) neckRest = neck.localRotation;
+            if (head == null && neck != null) head = neck.Find("Head");
+            if (head != null) headRest = headLook = head.localRotation;
+            if (tail != null) tailRest = tail.localRotation;
+            for (int i = 0; i < 2; i++) wingPose[i] = tipPose[i] = Quaternion.identity;
+            lastYaw = transform.eulerAngles.y;
         }
 
         protected override void OnBossStarted()
@@ -431,9 +449,23 @@ namespace SignalLost.Enemies.Desert
             Enter(State.Recover);
         }
 
+        /// <summary>The wing still attached: the one that scoops and flings the sand.</summary>
+        private int FlingSide => tornSide == 0 ? 1 : tornSide == 1 ? 0 : 1;
+
+        /// <summary>Where the scooping wing's tip is now (the tip pivot's far end, or the wing's).</summary>
+        private Vector3 WingTipPosition(int side)
+        {
+            float s = side == 0 ? -1f : 1f;
+            Transform tip = side < wingTips.Length ? wingTips[side] : null;
+            if (tip != null) return tip.TransformPoint(new Vector3(1.1f * s, 0f, -0.3f));
+            Transform wing = side < wings.Length ? wings[side] : null;
+            return wing != null ? wing.TransformPoint(new Vector3(2.1f * s, 0f, -0.3f)) : transform.position + Vector3.up;
+        }
+
         private void UpdateGust()
         {
-            if (!struck)
+            // The wing whips forward out of the sand; the spray leaves its tip halfway through the swing.
+            if (!struck && stateTime >= GustFlingAt)
             {
                 struck = true;
                 Vector3 forward = transform.forward;
@@ -446,13 +478,18 @@ namespace SignalLost.Enemies.Desert
                     ShovePlayer(forward, gustPush);
                     MiniBossHud.SandBlind(sandBlindTime);
                 }
-                if (dustMaterial != null)
-                    for (int i = 1; i <= 6; i++)
-                        ImpactFlash.Spawn(dustMaterial, transform.position + forward.normalized * (i * gustRange / 6f) + Vector3.up * 0.8f,
-                            0.8f + i * 0.25f, 0.4f);
+                Vector3 tip = WingTipPosition(FlingSide);
+                Vector3 aim = (TargetView != null ? TargetView.position : Target.position + Vector3.up * 1.4f) - tip;
+                if (Vector3.Angle(new Vector3(aim.x, 0f, aim.z), forward) > gustHalfAngle) aim = forward * gustRange + Vector3.up * 0.5f;
+                aim += Vector3.up * aim.magnitude * 0.08f; // a slight arc
+                ParticleBurst.Spawn(ParticleBurst.Kind.Sand, tip, aim, 46, 0.55f, gustRange * 1.6f, 14f);
+                ParticleBurst.Spawn(ParticleBurst.Kind.Sand, tip, aim + Vector3.up * aim.magnitude * 0.15f, 24, 0.9f, gustRange * 1.1f, 22f);
             }
-            if (stateTime >= 0.3f) Enter(State.Recover);
+            if (stateTime >= GustSwingTime + 0.25f) Enter(State.Recover);
         }
+
+        private const float GustSwingTime = 0.2f;
+        private const float GustFlingAt = 0.08f;
 
         private void UpdateTakeoff()
         {
@@ -618,74 +655,320 @@ namespace SignalLost.Enemies.Desert
 
         private void Dust(Vector3 point, float radius)
         {
-            if (dustMaterial == null) return;
-            ImpactFlash.Spawn(dustMaterial, point + Vector3.up * 0.4f, radius * 1.1f, 0.3f);
-            ExpandingRing.Spawn(dustMaterial, point + Vector3.up * 0.05f, radius * 1.4f, 0.35f, 0.15f);
+            ParticleBurst.Spawn(ParticleBurst.Kind.Sand, point + Vector3.up * 0.15f, Vector3.up, Mathf.RoundToInt(10f + radius * 8f),
+                0.4f + radius * 0.3f, 2f + radius * 2f, 80f);
+            if (dustMaterial != null) ExpandingRing.Spawn(dustMaterial, point + Vector3.up * 0.05f, radius * 1.4f, 0.35f, 0.15f);
         }
 
         // ---------- Animation ----------
+        //
+        // Every joint eases toward a target pose instead of snapping to it, so moves blend into each other. Flapping
+        // runs on its own phase (fast downstroke, slower recovery, wing tips trailing the arm), the body bobs with the
+        // wingbeat and banks into turns, and the head keeps watching the player.
+
+        private readonly Quaternion[] wingPose = new Quaternion[2], tipPose = new Quaternion[2];
+        private readonly Quaternion[] tipRest = { Quaternion.identity, Quaternion.identity };
+        private Quaternion[] legPose = new Quaternion[0];
+        private Quaternion neckPose = Quaternion.identity, headLook = Quaternion.identity, tailPose = Quaternion.identity;
+        private Quaternion bodyPose = Quaternion.identity, headRest = Quaternion.identity, tailRest = Quaternion.identity;
+        private Vector3 bodyOffset;
+        private float flapPhase, walkPhase, lastYaw, bank, glideFlapUntil, nextGlideFlap, nextScoopPuff;
+
+        private struct WingTarget
+        {
+            public float Raise, Sweep, TipRaise, TipSweep;
+            public WingTarget(float raise, float sweep, float tipRaise, float tipSweep)
+            {
+                Raise = raise; Sweep = sweep; TipRaise = tipRaise; TipSweep = tipSweep;
+            }
+        }
+
+        /// <summary>Raise: degrees up from level (negative droops). Sweep: degrees forward (negative swept back).</summary>
+        private static Quaternion WingRotation(int side, float raise, float sweep)
+        {
+            float sign = side == 0 ? 1f : -1f; // the left wing runs along -X, the right along +X
+            return Quaternion.Euler(0f, sign * sweep, -sign * raise);
+        }
+
+        private static float Ease(float rate, float dt) => 1f - Mathf.Exp(-rate * dt);
+        private static float Smooth(float t) => t * t * (3f - 2f * Mathf.Clamp01(t));
 
         protected override void AnimateBoss(float dt)
         {
             UpdateDebris(dt);
-            bool diving = state == State.Dive;
-            float flapRate, flapAmount;
-            if (state == State.Takeoff) { flapRate = 22f; flapAmount = 55f; }
-            else if (flying && (state == State.Climb || state == State.BombWindup || state == State.Wobble || state == State.Fall)) { flapRate = 9f; flapAmount = 40f; }
-            else if (flying) { flapRate = 2.2f; flapAmount = 12f; } // gliding
-            else if (state == State.GustWindup) { flapRate = 0f; flapAmount = 0f; }
-            else { flapRate = 0f; flapAmount = 0f; }
+            float speed = AgentReady ? Agent.velocity.magnitude : 0f;
 
-            for (int side = 0; side < 2 && side < wings.Length; side++)
-            {
-                Transform wing = wings[side];
-                if (wing == null || side == tornSide) continue;
-                float sign = side == 0 ? 1f : -1f;
-                Quaternion pose;
-                if (diving) pose = Quaternion.Euler(0f, sign * -50f, sign * 30f); // tucked back
-                else if (!flying && state == State.GustWindup) pose = Quaternion.Euler(0f, 0f, sign * (-70f * Mathf.Clamp01(stateTime / gustWindup)));
-                else if (!flying && state == State.Gust) pose = Quaternion.Euler(0f, sign * 40f, sign * 20f);
-                else if (!flying && state != State.Takeoff) pose = Quaternion.Euler(0f, sign * -60f, sign * -35f); // folded
-                else pose = Quaternion.Euler(0f, 0f, sign * Mathf.Sin(Time.time * flapRate) * flapAmount);
-                wing.localRotation = wingRest[side] * pose;
-            }
+            // Bank into turns (flying) from how fast it is turning.
+            float yaw = transform.eulerAngles.y;
+            float turnRate = dt > 0f ? Mathf.DeltaAngle(lastYaw, yaw) / dt : 0f;
+            lastYaw = yaw;
+            bank = Mathf.Lerp(bank, Mathf.Clamp(-turnRate * 0.18f, -35f, 35f), Ease(4f, dt));
 
-            // Body: bank in flight, lopsided on the ground, hop on take-off, wobble when dazed.
+            float flapRate = 0f, flapAmp = 0f, dihedral = 0f;
+            float pitch = 0f, roll = 0f, twist = 0f, neckPitch = 0f, legSwing = 0f, tailPitch = 0f, headWeight = 1f;
+            float poseRate = 10f;
             Vector3 offset = Vector3.zero;
-            Quaternion lean = Quaternion.identity;
+            var target = new WingTarget[2];
+            bool useFlap = false;
+            int scoopSide = FlingSide;
+
             if (flying)
             {
-                lean = Quaternion.Euler(diving ? 35f : 8f, 0f, Mathf.Sin(Time.time * 0.8f) * 10f);
-                if (state == State.Wobble) lean = Quaternion.Euler(Mathf.Sin(Time.time * 14f) * 20f, 0f, Mathf.Sin(Time.time * 11f) * 35f);
+                useFlap = true;
+                switch (state)
+                {
+                    case State.Dive:
+                    {
+                        // Wings tucked back, nose down; talons swing forward just before impact.
+                        float t = Mathf.Clamp01(stateTime / diveTime);
+                        useFlap = false;
+                        target[0] = target[1] = new WingTarget(18f, -55f, -8f, -65f);
+                        pitch = 38f;
+                        neckPitch = 25f;
+                        legSwing = t < 0.6f ? 55f : -45f;
+                        tailPitch = -10f;
+                        poseRate = 16f;
+                        break;
+                    }
+                    case State.DiveWindup:
+                        // Hovering over the target: quick, deep beats, body upright, peering down.
+                        flapRate = 11f; flapAmp = 42f; dihedral = 5f;
+                        pitch = -18f; neckPitch = 30f; legSwing = 10f; tailPitch = 15f;
+                        break;
+                    case State.Landed:
+                        // Sat on the sand after the dive: wings spread and drooping for balance, catching its breath.
+                        useFlap = false;
+                        target[0] = target[1] = new WingTarget(-18f + Mathf.Sin(Time.time * 3f) * 4f, 8f, -12f, 5f);
+                        pitch = 14f; neckPitch = -5f; legSwing = 0f;
+                        offset = Vector3.down * (0.08f + Mathf.Sin(Time.time * 6f) * 0.02f);
+                        break;
+                    case State.Climb:
+                    case State.BombWindup:
+                        flapRate = 9.5f; flapAmp = 44f; dihedral = 4f;
+                        pitch = state == State.Climb ? -20f : -6f; neckPitch = 15f; legSwing = 50f;
+                        break;
+                    case State.BombRun:
+                        flapRate = 6.5f; flapAmp = 32f; dihedral = 6f;
+                        pitch = 4f; neckPitch = 35f; legSwing = 25f; // peering down at its bombs
+                        break;
+                    case State.Wobble:
+                        flapRate = 14f; flapAmp = 55f; dihedral = 0f;
+                        pitch = Mathf.Sin(Time.time * 13f) * 20f;
+                        roll = Mathf.Sin(Time.time * 11f) * 35f;
+                        legSwing = Mathf.Sin(Time.time * 9f) * 30f;
+                        poseRate = 14f;
+                        break;
+                    case State.Fall:
+                        flapRate = 18f; flapAmp = 60f;
+                        pitch = 20f; legSwing = Mathf.Sin(Time.time * 15f) * 40f;
+                        break;
+                    default: // Soar / patrol: gliding, with a few beats now and then
+                        if (Time.time >= nextGlideFlap)
+                        {
+                            glideFlapUntil = Time.time + Random.Range(0.9f, 1.6f);
+                            nextGlideFlap = glideFlapUntil + Random.Range(2.5f, 5f);
+                        }
+                        bool beating = Time.time < glideFlapUntil;
+                        flapRate = beating ? 7f : 1.3f;
+                        flapAmp = beating ? 34f : 5f;
+                        dihedral = beating ? 6f : 12f;
+                        pitch = 6f; neckPitch = 18f; legSwing = 55f;
+                        roll = bank;
+                        break;
+                }
+                if (state != State.Wobble && state != State.Dive && state != State.Landed) roll += bank * 0.6f;
             }
             else
             {
-                float lopsided = tornSide == 0 ? -14f : tornSide == 1 ? 14f : 0f;
-                float waddle = Mathf.Sin(Time.time * 6f) * Mathf.Clamp01(AgentReady ? Agent.velocity.magnitude : 0f) * 8f;
-                lean = Quaternion.Euler(0f, 0f, lopsided + waddle);
-                if (state == State.Takeoff)
-                {
-                    float k = stateTime / takeoffTime;
-                    offset = Vector3.up * (k < 0.55f ? Mathf.Sin(k / 0.55f * Mathf.PI * 0.5f) * 1.8f : Mathf.Max(0f, 1.8f * (1f - (k - 0.55f) / 0.45f * 2.2f)));
-                }
-                else if (state == State.Stomp) offset = Vector3.up * Mathf.Sin(Mathf.Clamp01(stateTime / stompTime) * Mathf.PI) * 1.6f;
-                else if (state == State.StompWindup || state == State.PeckWindup) offset = Vector3.down * 0.15f;
-                else if (state == State.Dazed) lean *= Quaternion.Euler(Mathf.Sin(Time.time * 7f) * 10f, Mathf.Sin(Time.time * 3f) * 25f, 0f);
-            }
-            if (state == State.Landed) lean = Quaternion.Euler(0f, 0f, Mathf.Sin(Time.time * 5f) * 6f);
-            Visual.localPosition = VisualRest + offset;
-            Visual.localRotation = VisualRestRotation * lean;
+                float lopsided = tornSide == 0 ? -12f : tornSide == 1 ? 12f : 0f;
+                roll = lopsided;
+                // The remaining wing: folded along its side, half-open and fluttering for balance as it walks.
+                float walking = Mathf.Clamp01(speed / Mathf.Max(0.1f, walkSpeed));
+                WingTarget folded = new WingTarget(-4f + walking * 6f + Mathf.Sin(Time.time * 9f) * 3f * walking,
+                    -68f + walking * 25f, -6f, -70f + walking * 30f);
+                target[0] = target[1] = folded;
 
+                switch (state)
+                {
+                    case State.PeckWindup:
+                    {
+                        float k = Smooth(Mathf.Clamp01(stateTime / peckWindup));
+                        neckPitch = -35f * k; pitch = -10f * k; headWeight = 1f - k * 0.5f;
+                        offset = Vector3.down * 0.12f * k;
+                        poseRate = 14f;
+                        break;
+                    }
+                    case State.Peck:
+                        neckPitch = 65f; pitch = 22f; headWeight = 0.2f;
+                        poseRate = 40f;
+                        break;
+                    case State.StompWindup:
+                    {
+                        float k = Smooth(Mathf.Clamp01(stateTime / stompWindup));
+                        offset = Vector3.down * 0.25f * k;
+                        pitch = 12f * k;
+                        target[scoopSide] = new WingTarget(35f * k, -10f, 15f * k, 0f);
+                        legSwing = -10f * k;
+                        break;
+                    }
+                    case State.Stomp:
+                    {
+                        float t = Mathf.Clamp01(stateTime / stompTime);
+                        offset = Vector3.up * Mathf.Sin(t * Mathf.PI) * 1.6f;
+                        // One big beat of the good wing to get airborne, legs tucked, then reaching for the landing.
+                        target[scoopSide] = new WingTarget(Mathf.Lerp(55f, -25f, t), Mathf.Lerp(0f, 10f, t), Mathf.Lerp(25f, -15f, t), 0f);
+                        legSwing = t < 0.6f ? 45f : -20f;
+                        pitch = Mathf.Lerp(-8f, 14f, t);
+                        poseRate = 22f;
+                        break;
+                    }
+                    case State.GustWindup:
+                    {
+                        // Lean in, reach the good wing out and down until the tip is in the sand beside it, then drag it
+                        // back along the ground: the scoop. (Poses worked out so the wingtip sits on the sand throughout.)
+                        float k = Mathf.Clamp01(stateTime / gustWindup);
+                        float reach = Smooth(Mathf.Clamp01(k / 0.45f));
+                        float drag = Smooth(Mathf.Clamp01((k - 0.45f) / 0.55f));
+                        WingTarget start = target[scoopSide];
+                        var down = new WingTarget(-32f, 20f, -20f, 5f);
+                        var back = new WingTarget(-40f, 0f, -26f, -5f);
+                        target[scoopSide] = reach < 1f
+                            ? new WingTarget(Mathf.Lerp(start.Raise, down.Raise, reach), Mathf.Lerp(start.Sweep, down.Sweep, reach),
+                                Mathf.Lerp(start.TipRaise, down.TipRaise, reach), Mathf.Lerp(start.TipSweep, down.TipSweep, reach))
+                            : new WingTarget(Mathf.Lerp(down.Raise, back.Raise, drag), Mathf.Lerp(down.Sweep, back.Sweep, drag),
+                                Mathf.Lerp(down.TipRaise, back.TipRaise, drag), Mathf.Lerp(down.TipSweep, back.TipSweep, drag));
+                        pitch = 25f * reach;
+                        twist = (scoopSide == 1 ? 1f : -1f) * (15f * reach + 5f * drag);
+                        roll = Mathf.Lerp(roll, (scoopSide == 1 ? 1f : -1f) * 10f, reach);
+                        offset = Vector3.down * 0.1f * reach;
+                        headWeight = 1f;
+                        poseRate = 12f;
+                        if (reach > 0.85f && Time.time >= nextScoopPuff)
+                        {
+                            nextScoopPuff = Time.time + 0.12f;
+                            Vector3 tip = WingTipPosition(scoopSide);
+                            tip.y = Mathf.Min(tip.y, GroundY + 0.1f);
+                            ParticleBurst.Spawn(ParticleBurst.Kind.Sand, tip, Vector3.up - transform.forward * 0.6f, 5, 0.3f, 1.6f, 35f);
+                        }
+                        break;
+                    }
+                    case State.Gust:
+                    {
+                        // The fling: the wing whips forward and up out of the sand, the body unwinding behind it.
+                        float t = Smooth(Mathf.Clamp01(stateTime / GustSwingTime));
+                        target[scoopSide] = new WingTarget(Mathf.Lerp(-40f, 55f, t), Mathf.Lerp(0f, 60f, t), Mathf.Lerp(-26f, 25f, t), Mathf.Lerp(-5f, 30f, t));
+                        pitch = Mathf.Lerp(25f, -6f, t);
+                        twist = (scoopSide == 1 ? 1f : -1f) * Mathf.Lerp(20f, -26f, t);
+                        poseRate = 45f;
+                        break;
+                    }
+                    case State.Takeoff:
+                    {
+                        float k = stateTime / takeoffTime;
+                        useFlap = true;
+                        flapRate = 21f; flapAmp = 58f; dihedral = 5f;
+                        offset = Vector3.up * (k < 0.55f ? Mathf.Sin(k / 0.55f * Mathf.PI * 0.5f) * 1.8f : Mathf.Max(0f, 1.8f * (1f - (k - 0.55f) / 0.45f * 2.2f)));
+                        roll = lopsided * 2.5f + Mathf.Sin(Time.time * 17f) * 10f; // one wing: it lurches sideways
+                        pitch = -15f;
+                        legSwing = k < 0.55f ? 30f : -10f;
+                        break;
+                    }
+                    case State.Dazed:
+                        target[scoopSide] = new WingTarget(-30f, 5f, -15f, 0f);
+                        pitch = Mathf.Sin(Time.time * 7f) * 10f;
+                        twist = Mathf.Sin(Time.time * 3f) * 25f;
+                        neckPitch = 20f + Mathf.Sin(Time.time * 5f) * 15f;
+                        headWeight = 0f;
+                        break;
+                    default: // Walk, Recover, Fall (landed), Landed
+                    {
+                        // Waddle: two steps a cycle, a bob on each, rolling from foot to foot, the head bobbing like a bird's.
+                        walkPhase += dt * (3f + speed * 2.6f);
+                        float step = Mathf.Abs(Mathf.Sin(walkPhase));
+                        offset = Vector3.up * step * 0.07f * walking;
+                        roll += Mathf.Sin(walkPhase) * 7f * walking;
+                        legSwing = 0f;
+                        neckPitch = Mathf.Sin(walkPhase * 2f) * 7f * walking + 4f;
+                        pitch = 4f * walking;
+                        break;
+                    }
+                }
+            }
+
+            // Wings: flapping or posed.
+            if (useFlap) flapPhase += dt * flapRate;
+            float cycle = flapPhase + 0.45f * Mathf.Sin(flapPhase); // quick downstroke, slower upstroke
+            float beat = Mathf.Cos(cycle);
+            if (useFlap)
+            {
+                for (int side = 0; side < 2; side++)
+                    target[side] = new WingTarget(dihedral + beat * flapAmp, -4f + Mathf.Sin(cycle) * flapAmp * 0.15f,
+                        Mathf.Cos(cycle - 0.9f) * flapAmp * 0.55f, -6f - Mathf.Sin(cycle - 0.9f) * flapAmp * 0.2f);
+                if (flapAmp > 20f) offset += Vector3.up * Mathf.Sin(cycle) * 0.05f * (flapAmp / 40f); // lifts on each downstroke
+            }
+            float wingRate = useFlap ? 30f : poseRate;
+            for (int side = 0; side < 2 && side < wings.Length; side++)
+            {
+                if (wings[side] == null || side == tornSide) continue;
+                wingPose[side] = Quaternion.Slerp(wingPose[side], WingRotation(side, target[side].Raise, target[side].Sweep), Ease(wingRate, dt));
+                wings[side].localRotation = wingRest[side] * wingPose[side];
+                Transform tip = side < wingTips.Length ? wingTips[side] : null;
+                if (tip == null) continue;
+                tipPose[side] = Quaternion.Slerp(tipPose[side], WingRotation(side, target[side].TipRaise, target[side].TipSweep), Ease(wingRate, dt));
+                tip.localRotation = tipRest[side] * tipPose[side];
+            }
+
+            // Body.
+            if (state == State.Landed && flying) { pitch = 14f; roll = Mathf.Sin(Time.time * 5f) * 5f; }
+            Quaternion lean = Quaternion.Euler(pitch, twist, roll);
+            bodyPose = Quaternion.Slerp(bodyPose, lean, Ease(poseRate, dt));
+            bodyOffset = Vector3.Lerp(bodyOffset, offset, Ease(state == State.Takeoff || state == State.Stomp ? 30f : 12f, dt));
+            Visual.localPosition = VisualRest + bodyOffset;
+            Visual.localRotation = VisualRestRotation * bodyPose;
+
+            // Neck and head: the neck carries the big moves, the head keeps its eyes on the player.
             if (neck != null)
             {
-                float peck = state == State.PeckWindup ? -25f * Mathf.Clamp01(stateTime / peckWindup) : state == State.Peck ? 55f : 0f;
-                neck.localRotation = neckRest * Quaternion.Euler(peck + (flying ? 0f : Mathf.Sin(Time.time * 6f) * 6f), 0f, 0f);
+                neckPose = Quaternion.Slerp(neckPose, Quaternion.Euler(neckPitch, 0f, 0f), Ease(poseRate, dt));
+                neck.localRotation = neckRest * neckPose;
             }
+            if (head != null && head.parent != null)
+            {
+                Quaternion want = headRest;
+                if (headWeight > 0f && Target != null)
+                {
+                    Vector3 look = (TargetView != null ? TargetView.position : Target.position + Vector3.up * 1.5f) - head.position;
+                    if (look.sqrMagnitude > 0.01f)
+                    {
+                        Quaternion local = Quaternion.Inverse(head.parent.rotation) * Quaternion.LookRotation(look, Vector3.up);
+                        float angle = Quaternion.Angle(headRest, local);
+                        if (angle > 70f) local = Quaternion.Slerp(headRest, local, 70f / angle);
+                        want = Quaternion.Slerp(headRest, local, headWeight);
+                    }
+                }
+                if (state == State.Dazed) want = headRest * Quaternion.Euler(Mathf.Sin(Time.time * 9f) * 15f, Mathf.Sin(Time.time * 4f) * 40f, 0f);
+                headLook = Quaternion.Slerp(headLook, want, Ease(8f, dt));
+                head.localRotation = headLook;
+            }
+
+            if (tail != null)
+            {
+                float fan = flying ? Mathf.Sin(Time.time * 2f) * 4f + bank * 0.3f : Mathf.Sin(walkPhase) * 6f;
+                tailPose = Quaternion.Slerp(tailPose, Quaternion.Euler(tailPitch + (flying ? -pitch * 0.4f : 0f), fan, 0f), Ease(8f, dt));
+                tail.localRotation = tailRest * tailPose;
+            }
+
             for (int i = 0; i < legs.Length; i++)
             {
                 if (legs[i] == null) continue;
-                float swing = flying ? -35f : Mathf.Sin(Time.time * 6f + i * Mathf.PI) * Mathf.Clamp((AgentReady ? Agent.velocity.magnitude : 0f) * 12f, 0f, 30f);
-                legs[i].localRotation = legRest[i] * Quaternion.Euler(swing, 0f, 0f);
+                float swing = legSwing;
+                if (!flying && state != State.Stomp && state != State.Takeoff)
+                {
+                    float walking = Mathf.Clamp01(speed / Mathf.Max(0.1f, walkSpeed));
+                    swing += Mathf.Sin(walkPhase + i * Mathf.PI) * 28f * walking;
+                }
+                legPose[i] = Quaternion.Slerp(legPose[i], Quaternion.Euler(swing, 0f, 0f), Ease(poseRate * 1.5f, dt));
+                legs[i].localRotation = legRest[i] * legPose[i];
             }
         }
 

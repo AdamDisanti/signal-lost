@@ -2345,7 +2345,7 @@ Light:
   m_Intensity: 2.5
   m_Range: 7
   m_SpotAngle: 30
-  m_InnerSpotAngle: 21.802082
+  m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
     m_Type: 0

@@ -1,4 +1,5 @@
 using SignalLost.Combat;
+using SignalLost.Effects;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -13,11 +14,17 @@ namespace SignalLost.Enemies.Desert
     ///   spins out and is dizzy for a moment (the opening). Dashing into a wall or mesa stuns it for longer.
     /// - Tail whip when you are close in front or beside it; exhaust blast (a cone of fire) when you are close behind it.
     ///
-    /// Phase 2 (thruster cracked): shorter wind-ups, and it chains three sputtering dashes, re-aiming between them and
-    /// banking off walls. After a chain the engine overheats: it stalls, venting smoke, and takes extra damage.
+    /// Phase 2 (thruster cracked): shorter wind-ups, and it chains three sputtering dashes. Every follow-up dash
+    /// re-targets the player: it swings round to where they are heading, leads them a little, curves gently toward them
+    /// mid-dash, and banks off walls back toward them. After a chain the engine overheats: it stalls, venting smoke,
+    /// and takes extra damage.
+    ///
+    /// Redline (last 15% of its health): the engine runs away with it. It never stops dashing again, with only a
+    /// short re-aim between dashes, until it is defeated.
     ///
     /// Counterplay: watch the glow, sidestep once it locks, punish the skid; in phase 2 survive the chain and unload
-    /// on it while it stalls. Don't stand in its fire. All numbers are placeholders.
+    /// on it while it stalls; on redline, shoot it during the brief re-aims and keep moving. Don't stand in its fire.
+    /// All numbers are placeholders.
     /// </summary>
     public sealed class Burnout : DesertMiniBoss
     {
@@ -58,10 +65,25 @@ namespace SignalLost.Enemies.Desert
 
         [Header("Phase 2: cracked thruster")]
         [SerializeField, Range(1, 5)] private int chainLength = 3;
+        [Tooltip("Degrees per second a follow-up dash curves toward the player mid-dash (0: dead straight).")]
+        [SerializeField, Min(0f)] private float chainSteer = 28f;
+        [Tooltip("How far ahead of a moving player follow-up dashes aim, in seconds of the player's movement.")]
+        [SerializeField, Min(0f)] private float chainLead = 0.35f;
         [Tooltip("Overheated after a chain: stalls, venting smoke.")]
         [SerializeField, Min(0f)] private float stallTime = 3f;
         [Tooltip("Damage taken while stalled, as a multiple of normal.")]
         [SerializeField, Min(1f)] private float stallDamageMultiplier = 1.6f;
+
+        [Header("Redline (final stand)")]
+        [Tooltip("At or below this fraction of its health it dashes non-stop until defeated.")]
+        [SerializeField, Range(0f, 0.5f)] private float redlineAt = 0.15f;
+        [Tooltip("Re-aim between redline dashes: the only pause it takes.")]
+        [SerializeField, Min(0.1f)] private float redlineRewindup = 0.45f;
+        [SerializeField, Min(1f)] private float redlineDashSpeed = 29f;
+        [SerializeField, Min(0f)] private float redlineSteer = 40f;
+        [SerializeField, Min(0f)] private float redlineDashDamage = 18f;
+        [Tooltip("Its fire streak burns this long while redlining (shorter, so the arena doesn't fill up).")]
+        [SerializeField, Min(0.5f)] private float redlineFireDuration = 2.4f;
 
         [Header("Tail whip")]
         [SerializeField, Min(0.5f)] private float whipRange = 3.4f;
@@ -108,13 +130,25 @@ namespace SignalLost.Enemies.Desert
         private Quaternion[] tailRest = new Quaternion[0], legRest = new Quaternion[0];
         private Color[] nozzleColors = new Color[0];
         private MaterialPropertyBlock block;
-        private bool cracked;
+        private bool cracked, redline, followUp;
+        private FireEffect jet;
+        private Renderer plumeRenderer;
+        private float jetStrength;
 
         protected override void Awake()
         {
             base.Awake();
             block = new MaterialPropertyBlock();
-            if (plume != null) plumeScale = plume.localScale;
+            if (plume != null)
+            {
+                plumeScale = plume.localScale;
+                // A particle exhaust jet replaces the placeholder plume blob; the blob's transform marks where it is.
+                plumeRenderer = plume.GetComponent<Renderer>();
+                Vector3 nozzle = plume.localPosition + plume.localRotation * new Vector3(0f, 0f, plumeScale.z);
+                jet = FireEffect.SpawnJet(plume.parent, nozzle, plume.localRotation * Quaternion.Euler(0f, 180f, 0f),
+                    Mathf.Max(0.08f, plumeScale.x * 0.7f), Mathf.Max(0.6f, plumeScale.z * 3f));
+                jet.Strength = 0f;
+            }
             if (thruster != null) thrusterRest = thruster.localRotation;
             if (body != null) bodyRest = body.localRotation;
             tailRest = Capture(tail);
@@ -170,6 +204,8 @@ namespace SignalLost.Enemies.Desert
             stateTime += dt;
             UpdateShove(dt);
             if (!TargetAlive) return;
+            if (!redline && Phase == 2 && HealthFraction <= redlineAt && (state == State.Stalk || state == State.Stall ||
+                state == State.Recover || state == State.Crashed || state == State.Blast)) StartRedline();
             switch (state)
             {
                 case State.Stalk: UpdateStalk(); break;
@@ -212,6 +248,7 @@ namespace SignalLost.Enemies.Desert
             if (Time.time >= nextDash && seen && distance >= dashMinRange && distance <= dashMaxRange)
             {
                 chainLeft = Phase == 2 ? chainLength : 1;
+                followUp = false;
                 Enter(State.DashWindup);
                 return;
             }
@@ -235,12 +272,26 @@ namespace SignalLost.Enemies.Desert
         // ---------- Dash ----------
 
         private float CurrentWindup =>
-            Phase == 1 ? dashWindup : chainLeft < chainLength ? chainRewindup : phaseTwoDashWindup;
+            redline ? redlineRewindup : Phase == 1 ? dashWindup : followUp ? chainRewindup : phaseTwoDashWindup;
+
+        private float CurrentDashSpeed => (redline ? redlineDashSpeed : Phase == 2 ? phaseTwoDashSpeed : dashSpeed) * SpeedScale;
+
+        /// <summary>Where a follow-up dash aims: where the player is heading, a moment from now.</summary>
+        private Vector3 AimPoint()
+        {
+            if (!followUp && !redline) return Target.position;
+            Vector3 velocity = TargetBody != null ? TargetBody.velocity : Vector3.zero;
+            velocity.y = 0f;
+            float travel = FlatDistance(Target.position) / Mathf.Max(1f, CurrentDashSpeed);
+            return Target.position + velocity * Mathf.Min(chainLead + travel * 0.5f, 0.9f);
+        }
 
         private void UpdateDashWindup(float dt)
         {
             float windup = CurrentWindup;
-            if (stateTime < windup * aimLockAt) TurnToward(Target.position, 420f * dt);
+            // Follow-ups whip round to face the player, however far they have to turn; the first dash turns steadily.
+            float turnRate = followUp || redline ? 900f : 420f;
+            if (stateTime < windup * aimLockAt) TurnToward(AimPoint(), turnRate * dt);
             if (stateTime < windup) return;
 
             dashDirection = transform.forward;
@@ -253,10 +304,26 @@ namespace SignalLost.Enemies.Desert
             Enter(State.Dash);
         }
 
+        /// <summary>
+        /// After hitting a wall, the direction to bank off it: toward the player if that leads away from the wall,
+        /// otherwise the plain bounce turned as far toward them as the wall allows.
+        /// </summary>
+        private Vector3 BankDirection(Vector3 wallNormal)
+        {
+            Vector3 bounce = Vector3.Reflect(dashDirection, wallNormal);
+            bounce.y = 0f;
+            Vector3 toPlayer = FlatDirectionTo(AimPoint());
+            Vector3 result = Vector3.Dot(toPlayer, wallNormal) > 0.15f ? toPlayer : Vector3.Slerp(bounce.normalized, toPlayer, 0.5f);
+            result.y = 0f;
+            if (Vector3.Dot(result, wallNormal) < 0.1f) result = bounce; // still into the wall: just bounce
+            return result.sqrMagnitude > 0.0001f ? result.normalized : wallNormal;
+        }
+
         private void UpdateDash(float dt)
         {
-            float speed = (Phase == 2 ? phaseTwoDashSpeed : dashSpeed) * SpeedScale;
+            float speed = CurrentDashSpeed;
             if (Phase == 2) speed *= 0.8f + 0.35f * Mathf.PerlinNoise(Time.time * 9f, 0.5f); // the cracked engine sputters
+            Steer(dt);
             float step = speed * dt;
             Vector3 from = transform.position;
 
@@ -269,19 +336,19 @@ namespace SignalLost.Enemies.Desert
                     MiniBossHud.Message("Burnout crashed!", new Color(1f, 0.8f, 0.4f), 1.2f);
                     return;
                 }
-                if (chainLeft > 1)
+                if (chainLeft > 1 || redline)
                 {
-                    // Bank off the wall and keep going: counts as the next dash in the chain.
-                    chainLeft--;
+                    // Bank off the wall back toward the player and keep going: counts as the next dash in the chain.
+                    if (!redline) chainLeft--;
+                    followUp = true;
                     Vector3 normal = wall.normal;
                     normal.y = 0f;
                     if (normal.sqrMagnitude < 0.01f) normal = -dashDirection;
-                    dashDirection = Vector3.Reflect(dashDirection, normal.normalized);
-                    dashDirection.y = 0f;
-                    dashDirection.Normalize();
+                    dashDirection = BankDirection(normal.normalized);
                     dashTravelled = 0f;
                     dashLength = Mathf.Clamp(FlatDistance(Target.position) + overshoot, 6f, maxDashDistance);
                     dashHit = false;
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, wall.position + Vector3.up * 0.6f, normal, 14, 0.12f, 7f, 60f);
                     return;
                 }
                 Enter(State.Stall);
@@ -294,14 +361,15 @@ namespace SignalLost.Enemies.Desert
 
             if (Vector3.Distance(transform.position, lastStreak) >= streakSpacing)
             {
-                FireZone.Spawn(fire, transform.position, streakRadius, gameObject, transform, Phase == 2 ? fire.duration + 1f : -1f);
+                float burn = redline ? redlineFireDuration : Phase == 2 ? fire.duration + 1f : -1f;
+                FireZone.Spawn(fire, transform.position, streakRadius, gameObject, transform, burn);
                 lastStreak = transform.position;
             }
 
             if (!dashHit && TouchesPlayer(dashHitRadius))
             {
                 dashHit = true;
-                HurtPlayer(dashDamage);
+                HurtPlayer(redline ? redlineDashDamage : dashDamage);
                 Vector3 side = Vector3.Cross(Vector3.up, dashDirection);
                 if (Vector3.Dot(side, Target.position - transform.position) < 0f) side = -side;
                 ShovePlayer(side + dashDirection * 0.5f, dashShove);
@@ -314,9 +382,42 @@ namespace SignalLost.Enemies.Desert
                 Enter(State.Skid);
                 return;
             }
+            if (redline)
+            {
+                followUp = true;
+                Enter(State.DashWindup);
+                return;
+            }
             chainLeft--;
+            followUp = chainLeft > 0;
             if (chainLeft > 0) Enter(State.DashWindup);
             else Enter(State.Stall);
+        }
+
+        /// <summary>Follow-up dashes curve toward the player while they are still ahead of it.</summary>
+        private void Steer(float dt)
+        {
+            float rate = redline ? redlineSteer : followUp ? chainSteer : 0f;
+            if (rate <= 0f) return;
+            Vector3 toPlayer = Target.position - transform.position;
+            toPlayer.y = 0f;
+            // Only while the player is in front and not yet passed: a sidestep at the last moment still works.
+            if (toPlayer.magnitude < 2.5f || Vector3.Angle(dashDirection, toPlayer) > 75f) return;
+            dashDirection = Vector3.RotateTowards(dashDirection, toPlayer.normalized, rate * Mathf.Deg2Rad * dt, 0f);
+            dashDirection.y = 0f;
+            dashDirection.Normalize();
+        }
+
+        private void StartRedline()
+        {
+            redline = true;
+            followUp = true;
+            DamageTakenMultiplier = 1f;
+            MiniBossHud.Message("BURNOUT IS REDLINING!  It won't stop now!", new Color(1f, 0.35f, 0.15f), 2.2f);
+            Vector3 nozzle = thruster != null ? thruster.position : transform.position + Vector3.up;
+            ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, nozzle, Vector3.up, 30, 0.12f, 8f, 70f);
+            ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, nozzle, Vector3.up, 8, 0.8f, 2f, 40f);
+            Enter(State.DashWindup);
         }
 
         private void UpdateSkid(float dt)
@@ -374,6 +475,8 @@ namespace SignalLost.Enemies.Desert
                 ShovePlayer(back, blastShove);
             FireZone.Spawn(fire, transform.position + back * 2.6f, 1.4f, gameObject, transform);
             FireZone.Spawn(fire, transform.position + back * 4.4f, 1.1f, gameObject, transform);
+            Vector3 nozzle = thruster != null ? thruster.position : transform.position + Vector3.up;
+            ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, nozzle + back * 0.8f, back, 26, 1.1f, blastLength * 1.6f, blastHalfAngle * 0.6f);
             nextMelee = Time.time + meleeCooldown;
             Enter(State.Blast);
         }
@@ -403,19 +506,27 @@ namespace SignalLost.Enemies.Desert
         {
             Enter(State.Stalk);
             nextDash = Time.time + 0.5f;
-            MiniBossHud.Message("The thruster is sputtering: it chains dashes now!", new Color(1f, 0.6f, 0.3f), 2f);
+            if (HealthFraction <= redlineAt) StartRedline();
+            else MiniBossHud.Message("The thruster is sputtering: it chains dashes now!", new Color(1f, 0.6f, 0.3f), 2f);
         }
 
         protected override void OnReset()
         {
             Enter(State.Stalk);
             cracked = false;
+            redline = false;
+            followUp = false;
             dizzy = false;
             if (thruster != null) thruster.localRotation = thrusterRest;
             SetPlume(0f);
         }
 
-        protected override void OnBossDeath() => SetPlume(0f);
+        protected override void OnBossDeath()
+        {
+            redline = false;
+            SetPlume(0f);
+            if (jet != null) jet.Extinguish();
+        }
 
         // ---------- Animation ----------
 
@@ -426,13 +537,13 @@ namespace SignalLost.Enemies.Desert
             float windup = state == State.DashWindup ? Mathf.Clamp01(stateTime / CurrentWindup) : 0f;
 
             // Nozzle glow: builds through the wind-up, white-hot while dashing, red while stalled.
-            float wantGlow = !Engaged ? 0f : state == State.DashWindup ? windup : dashing ? 1f :
+            float wantGlow = !Engaged ? 0f : redline ? 0.8f + 0.2f * Mathf.Sin(Time.time * 18f) : state == State.DashWindup ? windup : dashing ? 1f :
                 state == State.BlastWindup ? Mathf.Clamp01(stateTime / blastWindup) : state == State.Stall ? 0.55f : 0f;
             glow = Mathf.MoveTowards(glow, wantGlow, dt * 4f);
 
             // Exhaust plume.
             float thrust = state == State.Dash ? 1f + 0.25f * Mathf.Sin(Time.time * 40f) :
-                state == State.Blast ? 2.2f : state == State.DashWindup && windup > 0.6f ? 0.35f * Random.value : 0f;
+                state == State.Blast ? 2.2f : state == State.DashWindup && (windup > 0.6f || redline) ? 0.35f + 0.25f * Random.value : 0f;
             if (cracked && state == State.Dash && Random.value < 0.15f) thrust = 0f; // sputtering
             SetPlume(thrust);
 
@@ -464,16 +575,28 @@ namespace SignalLost.Enemies.Desert
             if (head != null) head.localRotation = Quaternion.Euler(state == State.DashWindup ? -10f * windup : Mathf.Sin(Time.time * 1.5f) * 4f, 0f, 0f);
 
             // Smoke while stalled or cracked.
-            if ((state == State.Stall || (cracked && Random.value < 0.02f)) && smokeMaterial != null && Time.time >= nextPuff && !InPhaseShift)
+            if ((state == State.Stall || redline || (cracked && Random.value < 0.02f)) && Time.time >= nextPuff && !InPhaseShift)
             {
-                nextPuff = Time.time + (state == State.Stall ? 0.1f : 0.4f);
+                nextPuff = Time.time + (state == State.Stall ? 0.12f : redline ? 0.18f : 0.4f);
                 Vector3 nozzle = thruster != null ? thruster.position : transform.position + Vector3.up;
-                ImpactFlash.Spawn(smokeMaterial, nozzle + Vector3.up * (0.4f + Random.value * 0.6f) + Random.insideUnitSphere * 0.25f, 0.7f, 0.6f);
+                ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, nozzle + Vector3.up * 0.4f + Random.insideUnitSphere * 0.2f, Vector3.up,
+                    redline ? 2 : 3, 0.6f, 1.2f, 25f);
+                if (redline && Random.value < 0.5f)
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, nozzle, Random.onUnitSphere + Vector3.up, 5, 0.08f, 5f, 40f);
             }
         }
 
         private void SetPlume(float thrust)
         {
+            if (jet != null)
+            {
+                // The particle jet: the old blob stays hidden; strength eases so the flame breathes rather than pops.
+                if (plumeRenderer != null) plumeRenderer.enabled = false;
+                jetStrength = Mathf.MoveTowards(jetStrength, Mathf.Clamp01(thrust * 0.8f), Time.deltaTime * 8f);
+                jet.Strength = jetStrength;
+                jet.transform.localScale = Vector3.one * Mathf.Lerp(0.8f, 1.6f, Mathf.Clamp01((thrust - 1f) / 1.2f));
+                return;
+            }
             if (plume == null) return;
             bool on = thrust > 0.01f;
             plume.gameObject.SetActive(on);

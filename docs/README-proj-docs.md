@@ -8,6 +8,8 @@
 - [Desert / Dunes level](desert-dunes.md): first biome prototype, layout, how to build it, and test checklist.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
 - [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
+- [Desert stage boss](desert-boss.md): the Core Worm: exit ambush cutscene, four phases that change the arena, Engine Core drop and next-stage unlock.
+- [Fire effect](fire-effect.md): the reusable particle fire (and sand/smoke/spark bursts) for stage design and gameplay.
 - [Tutorial](tutorial.md): the 10-22 tutorial: crash opening, hidden gear, the big crab and its ten cousins, the merchant's shop; how the level is generated and tested.
 - [Shared player, HUD and menus](core-player.md): the Player/GameSystems prefabs, hands, status-bar HUD, pause menu, settings and title screen, and how to move a scene onto them.
 - [Enemy and combat rules](enemy-rules.md): the fighting radius and leash every enemy follows, the stun rule, laser cooldowns and the full-charge burst.

@@ -16,9 +16,11 @@ namespace SignalLost.Editor
     /// <summary>
     /// Builds the tutorial level (Scenes/Tutorial/Tutorial.unity, meeting notes 10-22): a green meadow at golden late
     /// afternoon ringed by rocky mountains, with a dense forest belt and inner hills so the player never sees end to
-    /// end. The stripped shipwreck lies nose-first in a dirt berm at the end of a gouged trench, burning and smoking;
-    /// Cavendish's campsite sits in a pine-ringed clearing to the west; the merchant crab's hollow hides behind rocks
-    /// and bushes far to the north-east. It also places the Player, GameSystems, spawn point and runtime NavMesh.
+    /// end. The stripped shipwreck lies nose-first in a dirt berm at the end of a gouged trench, burning and smoking
+    /// (the ground is dug out under the hull so it never pokes through); Cavendish's campsite sits in a pine-ringed
+    /// clearing far to the south-west, with no trail to the wreck, so the player follows its smoke; a reed-fringed pond
+    /// lies under the hill to the north-west; the merchant crab's hollow hides behind rocks and bushes far to the
+    /// north-east. It also places the Player, GameSystems, spawn point and runtime NavMesh.
     /// The NavMesh is baked here (before any creature is placed) and saved next to the scene. The story (NPCs,
     /// quests, items, enemies) is then added by TutorialStoryInstaller.
     /// Everything is generated from fixed seeds, so rebuilding gives the same level. Rebuilding REPLACES the scene.
@@ -34,10 +36,19 @@ namespace SignalLost.Editor
         public const float PlayRadius = 112f;      // the mountains begin beyond this
 
         // Landmarks (x, z). +Z is north.
-        public static readonly Vector2 Camp = new Vector2(-58f, -22f);
+        // The camp is about 100 m from the wreck, out of sight behind groves and a rise: the smoke shows the way.
+        public static readonly Vector2 Camp = new Vector2(-60f, -64f);
         public static readonly Vector2 Ship = new Vector2(12f, 4f);
         public static readonly Vector2 ShipForward = new Vector2(0.91f, 0.41f).normalized; // the nose points north-east
         public static readonly Vector2 Hollow = new Vector2(66f, 58f);
+        public static readonly Vector2 Pond = new Vector2(-60f, 62f);
+        private static readonly Vector2 PondRadii = new Vector2(25f, 17f); // half-widths along x and z (longest east-west)
+        private const float PondBank = 1.45f;  // where the bank meets the meadow, in pond radii
+        private const float PondDepth = 1.1f;  // shallow enough to wade
+
+        /// <summary>Where the opening's two glimpses of being dragged are seen: just behind the wreck, then most of the
+        /// way to camp. Kept clear of trees.</summary>
+        public static Vector2[] DragPoints => new[] { Ship - ShipForward * 21f, Vector2.Lerp(Ship, Camp, 0.62f) };
 
         private static readonly Vector4[] Hills =
         {
@@ -47,7 +58,6 @@ namespace SignalLost.Editor
             new Vector4(-6f, -30f, 14f, 3.5f), new Vector4(48f, 82f, 18f, 7f), new Vector4(95f, 40f, 14f, 6f)
         };
 
-        private static readonly Vector2[] CampPath = { Camp, new Vector2(-34f, -14f), new Vector2(-14f, -8f), Ship - ShipForward * 17f };
         private static readonly Vector2[] HollowPath = { Ship + ShipForward * 16f, new Vector2(32f, 22f), new Vector2(42f, 37f) }; // fades out short of the hollow
 
         private enum T { Grass, GrassDark, GoldGrass, Dirt, Scorched, Rock, Cliff }
@@ -71,19 +81,31 @@ namespace SignalLost.Editor
             var random = new System.Random(20261022);
 
             var level = new GameObject("Level").transform;
-            GameObject ground = BuildTerrain(level);
-            Physics.SyncTransforms();
-            var clear = new List<Vector3>(); // x, z, radius
-            Transform crash = BuildCrashSite(level, clear, random);
-            Transform camp = BuildCamp(level, clear);
-            Transform hollow = BuildHollow(level, clear, random);
-            Physics.SyncTransforms();
-            ScatterNature(level, clear, random);
-            BakeNavigation(level);
-            BuildFoliage(level, ground, clear);
-            BuildLighting();
-            Transform gameplay = BuildGameplay(camp);
-            TutorialStoryInstaller.Install(level, gameplay, crash, hollow);
+            try
+            {
+                // The wreck goes down first, so the ground can be dug out under it (Height consults it from then on).
+                Transform ship = PlaceShip(level);
+                shipBed = (x, z) => BedUnder(ship, x, z);
+                GameObject ground = BuildTerrain(level);
+                Physics.SyncTransforms();
+                var clear = new List<Vector3>(); // x, z, radius
+                Transform crash = BuildCrashSite(ship, clear, random);
+                Transform camp = BuildCamp(level, clear);
+                Transform hollow = BuildHollow(level, clear, random);
+                BuildPond(level, clear, random);
+                foreach (Vector2 glimpse in DragPoints) clear.Add(new Vector3(glimpse.x, glimpse.y, 7f));
+                Physics.SyncTransforms();
+                ScatterNature(level, clear, random);
+                BakeNavigation(level);
+                BuildFoliage(level, ground, clear);
+                BuildLighting();
+                Transform gameplay = BuildGameplay(camp);
+                TutorialStoryInstaller.Install(level, gameplay, crash, hollow);
+            }
+            finally
+            {
+                shipBed = null;
+            }
 
             System.IO.Directory.CreateDirectory("Assets/Scenes/Tutorial");
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -95,8 +117,35 @@ namespace SignalLost.Editor
 
         private static float Noise(float x, float z, float scale, float seed = 0f) => (Mathf.PerlinNoise(x / scale + 100f + seed, z / scale + 37f + seed) - 0.5f) * 2f;
 
-        /// <summary>Ground height at a point: rolling meadow, hills, the mountain ring and the crash features.</summary>
+        /// <summary>Ground height at a point: rolling meadow, hills, the mountain ring, the crash features and the pond,
+        /// dug out under the wreck while the level is being built.</summary>
         public static float Height(float x, float z)
+        {
+            float h = PondBasin(x, z, NaturalHeight(x, z));
+            return shipBed != null ? Mathf.Min(h, shipBed(x, z)) : h;
+        }
+
+        private static Func<float, float, float> shipBed;
+
+        // Just under the lowest part of the wreck above or beside (x, z), or +infinity away from it. Rays go up from
+        // below so they meet the hull's underside; a ring of extra rays catches the edges, since each terrain facet is
+        // 3 m across and would otherwise slice through the hull between its corners.
+        private static float BedUnder(Transform ship, float x, float z)
+        {
+            if ((new Vector2(x, z) - Ship).sqrMagnitude > 24f * 24f) return float.PositiveInfinity;
+            float lowest = float.PositiveInfinity;
+            const float reach = 1.8f;
+            for (int i = -1; i <= 1; i++)
+            for (int k = -1; k <= 1; k++)
+            {
+                var from = new Vector3(x + i * reach, -100f, z + k * reach);
+                foreach (RaycastHit hit in Physics.RaycastAll(from, Vector3.up, 300f, ~0, QueryTriggerInteraction.Ignore))
+                    if (hit.collider.transform.IsChildOf(ship)) lowest = Mathf.Min(lowest, hit.point.y);
+            }
+            return lowest - 0.12f;
+        }
+
+        private static float NaturalHeight(float x, float z)
         {
             float h = 1.6f * Noise(x, z, 38f) + 0.7f * Noise(x, z, 14f, 3f);
             foreach (Vector4 hill in Hills)
@@ -127,6 +176,43 @@ namespace SignalLost.Editor
         }
 
         private static float CampHeight => 1.6f * Noise(Camp.x, Camp.y, 38f) + 0.3f;
+
+        // ---------- The pond ----------
+
+        // 0 at the pond's centre, 1 at the waterline, with a slightly wavy shore.
+        private static float PondDistance(float x, float z)
+        {
+            Vector2 local = new Vector2((x - Pond.x) / PondRadii.x, (z - Pond.y) / PondRadii.y);
+            return local.magnitude * (1f + 0.07f * Noise(x, z, 9f, 23f));
+        }
+
+        // The water sits a little below the lowest point of the ground ringing the basin, so it never spills over.
+        private static float? pondWater;
+        public static float PondWater
+        {
+            get
+            {
+                if (pondWater.HasValue) return pondWater.Value;
+                float lowest = float.PositiveInfinity;
+                for (int i = 0; i < 32; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / 32f;
+                    lowest = Mathf.Min(lowest, NaturalHeight(Pond.x + Mathf.Cos(angle) * PondRadii.x * 1.3f, Pond.y + Mathf.Sin(angle) * PondRadii.y * 1.3f));
+                }
+                pondWater = lowest - 0.35f;
+                return pondWater.Value;
+            }
+        }
+
+        // A bowl under the water, then a bank that rises from just above the waterline back to the meadow.
+        private static float PondBasin(float x, float z, float h)
+        {
+            float e = PondDistance(x, z);
+            if (e >= PondBank) return h;
+            if (e <= 1f) return PondWater - 0.25f - PondDepth * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1f, 0.35f, e));
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1f, PondBank, e));
+            return Mathf.Lerp(PondWater + 0.25f, Mathf.Max(h, PondWater + 0.25f), t);
+        }
         private static float Sq(float value) => value * value;
         private static float Bell(float value, float from, float to) => Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(from - 4f, from, value)) * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(to + 4f, to, value));
 
@@ -153,7 +239,8 @@ namespace SignalLost.Editor
             bool nearShip = Mathf.Abs(u) < 18f && Mathf.Abs(v) < 9f + Noise(p.x, p.y, 3f) * 2f;
             bool inTrench = u > -42f && u < -10f && Mathf.Abs(v) < 5.5f + Noise(p.x, p.y, 3f) * 1.5f;
             if (inTrench || nearShip) return Mathf.Abs(v) < 3.5f || (nearShip && Mathf.Abs(u) < 12f) ? T.Scorched : T.Dirt;
-            if ((p - Camp).magnitude < 6.5f || DistanceToPath(p, CampPath) < 1.6f || DistanceToPath(p, HollowPath) < 1.4f) return T.Dirt;
+            if (PondDistance(p.x, p.y) < 1.12f + Noise(p.x, p.y, 4f, 29f) * 0.06f) return T.Dirt; // the bed and a muddy shore
+            if ((p - Camp).magnitude < 6.5f || DistanceToPath(p, HollowPath) < 1.4f) return T.Dirt;
             if ((p - Hollow).magnitude < 7f) return T.Dirt;
             float patch = Noise(p.x, p.y, 22f, 17f);
             return patch > 0.25f ? T.GoldGrass : patch < -0.2f ? T.GrassDark : T.Grass;
@@ -250,15 +337,22 @@ namespace SignalLost.Editor
 
         // ---------- Landmarks ----------
 
-        private static Transform BuildCrashSite(Transform level, List<Vector3> clear, System.Random random)
+        // The wreck, on the undug ground; BuildTerrain then digs its bed out (see BedUnder).
+        private static Transform PlaceShip(Transform level)
         {
             var site = new GameObject("Crash Site").transform;
             site.SetParent(level, false);
-            Vector3 centre = Ground(Ship);
             Quaternion facing = Quaternion.LookRotation(new Vector3(ShipForward.x, 0f, ShipForward.y));
             var ship = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CrashSiteWreckBuilder.ShipPath), site);
-            ship.transform.SetPositionAndRotation(centre + Vector3.down * 0.4f, facing);
-            Transform hull = ship.transform.Find("Hull");
+            ship.transform.SetPositionAndRotation(Ground(Ship) + Vector3.down * 0.4f, facing);
+            Physics.SyncTransforms();
+            return ship.transform;
+        }
+
+        private static Transform BuildCrashSite(Transform ship, List<Vector3> clear, System.Random random)
+        {
+            Transform site = ship.parent;
+            Transform hull = ship.Find("Hull");
 
             // Fire and smoke on and around the wreck.
             Effect("ElectricalFire", site, hull.TransformPoint(new Vector3(0.4f, 2.2f, -2f)), 1f, "Reactor Bay Fire");
@@ -350,6 +444,165 @@ namespace SignalLost.Editor
             return hollow;
         }
 
+        // A pond in its own basin under the north-west hill: stylized water (Shaders/StylizedWater.shader), reeds and
+        // cattails along the shore, lily pads, rocks on the banks, and bushes and trees ringing it, open toward the
+        // meadow so it can be seen from afar. Shallow enough to wade.
+        private static void BuildPond(Transform level, List<Vector3> clear, System.Random random)
+        {
+            var pond = new GameObject("Pond").transform;
+            pond.SetParent(level, false);
+            pond.position = new Vector3(Pond.x, PondWater, Pond.y);
+
+            var water = new GameObject("Pond Water");
+            water.transform.SetParent(pond, false);
+            water.AddComponent<MeshFilter>().sharedMesh = SavePondMesh(BuildWaterMesh());
+            var renderer = water.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = WaterMaterial();
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+
+            // Points around the shore at a given distance (in pond radii), following the same wavy outline as the basin.
+            Vector2 Around(float angle, float e)
+            {
+                Vector2 nominal = Pond + new Vector2(Mathf.Cos(angle) * PondRadii.x, Mathf.Sin(angle) * PondRadii.y);
+                float wobble = 1f + 0.07f * Noise(nominal.x, nominal.y, 9f, 23f);
+                return Pond + new Vector2(Mathf.Cos(angle) * PondRadii.x, Mathf.Sin(angle) * PondRadii.y) * (e / wobble);
+            }
+            Vector2 meadow = (-Pond).normalized; // the side facing the middle of the map stays open
+
+            var plants = new GameObject("Reeds And Lilies").transform;
+            plants.SetParent(pond, false);
+            for (float angle = 0f; angle < Mathf.PI * 2f; angle += 0.11f)
+            {
+                Vector2 nominal = Around(angle, 1f);
+                if (Noise(nominal.x, nominal.y, 7f, 31f) > 0.3f) continue; // gaps between the reed beds
+                Vector2 at = Around(angle + Range(random, -0.04f, 0.04f), Range(random, 0.94f, 1.06f));
+                Place(MeadowAssetBuilder.PrefabPath(MeadowAssetBuilder.ReedClumps[random.Next(2)]), plants, Ground(at), Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.8f, 1.3f), false);
+            }
+            for (int i = 0; i < 10; i++)
+            {
+                Vector2 at = Around(Range(random, 0f, Mathf.PI * 2f), Range(random, 0.3f, 0.8f));
+                Place(MeadowAssetBuilder.PrefabPath("LilyPads"), plants, new Vector3(at.x, PondWater + 0.04f, at.y), Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.8f, 1.4f), false);
+            }
+
+            var banks = new GameObject("Banks").transform;
+            banks.SetParent(pond, false);
+            for (int i = 0; i < 14; i++)
+            {
+                float angle = Range(random, 0f, Mathf.PI * 2f);
+                Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                bool big = Vector2.Dot(dir, meadow) < -0.3f && i % 3 == 0; // boulders on the hill side
+                Vector2 at = Around(angle, Range(random, 1.04f, 1.3f));
+                string rock = big ? MeadowAssetBuilder.Rocks[3 + random.Next(2)] : MeadowAssetBuilder.Rocks[random.Next(3)];
+                Place(MeadowAssetBuilder.PrefabPath(rock), banks, Ground(at) + Vector3.down * (big ? 0.4f : 0.12f), Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.9f, big ? 1.4f : 2f), false);
+            }
+            for (int i = 0; i < 18; i++)
+            {
+                float angle = Range(random, 0f, Mathf.PI * 2f);
+                Vector2 at = Around(angle, Range(random, 1.3f, 1.65f));
+                Place(MeadowAssetBuilder.PrefabPath(MeadowAssetBuilder.Bushes[random.Next(2)]), banks, Ground(at), Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.9f, 1.6f), false);
+            }
+            var trees = new GameObject("Pond Trees").transform;
+            trees.SetParent(pond, false);
+            for (int i = 0; i < 26; i++)
+            {
+                float angle = i * Mathf.PI * 2f / 26f + Range(random, -0.08f, 0.08f);
+                if (Vector2.Dot(new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)), meadow) > 0.55f) continue;
+                Vector2 at = Around(angle, Range(random, 1.6f, 2.1f));
+                string kind = MeadowAssetBuilder.Trees[random.NextDouble() < 0.55 ? random.Next(3) : 3 + random.Next(3)];
+                Place(MeadowAssetBuilder.PrefabPath(kind), trees, Ground(at) + Vector3.down * 0.15f, Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.9f, 1.3f), false);
+                clear.Add(new Vector3(at.x, at.y, 2.5f)); // the scattered forest keeps off these
+            }
+        }
+
+        // The water surface: a flat grid clipped to just past the waterline (the bank hides its edge). Each vertex's
+        // red colour is how close it is to the shore, which the water shader uses for depth colour, calm and foam.
+        private static Mesh BuildWaterMesh()
+        {
+            const float cell = 1.5f;
+            Vector2 extent = PondRadii * 1.3f;
+            int nx = Mathf.CeilToInt(extent.x * 2f / cell), nz = Mathf.CeilToInt(extent.y * 2f / cell);
+            var vertices = new List<Vector3>();
+            var colours = new List<Color>();
+            var index = new int[nx + 1, nz + 1];
+            var e = new float[nx + 1, nz + 1];
+            for (int i = 0; i <= nx; i++)
+            for (int k = 0; k <= nz; k++)
+            {
+                float x = -extent.x + i * cell, z = -extent.y + k * cell;
+                e[i, k] = PondDistance(Pond.x + x, Pond.y + z);
+                index[i, k] = vertices.Count;
+                vertices.Add(new Vector3(x, 0f, z));
+                colours.Add(new Color(Mathf.InverseLerp(0.55f, 1f, e[i, k]), 0f, 0f, 1f));
+            }
+            var triangles = new List<int>();
+            for (int i = 0; i < nx; i++)
+            for (int k = 0; k < nz; k++)
+            {
+                if (e[i, k] > 1.25f || e[i + 1, k] > 1.25f || e[i + 1, k + 1] > 1.25f || e[i, k + 1] > 1.25f) continue;
+                triangles.AddRange(new[] { index[i, k], index[i, k + 1], index[i + 1, k + 1], index[i, k], index[i + 1, k + 1], index[i + 1, k] });
+            }
+            var mesh = new Mesh { name = "PondWater" };
+            mesh.SetVertices(vertices);
+            mesh.SetColors(colours);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        private static Mesh SavePondMesh(Mesh mesh)
+        {
+            System.IO.Directory.CreateDirectory(TerrainFolder);
+            AssetDatabase.Refresh();
+            string path = TerrainFolder + "/PondWater.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing == null)
+            {
+                AssetDatabase.CreateAsset(mesh, path);
+                return mesh;
+            }
+            EditorUtility.CopySerialized(mesh, existing);
+            existing.name = "PondWater";
+            EditorUtility.SetDirty(existing);
+            UnityEngine.Object.DestroyImmediate(mesh);
+            return existing;
+        }
+
+        // The stylized water shader, tuned toward the reference's clear turquoise; plain transparent Lit if it is missing.
+        private static Material WaterMaterial()
+        {
+            string path = MeadowAssetBuilder.Folder + "/Materials/PondWater.mat";
+            Shader shader = Shader.Find("Signal Lost/Stylized Water");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null || (shader != null && material.shader != shader))
+            {
+                if (material != null) AssetDatabase.DeleteAsset(path);
+                material = new Material(shader != null ? shader : Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+            if (shader != null)
+            {
+                material.SetColor("_DeepColor", new Color(0.05f, 0.4f, 0.6f, 0.93f));
+                material.SetColor("_ShallowColor", new Color(0.24f, 0.72f, 0.74f, 0.7f));
+                material.SetColor("_HorizonColor", new Color(0.86f, 0.8f, 0.68f, 1f)); // the golden-hour sky
+            }
+            else
+            {
+                Debug.LogWarning("Signal Lost/Stylized Water shader not found; the pond uses plain transparent Lit.");
+                material.SetColor("_BaseColor", new Color(0.1f, 0.5f, 0.65f, 0.75f));
+                material.SetFloat("_Surface", 1f);
+                material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+                material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+                material.SetFloat("_ZWrite", 0f);
+                material.SetOverrideTag("RenderType", "Transparent");
+                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                material.renderQueue = (int)RenderQueue.Transparent;
+            }
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
         // ---------- Trees, rocks, bushes ----------
 
         private static void ScatterNature(Transform level, List<Vector3> clear, System.Random random)
@@ -365,7 +618,7 @@ namespace SignalLost.Editor
             bool Blocked(Vector2 p, float pad)
             {
                 foreach (Vector3 c in clear) if ((p - new Vector2(c.x, c.y)).magnitude < c.z + pad) return true;
-                return DistanceToPath(p, CampPath) < 3f + pad || DistanceToPath(p, HollowPath) < 3f + pad;
+                return DistanceToPath(p, HollowPath) < 3f + pad || PondDistance(p.x, p.y) < PondBank + pad / PondRadii.y;
             }
 
             void Tree(Vector2 p, bool pinesOnly)
@@ -428,15 +681,25 @@ namespace SignalLost.Editor
             foliage.transform.SetParent(level, false);
             foreach (Vector3 c in clear)
             {
-                // Keep the camp floor, the ship bed and the trench bare; the hollow can stay grassy.
-                if ((new Vector2(c.x, c.y) - Hollow).magnitude < 1f) continue;
+                // Keep the camp floor, the ship bed and the trench bare; the hollow and the pond's banks can stay grassy.
+                if ((new Vector2(c.x, c.y) - Hollow).magnitude < 1f || PondDistance(c.x, c.y) < PondBank + 0.6f) continue;
                 var marker = new GameObject("Clear");
                 marker.transform.SetParent(foliage.transform, false);
                 marker.transform.position = new Vector3(c.x, 0f, c.y);
                 marker.AddComponent<SphereCollider>().radius = (new Vector2(c.x, c.y) - Camp).magnitude < 1f ? 5f : c.z * 0.8f;
             }
-            // Worn paths stay bare too.
-            foreach (Vector2[] path in new[] { CampPath, HollowPath })
+            // The pond's water stays bare (its banks keep their grass).
+            for (float x = Pond.x - PondRadii.x; x <= Pond.x + PondRadii.x; x += 4f)
+                for (float z = Pond.y - PondRadii.y; z <= Pond.y + PondRadii.y; z += 4f)
+                {
+                    if (PondDistance(x, z) > 1.05f) continue;
+                    var marker = new GameObject("Clear Pond");
+                    marker.transform.SetParent(foliage.transform, false);
+                    marker.transform.position = new Vector3(x, 0f, z);
+                    marker.AddComponent<SphereCollider>().radius = 3.2f;
+                }
+            // The worn trail toward the hollow stays bare too (there is none between camp and the wreck).
+            foreach (Vector2[] path in new[] { HollowPath })
                 for (int i = 0; i < path.Length - 1; i++)
                     for (float d = 0f, length = (path[i + 1] - path[i]).magnitude; d < length; d += 2.5f)
                     {

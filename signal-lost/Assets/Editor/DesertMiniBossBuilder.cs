@@ -113,23 +113,97 @@ namespace SignalLost.Editor
         {
             if (!Application.isBatchMode && !EditorUtility.DisplayDialog("Regenerate desert mini-boss prefabs",
                     "This rebuilds Burnout, Old Buzzard and Sludge from the builder script, replacing any edits made to the " +
-                    "prefabs. Materials are kept. Scenes keep their mini-bosses. Continue?", "Regenerate", "Cancel"))
+                    "prefabs. Materials are kept. The three boss test scenes are then checked and their bosses re-linked " +
+                    "to their fodder spawners if needed. Continue?", "Regenerate", "Cancel"))
                 return;
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            string previousScene = SceneManager.GetActiveScene().path;
             DesertFodderBuilder.EnsureFodderPrefabs();
             EnsureFolder();
             BuildBurnout();
             BuildBuzzard();
             BuildSludge();
             AssetDatabase.SaveAssets();
+            RepairTestScenes();
+            if (!string.IsNullOrEmpty(previousScene) && AssetDatabase.LoadAssetAtPath<SceneAsset>(previousScene) != null)
+                EditorSceneManager.OpenScene(previousScene);
             Debug.Log("DESERT_MINIBOSS_PREFABS_REGENERATED");
+        }
+
+        /// <summary>
+        /// After regenerating, makes sure each existing boss test scene still has its boss at the start position and
+        /// linked to the scene's fodder spawner (prefab overrides can come loose when a prefab is rebuilt from scratch).
+        /// </summary>
+        private static void RepairTestScenes()
+        {
+            foreach (BossTest test in Tests)
+            {
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(test.Scene) == null) continue;
+                Scene scene = EditorSceneManager.OpenScene(test.Scene);
+                bool changed = false;
+                List<DesertMiniBoss> bosses = All<DesertMiniBoss>();
+                List<FodderSpawner> spawners = All<FodderSpawner>();
+                if (bosses.Count == 0)
+                {
+                    var boss = (GameObject)PrefabUtility.InstantiatePrefab(DesertFodderBuilder.Load(test.PrefabPath), scene);
+                    boss.name = test.Label;
+                    bosses.Add(boss.GetComponent<DesertMiniBoss>());
+                    changed = true;
+                }
+                DesertMiniBoss brain = bosses[0];
+                Transform t = brain.transform;
+                if ((t.position - new Vector3(0f, 0f, 6f)).sqrMagnitude > 0.01f || Quaternion.Angle(t.rotation, Quaternion.Euler(0f, 180f, 0f)) > 1f)
+                {
+                    t.SetPositionAndRotation(new Vector3(0f, 0f, 6f), Quaternion.Euler(0f, 180f, 0f));
+                    changed = true;
+                }
+                var data = new SerializedObject(brain);
+                SerializedProperty link = data.FindProperty("fodderSpawner");
+                if (link.objectReferenceValue == null && spawners.Count > 0)
+                {
+                    link.objectReferenceValue = spawners[0];
+                    data.ApplyModifiedPropertiesWithoutUndo();
+                    changed = true;
+                }
+                if (!changed) continue;
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+                Debug.Log(test.Scene + ": boss re-linked after regenerating.");
+            }
+        }
+
+        /// <summary>
+        /// The rigs gained joints (Old Buzzard's elbows, Sludge's body plates): saved prefabs made before that still work,
+        /// but stiffly. Says so once per script reload, so nobody tests the old rigs by mistake.
+        /// </summary>
+        [InitializeOnLoadMethod]
+        private static void WarnIfPrefabsOutdated()
+        {
+            EditorApplication.delayCall += () =>
+            {
+                if (Application.isBatchMode) return;
+                if (Outdated<Sludge>(SludgePath, "bodySegments") || Outdated<OldBuzzard>(BuzzardPath, "wingTips"))
+                    Debug.LogWarning("The desert mini-boss prefabs were made by an older version of their builder (no body " +
+                                     "plates / wing elbows yet). Run Signal Lost > Desert Mini-Bosses > Regenerate Prefabs to update them.");
+            };
+        }
+
+        private static bool Outdated<T>(string path, string rigField) where T : DesertMiniBoss
+        {
+            GameObject prefab = DesertFodderBuilder.Load(path);
+            T brain = prefab != null ? prefab.GetComponent<T>() : null;
+            if (brain == null) return false;
+            SerializedProperty property = new SerializedObject(brain).FindProperty(rigField);
+            return property != null && property.isArray && property.arraySize == 0;
         }
 
         [MenuItem("Signal Lost/Desert Mini-Bosses/Validate")]
         public static void Validate()
         {
             ValidatePrefab<Burnout>(BurnoutPath, "body", "head", "tail", "legs", "thruster", "plume", "nozzleRenderers", "sparkMaterial", "smokeMaterial", "shipPart");
-            ValidatePrefab<OldBuzzard>(BuzzardPath, "wings", "wingHitboxes", "neck", "legs", "shadowMaterial", "warningMaterial", "scrapMaterial", "blastMaterial", "dustMaterial", "sparkMaterial");
-            ValidatePrefab<Sludge>(SludgePath, "tail", "hoseTip", "igniter", "claws", "clawFingers", "legs", "tank", "leak", "tankHealth", "oilMaterial", "warningMaterial", "sparkMaterial", "blastMaterial", "shipPart");
+            ValidatePrefab<OldBuzzard>(BuzzardPath, "wings", "wingTips", "head", "tail", "wingHitboxes", "neck", "legs", "shadowMaterial", "warningMaterial", "scrapMaterial", "blastMaterial", "dustMaterial", "sparkMaterial");
+            ValidatePrefab<Sludge>(SludgePath, "bodySegments", "tail", "hoseTip", "igniter", "claws", "clawElbows", "clawFingers", "legs", "legKnees",
+                "mouthparts", "tank", "leak", "tankHealth", "oilMaterial", "warningMaterial", "sparkMaterial", "blastMaterial", "shipPart");
 
             foreach (BossTest test in Tests)
             {
@@ -162,8 +236,6 @@ namespace SignalLost.Editor
             Require(prefab.GetComponent<EnemySignalSource>() != null, path + " needs an EnemySignalSource for the scanner.");
             var data = new SerializedObject(brain);
             Require(data.FindProperty("visual").objectReferenceValue != null, path + " has no Visual reference.");
-            SerializedProperty flame = data.FindProperty("fire")?.FindPropertyRelative("flame");
-            if (flame != null) Require(flame.objectReferenceValue != null, path + ": fire has no flame material.");
             foreach (string field in fields)
             {
                 SerializedProperty property = data.FindProperty(field);
@@ -238,11 +310,13 @@ namespace SignalLost.Editor
             data.FindProperty("flashTime").floatValue = 0.05f;
         }
 
-        private static void SetFire(SerializedObject data, string field, Material flame, Material embers)
+        /// <summary>The look of a boss's fire (the FireEffect particles): a colour tint and how smoky it is.</summary>
+        private static void SetFire(SerializedObject data, string field, Color tint, float smoke, float fierceness)
         {
             SerializedProperty fire = data.FindProperty(field);
-            fire.FindPropertyRelative("flame").objectReferenceValue = flame;
-            fire.FindPropertyRelative("embers").objectReferenceValue = embers;
+            fire.FindPropertyRelative("tint").colorValue = tint;
+            fire.FindPropertyRelative("smoke").floatValue = smoke;
+            fire.FindPropertyRelative("fierceness").floatValue = fierceness;
         }
 
         private static Health HitboxHealth(GameObject holder)
@@ -256,7 +330,6 @@ namespace SignalLost.Editor
         }
 
         private static Material Flame() => DesertFodderBuilder.Unlit("BossFlame", new Color(1f, 0.55f, 0.12f));
-        private static Material Embers() => DesertFodderBuilder.Unlit("BossEmbers", new Color(0.55f, 0.15f, 0.05f));
         private static Material Spark() => DesertFodderBuilder.Unlit("BossSpark", new Color(1f, 0.9f, 0.5f));
         private static Material Smoke() => DesertFodderBuilder.Unlit("BossSmoke", new Color(0.26f, 0.25f, 0.24f));
         private static Material Dust() => DesertFodderBuilder.Unlit("DesertDust", new Color(0.88f, 0.75f, 0.54f));
@@ -377,7 +450,7 @@ namespace SignalLost.Editor
             data.FindProperty("sparkMaterial").objectReferenceValue = Spark();
             data.FindProperty("smokeMaterial").objectReferenceValue = Smoke();
             data.FindProperty("shipPart").objectReferenceValue = mount;
-            SetFire(data, "fire", flame, Embers());
+            SetFire(data, "fire", Color.white, 0.3f, 0.8f); // a streak of many small fires: keep each one light
             data.ApplyModifiedPropertiesWithoutUndo();
             return DesertFodderBuilder.SaveDesertPrefab(root, BurnoutPath);
         }
@@ -403,8 +476,9 @@ namespace SignalLost.Editor
 
             Part("Body", visual, blob, feathers, new Vector3(0f, 1.05f, 0f), Quaternion.identity, new Vector3(0.55f, 0.62f, 0.75f));
             Part("Ruff", visual, blob, ruff, new Vector3(0f, 1.45f, 0.35f), Quaternion.identity, new Vector3(0.45f, 0.24f, 0.42f));
+            Transform tail = Empty("Tail", visual, new Vector3(0f, 0.95f, -0.55f));
             for (int i = -1; i <= 1; i++)
-                Segment("Tail Feather", visual, limb, feathers, new Vector3(i * 0.1f, 0.95f, -0.6f), new Vector3(i * 0.22f, 0.72f, -1.25f), 0.09f);
+                Segment("Tail Feather", tail, limb, feathers, new Vector3(i * 0.1f, 0f, -0.05f), new Vector3(i * 0.22f, -0.23f, -0.7f), 0.09f);
 
             Transform neck = Empty("Neck", visual, new Vector3(0f, 1.45f, 0.45f));
             Segment("Neck", neck, limb, skin, Vector3.zero, new Vector3(0f, 0.35f, 0.22f), 0.09f);
@@ -428,17 +502,26 @@ namespace SignalLost.Editor
             }
 
             var wings = new Transform[2];
+            var tips = new Transform[2];
             var hitboxes = new Health[2];
             for (int side = 0; side < 2; side++)
             {
                 float s = side == 0 ? -1f : 1f;
                 Transform wing = Empty(side == 0 ? "Wing L" : "Wing R", visual, new Vector3(0.5f * s, 1.25f, 0f));
-                Segment("Arm", wing, limb, feathers, Vector3.zero, new Vector3(1.1f * s, 0.12f, -0.05f), 0.09f);
-                Segment("Forearm", wing, limb, feathers, new Vector3(1.1f * s, 0.12f, -0.05f), new Vector3(2.1f * s, 0.05f, -0.25f), 0.06f);
+                // The outer half hangs off an elbow joint so the wing can fold, trail and scoop.
+                Vector3 elbowAt = new Vector3(1.1f * s, 0.12f, -0.05f);
+                Segment("Arm", wing, limb, feathers, Vector3.zero, elbowAt, 0.09f);
+                Transform elbow = Empty(side == 0 ? "Elbow L" : "Elbow R", wing, elbowAt);
+                Segment("Forearm", elbow, limb, feathers, Vector3.zero, new Vector3(2.1f * s, 0.05f, -0.25f) - elbowAt, 0.06f);
                 foreach (float x in new[] { 0.6f, 1f, 1.4f, 1.8f, 2.2f })
-                    Segment("Feather", wing, limb, feathers, new Vector3(x * s, 0.05f, -0.15f), new Vector3(x * s * 1.05f, 0f, -0.8f), 0.07f);
+                {
+                    Vector3 from = new Vector3(x * s, 0.05f, -0.15f), to = new Vector3(x * s * 1.05f, 0f, -0.8f);
+                    if (x < 1.1f) Segment("Feather", wing, limb, feathers, from, to, 0.07f);
+                    else Segment("Feather", elbow, limb, feathers, from - elbowAt, to - elbowAt, 0.07f);
+                }
                 Transform p1 = Part("Ship Panel", wing, panel, hull, new Vector3(0.7f * s, 0.14f, -0.28f), Quaternion.Euler(0f, 0f, -5f * s), new Vector3(0.55f, 0.5f, 0.55f));
-                Transform p2 = Part("Ship Panel", wing, panel, hull, new Vector3(1.62f * s, 0.1f, -0.32f), Quaternion.Euler(0f, 8f * s, -3f * s), new Vector3(0.5f, 0.5f, 0.5f));
+                Transform p2 = Part("Ship Panel", elbow, panel, hull, new Vector3(1.62f * s, 0.1f, -0.32f) - elbowAt, Quaternion.Euler(0f, 8f * s, -3f * s), new Vector3(0.5f, 0.5f, 0.5f));
+                tips[side] = elbow;
                 foreach (Transform p in new[] { p1, p2 })
                     for (int r = 0; r < 4; r++)
                         Part("Rivet", p, gem, rivet, new Vector3((r % 2 == 0 ? -0.8f : 0.8f), 0.32f, r < 2 ? -0.45f : 0.45f), Quaternion.identity, Vector3.one * 0.06f);
@@ -462,6 +545,9 @@ namespace SignalLost.Editor
             BossBasics(data, visual, "Old Buzzard", "Wing panels");
             data.FindProperty("patrolRadius").floatValue = 0f; // it circles in the sky instead of walking a route
             SetArray(data.FindProperty("wings"), wings);
+            SetArray(data.FindProperty("wingTips"), tips);
+            data.FindProperty("head").objectReferenceValue = head;
+            data.FindProperty("tail").objectReferenceValue = tail;
             SerializedProperty boxes = data.FindProperty("wingHitboxes");
             boxes.arraySize = 2;
             for (int i = 0; i < 2; i++) boxes.GetArrayElementAtIndex(i).objectReferenceValue = hitboxes[i];
@@ -479,9 +565,11 @@ namespace SignalLost.Editor
 
         // ---------- Sludge ----------
 
-        // A giant scorpion about 2.8 m long, facing +Z: a three-part carapace, two big pincers, eight legs, a tail that
-        // curls up and over its back ending in a fuel hose with a blue pilot-light igniter, and a yellow fuel tank strapped
-        // along its back (its own hit box: the weak spot).
+        // A giant scorpion about 2.8 m long, facing +Z. The body is a chain of five plates (the head plate, then four
+        // back plates), each parented to the one in front so the body can bend and ripple. Two big pincers with an
+        // elbow, eight two-jointed legs in a wide stance, a five-joint tail that curls up and over its back ending in a
+        // fuel hose with a blue pilot-light igniter, and a yellow fuel tank strapped along its back (its own hit box:
+        // the weak spot).
         private static GameObject BuildSludge()
         {
             GameObject root = NewRoot("Sludge", out Transform visual);
@@ -496,60 +584,111 @@ namespace SignalLost.Editor
             Material pilot = DesertFodderBuilder.Unlit("SludgePilot", new Color(0.3f, 0.6f, 1f));
             Material oil = DesertFodderBuilder.Lit("SludgeOil", new Color(0.06f, 0.05f, 0.04f), 0.3f, 0.95f);
 
-            Part("Carapace Front", visual, blob, shell, new Vector3(0f, 0.6f, 0.45f), Quaternion.identity, new Vector3(0.68f, 0.32f, 0.55f));
-            Part("Carapace Mid", visual, blob, shell, new Vector3(0f, 0.62f, -0.15f), Quaternion.identity, new Vector3(0.62f, 0.3f, 0.5f));
-            Part("Carapace Rear", visual, blob, shell, new Vector3(0f, 0.6f, -0.65f), Quaternion.identity, new Vector3(0.5f, 0.26f, 0.4f));
-            Part("Underside", visual, blob, under, new Vector3(0f, 0.42f, 0f), Quaternion.identity, new Vector3(0.55f, 0.18f, 1.1f));
+            // Body plates: pivot position (relative to the plate in front), plate size.
+            Vector3[] pivots =
+            {
+                new Vector3(0f, 0.6f, 0.45f), new Vector3(0f, 0.01f, -0.42f), new Vector3(0f, 0f, -0.32f),
+                new Vector3(0f, -0.01f, -0.3f), new Vector3(0f, -0.01f, -0.28f),
+            };
+            Vector3[] plates =
+            {
+                new Vector3(0.62f, 0.3f, 0.52f), new Vector3(0.6f, 0.3f, 0.26f), new Vector3(0.57f, 0.29f, 0.25f),
+                new Vector3(0.5f, 0.26f, 0.23f), new Vector3(0.42f, 0.23f, 0.2f),
+            };
+            var segments = new Transform[pivots.Length];
+            Transform parent = visual;
+            for (int i = 0; i < pivots.Length; i++)
+            {
+                Transform plate = Empty(i == 0 ? "Head Plate" : "Back Plate " + i, parent, pivots[i]);
+                Vector3 size = plates[i];
+                Vector3 centre = i == 0 ? Vector3.zero : new Vector3(0f, 0f, -0.08f);
+                Part("Carapace", plate, blob, shell, centre, Quaternion.identity, size);
+                Part("Underside", plate, blob, under, centre + new Vector3(0f, -size.y * 0.55f, 0f), Quaternion.identity,
+                    new Vector3(size.x * 0.82f, size.y * 0.45f, size.z * 0.88f));
+                if (i > 0) Part("Seam", plate, blob, joint, new Vector3(0f, -0.02f, 0.05f), Quaternion.identity,
+                    new Vector3(size.x * 0.9f, size.y * 0.8f, 0.07f));
+                segments[i] = plate;
+                parent = plate;
+            }
+            Transform head = segments[0];
             for (int i = 0; i < 3; i++)
-                Eye(visual, new Vector3((i - 1) * 0.12f, 0.88f, 0.88f - Mathf.Abs(i - 1) * 0.04f), 0.06f, eye);
+                Eye(head, new Vector3((i - 1) * 0.12f, 0.27f, 0.42f - Mathf.Abs(i - 1) * 0.04f), 0.06f, eye);
 
+            // Mouthparts that chew.
+            var mouth = new Transform[2];
+            for (int side = 0; side < 2; side++)
+            {
+                float s = side == 0 ? -1f : 1f;
+                mouth[side] = Empty(side == 0 ? "Mouthpart L" : "Mouthpart R", head, new Vector3(0.09f * s, -0.08f, 0.48f));
+                Segment("Fang", mouth[side], limb, joint, Vector3.zero, new Vector3(0.02f * s, -0.04f, 0.15f), 0.04f);
+            }
+
+            // Pincers: shoulder, arm, elbow, forearm, then the claw with one fixed and one moving finger.
             var claws = new Transform[2];
+            var elbows = new Transform[2];
             var fingers = new Transform[2];
             for (int side = 0; side < 2; side++)
             {
                 float s = side == 0 ? -1f : 1f;
-                Transform claw = Empty(side == 0 ? "Claw L" : "Claw R", visual, new Vector3(0.45f * s, 0.55f, 0.85f));
-                Segment("Arm", claw, limb, shell, Vector3.zero, new Vector3(0.35f * s, 0.05f, 0.55f), 0.13f);
-                Part("Joint", claw, blob, joint, new Vector3(0.35f * s, 0.05f, 0.55f), Quaternion.identity, Vector3.one * 0.12f);
-                Part("Palm", claw, blob, shell, new Vector3(0.42f * s, 0.05f, 0.78f), Quaternion.identity, new Vector3(0.24f, 0.18f, 0.3f));
-                Segment("Fixed Finger", claw, limb, shell, new Vector3(0.42f * s, 0f, 0.98f), new Vector3(0.38f * s, -0.02f, 1.38f), 0.07f);
-                Transform finger = Empty("Finger", claw, new Vector3(0.42f * s, 0.1f, 0.98f));
-                Segment("Moving Finger", finger, limb, shell, Vector3.zero, new Vector3(0.04f * s, 0f, 0.4f), 0.07f);
-                claws[side] = claw;
+                Transform shoulder = Empty(side == 0 ? "Claw L" : "Claw R", head, new Vector3(0.38f * s, -0.04f, 0.32f));
+                Vector3 elbowAt = new Vector3(0.32f * s, 0.06f, 0.3f);
+                Segment("Arm", shoulder, limb, shell, Vector3.zero, elbowAt, 0.12f);
+                Part("Joint", shoulder, blob, joint, elbowAt, Quaternion.identity, Vector3.one * 0.11f);
+                Transform elbow = Empty("Elbow", shoulder, elbowAt);
+                Segment("Forearm", elbow, limb, shell, Vector3.zero, new Vector3(0.06f * s, 0.02f, 0.36f), 0.1f);
+                Part("Palm", elbow, blob, shell, new Vector3(0.08f * s, 0.02f, 0.5f), Quaternion.identity, new Vector3(0.22f, 0.17f, 0.28f));
+                Segment("Fixed Finger", elbow, limb, shell, new Vector3(0.1f * s, -0.04f, 0.68f), new Vector3(0.06f * s, -0.06f, 1.05f), 0.065f);
+                Transform finger = Empty("Finger", elbow, new Vector3(0.1f * s, 0.07f, 0.68f));
+                Segment("Moving Finger", finger, limb, shell, Vector3.zero, new Vector3(-0.04f * s, 0f, 0.36f), 0.065f);
+                claws[side] = shoulder;
+                elbows[side] = elbow;
                 fingers[side] = finger;
             }
 
+            // Legs: four a side on the first four plates, splayed from forward to back. Hip, knee, foot on the sand.
             var legs = new Transform[8];
-            float[] zs = { 0.35f, 0.05f, -0.25f, -0.55f };
+            var knees = new Transform[8];
+            int[] legPlate = { 0, 0, 1, 2 };
+            float[] legZ = { 0.05f, -0.22f, -0.06f, -0.05f };
+            float[] legYaw = { 38f, 12f, -14f, -38f };
             for (int i = 0; i < 8; i++)
             {
-                float s = i < 4 ? -1f : 1f;
-                Transform hip = Empty("Leg " + (i + 1), visual, new Vector3(0.5f * s, 0.55f, zs[i % 4]));
-                Segment("Upper", hip, limb, shell, Vector3.zero, new Vector3(0.45f * s, 0.15f, 0f), 0.07f);
-                Segment("Lower", hip, limb, joint, new Vector3(0.45f * s, 0.15f, 0f), new Vector3(0.75f * s, -0.55f, 0f), 0.05f);
+                bool left = i < 4;
+                float s = left ? -1f : 1f;
+                int pair = i % 4;
+                Transform hip = Empty("Leg " + (i + 1), segments[legPlate[pair]], new Vector3(0.36f * s, -0.06f, legZ[pair]));
+                hip.localRotation = Quaternion.Euler(0f, -s * legYaw[pair], 0f);
+                Vector3 kneeAt = new Vector3(0.42f * s, 0.2f, 0f);
+                Segment("Upper", hip, limb, shell, Vector3.zero, kneeAt, 0.06f);
+                Transform knee = Empty("Knee", hip, kneeAt);
+                Segment("Lower", knee, limb, joint, Vector3.zero, new Vector3(0.32f * s, -0.74f, 0f), 0.045f);
                 legs[i] = hip;
+                knees[i] = knee;
             }
 
-            // Tail: five joints, each turning further up and over the back; +Z runs along the tail.
-            var tail = new Transform[4];
-            Transform joint0 = Empty("Tail 1", visual, new Vector3(0f, 0.65f, -0.9f));
+            // Tail: five joints from the last plate, each turning a further 30 degrees up and over the back; +Z runs
+            // along the tail. A fuel hose is clamped along its top, ending in a nozzle with the igniter.
+            var tail = new Transform[5];
+            Transform joint0 = Empty("Tail 1", segments[4], new Vector3(0f, 0.06f, -0.24f));
             joint0.localRotation = Quaternion.Euler(0f, 180f, 0f) * Quaternion.Euler(-30f, 0f, 0f);
-            Transform parent = joint0;
-            for (int i = 0; i < 4; i++)
+            parent = joint0;
+            for (int i = 0; i < tail.Length; i++)
             {
-                Transform t = i == 0 ? joint0 : Empty("Tail " + (i + 1), parent, new Vector3(0f, 0f, 0.42f));
-                if (i > 0) t.localRotation = Quaternion.Euler(-35f, 0f, 0f);
-                float size = 0.2f - i * 0.025f;
-                Part("Segment", t, blob, shell, new Vector3(0f, 0f, 0.21f), Quaternion.identity, new Vector3(size, size * 0.9f, 0.24f));
+                Transform t = i == 0 ? joint0 : Empty("Tail " + (i + 1), parent, new Vector3(0f, 0f, 0.36f));
+                if (i > 0) t.localRotation = Quaternion.Euler(-30f, 0f, 0f);
+                float size = 0.2f - i * 0.02f;
+                Part("Segment", t, blob, shell, new Vector3(0f, 0f, 0.18f), Quaternion.identity, new Vector3(size, size * 0.9f, 0.22f));
+                Segment("Hose", t, limb, hose, new Vector3(0f, size * 0.85f, 0.02f), new Vector3(0f, size * 0.8f, 0.34f), 0.035f);
                 tail[i] = t;
                 parent = t;
             }
-            Transform tip = Empty("Hose Tip", tail[3], new Vector3(0f, 0f, 0.5f));
-            Segment("Hose Nozzle", tail[3], limb, metal, new Vector3(0f, 0f, 0.38f), new Vector3(0f, 0f, 0.58f), 0.06f);
+            Transform last = tail[tail.Length - 1];
+            Transform tip = Empty("Hose Tip", last, new Vector3(0f, 0f, 0.56f));
+            Segment("Hose Nozzle", last, limb, metal, new Vector3(0f, 0f, 0.3f), new Vector3(0f, 0f, 0.52f), 0.06f);
             Transform igniter = Part("Igniter", tip, gem, pilot, new Vector3(0f, 0.06f, 0f), Quaternion.identity, Vector3.one * 0.06f);
             igniter.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
 
-            // The fuel tank, lying along its back (lathe Y turned to Z).
+            // The fuel tank, lying along its back on the first back plate (lathe Y turned to Z), held on by two straps.
             Mesh tankMesh = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Lathe("SludgeTankShell", new[]
             {
                 new Vector2(0f, 0f), new Vector2(0.22f, 0f), new Vector2(0.3f, 0.08f), new Vector2(0.32f, 0.2f),
@@ -559,7 +698,7 @@ namespace SignalLost.Editor
             {
                 new Vector2(0.325f, 0f), new Vector2(0.34f, 0f), new Vector2(0.34f, 0.07f), new Vector2(0.325f, 0.07f),
             }, 10));
-            Transform tank = Empty("Fuel Tank", visual, new Vector3(0f, 1.02f, -0.6f));
+            Transform tank = Empty("Fuel Tank", segments[1], new Vector3(0f, 0.41f, -0.63f));
             tank.localRotation = Quaternion.Euler(90f, 0f, 0f);
             Part("Tank Shell", tank, tankMesh, tankMat, Vector3.zero, Quaternion.identity, Vector3.one);
             Part("Hazard Band", tank, band, hazard, new Vector3(0f, 0.27f, 0f), Quaternion.identity, Vector3.one);
@@ -572,11 +711,21 @@ namespace SignalLost.Editor
             tankCollider.center = new Vector3(0f, 0.5f, 0f);
             tankCollider.size = new Vector3(0.72f, 1.02f, 0.72f);
             Health tankHealth = HitboxHealth(tankBox);
+            var strapPath = new Vector3[13];
+            for (int i = 0; i < strapPath.Length; i++)
+            {
+                float t = i * Mathf.PI * 2f / (strapPath.Length - 1);
+                strapPath[i] = new Vector3(0.62f * Mathf.Cos(t), 0.2f + 0.55f * Mathf.Sin(t), 0f);
+            }
+            Mesh strap = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Tube("SludgeStrap", strapPath, 0.03f, 4));
+            Part("Strap Front", segments[1], strap, hose, new Vector3(0f, 0f, 0.1f), Quaternion.identity, Vector3.one);
+            Part("Strap Back", segments[1], strap, hose, new Vector3(0f, 0f, -0.3f), Quaternion.identity, Vector3.one);
+            // The hose from the back of the tank down into the tail.
             Mesh hosePipe = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Tube("SludgeFuelHose", new[]
             {
-                new Vector3(0f, 1.05f, -1.08f), new Vector3(0f, 1.15f, -1.22f), new Vector3(0f, 1.05f, -1.32f), new Vector3(0f, 0.8f, -1.18f),
+                new Vector3(0f, 0.42f, 0f), new Vector3(0f, 0.5f, -0.2f), new Vector3(0f, 0.35f, -0.45f), new Vector3(0f, 0.12f, -0.55f),
             }, 0.05f, 5));
-            Part("Fuel Hose", visual, hosePipe, hose, Vector3.zero, Quaternion.identity, Vector3.one);
+            Part("Fuel Hose", segments[3], hosePipe, hose, Vector3.zero, Quaternion.identity, Vector3.one);
 
             var body = root.AddComponent<CapsuleCollider>();
             body.direction = 2;
@@ -584,15 +733,20 @@ namespace SignalLost.Editor
             body.radius = 0.62f;
             body.height = 2.4f;
 
-            var brain = AddBrain<Sludge>(root, 440f, 0.95f, 1.2f, 3f);
+            var brain = AddBrain<Sludge>(root, 440f, 0.95f, 1.2f, 4.5f);
+            root.GetComponent<NavMeshAgent>().angularSpeed = 540f;
             var data = new SerializedObject(brain);
             BossBasics(data, visual, "Sludge", "Fuel tank");
+            SetArray(data.FindProperty("bodySegments"), segments);
             SetArray(data.FindProperty("tail"), tail);
             data.FindProperty("hoseTip").objectReferenceValue = tip;
             data.FindProperty("igniter").objectReferenceValue = igniter.GetComponent<Renderer>();
             SetArray(data.FindProperty("claws"), claws);
+            SetArray(data.FindProperty("clawElbows"), elbows);
             SetArray(data.FindProperty("clawFingers"), fingers);
             SetArray(data.FindProperty("legs"), legs);
+            SetArray(data.FindProperty("legKnees"), knees);
+            SetArray(data.FindProperty("mouthparts"), mouth);
             data.FindProperty("tank").objectReferenceValue = tank;
             data.FindProperty("leak").objectReferenceValue = leak;
             data.FindProperty("tankHealth").objectReferenceValue = tankHealth;
@@ -601,7 +755,7 @@ namespace SignalLost.Editor
             data.FindProperty("sparkMaterial").objectReferenceValue = Spark();
             data.FindProperty("blastMaterial").objectReferenceValue = Blast();
             data.FindProperty("shipPart").objectReferenceValue = tank;
-            SetFire(data, "fire", Flame(), Embers());
+            SetFire(data, "fire", new Color(1f, 0.9f, 0.8f), 0.9f, 1f); // burning fuel: thick black smoke
             data.ApplyModifiedPropertiesWithoutUndo();
             return DesertFodderBuilder.SaveDesertPrefab(root, SludgePath);
         }

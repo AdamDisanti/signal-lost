@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1784851939572008146}
   - component: {fileID: 2070986729451251225}
   - component: {fileID: 505308667156766312}
+  - component: {fileID: 4640623778547037505}
   m_Layer: 0
   m_Name: RockC
   m_TagString: Untagged
@@ -91,4 +92,26 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8800462664655458682}
+  m_Mesh: {fileID: 4300000, guid: 2d428e07a8cd44ec6b1ed92898efc1fa, type: 2}
+--- !u!64 &4640623778547037505
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800462664655458682}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 2d428e07a8cd44ec6b1ed92898efc1fa, type: 2}

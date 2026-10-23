@@ -27,7 +27,7 @@ namespace SignalLost.Editor
             "Gear", "CableBundle", "Strut", "BrokenWing", "ScorchMark"
         };
 
-        private enum Mat { Hull, Stripe, Interior, Metal, Scorch, Yellow, Black, Fault, Cable, Crate, NavGreen, Seam }
+        private enum Mat { Hull, Stripe, Interior, Metal, Scorch, Yellow, Black, Fault, Cable, Crate, NavGreen, Seam, Glass }
 
         private static readonly Dictionary<Mat, Material> Materials = new Dictionary<Mat, Material>();
 
@@ -63,6 +63,37 @@ namespace SignalLost.Editor
             Material("WreckCrate", Mat.Crate, new Color(0.23f, 0.42f, 0.46f), 0.3f, 0.2f);
             Material("WreckNavLight", Mat.NavGreen, new Color(0.2f, 1f, 0.45f), 0.6f, 0f, new Color(0.3f, 2.2f, 0.7f));
             Material("WreckPanelSeam", Mat.Seam, new Color(0.3f, 0.29f, 0.27f), 0.2f, 0.2f);
+            GlassMaterial();
+        }
+
+        // The canopy glass: URP Lit set to transparent, smooth and faintly blue, drawn from both sides.
+        private static void GlassMaterial()
+        {
+            string path = Folder + "/Materials/WreckCanopyGlass.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.SetColor("_BaseColor", new Color(0.55f, 0.74f, 0.82f, 0.3f));
+            material.SetFloat("_Smoothness", 0.92f);
+            material.SetFloat("_Metallic", 0f);
+            material.SetFloat("_Surface", 1f); // transparent
+            material.SetFloat("_Blend", 0f);   // alpha
+            material.SetFloat("_Cull", (float)CullMode.Off);
+            material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            material.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
+            material.SetFloat("_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
+            material.SetFloat("_ZWrite", 0f);
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.renderQueue = (int)RenderQueue.Transparent;
+            material.SetShaderPassEnabled("DepthOnly", false);
+            material.SetShaderPassEnabled("ShadowCaster", false);
+            EditorUtility.SetDirty(material);
+            Materials[Mat.Glass] = material;
         }
 
         private static void Material(string name, Mat key, Color color, float smoothness, float metallic, Color? emission = null)
@@ -123,8 +154,9 @@ namespace SignalLost.Editor
                 Vector3 centre = (a + b + c + d) * 0.25f;
                 Vector3 axis = new Vector3(0f, (Stations[s].Y + Stations[s + 1].Y) * 0.5f, centre.z);
                 Vector3 outward = centre - axis;
+                // Holes go through both skins, so from inside you see out of the torn bay and the canopy.
+                if (Missing(s, j) || Canopy(s, j)) continue;
                 inner.Quad(Inset(a, s), Inset(b, s), Inset(c, s + 1), Inset(d, s + 1), -outward, Mat.Interior);
-                if (Missing(s, j)) continue;
                 outer.Quad(a, b, c, d, outward, FaceMaterial(s, j));
             }
             // Nose cone, scorched where it ploughed into the ground.
@@ -133,7 +165,9 @@ namespace SignalLost.Editor
                 outer.Tri(Ring(last, j), Ring(last, j + 1), NoseTip, Ring(last, j) - new Vector3(0f, Stations[last].Y, Stations[last].Z) + Vector3.forward,
                     j < Sides / 2 ? Mat.Hull : Mat.Scorch);
             AddPart(hull.transform, "Fuselage", SaveMesh("WreckFuselage", outer.Build("WreckFuselage")), true);
-            AddPart(hull.transform, "Fuselage Interior", SaveMesh("WreckFuselageInterior", inner.Build("WreckFuselageInterior")), false);
+            // Both skins collide: mesh colliders only stop the player from the front, so the inner skin is what keeps
+            // anyone who climbs in through the bay from walking out through the hull.
+            AddPart(hull.transform, "Fuselage Interior", SaveMesh("WreckFuselageInterior", inner.Build("WreckFuselageInterior")), true);
 
             BuildBay(hull.transform);
             BuildEngineBay(hull.transform);
@@ -179,6 +213,23 @@ namespace SignalLost.Editor
             if ((s == 2 || s == 3) && j >= 0 && j <= 5) return true;
             if (s == 4 && (j == 1 || j == 2)) return true;
             return (s == 1 && j == 8) || (s == 5 && j == 10) || (s == 6 && j == 7) || (s == 0 && j == 4);
+        }
+
+        // The cockpit canopy: the roof and starboard shoulder over the pilot's seat, framed and glazed (BuildCockpit).
+        private static bool Canopy(int s, int j) => (s == 5 || s == 6) && j >= 1 && j <= 4;
+
+        // The starboard side window, smashed: the mechanic is pulled out through it in the opening.
+        private const int WindowStation = 5, WindowSide = 1;
+
+        /// <summary>The smashed cockpit window in hull space: its centre, facing out of the ship.</summary>
+        public static Pose CockpitWindow()
+        {
+            Vector3 a = Ring(WindowStation, WindowSide), b = Ring(WindowStation, WindowSide + 1);
+            Vector3 c = Ring(WindowStation + 1, WindowSide + 1), d = Ring(WindowStation + 1, WindowSide);
+            Vector3 centre = (a + b + c + d) * 0.25f;
+            Vector3 normal = Vector3.Cross(c - a, b - d).normalized;
+            if (Vector3.Dot(normal, centre - new Vector3(0f, Stations[WindowStation].Y, centre.z)) < 0f) normal = -normal;
+            return new Pose(centre, Quaternion.LookRotation(normal, Vector3.up));
         }
 
         private static Mat FaceMaterial(int s, int j)
@@ -250,28 +301,80 @@ namespace SignalLost.Editor
             AddPart(hull, "Engine Bay (empty)", SaveMesh("WreckEngineBay", kit.Build("WreckEngineBay")), false);
         }
 
-        // Navigation Computer socket: a glassless canopy cage over a console with an empty slot.
+        private static readonly Vector3 ConsoleCentre = new Vector3(0f, 3.75f, 8.6f), ConsoleSize = new Vector3(2.2f, 0.7f, 0.8f);
+        private static readonly Quaternion ConsoleTilt = Quaternion.Euler(-25f, 0f, 0f); // its top leans toward the pilot
+
+        // Navigation Computer socket and the pilot's seat: a framed, glazed canopy over the roof and starboard shoulder
+        // (its side window smashed), a floor, a bulkhead behind the seat, side consoles and the main console with its
+        // navigation slot standing empty. The pilot's eyes in the opening are at about (0.15, 3.7, 6.7).
         private static void BuildCockpit(Transform hull)
         {
             var kit = new FlatMeshKit<Mat>();
-            for (int i = 0; i < 5; i++)
+            // Canopy frame: arcs at each station and struts between them, along the edges of the opening.
+            for (int s = 5; s <= 7; s++)
             {
-                float x = -1.4f + i * 0.7f;
-                kit.Add(LowPolyMesh.Tube("Canopy", new[]
-                {
-                    new Vector3(x, 4.1f, 6.2f), new Vector3(x * 0.95f, 5.0f, 7.4f), new Vector3(x * 0.8f, 4.9f, 8.8f), new Vector3(x * 0.6f, 3.8f, 10f)
-                }, 0.07f, 4), Matrix4x4.identity, Mat.Metal);
+                var arc = new List<Vector3>();
+                for (int j = 1; j <= 5; j++) arc.Add(Proud(Ring(s, j), s, 0.03f));
+                kit.Add(LowPolyMesh.Tube("CanopyArc", arc.ToArray(), s == 5 ? 0.09f : 0.07f, 4), Matrix4x4.identity, s == 5 ? Mat.Stripe : Mat.Metal);
             }
-            kit.Add(LowPolyMesh.Tube("CanopyRim", new[]
+            for (int j = 1; j <= 5; j++)
+                kit.Add(LowPolyMesh.Tube("CanopyStrut", new[] { Proud(Ring(5, j), 5, 0.03f), Proud(Ring(6, j), 6, 0.03f), Proud(Ring(7, j), 7, 0.03f) }, 0.06f, 4),
+                    Matrix4x4.identity, Mat.Metal);
+
+            // Floor, and a bulkhead sealing the cockpit off from the reactor bay behind the seat.
+            kit.Box(new Vector3(0f, 2.25f, 7.2f), new Vector3(3.4f, 0.12f, 4.6f), Quaternion.identity, Mat.Interior);
+            var hub = new Vector3(0f, Stations[5].Y, Stations[5].Z + 0.03f);
+            for (int j = 0; j < Sides; j++)
             {
-                new Vector3(-1.5f, 4.1f, 6.2f), new Vector3(1.5f, 4.1f, 6.2f)
-            }, 0.09f, 4), Matrix4x4.identity, Mat.Stripe);
-            // Console with its navigation slot standing empty.
-            kit.Box(new Vector3(0f, 3.75f, 8.6f), new Vector3(2.2f, 0.7f, 0.8f), Quaternion.Euler(-25f, 0f, 0f), Mat.Black);
-            kit.Box(new Vector3(0f, 3.95f, 8.45f), new Vector3(0.9f, 0.35f, 0.5f), Quaternion.Euler(-25f, 0f, 0f), Mat.Interior);
+                Vector3 a = Inset(Ring(5, j), 5) + Vector3.forward * 0.03f, b = Inset(Ring(5, j + 1), 5) + Vector3.forward * 0.03f;
+                kit.Tri(hub, a, b, Vector3.forward, Mat.Interior);
+                kit.Tri(hub, a, b, Vector3.back, Mat.Interior);
+            }
+
+            // The pilot's seat, slightly askew from the impact.
+            Quaternion askew = Quaternion.Euler(0f, 6f, 0f);
+            kit.Box(new Vector3(0.15f, 2.6f, 6.2f), new Vector3(0.6f, 0.7f, 0.6f), askew, Mat.Metal);
+            kit.Box(new Vector3(0.15f, 3.02f, 6.2f), new Vector3(0.8f, 0.16f, 0.75f), askew, Mat.Black);
+            kit.Box(new Vector3(0.12f, 3.6f, 5.82f), new Vector3(0.8f, 1.1f, 0.14f), askew * Quaternion.Euler(-10f, 0f, 0f), Mat.Black);
+            kit.Box(new Vector3(0.11f, 4.25f, 5.72f), new Vector3(0.45f, 0.3f, 0.14f), askew * Quaternion.Euler(-10f, 0f, 0f), Mat.Stripe);
+
+            // Side consoles with a few lit buttons, and the main console with its navigation slot standing empty.
+            foreach (float side in new[] { -1f, 1f })
+            {
+                kit.Box(new Vector3(1.35f * side, 2.75f, 7.6f), new Vector3(0.6f, 1f, 2.2f), Quaternion.Euler(0f, 0f, -8f * side), Mat.Black);
+                for (int i = 0; i < 3; i++)
+                    kit.Box(new Vector3(1.3f * side, 3.28f, 6.9f + i * 0.55f), new Vector3(0.12f, 0.05f, 0.12f), Quaternion.identity, i == 1 && side > 0f ? Mat.Fault : Mat.NavGreen);
+            }
+            kit.Box(ConsoleCentre, ConsoleSize, ConsoleTilt, Mat.Black);
+            kit.Box(ConsoleCentre + ConsoleTilt * new Vector3(0f, 0.25f, -0.05f), new Vector3(0.9f, 0.35f, 0.5f), ConsoleTilt, Mat.Interior);
             Cables(kit, new Vector3(0f, 4.15f, 8.4f), 3, 0.7f, 33);
             FaultLamp(kit, new Vector3(0.75f, 4.05f, 8.35f));
-            AddPart(hull, "Cockpit (navigation slot empty)", SaveMesh("WreckCockpit", kit.Build("WreckCockpit")), false);
+            AddPart(hull, "Cockpit (navigation slot empty)", SaveMesh("WreckCockpit", kit.Build("WreckCockpit")), true);
+
+            // The glass, with the smashed side window open apart from a few shards left in its frame.
+            var glass = new FlatMeshKit<Mat>();
+            for (int s = 5; s <= 6; s++)
+            for (int j = 1; j <= 4; j++)
+            {
+                Vector3 a = Ring(s, j), b = Ring(s, j + 1), c = Ring(s + 1, j + 1), d = Ring(s + 1, j);
+                Vector3 outward = (a + b + c + d) * 0.25f - new Vector3(0f, (Stations[s].Y + Stations[s + 1].Y) * 0.5f, (a.z + c.z) * 0.5f);
+                if (s != WindowStation || j != WindowSide)
+                {
+                    glass.Quad(a, b, c, d, outward, Mat.Glass);
+                    continue;
+                }
+                glass.Tri(a, Vector3.Lerp(a, b, 0.4f), Vector3.Lerp(a, d, 0.28f), outward, Mat.Glass);
+                glass.Tri(c, Vector3.Lerp(c, b, 0.3f), Vector3.Lerp(c, d, 0.45f), outward, Mat.Glass);
+                glass.Tri(d, Vector3.Lerp(d, a, 0.22f), Vector3.Lerp(d, c, 0.18f), outward, Mat.Glass);
+            }
+            AddPart(hull, "Canopy Glass", SaveMesh("WreckCanopyGlass", glass.Build("WreckCanopyGlass")), true);
+        }
+
+        // A hull point pushed out from the axis by a little, so frames sit on the skin rather than in it.
+        private static Vector3 Proud(Vector3 point, int s, float by)
+        {
+            Vector3 axis = new Vector3(0f, Stations[s].Y, point.z);
+            return point + (point - axis).normalized * by;
         }
 
         // Flight Control Module socket: a dorsal hatch flung open over an empty cradle.
@@ -324,10 +427,10 @@ namespace SignalLost.Editor
             for (int i = 0; i < 4; i++) // vent grille on the tail
                 kit.Box(new Vector3(-1.2f + i * 0.32f, 4.62f, -8.2f), new Vector3(0.14f, 0.12f, 1.4f), Quaternion.Euler(0f, 0f, 8f), Mat.Black);
             kit.Box(new Vector3(-0.6f, 4.55f, -8.2f), new Vector3(1.5f, 0.06f, 1.7f), Quaternion.Euler(0f, 0f, 8f), Mat.Metal);
-            // Antenna mast with a small dish, bent from the crash.
-            kit.Box(new Vector3(-1.1f, 5.6f, 6.2f), new Vector3(0.09f, 1.5f, 0.09f), Quaternion.Euler(0f, 0f, 18f), Mat.Metal);
+            // Antenna mast with a small dish, bent from the crash (on the tail roof, clear of the canopy).
+            kit.Box(new Vector3(-0.9f, 5.65f, -6.3f), new Vector3(0.09f, 1.5f, 0.09f), Quaternion.Euler(0f, 0f, 18f), Mat.Metal);
             kit.Add(LowPolyMesh.Lathe("Dish", new[] { new Vector2(0.02f, 0f), new Vector2(0.35f, 0.12f), new Vector2(0.38f, 0.16f), new Vector2(0.02f, 0.06f) }, 8),
-                Matrix4x4.TRS(new Vector3(-1.35f, 6.3f, 6.2f), Quaternion.Euler(30f, 0f, 60f), Vector3.one), Mat.Hull);
+                Matrix4x4.TRS(new Vector3(-1.15f, 6.35f, -6.3f), Quaternion.Euler(30f, 0f, 60f), Vector3.one), Mat.Hull);
             kit.Box(new Vector3(-10.4f, 1.15f, -4f), new Vector3(0.18f, 0.18f, 0.3f), Quaternion.identity, Mat.NavGreen);
             kit.Box(new Vector3(-0.9f, 5.0f, 4.6f), new Vector3(0.12f, 0.12f, 0.12f), Quaternion.Euler(45f, 45f, 0f), Mat.Fault);
             AddPart(hull, "Hull Details", SaveMesh("WreckDetails", kit.Build("WreckDetails")), false);
@@ -339,18 +442,20 @@ namespace SignalLost.Editor
         {
             var markings = new GameObject("Markings").transform;
             markings.SetParent(hull, false);
-            // Livery on the flat mid-hull: name and corps band along the intact port flank, the corps band again on the
-            // starboard tail section (ahead of it the hull is torn open).
+            // Livery, each piece on one whole, present hull face and sized to it: name and corps band on the orange stripe
+            // along the port flank, the corps band again on the starboard stripe over the tail, and the crest above it.
+            // (Faces that are torn away, or that the roll turns toward the ground, are avoided.)
             const string corps = "GLEEBINGLORB REPUBLIC\n<size=70%>MAINTENANCE CORPS</size>";
             Color ink = new Color(0.13f, 0.12f, 0.14f);
-            Label(markings, "Ship Name", FacePose(4, 6, 0.5f), "GRS RUSTY WRENCH\n<size=55%>REG. MC-0451</size>", 1.4f, new Vector2(6f, 2.1f), ink);
-            Label(markings, "Corps Band Port", FacePose(2, 6, 0.4f), corps, 1f, new Vector2(4.4f, 1.6f), ink);
-            Label(markings, "Corps Band", FacePose(1, 11, 0.4f), corps, 1f, new Vector2(3.6f, 1.5f), new Color(0.95f, 0.93f, 0.88f));
+            Label(markings, "Ship Name", FacePose(4, 6), "GRS RUSTY WRENCH\n<size=55%>REG. MC-0451</size>", 1.4f, ink);
+            Label(markings, "Corps Band Port", FacePose(2, 6), corps, 1f, ink);
+            Label(markings, "Corps Band", FacePose(1, 0), corps, 1f, ink);
 
-            // Crest: a gear with a wrench through it, on a round plaque.
+            // Crest: a gear with a wrench through it, on a round plaque, scaled to fit its face.
             var kit = new FlatMeshKit<Mat>();
-            (Vector3 position, Quaternion rotation) crest = FacePose(4, 1, 0.55f);
-            Matrix4x4 pose = Matrix4x4.TRS(crest.position, crest.rotation, Vector3.one);
+            HullSpot crest = FacePose(1, 1);
+            float scale = Mathf.Min(1f, Mathf.Min(crest.Size.x, crest.Size.y) * 0.85f / 1.5f);
+            Matrix4x4 pose = Matrix4x4.TRS(crest.Position, crest.Rotation, Vector3.one * scale);
             kit.Add(LowPolyMesh.Lathe("Plaque", new[] { new Vector2(0.01f, 0f), new Vector2(0.75f, 0f), new Vector2(0.75f, 0.05f), new Vector2(0.01f, 0.05f) }, 14),
                 pose * Matrix4x4.Rotate(Quaternion.Euler(-90f, 0f, 0f)), Mat.Stripe);
             kit.Add(LowPolyMesh.Lathe("Gear", new[] { new Vector2(0.18f, 0f), new Vector2(0.48f, 0f), new Vector2(0.48f, 0.08f), new Vector2(0.18f, 0.08f), new Vector2(0.18f, 0f) }, 12),
@@ -358,35 +463,51 @@ namespace SignalLost.Editor
             for (int i = 0; i < 8; i++)
             {
                 Quaternion turn = Quaternion.Euler(0f, 0f, i * 45f);
-                kit.Box(pose.MultiplyPoint3x4(turn * new Vector3(0.55f, 0f, -0.1f)), new Vector3(0.14f, 0.12f, 0.1f), crest.rotation * turn, Mat.Hull);
+                kit.Box(pose.MultiplyPoint3x4(turn * new Vector3(0.55f, 0f, -0.1f)), new Vector3(0.14f, 0.12f, 0.1f) * scale, crest.Rotation * turn, Mat.Hull);
             }
-            Quaternion diagonal = crest.rotation * Quaternion.Euler(0f, 0f, 45f);
-            kit.Box(pose.MultiplyPoint3x4(new Vector3(0f, 0f, -0.16f)), new Vector3(1.25f, 0.13f, 0.06f), diagonal, Mat.Black);
+            Quaternion diagonal = crest.Rotation * Quaternion.Euler(0f, 0f, 45f);
+            kit.Box(pose.MultiplyPoint3x4(new Vector3(0f, 0f, -0.16f)), new Vector3(1.25f, 0.13f, 0.06f) * scale, diagonal, Mat.Black);
             Vector3 wrenchHead = Quaternion.Euler(0f, 0f, 45f) * new Vector3(0.62f, 0f, 0f) + new Vector3(0f, 0f, -0.16f); // in crest space
-            kit.Box(pose.MultiplyPoint3x4(wrenchHead), new Vector3(0.28f, 0.3f, 0.06f), diagonal, Mat.Black);
+            kit.Box(pose.MultiplyPoint3x4(wrenchHead), new Vector3(0.28f, 0.3f, 0.06f) * scale, diagonal, Mat.Black);
             AddPart(markings, "Corps Crest", SaveMesh("WreckCrest", kit.Build("WreckCrest")), false);
 
-            // The licence plaque on the cockpit console.
-            Transform plaque = Label(markings, "Licence Plaque", (new Vector3(0f, 4.02f, 8.15f), Quaternion.Euler(25f, 0f, 0f)),
-                "LICENSED SPACE MECHANIC\n<size=70%>Gleebinglorb Republic  -  Grade C (pending)</size>", 0.14f, new Vector2(1.6f, 0.4f), new Color(1f, 0.85f, 0.3f));
-            plaque.localPosition += plaque.forward * -0.02f;
+            // The licence plaque, flat on the front of the main console, facing the pilot's seat.
+            Vector3 front = ConsoleCentre + ConsoleTilt * new Vector3(0f, 0.05f, -ConsoleSize.z * 0.5f - 0.012f);
+            Label(markings, "Licence Plaque", new HullSpot(front, ConsoleTilt, new Vector2(1.7f, 0.42f)),
+                "LICENSED SPACE MECHANIC\n<size=70%>Gleebinglorb Republic  -  Grade C (pending)</size>", 0.14f, new Color(1f, 0.85f, 0.3f), 1f);
         }
 
-        // Centre of hull face (s, j), facing outward so text on it reads from outside. It follows the undented hull and
-        // stands off far enough to clear the dents.
-        private static (Vector3, Quaternion) FacePose(int s, int j, float along)
+        /// <summary>A spot for a marking in hull space: where, facing into the hull (text reads from outside), and how
+        /// much room there is (along the hull, round it).</summary>
+        private readonly struct HullSpot
         {
-            Vector3 a = CleanRing(s, j), b = CleanRing(s, j + 1), c = CleanRing(s + 1, j + 1), d = CleanRing(s + 1, j);
-            Vector3 centre = Vector3.Lerp((a + b) * 0.5f, (c + d) * 0.5f, along);
-            Vector3 normal = Vector3.Cross(d - a, b - a).normalized;
+            public readonly Vector3 Position;
+            public readonly Quaternion Rotation;
+            public readonly Vector2 Size;
+            public HullSpot(Vector3 position, Quaternion rotation, Vector2 size) { Position = position; Rotation = rotation; Size = size; }
+        }
+
+        // Hull face (s, j) as built, dents included: its centre, lifted just clear of its highest corner so the
+        // marking neither cuts into the skin nor floats off it, and its size.
+        private static HullSpot FacePose(int s, int j)
+        {
+            Vector3 a = Ring(s, j), b = Ring(s, j + 1), c = Ring(s + 1, j + 1), d = Ring(s + 1, j);
+            Vector3 centre = (a + b + c + d) * 0.25f;
+            Vector3 normal = Vector3.Cross(c - a, b - d).normalized;
             Vector3 axis = new Vector3(0f, (Stations[s].Y + Stations[s + 1].Y) * 0.5f, centre.z);
             if (Vector3.Dot(normal, centre - axis) < 0f) normal = -normal;
+            float lift = 0f;
+            foreach (Vector3 corner in new[] { a, b, c, d }) lift = Mathf.Max(lift, Vector3.Dot(corner - centre, normal));
             Vector3 up = Vector3.ProjectOnPlane(Vector3.up, normal).normalized;
-            return (centre + normal * 0.13f, Quaternion.LookRotation(-normal, up));
+            var size = new Vector2((((c + d) - (a + b)) * 0.5f).magnitude, (((b + c) - (a + d)) * 0.5f).magnitude);
+            return new HullSpot(centre + normal * (lift + 0.025f), Quaternion.LookRotation(-normal, up), size);
         }
 
-        private static Transform Label(Transform parent, string name, (Vector3 position, Quaternion rotation) pose, string text, float size, Vector2 box, Color color)
+        // Text on a spot, kept inside it (with a margin) so it never runs off its panel.
+        private static Transform Label(Transform parent, string name, HullSpot spot, string text, float size, Color color, float fill = 0.85f)
         {
+            Vector2 box = spot.Size * fill;
+            var pose = (position: spot.Position, rotation: spot.Rotation);
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.transform.SetPositionAndRotation(parent.TransformPoint(pose.position), parent.rotation * pose.rotation);
@@ -410,7 +531,7 @@ namespace SignalLost.Editor
         {
             Debris("HullChunk", kit => CurvedPlate(kit, 4.2f, 2.8f, 1.1f, 0.12f, 5, Mat.Hull, Mat.Stripe), Collision.Mesh);
             Debris("HullPanel", kit => CurvedPlate(kit, 2.2f, 1.5f, 0.35f, 0.07f, 3, Mat.Hull, Mat.Scorch), Collision.Mesh);
-            Debris("HullPanelSmall", kit => CurvedPlate(kit, 1.1f, 0.8f, 0.15f, 0.05f, 2, Mat.Stripe, Mat.Hull), Collision.None);
+            Debris("HullPanelSmall", kit => CurvedPlate(kit, 1.1f, 0.8f, 0.15f, 0.05f, 2, Mat.Stripe, Mat.Hull), Collision.Mesh);
             Debris("Crate", kit =>
             {
                 kit.Box(new Vector3(0f, 0.45f, 0f), new Vector3(1.2f, 0.9f, 0.9f), Quaternion.identity, Mat.Crate);
@@ -422,13 +543,13 @@ namespace SignalLost.Editor
                 kit.Add(LowPolyMesh.Lathe("Barrel", new[] { new Vector2(0.01f, 0f), new Vector2(0.38f, 0f), new Vector2(0.42f, 0.5f), new Vector2(0.38f, 1.1f), new Vector2(0.01f, 1.1f) }, 9), Matrix4x4.identity, Mat.Stripe);
                 kit.Add(LowPolyMesh.Lathe("Band", new[] { new Vector2(0.4f, 0.3f), new Vector2(0.44f, 0.32f), new Vector2(0.44f, 0.42f), new Vector2(0.4f, 0.44f) }, 9), Matrix4x4.identity, Mat.Black);
             }, Collision.Box);
-            Debris("Pipe", kit => kit.Add(LowPolyMesh.Tube("Pipe", new[] { new Vector3(0f, 0.2f, -1.6f), new Vector3(0f, 0.2f, 0.2f), new Vector3(0.5f, 0.25f, 1f), new Vector3(1.4f, 0.3f, 1.3f) }, 0.18f, 6), Matrix4x4.identity, Mat.Metal), Collision.None);
+            Debris("Pipe", kit => kit.Add(LowPolyMesh.Tube("Pipe", new[] { new Vector3(0f, 0.2f, -1.6f), new Vector3(0f, 0.2f, 0.2f), new Vector3(0.5f, 0.25f, 1f), new Vector3(1.4f, 0.3f, 1.3f) }, 0.18f, 6), Matrix4x4.identity, Mat.Metal), Collision.Mesh);
             Debris("Rib", kit =>
             {
                 var path = new List<Vector3>();
                 for (int i = 0; i <= 6; i++) { float a = i / 6f * Mathf.PI * 0.8f; path.Add(new Vector3(Mathf.Cos(a) * 2.2f, Mathf.Sin(a) * 1.6f + 0.15f, 0f)); }
                 kit.Add(LowPolyMesh.Tube("Rib", path.ToArray(), 0.12f, 5), Matrix4x4.identity, Mat.Metal);
-            }, Collision.None);
+            }, Collision.Mesh);
             Debris("Seat", kit =>
             {
                 kit.Box(new Vector3(0f, 0.25f, 0f), new Vector3(0.5f, 0.5f, 0.5f), Quaternion.identity, Mat.Metal);
@@ -443,13 +564,13 @@ namespace SignalLost.Editor
                     Quaternion turn = Quaternion.Euler(0f, i * 36f, 0f);
                     kit.Box(turn * new Vector3(0.62f, 0.08f, 0f), new Vector3(0.16f, 0.16f, 0.14f), turn, Mat.Metal);
                 }
-            }, Collision.None);
+            }, Collision.Mesh);
             Debris("CableBundle", kit => Cables(kit, new Vector3(0f, 0.05f, 0f), 4, 0f, 63, horizontal: true), Collision.None);
             Debris("Strut", kit =>
             {
                 kit.Box(new Vector3(0f, 0.15f, 0f), new Vector3(0.22f, 0.22f, 2.4f), Quaternion.identity, Mat.Metal);
                 kit.Box(new Vector3(0.35f, 0.25f, 1.6f), new Vector3(0.22f, 0.22f, 1.1f), Quaternion.Euler(-10f, 35f, 0f), Mat.Metal);
-            }, Collision.None);
+            }, Collision.Mesh);
             Debris("BrokenWing", kit =>
             {
                 Slab(kit, new[] { new Vector3(0f, 0.2f, -3f), new Vector3(0.3f, 0.25f, 3f), new Vector3(5.5f, 0.15f, 0.8f), new Vector3(5.5f, 0.15f, -2.2f) }, 0.32f, Mat.Hull);
