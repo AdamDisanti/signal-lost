@@ -34,6 +34,7 @@ namespace SignalLost.Editor
         public const string WormPath = Folder + "/Coreworm.prefab";
         public const string ScenePath = "Assets/Scenes/Bosses/CorewormTest.unity";
 
+        private const string FlaskPath = "Assets/Prefabs/Enviornment objects/GrayboxProps/AlcoholFlask.prefab";
         private static readonly Vector3 ArenaCentre = new Vector3(300f, 0f, 0f);
         private const float ArenaRadius = 34f;
         private const int SegmentCount = 16;
@@ -83,6 +84,7 @@ namespace SignalLost.Editor
             exitData.FindProperty("eruptPoint").objectReferenceValue = eruptPoint;
             exitData.FindProperty("returnPoint").objectReferenceValue = returnPoint;
             exitData.FindProperty("assumePartsCollected").boolValue = true; // test scene: go straight to the ambush
+            exitData.FindProperty("flaskModel").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(FlaskPath);
             exitData.ApplyModifiedPropertiesWithoutUndo();
 
             DesertFodderBuilder.BuildTestPlayer(playerPrefab, input, beam, scannerRig, hudPrefab);

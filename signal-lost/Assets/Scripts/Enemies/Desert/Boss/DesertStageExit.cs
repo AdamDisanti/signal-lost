@@ -18,6 +18,7 @@ namespace SignalLost.Enemies.Desert
     /// 3. If you die, you respawn at the stage start and the worm waits under the exit again.
     /// 4. Beat it and pick up the Engine Core: you are brought back to the exit, which now leaves the stage and
     ///    unlocks the next one. The next stage doesn't exist yet: set Next Stage Scene once it does.
+    /// The player has the Scotch flask (<see cref="CombatFlask"/>, F to drink) from the start of the fight.
     /// </summary>
     public sealed class DesertStageExit : MonoBehaviour
     {
@@ -37,6 +38,8 @@ namespace SignalLost.Enemies.Desert
         [Tooltip("Scene loaded when leaving after the boss. Empty, or not in Build Settings: a placeholder message instead.")]
         [SerializeField] private string nextStageScene = "";
         [SerializeField] private string nextStageName = "NextStage";
+        [Tooltip("The flask model the player drinks from during the fight (the AlcoholFlask prop).")]
+        [SerializeField] private GameObject flaskModel;
 
         private Stage stage = Stage.Waiting;
         private Transform player;
@@ -47,6 +50,7 @@ namespace SignalLost.Enemies.Desert
         private readonly List<Behaviour> controls = new List<Behaviour>();
         private Camera cutsceneCamera;
         private float nextNag;
+        private CombatFlask flask;
 
         private void Start()
         {
@@ -61,6 +65,13 @@ namespace SignalLost.Enemies.Desert
                 foreach (Behaviour item in new Behaviour[] { controller.GetComponent<MiningLaser>(), controller.GetComponent<ScannerLaserSwap>() })
                     if (item != null) controls.Add(item);
                 if (playerHealth != null) playerHealth.Died += OnPlayerDied;
+                // The Scotch flask, for healing during the fight (granted when the ambush starts).
+                flask = controller.GetComponent<CombatFlask>();
+                if (flask == null && controller.GetComponent<TutorialPlayer>() == null)
+                {
+                    flask = controller.gameObject.AddComponent<CombatFlask>();
+                    flask.UseModel(flaskModel);
+                }
             }
             if (worm != null)
             {
@@ -166,6 +177,11 @@ namespace SignalLost.Enemies.Desert
             SetControls(true);
             controller.ResetMotion();
             stage = Stage.Fighting;
+            if (flask != null && !flask.Available)
+            {
+                flask.Grant();
+                CorewormHud.Subtitle("You've still got the Scotch flask: press F to drink and heal.", 3.5f);
+            }
             worm.BeginFight();
         }
 
