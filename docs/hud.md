@@ -1,5 +1,7 @@
 # Player HUD
 
+> **Superseded (10-22-26):** every playable scene now uses the code-built status-bar HUD; see [shared player, HUD and menus](core-player.md). Upgrading a scene removes this PlayerHUD prefab.
+
 Sequence step 5 from the [work guidelines](WORK_GUIDELINES_README.md) (HUD part; owner Nicole). Covers the HUD list in the [design summary](design.md): health, scanner direction/strength and objectives, plus the crosshair and laser feedback that used to live in the temporary `CombatDebugHud`.
 
 ## Create the scene

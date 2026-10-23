@@ -1,4 +1,5 @@
 using SignalLost.Combat;
+using SignalLost.Effects;
 using UnityEngine;
 
 namespace SignalLost.Enemies.Desert
@@ -114,8 +115,8 @@ namespace SignalLost.Enemies.Desert
         private void UpdateIdle()
         {
             depth = Mathf.MoveTowards(depth, 1f, Time.deltaTime * 3f);
-            // It feels footsteps through the sand: no line of sight needed.
-            if (TargetAlive && (FlatDistance(Target.position) <= detectRange || (Alerted && FlatDistance(Target.position) <= alertedDetectRange)))
+            // It feels footsteps anywhere in its territory: no line of sight needed.
+            if (Notices())
             {
                 LastSeen = Time.time;
                 Enter(State.Burrowed);
@@ -127,7 +128,7 @@ namespace SignalLost.Enemies.Desert
             depth = Mathf.MoveTowards(depth, 1f, Time.deltaTime * 3f);
             if (!TargetAlive) { Enter(State.Idle); return; }
             float distance = FlatDistance(Target.position);
-            if (distance > loseRange) { Enter(State.Idle); return; }
+            if (GaveUp()) { Enter(State.Idle); return; }
 
             if (Time.time >= nextRepath)
             {

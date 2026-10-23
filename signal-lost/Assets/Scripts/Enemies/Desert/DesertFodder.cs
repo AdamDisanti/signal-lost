@@ -15,7 +15,7 @@ namespace SignalLost.Enemies.Desert
     /// once NavMeshBaker has built the NavMesh. All numbers are placeholders to tune in the Inspector.
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent), typeof(Health))]
-    public abstract class DesertFodder : MonoBehaviour, IStunnable
+    public abstract class DesertFodder : MonoBehaviour, IStunnable, ITerritorial
     {
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
@@ -23,10 +23,9 @@ namespace SignalLost.Enemies.Desert
         [Tooltip("Who to fight. Empty finds the player automatically.")]
         [SerializeField] protected Transform target;
         [SerializeField] protected LayerMask sightMask = ~0;
-        [SerializeField, Min(1f)] protected float detectRange = 14f;
-        [Tooltip("Gives up beyond this distance.")]
-        [SerializeField, Min(1f)] protected float loseRange = 24f;
-        [Tooltip("While a Dish Meerkat has spotted the player, it is noticed from this far away, without line of sight.")]
+        [Tooltip("Attacks inside this radius; chases until the player is twice as far, then goes home and heals.")]
+        [SerializeField] protected Territory territory = new Territory(14f);
+        [Tooltip("While a Dish Meerkat has spotted the player, it is noticed from this far away, territory or not.")]
         [SerializeField, Min(1f)] protected float alertedDetectRange = 40f;
         [Tooltip("Speed multiplier while the player is spotted by a Dish Meerkat.")]
         [SerializeField, Min(1f)] protected float alertedSpeedBonus = 1.25f;
@@ -53,6 +52,9 @@ namespace SignalLost.Enemies.Desert
         protected float LastSeen = float.NegativeInfinity;
 
         public bool IsDead { get; private set; }
+        /// <summary>True while it has given up a chase and is walking home to heal.</summary>
+        public bool ReturningHome { get; private set; }
+        public Territory Territory => territory;
 
         private readonly RaycastHit[] sightHits = new RaycastHit[16];
         private Renderer[] renderers;
@@ -121,6 +123,7 @@ namespace SignalLost.Enemies.Desert
             {
                 Debug.LogWarning(name + " is not near a NavMesh; it will stand still. Is there a NavMeshBaker in the scene?", this);
             }
+            territory.SetHome(Home);
             Started = true;
             OnStarted();
         }
@@ -136,7 +139,7 @@ namespace SignalLost.Enemies.Desert
             }
             if (IsStunned)
             {
-                // Dizzy: stands still, spinning and wobbling in place.
+                // Dizzy: stands still, spinning and wobbling in place (combo finisher only).
                 wasStunned = true;
                 Halt();
                 float spin = (Time.time * 220f) % 360f;
@@ -148,6 +151,7 @@ namespace SignalLost.Enemies.Desert
                 wasStunned = false;
                 visual.localRotation = VisualRestRotation;
             }
+            if (ReturningHome && UpdateReturnHome()) return;
             Tick(Time.deltaTime);
         }
 
@@ -222,7 +226,36 @@ namespace SignalLost.Enemies.Desert
         {
             if (!TargetAlive) return false;
             if (Alerted && FlatDistance(target.position) <= alertedDetectRange) return true;
-            return CanSee(detectRange);
+            return territory.Contains(target.position);
+        }
+
+        /// <summary>
+        /// The fighting-radius leash: true (and it starts walking home) once the player is twice the fight radius
+        /// away. A meerkat's "spotted" alert overrides it. Call from the chase states and drop to idle when true.
+        /// </summary>
+        protected bool GaveUp()
+        {
+            if (!TargetAlive || Alerted || !territory.Escaped(target.position)) return false;
+            ReturningHome = true;
+            return true;
+        }
+
+        // Walks home after giving up and heals on arrival. Returns true while it is still walking (skip Tick).
+        private bool UpdateReturnHome()
+        {
+            if (Notices())
+            {
+                ReturningHome = false; // the player came back into its territory
+                return false;
+            }
+            if (FlatDistance(Home) <= 1.5f)
+            {
+                ReturningHome = false;
+                Health.Restore();
+                return false;
+            }
+            Chase(Home, Agent != null ? Mathf.Max(Agent.speed, 2.5f) : 2.5f);
+            return true;
         }
 
         protected float FlatDistance(Vector3 point)
@@ -309,6 +342,7 @@ namespace SignalLost.Enemies.Desert
         private void HandleDamaged(Health _, float amount, GameObject source)
         {
             if (IsDead) return;
+            ReturningHome = false;
             flashUntil = Time.time + flashTime;
             LastSeen = Time.time; // being hit always draws its attention
             Vector3 away = source != null ? transform.position - source.transform.position : -transform.forward;

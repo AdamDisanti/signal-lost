@@ -13,6 +13,8 @@ namespace SignalLost.Scanner
         private InputAction toggleScanner;
 
         public bool IsRaised { get; private set; }
+        /// <summary>The scanner model and display shown while raised (hands attach here).</summary>
+        public GameObject Visual => scannerVisual;
 
         private void Awake()
         {

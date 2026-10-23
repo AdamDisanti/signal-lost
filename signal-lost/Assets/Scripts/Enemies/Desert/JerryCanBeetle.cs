@@ -96,8 +96,8 @@ namespace SignalLost.Enemies.Desert
         {
             if (!TargetAlive) { Enter(State.Idle); return; }
             float distance = FlatDistance(Target.position);
-            if (CanSee(loseRange) || Alerted) LastSeen = Time.time;
-            if (distance > loseRange || Time.time - LastSeen > 5f) { Enter(State.Idle); return; }
+            if (CanSee(territory.LeashRadius) || Alerted) LastSeen = Time.time;
+            if (GaveUp()) { Enter(State.Idle); return; }
             if (distance <= fuseRange)
             {
                 LightFuse(fuseTime);

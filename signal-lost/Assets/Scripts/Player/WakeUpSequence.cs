@@ -26,9 +26,11 @@ namespace SignalLost.Player
         };
 
         private FirstPersonController movement;
-        private TutorialPlayer player;
+        private PlayerFlask player;
         private Canvas canvas;
         private RectTransform upperLid, lowerLid;
+        private TMPro.TextMeshProUGUI hint;
+        private string[] lines;
 
         public bool Playing { get; private set; }
         public event Action Finished;
@@ -36,7 +38,7 @@ namespace SignalLost.Player
         private void Awake()
         {
             movement = GetComponent<FirstPersonController>();
-            player = GetComponent<TutorialPlayer>();
+            player = GetComponent<PlayerFlask>();
             if (cameraPivot == null)
             {
                 Camera view = GetComponentInChildren<Camera>();
@@ -50,8 +52,12 @@ namespace SignalLost.Player
         }
 
         /// <summary>Plays the long tutorial-opening version, or the short one used after a respawn.</summary>
-        public void Play(bool intro)
+        public void Play(bool intro) => Play(intro, null);
+
+        /// <summary>The intro version with the mechanic mumbling <paramref name="mumble"/> instead of the default lines.</summary>
+        public void Play(bool intro, string[] mumble)
         {
+            lines = mumble ?? introLines;
             StopAllCoroutines();
             StartCoroutine(Run(intro));
         }
@@ -69,13 +75,7 @@ namespace SignalLost.Player
             while (Time.time - started < duration)
             {
                 float k = (Time.time - started) / duration;
-                float open = intro ? IntroEyes(k) : RespawnEyes(k);
-                // Each lid is half a screen tall and slides off its edge as the eyes open.
-                float upper = Mathf.Lerp(0.5f, 1.02f, open), lower = Mathf.Lerp(0.5f, -0.02f, open);
-                upperLid.anchorMin = new Vector2(0f, upper);
-                upperLid.anchorMax = new Vector2(1f, upper + 0.55f);
-                lowerLid.anchorMin = new Vector2(0f, lower - 0.55f);
-                lowerLid.anchorMax = new Vector2(1f, lower);
+                PlaceLids(intro ? IntroEyes(k) : RespawnEyes(k));
 
                 // Lying on the back looking up, then rolling and lifting the head with a lazy wobble.
                 float rise = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(intro ? 0.3f : 0.1f, 0.95f, k));
@@ -85,8 +85,8 @@ namespace SignalLost.Player
                 if (cameraPivot != null) cameraPivot.localRotation = Quaternion.Euler(pitch, sway * 4f, roll);
                 if (player != null) player.ExtraDaze = Mathf.Lerp(intro ? 1f : 0.6f, 0f, Mathf.InverseLerp(0.2f, 1f, k));
 
-                if (intro && spoken < introLines.Length && k >= 0.18f + spoken * 0.3f)
-                    DialogueUi.Instance.Subtitle("Mechanic", introLines[spoken++], 2.6f);
+                if (intro && spoken < lines.Length && k >= 0.18f + spoken * 0.3f)
+                    DialogueUi.Instance.Subtitle("Mechanic", lines[spoken++], 2.6f);
                 yield return null;
             }
 
@@ -97,6 +97,41 @@ namespace SignalLost.Player
             movement.enabled = true;
             Playing = false;
             Finished?.Invoke();
+        }
+
+        /// <summary>
+        /// Holds the eyes at <paramref name="open"/> (0 shut, 1 wide open) for a scripted scene such as the tutorial's
+        /// opening; <see cref="HideEyes"/> takes the eyelids away again.
+        /// </summary>
+        public void SetEyes(float open)
+        {
+            BuildLids();
+            canvas.enabled = true;
+            PlaceLids(open);
+        }
+
+        public void HideEyes()
+        {
+            if (canvas != null) canvas.enabled = false;
+            SetHint(null);
+        }
+
+        /// <summary>A small hint in the corner of the eyelids (for example how to skip a scene). Null hides it.</summary>
+        public void SetHint(string text)
+        {
+            if (string.IsNullOrEmpty(text) && hint == null) return;
+            BuildLids();
+            hint.text = text ?? "";
+        }
+
+        // Each lid is half a screen tall and slides off its edge as the eyes open.
+        private void PlaceLids(float open)
+        {
+            float upper = Mathf.Lerp(0.5f, 1.02f, open), lower = Mathf.Lerp(0.5f, -0.02f, open);
+            upperLid.anchorMin = new Vector2(0f, upper);
+            upperLid.anchorMax = new Vector2(1f, upper + 0.55f);
+            lowerLid.anchorMin = new Vector2(0f, lower - 0.55f);
+            lowerLid.anchorMax = new Vector2(1f, lower);
         }
 
         // 0 = eyes shut, 1 = wide open: two heavy half-blinks before the eyes finally stay open.
@@ -127,6 +162,8 @@ namespace SignalLost.Player
             canvas.GetComponent<GraphicRaycaster>().enabled = false;
             upperLid = Lid("Upper Lid", new Vector2(0f, 0.5f), Vector2.one);
             lowerLid = Lid("Lower Lid", Vector2.zero, new Vector2(1f, 0.5f));
+            hint = UiTheme.Label("Hint", canvas.transform, 24f, new Color(1f, 1f, 1f, 0.55f), TMPro.TextAlignmentOptions.BottomRight, TMPro.FontStyles.Normal);
+            UiTheme.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 30f), new Vector2(600f, 40f));
         }
 
         private RectTransform Lid(string name, Vector2 min, Vector2 max)

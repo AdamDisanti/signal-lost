@@ -149,3 +149,46 @@ Adam and Lawson's meeting notes asked for a complete tutorial before the demo. T
   - The next-stage transition (heal and black out after a stage) and the other UI ideas (Doom-style HUD, on-screen hands, skyboxes) are still open.
   - The "screeb" spotter behaviour is still open. Burnout's targeted multi-dash was done in the [mini-boss polish pass](#mini-boss-polish-pass).
 
+
+## Tutorial overhaul (meeting notes 10-22-26)
+
+The "Major tutorial rework" prompt, with the project lead's answers. See [tutorial](tutorial.md), [enemy rules](enemy-rules.md) and [shared player, HUD and menus](core-player.md). Where it conflicts with the 10-20 decisions above, this section wins.
+
+- **New scene:**
+  - The tutorial is a new generated scene. Tutorial Testing is reference only and becomes a free-play sandbox; none of its dummies, rock basin, gate or damage pad carry over.
+  - New Game loads it.
+  - All art is generated in-project, with no asset packs.
+- **Look:**
+  - a green meadow in golden late-afternoon light, with trees, rocks and foliage;
+  - hills, groves and a forest belt break every end-to-end sightline;
+  - the wreck sits dug into a berm, with electrical fires and smoke;
+  - the livery shows the mechanic served the Gleebinglorb Republic Maintenance Corps.
+- **Story:**
+  - Cockpit, then dragged to camp, then wake by the fire across from Cavendish.
+  - Search the wreck for the hidden laser and scanner; returning early gets "keep looking".
+  - The big crab with the bottle, then the merchant and its ten cousins, then the walk to camp, then the shop introduction.
+  - The tutorial stops before upgrades and the skill tree, which are the next prompt.
+- **Ten cousins (supersedes "5-10 hermit crabs"):**
+  - always the same ten, each uniquely named and dressed;
+  - defeated cousins despawn;
+  - the angry merchant's sixth hit brings back those same ten.
+- **Fighting radius for all enemies:** attack inside the radius, chase to 2× the radius, then go home and heal to full.
+- **Stuns (supersedes "fodder only, 2 s"):**
+  - Everything except bosses is stunned for 1 s, only by the combo finisher.
+  - Plain hits no longer stagger; this fixes the crab stun-lock caused by its 20-damage stagger threshold matching the 20-damage swing.
+- **Laser:**
+  - The charged-shot cooldown scales from 4 s (10% charge) to 8 s (full).
+  - A full charge bursts for full-to-half damage within 4 m, which helps the hack-and-slash feel against groups.
+  - Health values are unchanged.
+- **Hands and UI:**
+  - The right hand holds the laser or the scanner (Q), and the left hand drinks the flask (F). The hands stay fixed on screen.
+  - A bottom status bar and a pause menu (Save is a placeholder).
+  - A Terraria-style title screen with New Game, Continue, Settings and Exit.
+- **Defaults chosen without a specific instruction (confirm or change):**
+  - The opening is first-person, and Cavendish slides and bobs rather than animating.
+  - The ship is named "GRS Rusty Wrench".
+  - The cousins' names and lines.
+  - Hiding spots: the laser in the reactor bay and the scanner under a hull panel by the tail, each with an 8 m glint.
+  - Space skips the opening.
+  - Cousins drop one guaranteed wiring each, so the fight pays for a first upgrade.
+- **Open:** audio; a real save; upgrades and the skill tree; whether bosses should share the 2× leash or keep their own reset rules (they now use the 2× rule on their arena radius).

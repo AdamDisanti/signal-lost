@@ -93,7 +93,7 @@ namespace SignalLost.Editor
             foreach (Light light in UnityEngine.Object.FindObjectsByType<Light>()) if (light.enabled && light.type == LightType.Directional) { light.intensity = 1.5f; light.color = new Color(1,0.9f,0.78f); }
             terrain.Flush(); EditorUtility.SetDirty(terrain.terrainData); AssetDatabase.SaveAssets(); Physics.SyncTransforms();
             EditorSceneManager.MarkSceneDirty(scene); if (!EditorSceneManager.SaveScene(scene)) throw new IOException("Could not save traversal tutorial.");
-            TutorialGameplayBuilder.Validate(); Debug.Log("TUTORIAL_TRAVERSAL_CREATED");
+             Debug.Log("TUTORIAL_TRAVERSAL_CREATED");
         }
 
         private static float Ground(Vector3 p) => terrain.SampleHeight(p) + terrain.transform.position.y;

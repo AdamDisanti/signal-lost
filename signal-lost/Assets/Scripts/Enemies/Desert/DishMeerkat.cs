@@ -1,4 +1,5 @@
 using SignalLost.Combat;
+using SignalLost.Effects;
 using UnityEngine;
 using UnityEngine.AI;
 

@@ -31,10 +31,10 @@ The arena has two crabs. **Hermit Crab A** waits ahead of you; **Hermit Crab B**
 The design document asks for idle, chase, attack and dead states. Everything else here is a placeholder choice to playtest.
 
 - **Idle:** ambles around near where it started. If it sees you within 12 m (line of sight, walls block it), it jumps in surprise, eyes popping, and starts chasing.
-- **Chase:** follows you around obstacles on the NavMesh while **keeping its eyes and claws turned toward you**, side-stepping like a crab when the path bends. If it loses sight of you it faces where it is walking. It is slower than your walk, so you can back off. (Turn off **Face Player While Chasing** for a sideways scuttle instead.) It gives up if you get more than 18 m away or stay out of sight for 3 s.
+- **Chase:** follows you around obstacles on the NavMesh while **keeping its eyes and claws turned toward you**, side-stepping like a crab when the path bends. If it loses sight of you it faces where it is walking. It is slower than your walk, so you can back off. (Turn off **Face Player While Chasing** for a sideways scuttle instead.) It only starts a fight inside its 12 m fight radius, and gives up once you are more than twice that from its home; it then walks back and heals to full (see [enemy rules](enemy-rules.md)).
 - **Attack:** when close, it **raises its big claw**, which **glows** from orange to blazing yellow-white, with a spark between the pincers that pulses faster as the strike nears. That 0.9 s wind-up is your warning. It keeps aiming at you only for the first half; after that its aim is locked, so a late **sidestep or backstep** makes it miss. Then it lunges and slams the claw down. If you are still in reach and within the 90° in front of it, you take 15 damage and get shoved back.
 - **Missed slam:** the claw is driven deep into the ground with a burst of dirt, and **gets stuck**. For about 1.2 s the crab struggles: it heaves back on the buried claw over and over (kicking up dirt each time), trembles, scrabbles its legs for grip, bulges its eyes and hammers the ground with its small claw. Then it rips the claw free in a spray of dirt and the pull throws it about 0.8 m backwards: it rears up, wobbles, backpedals and bounces, eyes spinning (1.6 s in total, plus the stumble) before it can do anything else. That is your opening to run in and hit it.
-- **Getting hit:** every hit flashes it white and wobbles its shell. **Heavy hits** (20+ damage: the overhead slam and shots charged past about a third) knock it back, make it **hide in its shell** for a moment, and cancel its attack. Light hits (jab, bash, quick shots) do not interrupt it, and hitting an idle crab makes it chase you.
+- **Getting hit:** every hit flashes it white and wobbles its shell. **Heavy hits** (20+ damage: the overhead slam and shots charged past about a third) knock it back harder. Since 10-22-26 no ordinary hit interrupts it; only the laser's combo finisher stuns it (1 s, [enemy rules](enemy-rules.md)). Light hits (jab, bash, quick shots) do not interrupt it, and hitting an idle crab makes it chase you.
 - **Shell hide:** if it watches you **charge a shot for half a second**, it tucks in and its bucket swings up off its back and **flips face down over it**, landing with a thump. Once the bucket is down, **bolts can't hurt it** from any direction: they bounce off with a clang and **fly back at you**, doing half their damage if they connect (with a slight wobble, so you can sometimes sidestep them). A shot that lands while the bucket is still flipping hits the crab and knocks it out of hiding. To beat it, walk up and **hit it with the laser**: melee knocks it out with full damage. Otherwise it stays hidden until you stop charging, then the bucket lifts back onto its back about 0.9 s later. Getting close does not bring it out. Quick shots fired before it reacts still get through.
 - **Dead (120 HP, about three full combos or three strong shots):** it hops, flips onto its back, wiggles its legs, and sinks away. In this test scene it comes back where it started 5 s later.
 - **Your death:** at 0 HP the screen shows `PINCHED! Respawning...`, and after 1.5 s you return to the start with full health. This is a **placeholder**; real death and respawn are sequence step 4.
@@ -62,7 +62,7 @@ All values are placeholders, tunable on each crab's components in the Inspector.
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | Detect Range | 12 m | Notices you within this distance, with line of sight |
-| Lose Range / Forget Time | 18 m / 3 s | Gives up beyond this distance, or after this long unseen |
+| Territory: Fight Radius / Zone | 12 m / none | Attacks inside the radius, gives up at twice it. A shared CombatZone replaces the radius for groups |
 | Wander Speed / Chase Speed | 1.2 / 3.2 m/s | Your walk is 4, sprint 7 |
 | Wander Radius | 4 m | How far it ambles from home |
 | Face Player While Chasing | on | Keeps facing you while chasing; off makes it scuttle sideways |
@@ -77,8 +77,8 @@ All values are placeholders, tunable on each crab's components in the Inspector.
 | Stumble Distance | 0.8 m | How far it is thrown backwards when it rips the claw free |
 | Attack Cooldown | 0.7 s | Pause before it can attack again |
 | Lunge Distance / Player Shove | 0.6 / 0.6 m | How far it lunges, and how far a hit pushes you |
-| Stagger Threshold | 20 | Hits this strong knock it back, make it hide, and cancel its attack: the slam (20) and charged shots, not jabs or bashes (10) |
-| Stagger Time | 0.9 s | How long it hides in its shell |
+| Stagger Threshold | 20 | Hits this strong knock it back harder. Hits no longer stun it |
+| Stunnable | on | The laser's combo finisher stuns it (1 s, set on the laser). Off for the merchant crab |
 | Knockback | 1.1 m | Knockback for a 20-damage hit; scales with damage, up to double |
 | Shell Guard | on | Hide and reflect bolts when it sees you charging |
 | Hide After Charging | 0.5 s | How long it must watch you charge before it hides |

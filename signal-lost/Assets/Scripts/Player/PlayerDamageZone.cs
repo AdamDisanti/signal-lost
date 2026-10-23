@@ -1,7 +1,9 @@
+using SignalLost.Combat;
 using UnityEngine;
 
 namespace SignalLost.Player
 {
+    /// <summary>A trigger that hurts the player while they stand in it (a test pad, a fire, a hazard).</summary>
     [RequireComponent(typeof(BoxCollider), typeof(Rigidbody))]
     public sealed class PlayerDamageZone : MonoBehaviour
     {
@@ -14,8 +16,8 @@ namespace SignalLost.Player
 
         private void Damage(Collider other)
         {
-            TutorialPlayer player = other.GetComponentInParent<TutorialPlayer>();
-            if (player == null || player.IsRespawning || player.Health.IsDead || Time.time < nextDamage) return;
+            PlayerLife player = other.GetComponentInParent<PlayerLife>();
+            if (player == null || player.IsRespawning || player.IsDead || Time.time < nextDamage) return;
             if (player.Health.TakeDamage(damage, gameObject)) nextDamage = Time.time + interval;
         }
     }

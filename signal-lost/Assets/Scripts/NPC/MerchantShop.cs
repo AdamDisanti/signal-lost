@@ -13,7 +13,7 @@ namespace SignalLost.NPC
             var player = FindFirstObjectByType<FirstPersonController>();
             if (player != null) customer = player.transform;
         }
-        public bool IsOpen => MerchantMenuUi.Instance != null && MerchantMenuUi.Instance.IsOpen && MerchantMenuUi.Instance.Owner == transform;
+        public bool IsOpen => MerchantMenuUi.Current != null && MerchantMenuUi.Current.IsOpen && MerchantMenuUi.Current.Owner == transform;
         public void Toggle()
         {
             if (IsOpen) Close();
@@ -21,8 +21,8 @@ namespace SignalLost.NPC
         }
         public void Close()
         {
-            if (IsOpen) MerchantMenuUi.Instance.Close();
-            DialogueUi.Instance?.CloseFor(transform);
+            if (IsOpen) MerchantMenuUi.Current.Close();
+            DialogueUi.Current?.CloseFor(transform);
         }
         private void OnDisable() => Close();
     }
