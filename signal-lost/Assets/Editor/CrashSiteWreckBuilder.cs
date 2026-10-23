@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -26,7 +27,7 @@ namespace SignalLost.Editor
             "Gear", "CableBundle", "Strut", "BrokenWing", "ScorchMark"
         };
 
-        private enum Mat { Hull, Stripe, Interior, Metal, Scorch, Yellow, Black, Fault, Cable, Crate }
+        private enum Mat { Hull, Stripe, Interior, Metal, Scorch, Yellow, Black, Fault, Cable, Crate, NavGreen, Seam }
 
         private static readonly Dictionary<Mat, Material> Materials = new Dictionary<Mat, Material>();
 
@@ -60,6 +61,8 @@ namespace SignalLost.Editor
             Material("WreckFaultLamp", Mat.Fault, new Color(1f, 0.12f, 0.08f), 0.6f, 0f, new Color(2.2f, 0.15f, 0.08f));
             Material("WreckCable", Mat.Cable, new Color(0.16f, 0.13f, 0.12f), 0.25f, 0f);
             Material("WreckCrate", Mat.Crate, new Color(0.23f, 0.42f, 0.46f), 0.3f, 0.2f);
+            Material("WreckNavLight", Mat.NavGreen, new Color(0.2f, 1f, 0.45f), 0.6f, 0f, new Color(0.3f, 2.2f, 0.7f));
+            Material("WreckPanelSeam", Mat.Seam, new Color(0.3f, 0.29f, 0.27f), 0.2f, 0.2f);
         }
 
         private static void Material(string name, Mat key, Color color, float smoothness, float metallic, Color? emission = null)
@@ -111,8 +114,8 @@ namespace SignalLost.Editor
             hull.transform.SetParent(root.transform, false);
             hull.transform.localRotation = Quaternion.Euler(7f, 0f, -15f);
 
-            var outer = new MeshKit();
-            var inner = new MeshKit();
+            var outer = new FlatMeshKit<Mat>();
+            var inner = new FlatMeshKit<Mat>();
             for (int s = 0; s < Stations.Length - 1; s++)
             for (int j = 0; j < Sides; j++)
             {
@@ -137,6 +140,8 @@ namespace SignalLost.Editor
             BuildCockpit(hull.transform);
             BuildDorsalHatch(hull.transform);
             BuildWingsAndFin(hull.transform);
+            BuildDetails(hull.transform);
+            BuildMarkings(hull.transform);
 
             // Sink it: the lowest point ends up 0.8 m below the root (ground level).
             var bounds = new Bounds(hull.transform.position, Vector3.zero);
@@ -146,7 +151,12 @@ namespace SignalLost.Editor
             SavePrefab(root, ShipPath);
         }
 
-        private static Vector3 Ring(int s, int j)
+        private static Vector3 Ring(int s, int j) => CleanRing(s, j) + Noise(s * 31 + j % Sides) * Damage(s, j);
+
+        // Dents: deterministic jitter, heavier around the torn bay on the starboard (+x) side.
+        private static float Damage(int s, int j) => s >= 2 && s <= 4 && Mathf.Cos((j % Sides) * Mathf.PI * 2f / Sides) > 0f ? 0.28f : 0.12f;
+
+        private static Vector3 CleanRing(int s, int j)
         {
             Station st = Stations[s];
             float angle = (j % Sides) * Mathf.PI * 2f / Sides;
@@ -154,10 +164,7 @@ namespace SignalLost.Editor
             // A boxy superellipse with a flatter belly.
             float x = st.W * 0.5f * Mathf.Sign(cos) * Mathf.Pow(Mathf.Abs(cos), 0.6f);
             float y = st.H * 0.5f * Mathf.Sign(sin) * Mathf.Pow(Mathf.Abs(sin), sin < 0f ? 0.35f : 0.7f);
-            Vector3 point = new Vector3(x, st.Y + y, st.Z);
-            // Dents: deterministic jitter, heavier around the torn bay.
-            float damage = s >= 2 && s <= 4 ? 0.28f : 0.12f;
-            return point + Noise(s * 31 + j % Sides) * damage;
+            return new Vector3(x, st.Y + y, st.Z);
         }
 
         private static Vector3 Inset(Vector3 point, int s)
@@ -186,7 +193,7 @@ namespace SignalLost.Editor
         // Reactor Core socket: the open bay with exposed ribs, a scorched floor and an empty clamped cradle.
         private static void BuildBay(Transform hull)
         {
-            var kit = new MeshKit();
+            var kit = new FlatMeshKit<Mat>();
             float floorY = 1.3f;
             kit.Box(new Vector3(0f, floorY, -2f), new Vector3(5.6f, 0.15f, 7.2f), Quaternion.identity, Mat.Scorch);
             // Ribs: arcs spanning the hole, some snapped.
@@ -225,7 +232,7 @@ namespace SignalLost.Editor
         // Engine Core socket: the open tail with an empty mounting ring and cables hanging out.
         private static void BuildEngineBay(Transform hull)
         {
-            var kit = new MeshKit();
+            var kit = new FlatMeshKit<Mat>();
             Mesh frame = LowPolyMesh.Lathe("EngineRing", new[]
             {
                 new Vector2(1.7f, -0.25f), new Vector2(1.7f, 0.25f), new Vector2(1.35f, 0.25f), new Vector2(1.35f, -0.25f), new Vector2(1.7f, -0.25f)
@@ -246,7 +253,7 @@ namespace SignalLost.Editor
         // Navigation Computer socket: a glassless canopy cage over a console with an empty slot.
         private static void BuildCockpit(Transform hull)
         {
-            var kit = new MeshKit();
+            var kit = new FlatMeshKit<Mat>();
             for (int i = 0; i < 5; i++)
             {
                 float x = -1.4f + i * 0.7f;
@@ -270,7 +277,7 @@ namespace SignalLost.Editor
         // Flight Control Module socket: a dorsal hatch flung open over an empty cradle.
         private static void BuildDorsalHatch(Transform hull)
         {
-            var kit = new MeshKit();
+            var kit = new FlatMeshKit<Mat>();
             Vector3 socket = new Vector3(-1.2f, 5.12f, 3.6f);
             kit.Box(socket + Vector3.down * 0.1f, new Vector3(1.6f, 0.2f, 1.4f), Quaternion.identity, Mat.Interior);
             WarningFrame(kit, socket, 1.9f, 1.7f);
@@ -283,7 +290,7 @@ namespace SignalLost.Editor
 
         private static void BuildWingsAndFin(Transform hull)
         {
-            var kit = new MeshKit();
+            var kit = new FlatMeshKit<Mat>();
             // Left wing: intact, now raised in the air by the roll.
             Slab(kit, new[] { new Vector3(-3.3f, 1.6f, -6.5f), new Vector3(-3.3f, 1.6f, 2f), new Vector3(-10.5f, 1.1f, -2.5f), new Vector3(-10.5f, 1.1f, -5.5f) }, 0.35f, Mat.Hull);
             Slab(kit, new[] { new Vector3(-9.4f, 1.18f, -2.9f), new Vector3(-10.5f, 1.12f, -2.5f), new Vector3(-10.5f, 1.12f, -5.5f), new Vector3(-9.4f, 1.18f, -5.6f) }, 0.4f, Mat.Stripe);
@@ -296,6 +303,105 @@ namespace SignalLost.Editor
             // A landing leg snapped and sticking out.
             kit.Box(new Vector3(2.6f, 0.6f, 6f), new Vector3(0.3f, 1.8f, 0.3f), Quaternion.Euler(30f, 0f, 40f), Mat.Metal);
             AddPart(hull, "Wings And Fin", SaveMesh("WreckWings", kit.Build("WreckWings")), true);
+        }
+
+        // Panel seams, vents, an antenna and nav lights so the hull reads as a real, well-worn ship.
+        private static void BuildDetails(Transform hull)
+        {
+            var kit = new FlatMeshKit<Mat>();
+            foreach (int s in new[] { 1, 4, 5, 6 })
+            {
+                var seam = new List<Vector3>();
+                for (int j = s == 4 ? 3 : 0; j <= 12; j++)
+                {
+                    if (s == 4 && j > 5 && j < 8) continue;
+                    Vector3 p = Ring(s, j);
+                    Vector3 axis = new Vector3(0f, Stations[s].Y, p.z);
+                    seam.Add(axis + (p - axis) * 1.012f);
+                }
+                kit.Add(LowPolyMesh.Tube("Seam", seam.ToArray(), 0.035f, 4), Matrix4x4.identity, Mat.Seam);
+            }
+            for (int i = 0; i < 4; i++) // vent grille on the tail
+                kit.Box(new Vector3(-1.2f + i * 0.32f, 4.62f, -8.2f), new Vector3(0.14f, 0.12f, 1.4f), Quaternion.Euler(0f, 0f, 8f), Mat.Black);
+            kit.Box(new Vector3(-0.6f, 4.55f, -8.2f), new Vector3(1.5f, 0.06f, 1.7f), Quaternion.Euler(0f, 0f, 8f), Mat.Metal);
+            // Antenna mast with a small dish, bent from the crash.
+            kit.Box(new Vector3(-1.1f, 5.6f, 6.2f), new Vector3(0.09f, 1.5f, 0.09f), Quaternion.Euler(0f, 0f, 18f), Mat.Metal);
+            kit.Add(LowPolyMesh.Lathe("Dish", new[] { new Vector2(0.02f, 0f), new Vector2(0.35f, 0.12f), new Vector2(0.38f, 0.16f), new Vector2(0.02f, 0.06f) }, 8),
+                Matrix4x4.TRS(new Vector3(-1.35f, 6.3f, 6.2f), Quaternion.Euler(30f, 0f, 60f), Vector3.one), Mat.Hull);
+            kit.Box(new Vector3(-10.4f, 1.15f, -4f), new Vector3(0.18f, 0.18f, 0.3f), Quaternion.identity, Mat.NavGreen);
+            kit.Box(new Vector3(-0.9f, 5.0f, 4.6f), new Vector3(0.12f, 0.12f, 0.12f), Quaternion.Euler(45f, 45f, 0f), Mat.Fault);
+            AddPart(hull, "Hull Details", SaveMesh("WreckDetails", kit.Build("WreckDetails")), false);
+        }
+
+        // Who the mechanic is: his ship's name and registry, the Gleebinglorb Republic Maintenance Corps band and
+        // crest on the flank Cavendish can see, and his licence plaque in the cockpit.
+        private static void BuildMarkings(Transform hull)
+        {
+            var markings = new GameObject("Markings").transform;
+            markings.SetParent(hull, false);
+            // Livery on the flat mid-hull: name and corps band along the intact port flank, the corps band again on the
+            // starboard tail section (ahead of it the hull is torn open).
+            const string corps = "GLEEBINGLORB REPUBLIC\n<size=70%>MAINTENANCE CORPS</size>";
+            Color ink = new Color(0.13f, 0.12f, 0.14f);
+            Label(markings, "Ship Name", FacePose(4, 6, 0.5f), "GRS RUSTY WRENCH\n<size=55%>REG. MC-0451</size>", 1.4f, new Vector2(6f, 2.1f), ink);
+            Label(markings, "Corps Band Port", FacePose(2, 6, 0.4f), corps, 1f, new Vector2(4.4f, 1.6f), ink);
+            Label(markings, "Corps Band", FacePose(1, 11, 0.4f), corps, 1f, new Vector2(3.6f, 1.5f), new Color(0.95f, 0.93f, 0.88f));
+
+            // Crest: a gear with a wrench through it, on a round plaque.
+            var kit = new FlatMeshKit<Mat>();
+            (Vector3 position, Quaternion rotation) crest = FacePose(4, 1, 0.55f);
+            Matrix4x4 pose = Matrix4x4.TRS(crest.position, crest.rotation, Vector3.one);
+            kit.Add(LowPolyMesh.Lathe("Plaque", new[] { new Vector2(0.01f, 0f), new Vector2(0.75f, 0f), new Vector2(0.75f, 0.05f), new Vector2(0.01f, 0.05f) }, 14),
+                pose * Matrix4x4.Rotate(Quaternion.Euler(-90f, 0f, 0f)), Mat.Stripe);
+            kit.Add(LowPolyMesh.Lathe("Gear", new[] { new Vector2(0.18f, 0f), new Vector2(0.48f, 0f), new Vector2(0.48f, 0.08f), new Vector2(0.18f, 0.08f), new Vector2(0.18f, 0f) }, 12),
+                pose * Matrix4x4.Translate(new Vector3(0f, 0f, -0.06f)) * Matrix4x4.Rotate(Quaternion.Euler(-90f, 0f, 0f)), Mat.Hull);
+            for (int i = 0; i < 8; i++)
+            {
+                Quaternion turn = Quaternion.Euler(0f, 0f, i * 45f);
+                kit.Box(pose.MultiplyPoint3x4(turn * new Vector3(0.55f, 0f, -0.1f)), new Vector3(0.14f, 0.12f, 0.1f), crest.rotation * turn, Mat.Hull);
+            }
+            Quaternion diagonal = crest.rotation * Quaternion.Euler(0f, 0f, 45f);
+            kit.Box(pose.MultiplyPoint3x4(new Vector3(0f, 0f, -0.16f)), new Vector3(1.25f, 0.13f, 0.06f), diagonal, Mat.Black);
+            Vector3 wrenchHead = Quaternion.Euler(0f, 0f, 45f) * new Vector3(0.62f, 0f, 0f) + new Vector3(0f, 0f, -0.16f); // in crest space
+            kit.Box(pose.MultiplyPoint3x4(wrenchHead), new Vector3(0.28f, 0.3f, 0.06f), diagonal, Mat.Black);
+            AddPart(markings, "Corps Crest", SaveMesh("WreckCrest", kit.Build("WreckCrest")), false);
+
+            // The licence plaque on the cockpit console.
+            Transform plaque = Label(markings, "Licence Plaque", (new Vector3(0f, 4.02f, 8.15f), Quaternion.Euler(-25f, 180f, 0f)),
+                "LICENSED SPACE MECHANIC\n<size=70%>Gleebinglorb Republic  -  Grade C (pending)</size>", 0.14f, new Vector2(1.6f, 0.4f), new Color(1f, 0.85f, 0.3f));
+            plaque.localPosition += plaque.forward * -0.02f;
+        }
+
+        // Centre of hull face (s, j), facing outward so text on it reads from outside. It follows the undented hull and
+        // stands off far enough to clear the dents.
+        private static (Vector3, Quaternion) FacePose(int s, int j, float along)
+        {
+            Vector3 a = CleanRing(s, j), b = CleanRing(s, j + 1), c = CleanRing(s + 1, j + 1), d = CleanRing(s + 1, j);
+            Vector3 centre = Vector3.Lerp((a + b) * 0.5f, (c + d) * 0.5f, along);
+            Vector3 normal = Vector3.Cross(d - a, b - a).normalized;
+            Vector3 axis = new Vector3(0f, (Stations[s].Y + Stations[s + 1].Y) * 0.5f, centre.z);
+            if (Vector3.Dot(normal, centre - axis) < 0f) normal = -normal;
+            Vector3 up = Vector3.ProjectOnPlane(Vector3.up, normal).normalized;
+            return (centre + normal * 0.13f, Quaternion.LookRotation(-normal, up));
+        }
+
+        private static Transform Label(Transform parent, string name, (Vector3 position, Quaternion rotation) pose, string text, float size, Vector2 box, Color color)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.SetPositionAndRotation(parent.TransformPoint(pose.position), parent.rotation * pose.rotation);
+            var label = go.AddComponent<TextMeshPro>();
+            label.text = text;
+            label.fontSize = size * 10f;
+            label.enableAutoSizing = true; // shrink to the box so the text never runs off its panel
+            label.fontSizeMin = 1f;
+            label.fontSizeMax = size * 10f;
+            label.fontStyle = FontStyles.Bold;
+            label.alignment = TextAlignmentOptions.Center;
+            label.color = color;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.rectTransform.sizeDelta = box;
+            return go.transform;
         }
 
         // ---------- Debris kit ----------
@@ -366,9 +472,9 @@ namespace SignalLost.Editor
 
         private enum Collision { None, Box, Mesh }
 
-        private static void Debris(string name, Action<MeshKit> build, Collision collision)
+        private static void Debris(string name, Action<FlatMeshKit<Mat>> build, Collision collision)
         {
-            var kit = new MeshKit();
+            var kit = new FlatMeshKit<Mat>();
             build(kit);
             Mesh mesh = SaveMesh("Debris" + name, kit.Build("Debris" + name));
             var root = new GameObject(name);
@@ -392,7 +498,7 @@ namespace SignalLost.Editor
         // ---------- Shape helpers ----------
 
         // A bent plate with thickness, made of a grid curved around Z; the leading row uses the accent material.
-        private static void CurvedPlate(MeshKit kit, float width, float length, float bend, float thickness, int columns, Mat main, Mat accent)
+        private static void CurvedPlate(FlatMeshKit<Mat> kit, float width, float length, float bend, float thickness, int columns, Mat main, Mat accent)
         {
             int rows = 2;
             var top = new Vector3[columns + 1, rows + 1];
@@ -426,11 +532,11 @@ namespace SignalLost.Editor
             }
         }
 
-        private static void Rim(MeshKit kit, Vector3 a, Vector3 b, float thickness, Vector3 outward) =>
+        private static void Rim(FlatMeshKit<Mat> kit, Vector3 a, Vector3 b, float thickness, Vector3 outward) =>
             kit.Quad(a, b, b + Vector3.down * thickness, a + Vector3.down * thickness, outward, Mat.Metal);
 
         // A flat four-cornered slab (wings, fins) with the given thickness.
-        private static void Slab(MeshKit kit, Vector3[] corners, float thickness, Mat material)
+        private static void Slab(FlatMeshKit<Mat> kit, Vector3[] corners, float thickness, Mat material)
         {
             Vector3 half = Vector3.up * thickness * 0.5f;
             Vector3 centre = (corners[0] + corners[1] + corners[2] + corners[3]) * 0.25f;
@@ -448,7 +554,7 @@ namespace SignalLost.Editor
         }
 
         // Yellow-and-black hazard frame lying flat around a socket.
-        private static void WarningFrame(MeshKit kit, Vector3 centre, float width, float depth)
+        private static void WarningFrame(FlatMeshKit<Mat> kit, Vector3 centre, float width, float depth)
         {
             int index = 0;
             for (float x = -width * 0.5f; x < width * 0.5f - 0.01f; x += 0.3f, index++)
@@ -464,7 +570,7 @@ namespace SignalLost.Editor
         }
 
         // The same frame standing up, around the open tail.
-        private static void WarningFrameVertical(MeshKit kit, Vector3 centre, float width, float height)
+        private static void WarningFrameVertical(FlatMeshKit<Mat> kit, Vector3 centre, float width, float height)
         {
             int index = 0;
             for (float x = -width * 0.5f; x < width * 0.5f - 0.01f; x += 0.35f, index++)
@@ -477,7 +583,7 @@ namespace SignalLost.Editor
         }
 
         // Torn cables hanging down from a point (or lying along the ground when horizontal).
-        private static void Cables(MeshKit kit, Vector3 from, int count, float drop, int seed, bool horizontal = false)
+        private static void Cables(FlatMeshKit<Mat> kit, Vector3 from, int count, float drop, int seed, bool horizontal = false)
         {
             for (int i = 0; i < count; i++)
             {
@@ -495,7 +601,7 @@ namespace SignalLost.Editor
             }
         }
 
-        private static void FaultLamp(MeshKit kit, Vector3 at) =>
+        private static void FaultLamp(FlatMeshKit<Mat> kit, Vector3 at) =>
             kit.Box(at, new Vector3(0.16f, 0.16f, 0.16f), Quaternion.Euler(45f, 45f, 0f), Mat.Fault);
 
         // Deterministic pseudo-random vector in [-1, 1] per component, so rebuilding gives the same wreck.
@@ -518,7 +624,7 @@ namespace SignalLost.Editor
             part.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = part.AddComponent<MeshRenderer>();
             var shared = new Material[mesh.subMeshCount];
-            for (int i = 0; i < shared.Length; i++) shared[i] = Materials[MeshKit.MaterialOf(mesh, i)];
+            for (int i = 0; i < shared.Length; i++) shared[i] = Materials[FlatMeshKit<Mat>.MaterialOf(mesh, i)];
             renderer.sharedMaterials = shared;
             if (collide) part.AddComponent<MeshCollider>().sharedMesh = mesh;
             part.isStatic = true;
@@ -534,10 +640,10 @@ namespace SignalLost.Editor
                 AssetDatabase.CreateAsset(mesh, path);
                 return mesh;
             }
-            string materialOrder = MeshKit.Order(mesh);
+            string materialOrder = FlatMeshKit<Mat>.Order(mesh);
             EditorUtility.CopySerialized(mesh, existing);
             existing.name = name;
-            MeshKit.Remember(existing, materialOrder);
+            FlatMeshKit<Mat>.Remember(existing, materialOrder);
             EditorUtility.SetDirty(existing);
             UnityEngine.Object.DestroyImmediate(mesh);
             return existing;
@@ -555,85 +661,6 @@ namespace SignalLost.Editor
             string parent = Path.GetDirectoryName(path).Replace('\\', '/');
             EnsureFolder(parent);
             AssetDatabase.CreateFolder(parent, Path.GetFileName(path));
-        }
-
-        /// <summary>Flat-shaded mesh builder with one submesh per material, for the faceted low-poly look.</summary>
-        private sealed class MeshKit
-        {
-            private static readonly Dictionary<Mesh, List<Mat>> SubmeshMaterials = new Dictionary<Mesh, List<Mat>>();
-            private readonly List<Vector3> vertices = new List<Vector3>();
-            private readonly Dictionary<Mat, List<int>> triangles = new Dictionary<Mat, List<int>>();
-
-            public static Mat MaterialOf(Mesh mesh, int submesh) => SubmeshMaterials[mesh][submesh];
-            public static string Order(Mesh mesh) => string.Join(",", SubmeshMaterials[mesh]);
-            public static void Remember(Mesh mesh, string order)
-            {
-                var list = new List<Mat>();
-                foreach (string part in order.Split(',')) list.Add((Mat)Enum.Parse(typeof(Mat), part));
-                SubmeshMaterials[mesh] = list;
-            }
-
-            public void Tri(Vector3 a, Vector3 b, Vector3 c, Vector3 outward, Mat material)
-            {
-                Vector3 normal = Vector3.Cross(b - a, c - a);
-                if (normal.sqrMagnitude < 1e-12f) return;
-                if (Vector3.Dot(normal, outward) < 0f) (b, c) = (c, b);
-                if (!triangles.TryGetValue(material, out List<int> list)) triangles[material] = list = new List<int>();
-                int start = vertices.Count;
-                vertices.Add(a);
-                vertices.Add(b);
-                vertices.Add(c);
-                list.Add(start);
-                list.Add(start + 1);
-                list.Add(start + 2);
-            }
-
-            public void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 outward, Mat material)
-            {
-                Tri(a, b, c, outward, material);
-                Tri(a, c, d, outward, material);
-            }
-
-            public void Box(Vector3 centre, Vector3 size, Quaternion rotation, Mat material)
-            {
-                Vector3 h = size * 0.5f;
-                Vector3 P(float x, float y, float z) => centre + rotation * new Vector3(x * h.x, y * h.y, z * h.z);
-                Vector3 R(Vector3 v) => rotation * v;
-                Quad(P(-1, -1, 1), P(1, -1, 1), P(1, 1, 1), P(-1, 1, 1), R(Vector3.forward), material);
-                Quad(P(-1, -1, -1), P(-1, 1, -1), P(1, 1, -1), P(1, -1, -1), R(Vector3.back), material);
-                Quad(P(-1, 1, -1), P(-1, 1, 1), P(1, 1, 1), P(1, 1, -1), R(Vector3.up), material);
-                Quad(P(-1, -1, -1), P(1, -1, -1), P(1, -1, 1), P(-1, -1, 1), R(Vector3.down), material);
-                Quad(P(1, -1, -1), P(1, 1, -1), P(1, 1, 1), P(1, -1, 1), R(Vector3.right), material);
-                Quad(P(-1, -1, -1), P(-1, -1, 1), P(-1, 1, 1), P(-1, 1, -1), R(Vector3.left), material);
-            }
-
-            // Copies another (LowPolyMesh) mesh's triangles in, transformed, keeping its flat facets.
-            public void Add(Mesh mesh, Matrix4x4 pose, Mat material)
-            {
-                Vector3[] source = mesh.vertices;
-                int[] tris = mesh.triangles;
-                Vector3 centre = pose.MultiplyPoint3x4(mesh.bounds.center);
-                for (int i = 0; i < tris.Length; i += 3)
-                {
-                    Vector3 a = pose.MultiplyPoint3x4(source[tris[i]]), b = pose.MultiplyPoint3x4(source[tris[i + 1]]), c = pose.MultiplyPoint3x4(source[tris[i + 2]]);
-                    Vector3 normal = Vector3.Cross(b - a, c - a);
-                    Tri(a, b, c, normal.sqrMagnitude > 0f ? normal : (a + b + c) / 3f - centre, material);
-                }
-                UnityEngine.Object.DestroyImmediate(mesh);
-            }
-
-            public Mesh Build(string name)
-            {
-                var mesh = new Mesh { name = name, indexFormat = vertices.Count > 65000 ? IndexFormat.UInt32 : IndexFormat.UInt16 };
-                mesh.SetVertices(vertices);
-                var order = new List<Mat>(triangles.Keys);
-                mesh.subMeshCount = order.Count;
-                for (int i = 0; i < order.Count; i++) mesh.SetTriangles(triangles[order[i]], i);
-                mesh.RecalculateNormals();
-                mesh.RecalculateBounds();
-                SubmeshMaterials[mesh] = order;
-                return mesh;
-            }
         }
     }
 }
