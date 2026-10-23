@@ -1,24 +1,20 @@
 # Desert stage boss: the Core Worm
 
-The boss of the Desert / Dunes stage: a 29 m **ship-fused abomination** that swallowed the ship's **Engine Core**, one of the main parts needed to finish the game. It is much harder than the three [mini-bosses](desert-minibosses.md): it has four phases, each of which changes the arena, and its attacks get denser and overlap more as the fight goes on. Owner: Lawson. The model is a low-poly placeholder built by the builder script, and all numbers are placeholders to tune.
+The boss of the Desert / Dunes stage: a 29 m sandworm that swallowed the ship's **Engine Core**, one of the main parts needed to finish the game. It is much harder than the three [mini-bosses](desert-minibosses.md): it has four phases, each of which changes the arena, and its attacks get denser and overlap more as the fight goes on. Owner: Lawson. The model is a low-poly placeholder built by the builder script, and all numbers are placeholders to tune.
 
 ## Look
 
-Lawson chose a ship-fused abomination with a petal mouth, glowing core veins, and dark obsidian with molten orange.
+Lawson's direction: a desert-coloured worm, darker than the sand for contrast, with veins of energy pulsing across its body. It is biological rather than mechanical, keeps the petal mouth, and has one solid bending body rather than segments.
 
-- **Body:** one continuous, bending obsidian body (`CorewormBody`), not a chain of segments. It is rebuilt every frame along the path the head has taken. It swells behind the head, then tapers to a thin tail, with faint ridges and a flatter belly.
-- **Core veins:** four molten-orange veins wind down its sides and belly. They pulse, and burn brighter each phase and whenever the core charges.
-- **The ship grown into it:**
-  - hull plates along its back
-  - metal pipe clamps around it
-  - two ship cables running down its spine
-  - two engine housings with glowing intakes
-  - three exhaust stacks that smoke (and belch fire once the core runs hot in phase 4)
-  - a rocket nozzle for a tail
-- **Head:** an armored obsidian skull, 15% bigger than before. It has a glowing molten lip, molten cracks running back over it, a frill of bent hull fins and two smoking exhaust pipes behind it, an engine intake grown into its crown, and ship-metal teeth. The three petal jaws have molten veins inside and open on the glowing Engine Core in its throat.
-- **Weak spots:** glowing intake vents, set in metal frames on both sides of four points along the body.
+- **Body:** one continuous, bending body (`CorewormBody`) in dark dune brown, rebuilt every frame along the path the head has taken.
+  - It swells behind the head and tapers to a fine tail, ringed with soft annular ridges like an earthworm's, with a slightly flatter belly.
+  - The path is resampled and smoothed first, so tight turns curve instead of kinking. This fixes the jagged tail at the end of turns.
+- **Energy veins:** six glowing veins wind and spiral over the body, crossing each other. Bright swellings of energy pulse down them from head to tail. They burn brighter each phase and whenever the core charges.
+- **Head:** a dark sand-coloured skull, ringed like the body, with energy veins branching back from the mouth. It has a fleshy lip and throat, and two rings of bone teeth angled down the throat. The three petal jaws have flesh on their inner faces, a glowing vein and bone fangs, and open on the Engine Core, still in its metal brace.
+- **No clipping:** the body leaves from the back of the skull, and the head can turn at most 55° from the line of its neck (**Max Neck Bend**). It no longer twists through its own body when it looks around or in the cutscene.
+- **Weak spots:** swollen blisters of the core's energy bulging through the hide in fleshy rims, on both sides of four points along the body.
 
-The body mesh only exists in Play mode (it is built at runtime), so in the Scene view outside Play you see the head and ship parts on their own.
+The body mesh only exists in Play mode (it is built at runtime), so outside Play the Scene view shows the head and the blisters on their own.
 
 ## How it plays out
 
@@ -48,7 +44,7 @@ In the test scene, **Assume Parts Collected** is ticked on the exit, so you can 
 | Part | Damage taken |
 | --- | --- |
 | Hide and hull plating (head, body) | **15%** |
-| Glowing **vents** on its sides (4 segments, both sides), only while above the sand | **100%** |
+| Glowing energy **blisters** on its sides (4 places, both sides), only while above the sand | **100%** |
 | The **Engine Core** in its throat, mouth closed | 40% |
 | The **Engine Core**, mouth open (after charges and spits, during the beam, after the nova) | **160%** |
 
@@ -108,7 +104,7 @@ Clear, open dunes. A sand ridge racing under the surface shows where it is betwe
 
 - `Scripts/Enemies/Desert/Boss/`:
   - `Coreworm` (the boss)
-  - `CorewormBody` (the continuous body mesh, veins and cables)
+  - `CorewormBody` (the continuous body mesh and its pulsing energy veins)
   - `CorewormArena` (the arena changes)
   - `DesertStageExit` (the exit, the ambush cutscene, retry and the return)
   - `CorewormHud` (bar, name card, fades, subtitles)

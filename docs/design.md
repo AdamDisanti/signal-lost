@@ -107,6 +107,7 @@ Lawson requested a main boss for the desert stage. See [desert stage boss](deser
   - A configurable next-stage scene name, with a message until that stage exists.
   - The name "Core Worm".
 - **Not decided, so not invented:** placement in Nicole's Desert Dunes scene; saving and death persistence of parts and cleared stages; what the next stage is; balance numbers.
+- **Look (Lawson's direction, superseding the earlier ship-fused version):** a biological, desert-coloured worm, darker than the sand for contrast, with veins of energy pulsing across one solid bending body (no segments), keeping the petal mouth. Machine parts were removed apart from the Engine Core's brace. Its health is 825, lowered at Lawson's request.
 
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
 

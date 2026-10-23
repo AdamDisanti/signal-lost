@@ -9,10 +9,10 @@ using UnityEngine;
 namespace SignalLost.Enemies.Desert
 {
     /// <summary>
-    /// The desert stage boss: a 29 m ship-fused abomination that swallowed the ship's Engine Core. One continuous obsidian
-    /// body (<see cref="CorewormBody"/>) bends along its path, molten core veins burning down its sides; the ship has
-    /// grown into it: hull plates, pipe clamps, engine housings, smoking exhaust stacks and a nozzle for a tail. The
-    /// petal mouth opens on the core in its throat, and glowing intake vents along its sides are its weak spots. Most of the time it swims
+    /// The desert stage boss: a 29 m sandworm that swallowed the ship's Engine Core. One continuous, dark desert-coloured
+    /// body (<see cref="CorewormBody"/>) bends along its path, ringed like an earthworm, with veins of the core's energy
+    /// pulsing over it. Its petal mouth opens on the core in its throat; glowing energy blisters along its sides are its
+    /// weak spots. The head can only turn so far from its neck, so it never twists through its own body. Most of the time it swims
     /// under the sand (a racing ridge of sand gives it away) and erupts to attack.
     ///
     /// Four phases, each also changing the arena (<see cref="CorewormArena"/>):
@@ -58,6 +58,8 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(0.5f)] private float segmentSpacing = 1.7f;
         [Tooltip("Distance from the head pivot to the first segment.")]
         [SerializeField, Min(0f)] private float neckGap = 1.9f;
+        [Tooltip("Most the head can turn away from the line of its neck, in degrees (stops it twisting through its body).")]
+        [SerializeField, Range(10f, 90f)] private float maxNeckBend = 55f;
         [Tooltip("How deep it swims under the sand (keep its back below the floor).")]
         [SerializeField, Min(1f)] private float swimDepth = 3.6f;
         [Tooltip("The three jaws around the mouth, which open outward.")]
@@ -1049,8 +1051,25 @@ namespace SignalLost.Enemies.Desert
         private void Face(Vector3 direction, float rate)
         {
             if (direction.sqrMagnitude < 0.0001f) return;
+            direction = LimitToNeck(direction.normalized);
             Vector3 up = Mathf.Abs(Vector3.Dot(direction.normalized, Vector3.up)) > 0.95f ? Flat(heading) + Vector3.forward * 0.01f : Vector3.up;
             head.rotation = Quaternion.Slerp(head.rotation, Quaternion.LookRotation(direction, up), 1f - Mathf.Exp(-rate * Time.deltaTime));
+        }
+
+        /// <summary>Keeps a wanted facing within <see cref="maxNeckBend"/> of the line of its neck.</summary>
+        private Vector3 LimitToNeck(Vector3 want)
+        {
+            Vector3 neck = Vector3.zero;
+            foreach (Vector3 point in trail)
+            {
+                Vector3 back = point - head.position;
+                if (back.sqrMagnitude < 9f) continue; // the first point about 3 m back along the body
+                neck = -back.normalized;
+                break;
+            }
+            if (neck == Vector3.zero) return want;
+            float angle = Vector3.Angle(neck, want);
+            return angle <= maxNeckBend ? want : Vector3.Slerp(neck, want, maxNeckBend / angle);
         }
 
         private void TrackPlayer(float rate)
@@ -1080,15 +1099,32 @@ namespace SignalLost.Enemies.Desert
         private void PlaceBody()
         {
             if (head == null) return;
-            // The path the body lies along: the head pivot, then everywhere the head has been.
+            // The path the body lies along: out of the back of the skull, then everywhere the head has been.
             path.Clear();
             path.Add(head.position);
+            path.Add(head.position - head.forward * 0.8f);
+            path.Add(head.position - head.forward * 1.6f);
             foreach (Vector3 point in trail)
-                if ((point - path[path.Count - 1]).sqrMagnitude > 0.0001f) path.Add(point);
-            if (path.Count < 2) path.Add(head.position - head.forward);
-            if (body != null) body.Rebuild(path, head.up);
+                if ((point - head.position).sqrMagnitude > 2.6f * 2.6f && (point - path[path.Count - 1]).sqrMagnitude > 0.0001f)
+                    path.Add(point);
+            if (path.Count < 4) path.Add(head.position - head.forward * 3f);
 
-            // Anchors (hit boxes, ship parts) at fixed distances along it.
+            if (body != null)
+            {
+                body.Rebuild(path, head.up);
+                // Anchors (hit boxes and weak spots) on the smoothed curve the body is built on.
+                for (int i = 0; i < segments.Length; i++)
+                {
+                    if (segments[i] == null) continue;
+                    Vector3 p = body.PointAt(neckGap + i * segmentSpacing, out Vector3 towardTail);
+                    segments[i].position = p;
+                    if (towardTail.sqrMagnitude > 0.0001f)
+                        segments[i].rotation = Quaternion.LookRotation(-towardTail, Mathf.Abs(towardTail.y) > 0.95f ? head.up : Vector3.up);
+                }
+                return;
+            }
+
+            // No body mesh: anchors straight along the raw path.
             int s = 0;
             float want = neckGap, walked = 0f;
             Vector3 previous = path[0];
