@@ -5,17 +5,18 @@ namespace SignalLost.Effects
 {
     /// <summary>
     /// One-shot particle bursts built in code, for hits and attacks: a spray of sand, a puff of smoke, a shower of
-    /// sparks, a fireball. Uses the same textures and materials as <see cref="FireEffect"/>.
+    /// sparks, a fireball, falling water droplets and drifting water mist. Uses the same textures and materials as
+    /// <see cref="FireEffect"/>.
     ///
     /// There is one long-lived particle system per kind, and each burst is emitted into it. (Creating and destroying a
     /// GameObject and particle system for every burst caused hitches when an attack set off many at once.)
     /// </summary>
     public static class ParticleBurst
     {
-        public enum Kind { Sand, Smoke, Sparks, Fireball }
+        public enum Kind { Sand, Smoke, Sparks, Fireball, Water, Mist }
 
         private const int MaxParticlesPerKind = 3000;
-        private static readonly ParticleSystem[] Systems = new ParticleSystem[4];
+        private static readonly ParticleSystem[] Systems = new ParticleSystem[System.Enum.GetValues(typeof(Kind)).Length];
 
         /// <param name="direction">Which way the burst flies (any length). Zero: in every direction.</param>
         /// <param name="size">Rough size of each puff in metres.</param>
@@ -84,6 +85,8 @@ namespace SignalLost.Effects
                 case Kind.Sand: return new Vector2(0.6f, 1.3f);
                 case Kind.Smoke: return new Vector2(1.2f, 2.2f);
                 case Kind.Sparks: return new Vector2(0.25f, 0.6f);
+                case Kind.Water: return new Vector2(0.5f, 1.1f);
+                case Kind.Mist: return new Vector2(0.8f, 1.6f);
                 default: return new Vector2(0.35f, 0.7f);
             }
         }
@@ -95,6 +98,8 @@ namespace SignalLost.Effects
                 case Kind.Sand: return new Color(0.86f, 0.74f, 0.52f, 0.85f);
                 case Kind.Smoke: return new Color(0.18f, 0.17f, 0.16f, 0.7f);
                 case Kind.Sparks: return new Color(1f, 0.8f, 0.4f, 1f);
+                case Kind.Water: return new Color(0.72f, 0.9f, 1f, 0.9f);
+                case Kind.Mist: return new Color(0.86f, 0.94f, 1f, 0.55f);
                 default: return Color.white;
             }
         }
@@ -161,6 +166,27 @@ namespace SignalLost.Effects
                     sizeOverLife.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.3f));
                     colorOverLife.color = Fade(0.01f, 0.5f);
                     renderer.sortingOrder = 4;
+                    break;
+                case Kind.Water:
+                    // Droplets: soft blobs stretched along their flight, falling fast.
+                    renderer.sharedMaterial = EffectMaterials.AlphaBlended(EffectMaterials.Look.Glow);
+                    renderer.renderMode = ParticleSystemRenderMode.Stretch;
+                    renderer.velocityScale = 0.04f;
+                    renderer.lengthScale = 1.4f;
+                    main.gravityModifier = 1.6f;
+                    sizeOverLife.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.5f));
+                    colorOverLife.color = Fade(0.02f, 0.6f);
+                    Drag(system, 0.6f);
+                    renderer.sortingOrder = 2;
+                    break;
+                case Kind.Mist:
+                    // Spray: pale clouds that billow, drift and settle.
+                    renderer.sharedMaterial = EffectMaterials.AlphaBlended(EffectMaterials.Look.Smoke);
+                    main.gravityModifier = 0.05f;
+                    sizeOverLife.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.5f, 1f, 1.8f));
+                    colorOverLife.color = Fade(0.08f, 0.35f);
+                    Drag(system, 3f);
+                    renderer.sortingOrder = 1;
                     break;
                 default: // Fireball
                     renderer.sharedMaterial = EffectMaterials.Additive(EffectMaterials.Look.Glow);
