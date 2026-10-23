@@ -185,6 +185,16 @@ namespace SignalLost.UI
             return image;
         }
 
+        /// <summary>A plain sprite (an item icon), keeping its aspect.</summary>
+        public static Image Icon(string name, Transform parent, Sprite sprite)
+        {
+            Image image = Rect(name, parent).gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            return image;
+        }
+
         public static TextMeshProUGUI Label(string name, Transform parent, float size, Color color,
             TextAlignmentOptions alignment = TextAlignmentOptions.Left, FontStyles style = FontStyles.Normal)
         {
