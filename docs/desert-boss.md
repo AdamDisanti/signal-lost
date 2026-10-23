@@ -90,6 +90,7 @@ Clear, open dunes. A sand ridge racing under the surface shows where it is betwe
   - **Projectiles:** the beam has three layers (a white-hot core, a wide crackling orange beam and a broad glow) with orange lights at the mouth and the impact, a doubled flame jet at the mouth, and a fountain of fire, sparks and smoke where it hits; slag globs trail flame; shrapnel leaves glowing streaks.
   - **Arena:** sandstorm particles and fog, swirling cyclones, collapsing tiles, fire lanes.
   - **Screen shake** for every eruption, slam and blast.
+- **Movement:** every move continues from how the worm is actually travelling (direction and speed), so it never snaps round or jumps. Swims speed up smoothly and turn tighter near their target. It slides under its eruption spot instead of jumping there, steers along the arena edge instead of grinding into it, and trembles in place during the nova instead of drifting. Its hit boxes ride on a kinematic Rigidbody so moving them each frame is cheap.
 - **Death:** the core flickers out of control, then an explosion. The body crashes and sinks segment by segment, and the core floats free.
 
 ## Progression added

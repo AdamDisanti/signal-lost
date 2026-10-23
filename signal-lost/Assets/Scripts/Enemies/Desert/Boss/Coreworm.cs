@@ -117,7 +117,10 @@ namespace SignalLost.Enemies.Desert
         private Health playerHealth;
         private Transform playerView;
         private readonly List<Vector3> trail = new List<Vector3>();
-        private Vector3 heading = Vector3.forward;
+        private Vector3 heading = Vector3.forward; // flat direction it is actually travelling
+        private float currentSpeed;                 // flat speed it is actually travelling at
+        private bool movedThisFrame;
+        private const float SwimAcceleration = 45f;
         private float mouth, mouthTarget, glow = 0.3f, glowTarget = 0.3f;
         private Quaternion[] jawRest = new Quaternion[0];
         private Color coreColor = new Color(1f, 0.75f, 0.35f), ventColor = new Color(1f, 0.5f, 0.15f);
@@ -164,6 +167,14 @@ namespace SignalLost.Enemies.Desert
             health.Damaged += OnDamaged;
             health.Died += OnDied;
             BuildBeam();
+            // Its hit boxes move every frame: on a kinematic body that is cheap; without one Unity treats them as
+            // static scenery and rebuilds its physics data for every move, which stutters.
+            if (GetComponent<Rigidbody>() == null)
+            {
+                var rigidbody = gameObject.AddComponent<Rigidbody>();
+                rigidbody.isKinematic = true;
+                rigidbody.useGravity = false;
+            }
         }
 
         private void Start()
@@ -514,7 +525,7 @@ namespace SignalLost.Enemies.Desert
             AreaHit(start, 3f, eruptDamage * 0.8f, 2f);
             contactHit = false;
             float time = 1.7f / Mathf.Sqrt(Fierce);
-            Vector3 from = new Vector3(start.x, UnderY, start.z), to = new Vector3(end.x, UnderY, end.z);
+            Vector3 from = head.position, to = new Vector3(end.x, UnderY, end.z);
             for (int i = 0; i < 4 + Phase * 2; i++)
             {
                 // Debris thrown up by the breach comes down around the player.
@@ -527,7 +538,7 @@ namespace SignalLost.Enemies.Desert
                 t += Time.deltaTime;
                 float k = t / time;
                 Vector3 p = Vector3.Lerp(from, to, k);
-                p.y = Mathf.Lerp(UnderY, UnderY, k) + Mathf.Sin(k * Mathf.PI) * (14f + swimDepth);
+                p.y = Mathf.Lerp(from.y, UnderY, k) + Mathf.Sin(k * Mathf.PI) * (14f + swimDepth);
                 MoveHead(p);
                 BodyContact(2.6f, bodyContactDamage);
                 if (endMarker != null) endMarker.Progress = k;
@@ -925,6 +936,7 @@ namespace SignalLost.Enemies.Desert
             MiniBossHud.Message("THE CORE IS OVERLOADING!  GET BEHIND COVER!", new Color(1f, 0.35f, 0.15f), 3f);
             mouthTarget = 1f;
             float charge = 3f, t = 0f, nextSpark = 0f;
+            Vector3 rest = head.position;
             while (t < charge)
             {
                 t += Time.deltaTime;
@@ -937,7 +949,7 @@ namespace SignalLost.Enemies.Desert
                     nextSpark = Time.time + Mathf.Lerp(0.15f, 0.04f, k);
                     ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, core != null ? core.position : Mouth, UnityEngine.Random.onUnitSphere, 6, 0.1f, 6f, 80f);
                 }
-                head.position += UnityEngine.Random.insideUnitSphere * 0.04f * k;
+                head.position = rest + Tremble(0.35f * k); // shakes in place
                 yield return null;
             }
             Vector3 blastAt = core != null ? core.position : Mouth;
@@ -1009,16 +1021,21 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Swims under the sand toward a moving target, leaving a ridge of sand on the surface.</summary>
         private IEnumerator SwimTo(Func<Vector3> target, float speed, float maxTime, float arrive, bool ridge, bool glowing = false)
         {
-            float t = 0f, nextPuff = 0f;
+            float t = 0f, nextPuff = 0f, v = currentSpeed;
             while (t < maxTime)
             {
                 t += Time.deltaTime;
                 Vector3 goal = target();
                 Vector3 flat = Flat(goal - head.position);
-                if (flat.magnitude <= arrive) yield break;
-                heading = Vector3.RotateTowards(Flat(heading).normalized, flat.normalized, 4f * Time.deltaTime, 0f);
-                if (heading.sqrMagnitude < 0.01f) heading = flat.normalized;
-                Vector3 p = head.position + heading * speed * Time.deltaTime;
+                float distance = flat.magnitude;
+                if (distance <= arrive) yield break;
+                // Carries on from how it was actually moving: speeds up smoothly, and turns tighter when the target is
+                // close so it never circles round it without arriving.
+                v = Mathf.MoveTowards(v, speed, SwimAcceleration * Time.deltaTime);
+                float turn = Mathf.Clamp(2.2f * v / Mathf.Max(1f, distance), 4f, 10f);
+                heading = Vector3.RotateTowards(Flat(heading).normalized, flat / distance, turn * Time.deltaTime, 0f);
+                if (heading.sqrMagnitude < 0.01f) heading = flat / distance;
+                Vector3 p = head.position + heading * v * Time.deltaTime;
                 p.y = Mathf.MoveTowards(head.position.y, UnderY, 12f * Time.deltaTime);
                 MoveHead(p);
                 if (ridge && Time.time >= nextPuff)
@@ -1036,16 +1053,19 @@ namespace SignalLost.Enemies.Desert
             float t = 0f, nextPuff = 0f;
             float side = UnityEngine.Random.value < 0.5f ? 1f : -1f;
             yield return GoUnder();
+            float v = currentSpeed;
             while (t < time)
             {
                 t += Time.deltaTime;
                 Vector3 centre = PlayerGround(0f);
                 Vector3 radial = Flat(head.position - centre);
                 if (radial.sqrMagnitude < 0.01f) radial = Vector3.forward;
-                Vector3 goal = centre + Quaternion.Euler(0f, 40f * side, 0f) * radial.normalized * 13f;
+                // Aim inside the arena, so it steers along the edge instead of grinding against it.
+                Vector3 goal = ClampToArena(centre + Quaternion.Euler(0f, 40f * side, 0f) * radial.normalized * 13f);
                 Vector3 flat = Flat(goal - head.position);
                 if (flat.sqrMagnitude > 0.01f) heading = Vector3.RotateTowards(Flat(heading).normalized, flat.normalized, 3f * Time.deltaTime, 0f);
-                Vector3 p = head.position + heading * 12f * Time.deltaTime;
+                v = Mathf.MoveTowards(v, 12f, SwimAcceleration * Time.deltaTime);
+                Vector3 p = head.position + heading * v * Time.deltaTime;
                 p.y = Mathf.MoveTowards(head.position.y, UnderY, 12f * Time.deltaTime);
                 MoveHead(ClampToArena(p) + Vector3.up * (p.y - GroundY));
                 if (Time.time >= nextPuff)
@@ -1061,7 +1081,8 @@ namespace SignalLost.Enemies.Desert
         private IEnumerator Rise(Vector3 ground, float height, float time, bool facePlayer, float damage = 0f)
         {
             ground.y = GroundY;
-            Vector3 from = new Vector3(ground.x, Mathf.Min(head.position.y, UnderY), ground.z);
+            // From where it actually is (no jump): it slides under the spot in the first part of the rise.
+            Vector3 from = head.position;
             Vector3 to = ground + Vector3.up * height;
             bool burst = false;
             float t = 0f;
@@ -1069,7 +1090,9 @@ namespace SignalLost.Enemies.Desert
             {
                 t += Time.deltaTime;
                 float k = 1f - (1f - Mathf.Clamp01(t / time)) * (1f - Mathf.Clamp01(t / time)); // fast out, easing at the top
-                Vector3 p = Vector3.Lerp(from, to, k);
+                float across = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / (time * 0.45f)));
+                Vector3 p = Vector3.Lerp(from, to, across);
+                p.y = Mathf.Lerp(from.y, to.y, k);
                 MoveHead(p);
                 if (!burst && p.y >= GroundY - 0.5f)
                 {
@@ -1114,7 +1137,7 @@ namespace SignalLost.Enemies.Desert
             {
                 t += Time.deltaTime;
                 if (trackPlayer) TrackPlayer(4f);
-                head.position += Vector3.up * Mathf.Sin(Time.time * 2.5f) * 0.005f;
+                head.position += Vector3.up * Mathf.Sin(Time.time * 2.5f) * 0.3f * Time.deltaTime; // a slow sway
                 yield return null;
             }
         }
@@ -1145,6 +1168,10 @@ namespace SignalLost.Enemies.Desert
             Vector3 travel = position - head.position;
             head.position = position;
             if (travel.sqrMagnitude > 0.00001f) Face(travel, 10f);
+            Vector3 flat = Flat(travel);
+            if (flat.sqrMagnitude > 0.000001f) heading = flat.normalized; // so the next swim carries on the same way
+            if (Time.deltaTime > 0f) currentSpeed = flat.magnitude / Time.deltaTime;
+            movedThisFrame = true;
             Record();
         }
 
@@ -1152,7 +1179,10 @@ namespace SignalLost.Enemies.Desert
         {
             if (direction.sqrMagnitude < 0.0001f) return;
             direction = LimitToNeck(direction.normalized);
-            Vector3 up = Mathf.Abs(Vector3.Dot(direction.normalized, Vector3.up)) > 0.95f ? Flat(heading) + Vector3.forward * 0.01f : Vector3.up;
+            // Upright normally; when pointing nearly straight up or down, keep its current roll instead (blended, so it
+            // never snaps round, which would also spin the body).
+            float vertical = Mathf.Abs(Vector3.Dot(direction, Vector3.up));
+            Vector3 up = Vector3.Slerp(Vector3.up, head.up, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.75f, 0.97f, vertical)));
             head.rotation = Quaternion.Slerp(head.rotation, Quaternion.LookRotation(direction, up), 1f - Mathf.Exp(-rate * Time.deltaTime));
         }
 
@@ -1253,6 +1283,8 @@ namespace SignalLost.Enemies.Desert
 
         private void LateUpdate()
         {
+            if (!movedThisFrame) currentSpeed = 0f;
+            movedThisFrame = false;
             PlaceBody();
             if (pendingDamage > 0f)
             {
@@ -1394,6 +1426,12 @@ namespace SignalLost.Enemies.Desert
 
         private static Vector3 ChestOf(Transform target) => target.position + Vector3.up * 1f;
 
+        private static Vector3 Tremble(float amount)
+        {
+            float n = Time.time * 18f;
+            return new Vector3(Mathf.PerlinNoise(n, 0.1f) - 0.5f, Mathf.PerlinNoise(0.4f, n) - 0.5f, Mathf.PerlinNoise(n, 0.8f) - 0.5f) * 2f * amount;
+        }
+
         private static Vector3 Flat(Vector3 v)
         {
             v.y = 0f;
@@ -1431,11 +1469,12 @@ namespace SignalLost.Enemies.Desert
             if (head.position.y < GroundY) yield return Rise(spot, 12f, 0.6f, true);
             mouthTarget = 1f;
             float t = 0f, nextSpark = 0f;
+            Vector3 rest = head.position;
             while (t < 2.2f)
             {
                 t += Time.deltaTime;
                 glowTarget = 1f + Mathf.PerlinNoise(Time.time * 20f, 0f) * 2f;
-                head.position += UnityEngine.Random.insideUnitSphere * 0.06f;
+                head.position = rest + Tremble(0.5f);
                 CameraShake.Add(Time.deltaTime * 0.6f);
                 if (Time.time >= nextSpark)
                 {
