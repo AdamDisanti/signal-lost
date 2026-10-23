@@ -19,7 +19,7 @@ using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
 // Play Mode smoke for the shared player, hands, HUD and menus (tutorial overhaul phase 2), in the free-play
-// Tutorial Testing sandbox, Desert Dunes and the title screen. Install only in a disposable project copy under the
+// Testing Sandbox, Desert Dunes and the title screen. Install only in a disposable project copy under the
 // system temp directory (Assets/Editor), then run:
 //   Unity -batchmode -projectPath <temp-project> -executeMethod CoreSystemsSmoke.Start -logFile <log>
 // Omit -quit. Add -coreRender (without -nographics) to save captures to Logs/Core_*.png. Not a physical-input test.
@@ -49,7 +49,7 @@ public static class CoreSystemsSmoke
         string project = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
         if (!Application.isBatchMode || !(project.StartsWith(Path.GetFullPath(Path.GetTempPath())) || project.StartsWith("/private/tmp/")))
             throw new InvalidOperationException("Run in a disposable batch-mode project under the system temporary directory.");
-        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial Testing.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Testing Sandbox.unity");
         SessionState.SetBool(Key, true);
         SessionState.SetFloat(Key + "Time", (float)EditorApplication.timeSinceStartup);
         EditorApplication.EnterPlaymode();

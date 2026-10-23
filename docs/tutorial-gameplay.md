@@ -1,10 +1,10 @@
 # Tutorial gameplay
 
-> **Superseded (10-22-26):** the tutorial is now a new scene, `Scenes/Tutorial/Tutorial.unity`; see [tutorial](tutorial.md). Tutorial Testing is a free-play sandbox on the [shared player](core-player.md). The tutorial-only player, quest flow and installers named below (`TutorialPlayer`, `TutorialQuestFlow`, `TutorialGameplayBuilder`, `TutorialCoreLoopInstaller`) and their smoke harnesses were removed. Their behaviour lives on in the shared components.
+> **Superseded (10-22-26):** the tutorial is now a new scene, `Scenes/Tutorial/Tutorial.unity`; see [tutorial](tutorial.md). Testing Sandbox is a free-play sandbox on the [shared player](core-player.md). The tutorial-only player, quest flow and installers named below (`TutorialPlayer`, `TutorialQuestFlow`, `TutorialGameplayBuilder`, `TutorialCoreLoopInstaller`) and their smoke harnesses were removed. Their behaviour lives on in the shared components.
 
 > **Partly superseded (10-20-26):** the tutorial now starts with a wake-up beside Cavendish, the scanner is a third pickup, healing halves per drunk stack with blackout after 5 stacks, and the tutorial laser has 10 s bolt and 3 s combo cooldowns. See [tutorial core loop](tutorial-core-loop.md) for the current behaviour.
 
-Open `signal-lost/Assets/Scenes/Tutorial Testing.unity` in Unity **6000.6.2f1** and press Play. Gameplay is already installed; **do not rerun the creation tools** over the scene.
+Open `signal-lost/Assets/Scenes/Testing Sandbox.unity` in Unity **6000.6.2f1** and press Play. Gameplay is already installed; **do not rerun the creation tools** over the scene.
 
 The rocket, original source models, shared player prefab and working gameplay are preserved. The current [480-meter lunar revision](tutorial-impact-site.md) replaces the extreme industrial terrain/landmarks with rolling crater fields, grey regolith and a lower blended perimeter, while retaining the core tutorial floor/routes. Gameplay components remain on the tutorial player/prop instances; the original combat test scene remains separate and unchanged.
 **Current quest sequence:** talk to Cavendish with E, collect the laser, defeat the dedicated merchant crab, and collect its dropped flask. See [tutorial NPCs](tutorial-npcs.md) for the current walkthrough. The flask now stays hidden until the quest crab is defeated; the existing combat and healing mechanics below are reused.

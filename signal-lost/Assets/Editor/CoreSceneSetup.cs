@@ -22,11 +22,11 @@ namespace SignalLost.Editor
     internal static class CoreSceneSetup
     {
         public const string MainMenuPath = "Assets/Scenes/MainMenu.unity";
-        public const string SandboxPath = "Assets/Scenes/Tutorial Testing.unity";
+        public const string SandboxPath = "Assets/Scenes/Testing Sandbox.unity";
         public const string DesertPath = "Assets/Scenes/Large Areas/DesertDunes.unity";
         private static readonly PlayerItem[] AllGear = { PlayerItem.MiningLaser, PlayerItem.Scanner, PlayerItem.Flask };
 
-        [MenuItem("Signal Lost/Scenes/Upgrade Tutorial Testing (free-play sandbox)")]
+        [MenuItem("Signal Lost/Scenes/Upgrade Testing Sandbox (free-play)")]
         public static void UpgradeSandbox()
         {
             Scene scene = EditorSceneManager.OpenScene(SandboxPath, OpenSceneMode.Single);

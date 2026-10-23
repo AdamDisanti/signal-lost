@@ -1,8 +1,8 @@
 # Tutorial core loop
 
-> **Superseded (10-22-26):** the tutorial is now a new scene, `Scenes/Tutorial/Tutorial.unity`; see [tutorial](tutorial.md). Tutorial Testing is a free-play sandbox on the [shared player](core-player.md). The tutorial-only player, quest flow and installers named below (`TutorialPlayer`, `TutorialQuestFlow`, `TutorialGameplayBuilder`, `TutorialCoreLoopInstaller`) and their smoke harnesses were removed. Their behaviour lives on in the shared components.
+> **Superseded (10-22-26):** the tutorial is now a new scene, `Scenes/Tutorial/Tutorial.unity`; see [tutorial](tutorial.md). Testing Sandbox is a free-play sandbox on the [shared player](core-player.md). The tutorial-only player, quest flow and installers named below (`TutorialPlayer`, `TutorialQuestFlow`, `TutorialGameplayBuilder`, `TutorialCoreLoopInstaller`) and their smoke harnesses were removed. Their behaviour lives on in the shared components.
 
-The playable tutorial built from the "Remaining core features to implement" section of the 10-20-26 meeting notes (Adam and Lawson). Open `signal-lost/Assets/Scenes/Tutorial Testing.unity` in Unity **6000.6.2f1** and press Play. Everything is already installed in the scene; you do not need to run a tool.
+The playable tutorial built from the "Remaining core features to implement" section of the 10-20-26 meeting notes (Adam and Lawson). Open `signal-lost/Assets/Scenes/Testing Sandbox.unity` in Unity **6000.6.2f1** and press Play. Everything is already installed in the scene; you do not need to run a tool.
 
 This supersedes parts of [tutorial gameplay](tutorial-gameplay.md), [tutorial NPCs](tutorial-npcs.md) and [the impact site](tutorial-impact-site.md): the quest order, healing numbers, NPC windows and the crashed rocket changed. Those pages note what is out of date.
 

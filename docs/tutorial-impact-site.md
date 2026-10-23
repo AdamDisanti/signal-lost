@@ -1,6 +1,6 @@
 # Tutorial impact site
 
-> **Superseded (10-22-26):** this lunar site is now the Tutorial Testing sandbox. The tutorial is a new golden-hour meadow scene; see [tutorial](tutorial.md).
+> **Superseded (10-22-26):** this lunar site is now the Testing Sandbox. The tutorial is a new golden-hour meadow scene; see [tutorial](tutorial.md).
 
 > **Partly superseded (10-20-26):** a stripped shipwreck with a much denser debris field replaces the Enhanced Crashed Rocket, which is switched off with its assets kept. See [tutorial core loop](tutorial-core-loop.md) for the current behaviour.
 
@@ -8,7 +8,7 @@ The current tutorial is a **480 x 480-meter, moon-inspired crash site**: rolling
 
 ## Open and edit
 
-Open **`signal-lost/Assets/Scenes/Tutorial Testing.unity`** in Unity **6000.6.2f1**. The scene is already authored; **do not rerun creation tools**. Reopen from disk rather than saving a stale in-memory scene over the revision.
+Open **`signal-lost/Assets/Scenes/Testing Sandbox.unity`** in Unity **6000.6.2f1**. The scene is already authored; **do not rerun creation tools**. Reopen from disk rather than saving a stale in-memory scene over the revision.
 
 Under **Tutorial Impact Site**:
 
