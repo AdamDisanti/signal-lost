@@ -508,6 +508,23 @@ namespace SignalLost.Enemies
             Enter(State.Chase);
         }
 
+        /// <summary>
+        /// Moves the crab's home to a new spot and brings it back there alive and idle (summoned cousins). Before the
+        /// crab has started, this just places it; Start then makes that spot home.
+        /// </summary>
+        public void Relocate(Vector3 position, Quaternion rotation)
+        {
+            if (!started)
+            {
+                transform.SetPositionAndRotation(position, rotation);
+                return;
+            }
+            home = NavMesh.SamplePosition(position, out NavMeshHit hit, 3f, NavMesh.AllAreas) ? hit.position : position;
+            homeRotation = rotation;
+            territory.SetHome(home);
+            Respawn();
+        }
+
         private void Respawn()
         {
             health.Restore();

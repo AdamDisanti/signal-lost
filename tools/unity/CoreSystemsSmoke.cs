@@ -146,6 +146,7 @@ public static class CoreSystemsSmoke
         var cavendish = UnityEngine.Object.FindObjectsByType<NpcActor>().First(n => n.IsQuestGiver);
         var merchant = UnityEngine.Object.FindAnyObjectByType<MerchantCrab>();
         Check(merchant.IsDefeated && !merchant.GetComponent<HermitCrab>().enabled, "The sandbox merchant starts friendly.");
+        Check(merchant.Cousins.Count == 10 && merchant.Cousins.All(c => c != null && !c.gameObject.activeSelf), "Its ten cousins wait despawned for the angry-merchant ambush.");
         Aim(life, cavendish.GetComponent<Collider>(), cavendish.transform);
         Check(interactor.Prompt.Contains("Cavendish") && interactor.TryInteract() && cavendish.Dialogue.IsManual, "Cavendish makes small talk.");
         yield return Capture("Prompt");

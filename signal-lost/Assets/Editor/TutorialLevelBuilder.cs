@@ -19,7 +19,8 @@ namespace SignalLost.Editor
     /// end. The stripped shipwreck lies nose-first in a dirt berm at the end of a gouged trench, burning and smoking;
     /// Cavendish's campsite sits in a pine-ringed clearing to the west; the merchant crab's hollow hides behind rocks
     /// and bushes far to the north-east. It also places the Player, GameSystems, spawn point and runtime NavMesh.
-    /// The story (NPCs, quests, items, enemies) is added by TutorialStoryInstaller.
+    /// The NavMesh is baked here (before any creature is placed) and saved next to the scene. The story (NPCs,
+    /// quests, items, enemies) is then added by TutorialStoryInstaller.
     /// Everything is generated from fixed seeds, so rebuilding gives the same level. Rebuilding REPLACES the scene.
     /// Menu: Signal Lost > Tutorial > Rebuild Tutorial Level.
     /// </summary>
@@ -65,6 +66,7 @@ namespace SignalLost.Editor
             CrashSiteWreckBuilder.Build();
             MeadowAssetBuilder.Build();
             CorePrefabBuilder.Build();
+            CrabCousinBuilder.Build();
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var random = new System.Random(20261022);
 
@@ -77,9 +79,11 @@ namespace SignalLost.Editor
             Transform hollow = BuildHollow(level, clear, random);
             Physics.SyncTransforms();
             ScatterNature(level, clear, random);
+            BakeNavigation(level);
             BuildFoliage(level, ground, clear);
             BuildLighting();
-            BuildGameplay(camp);
+            Transform gameplay = BuildGameplay(camp);
+            TutorialStoryInstaller.Install(level, gameplay, crash, hollow);
 
             System.IO.Directory.CreateDirectory("Assets/Scenes/Tutorial");
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -261,6 +265,19 @@ namespace SignalLost.Editor
             Effect("ElectricalFire", site, hull.TransformPoint(new Vector3(0f, 2.4f, -11f)), 1f, "Engine Bay Fire");
             Effect("ElectricalFire", site, hull.TransformPoint(new Vector3(0f, 4.3f, 8.4f)), 0.7f, "Cockpit Sparks");
             Effect("SmokePlume", site, hull.TransformPoint(new Vector3(0.4f, 3.5f, -2f)), 1f, "Smoke Plume");
+            // A failing red emergency lamp lights the cockpit, where the mechanic comes to.
+            var lamp = new GameObject("Cockpit Emergency Light").AddComponent<Light>();
+            lamp.transform.SetParent(site, false);
+            lamp.transform.position = hull.TransformPoint(new Vector3(0f, 4.5f, 7.3f));
+            lamp.type = LightType.Point;
+            lamp.color = new Color(1f, 0.25f, 0.15f);
+            lamp.intensity = 3f;
+            lamp.range = 5f;
+            lamp.shadows = LightShadows.None;
+            var flicker = new SerializedObject(lamp.gameObject.AddComponent<FlickerLight>());
+            flicker.FindProperty("electrical").boolValue = true;
+            flicker.FindProperty("strength").floatValue = 0.6f;
+            flicker.ApplyModifiedPropertiesWithoutUndo();
             Effect("SmokePlume", site, hull.TransformPoint(new Vector3(0f, 3.5f, -11.5f)), 0.6f, "Engine Smoke");
             Vector2 back = -ShipForward, side = new Vector2(ShipForward.y, -ShipForward.x);
             foreach ((float along, float across) in new[] { (17f, 2.5f), (25f, -1.5f), (33f, 1f) })
@@ -495,7 +512,7 @@ namespace SignalLost.Editor
             RenderSettings.fogEndDistance = 210f;
         }
 
-        private static void BuildGameplay(Transform camp)
+        private static Transform BuildGameplay(Transform camp)
         {
             var gameplay = new GameObject("Gameplay").transform;
             // The player wakes beside the fire, facing it; Cavendish sits across from them (story installer).
@@ -507,14 +524,27 @@ namespace SignalLost.Editor
             spawn.name = "Spawn At Camp";
             var player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CorePrefabBuilder.PlayerPath));
             player.transform.SetPositionAndRotation(spawnAt + Vector3.up * 0.05f, spawnFacing);
+            player.GetComponentInChildren<Camera>(true).clearFlags = CameraClearFlags.Skybox; // the shared player clears to a flat colour
             PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CorePrefabBuilder.SystemsPath));
+            return gameplay;
+        }
 
+        // Baked in the editor from the ground, rocks, trees and wreck only, so creatures and props never punch
+        // holes in it. NavMeshBaker would rebuild it at runtime if the data went missing.
+        private static void BakeNavigation(Transform level)
+        {
             var navigation = new GameObject("Navigation");
-            navigation.transform.SetParent(gameplay, false);
+            navigation.transform.SetParent(level, false);
             var surface = navigation.AddComponent<NavMeshSurface>();
             surface.collectObjects = CollectObjects.All;
             surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
             navigation.AddComponent<NavMeshBaker>();
+            Physics.SyncTransforms();
+            surface.BuildNavMesh();
+            System.IO.Directory.CreateDirectory("Assets/Scenes/Tutorial");
+            const string path = "Assets/Scenes/Tutorial/TutorialNavMesh.asset";
+            AssetDatabase.DeleteAsset(path);
+            AssetDatabase.CreateAsset(surface.navMeshData, path);
         }
 
         // ---------- Helpers ----------

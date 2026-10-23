@@ -367,7 +367,7 @@ namespace SignalLost.Editor
             AddPart(markings, "Corps Crest", SaveMesh("WreckCrest", kit.Build("WreckCrest")), false);
 
             // The licence plaque on the cockpit console.
-            Transform plaque = Label(markings, "Licence Plaque", (new Vector3(0f, 4.02f, 8.15f), Quaternion.Euler(-25f, 180f, 0f)),
+            Transform plaque = Label(markings, "Licence Plaque", (new Vector3(0f, 4.02f, 8.15f), Quaternion.Euler(25f, 0f, 0f)),
                 "LICENSED SPACE MECHANIC\n<size=70%>Gleebinglorb Republic  -  Grade C (pending)</size>", 0.14f, new Vector2(1.6f, 0.4f), new Color(1f, 0.85f, 0.3f));
             plaque.localPosition += plaque.forward * -0.02f;
         }

@@ -33,7 +33,8 @@ namespace SignalLost.Editor
             Transform targets = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Transform>(true)).FirstOrDefault(t => t.name == "Tutorial Targets");
             UpgradeToCorePlayer(scene, AllGear, targets != null ? targets.gameObject : null);
 
-            // Free play: no story, the merchant is already friendly, test props stay.
+            // Free play: no story, the merchant is already friendly (its cousins wait despawned for the angry-merchant
+            // ambush), test props stay.
             foreach (GameObject root in scene.GetRootGameObjects())
                 foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
                     GameObjectUtility.RemoveMonoBehavioursWithMissingScript(t.gameObject); // the old quest flow
@@ -41,9 +42,30 @@ namespace SignalLost.Editor
             {
                 var data = new SerializedObject(merchant);
                 data.FindProperty("startFriendly").boolValue = true;
+                AddCousins(merchant, data.FindProperty("cousins"));
                 data.ApplyModifiedPropertiesWithoutUndo();
             }
             Save(scene, "SANDBOX_UPGRADED");
+        }
+
+        // The merchant's ten cousins (CrabCousinBuilder), placed beside it; they only appear when it calls them.
+        private static void AddCousins(MerchantCrab merchant, SerializedProperty list)
+        {
+            if (list.arraySize > 0) return;
+            CrabCousinBuilder.Build();
+            var group = new GameObject("Bucket Brothers").transform;
+            group.SetParent(merchant.transform.parent, false);
+            group.position = merchant.transform.position;
+            string[] paths = CrabCousinBuilder.PrefabPaths.ToArray();
+            list.arraySize = paths.Length;
+            for (int i = 0; i < paths.Length; i++)
+            {
+                var cousin = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(paths[i]), group);
+                float angle = i * Mathf.PI * 2f / paths.Length;
+                cousin.transform.position = merchant.transform.position + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * 5f;
+                list.GetArrayElementAtIndex(i).objectReferenceValue = cousin.GetComponent<SignalLost.Enemies.CrabCousin>();
+                cousin.SetActive(false); // despawned until called (and kept out of the runtime NavMesh bake)
+            }
         }
 
         [MenuItem("Signal Lost/Scenes/Upgrade Desert Dunes")]

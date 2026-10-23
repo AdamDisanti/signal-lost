@@ -23,13 +23,14 @@ namespace SignalLost.NPC
         [Tooltip("After surrendering, the crab leads the player home; it waits while the player is this far behind.")]
         [SerializeField, Min(2f)] private float leadWaitDistance = 12f;
 
-        [Header("Angry merchant (hit while friendly)")]
-        [Tooltip("Crab prefab that answers the call when the player keeps hitting the friendly merchant.")]
-        [SerializeField] private HermitCrab ambushCrab;
+        [Header("Cousins (the Bucket Brothers)")]
+        [Tooltip("The same ten cousins fight beside the crab in its quest and answer when the angry merchant calls. " +
+                 "They wait, harmless, until the quest begins; in free play they start despawned.")]
+        [SerializeField] private CrabCousin[] cousins = Array.Empty<CrabCousin>();
+        [Tooltip("Hits on the friendly crab before it calls its cousins.")]
         [SerializeField, Min(1)] private int hitsBeforeAmbush = 6;
         [Tooltip("Each hit is forgotten after this many seconds without another.")]
         [SerializeField, Min(1f)] private float angerCooldown = 10f;
-        [SerializeField] private Vector2Int ambushSize = new Vector2Int(5, 10);
         private HermitCrab brain;
         private HermitCrabRig rig;
         private Health health;
@@ -75,6 +76,16 @@ namespace SignalLost.NPC
         public int Anger => anger;
         public bool AmbushActive => ambush.Count > 0;
         public IReadOnlyList<HermitCrab> Ambush => ambush;
+        public IReadOnlyList<CrabCousin> Cousins => cousins;
+        /// <summary>True when no cousin is still fighting (all defeated or despawned).</summary>
+        public bool CousinsDown
+        {
+            get
+            {
+                foreach (CrabCousin cousin in cousins) if (cousin != null && !cousin.IsDown) return false;
+                return true;
+            }
+        }
 
         private void Awake()
         {
@@ -87,6 +98,7 @@ namespace SignalLost.NPC
             brain.enabled = false;
             brain.Stunnable = false; // a mini-boss: the combo finisher does not stun it
             health.Invulnerable = true;
+            foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.Crab.enabled = false; // until the quest
         }
         private void OnEnable() { health.Died += Defeated; health.Damaged += OnDamaged; health.Blocked += OnBlocked; }
         private void OnDisable()
@@ -128,6 +140,7 @@ namespace SignalLost.NPC
             questStarted = true;
             health.Invulnerable = false;
             brain.enabled = true;
+            foreach (CrabCousin cousin in cousins) if (cousin != null && !cousin.IsDown) cousin.Crab.enabled = true;
         }
 
         private void Start()
@@ -137,7 +150,11 @@ namespace SignalLost.NPC
             brain.enabled = false;
             health.Invulnerable = true;
             if (carriedFlask != null) carriedFlask.SetActive(false);
+            foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.Despawn();
         }
+
+        /// <summary>The story has already introduced the crab, so the first visit opens the shop straight away.</summary>
+        public void MarkGreeted() => friendlyGreetingShown = true;
 
         /// <summary>The friendly crab's own small talk and shop, once the story no longer needs it.</summary>
         public void OpenShop(bool greet = true)
@@ -173,9 +190,12 @@ namespace SignalLost.NPC
                 drop = hit.point + Vector3.up * 0.03f;
             flaskDrop.transform.position = drop;
             flaskDrop.gameObject.SetActive(true);
-            dialogue.Speak("All right! Claws down!",
-                "Trading is my business. Brawling is clearly yours.",
-                "Let's call that an aggressive negotiation.");
+            if (CousinsDown)
+                dialogue.Speak("All right! Claws down!",
+                    "Trading is my business. Brawling is clearly yours.",
+                    "Let's call that an aggressive negotiation.");
+            else
+                dialogue.Speak("All right! Claws down!", "But I can't call the cousins off once they get going!");
             StartCoroutine(Recover());
         }
 
@@ -185,6 +205,12 @@ namespace SignalLost.NPC
             health.Restore();
             rig.ResetPose();
             foreach (Collider item in GetComponents<Collider>()) item.enabled = true;
+            if (!CousinsDown)
+            {
+                // It has given up, but the cousins have not: it waits for the brawl to end before leading the way.
+                yield return new WaitUntil(() => CousinsDown);
+                dialogue.Speak(4f, "...And that's the whole family. Fine, FINE. I'll come quietly.");
+            }
             agent.enabled = true;
             if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 3, NavMesh.AllAreas)) agent.Warp(hit.position);
             agent.updateRotation = true;
@@ -247,7 +273,7 @@ namespace SignalLost.NPC
             if (Time.time >= nextLeadCall)
             {
                 nextLeadCall = Time.time + 9f;
-                dialogue.Speak(3.5f, playerGear != null && playerGear.Has(PlayerItem.Flask) ? "This way, mechanic! Shop's back at your wreck." : "Grab your flask, then follow me! I'll wait.");
+                dialogue.Speak(3.5f, playerGear != null && playerGear.Has(PlayerItem.Flask) ? "This way, mechanic! Your camp's just ahead." : "Grab your flask, then follow me! I'll wait.");
             }
         }
 
@@ -258,7 +284,7 @@ namespace SignalLost.NPC
         {
             if (!IsDefeated || source == null || source.GetComponentInParent<PlayerLife>() == null) return;
             rig.Flinch(false);
-            if (AmbushActive) return;
+            if (AmbushActive || !CousinsDown) return; // still busy with the quest brawl
             anger++;
             nextCalm = Time.time + angerCooldown;
             if (anger >= hitsBeforeAmbush) StartAmbush();
@@ -269,18 +295,17 @@ namespace SignalLost.NPC
         {
             shop.Close();
             dialogue.Warn("THAT'S IT! Bucket Brothers, ASSEMBLE!");
-            if (ambushCrab == null) { EndAmbush(); return; }
-            int count = UnityEngine.Random.Range(ambushSize.x, Mathf.Max(ambushSize.x, ambushSize.y) + 1);
-            for (int i = 0; i < count; i++)
+            // Always the same ten cousins, back at full health in a ring around the merchant.
+            for (int i = 0; i < cousins.Length; i++)
             {
-                float angle = (i + UnityEngine.Random.value * 0.5f) / count * Mathf.PI * 2f;
+                if (cousins[i] == null) continue;
+                float angle = (i + UnityEngine.Random.value * 0.5f) / cousins.Length * Mathf.PI * 2f;
                 Vector3 spot = transform.position + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * UnityEngine.Random.Range(4.5f, 8f);
                 if (!NavMesh.SamplePosition(spot, out NavMeshHit hit, 4f, NavMesh.AllAreas)) continue;
                 Vector3 face = player != null ? player.transform.position - hit.position : -transform.forward;
                 face.y = 0f;
-                HermitCrab crab = Instantiate(ambushCrab, hit.position, face.sqrMagnitude > 0.01f ? Quaternion.LookRotation(face) : Quaternion.identity);
-                crab.name = "Bucket Brother " + (i + 1);
-                ambush.Add(crab);
+                cousins[i].Summon(hit.position, face.sqrMagnitude > 0.01f ? Quaternion.LookRotation(face) : Quaternion.identity);
+                ambush.Add(cousins[i].Crab);
             }
             if (ambush.Count == 0) { EndAmbush(); return; }
             StartCoroutine(ProvokeAmbush());
@@ -312,7 +337,9 @@ namespace SignalLost.NPC
         // Ends the ambush the way the fight ended: the crab surrenders again and the shop stays open.
         private void EndAmbush()
         {
-            foreach (HermitCrab crab in ambush) if (crab != null) Destroy(crab.gameObject, crab.IsDead ? 4f : 0f);
+            // Fallen cousins despawn by themselves; the rest go home too.
+            foreach (HermitCrab crab in ambush)
+                if (crab != null && !crab.IsDead && crab.TryGetComponent(out CrabCousin cousin)) cousin.Despawn();
             ambush.Clear();
             anger = 0;
             dialogue.Speak(4f, "All right, all right! Claws down... AGAIN.", "No hard feelings? The shop's still open.");
