@@ -5,6 +5,6 @@ namespace SignalLost.Core
     {
         public const string MainMenu = "MainMenu";
         /// <summary>Where "New Game" starts.</summary>
-        public const string FirstLevel = "Tutorial";
+        public const string FirstLevel = "Tutorial Demo";
     }
 }

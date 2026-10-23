@@ -767,6 +767,19 @@ def _():
     return seamless(gen, 10.0, 2.0)
 
 
+# ---------------------------------------------------------------- low health (added 10-23; last, so earlier sounds keep their random draws)
+
+@sound('low_health_heartbeat', loop=True)
+def _():
+    """A slow, muffled lub-dub (about 70 bpm) that loops while the player is badly hurt."""
+    beat = 0.86
+    def thump(dur, f0, f1, amp):
+        body = osc(glide(f0, f1, dur), None) * env_ad(dur, 0.004, dur * 0.28)
+        return lp(body + lp(noise(dur), 160) * env_ad(dur, 0.002, 0.03) * 0.35, 220) * amp
+    x = at(thump(0.22, 72, 44, 1.0), 0.0, beat) + at(thump(0.2, 64, 40, 0.7), 0.27, beat)
+    return x
+
+
 # ---------------------------------------------------------------- write
 
 def write_wav(path, x):

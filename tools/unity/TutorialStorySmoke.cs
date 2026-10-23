@@ -50,7 +50,8 @@ public static class TutorialStorySmoke
         string project = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
         if (!Application.isBatchMode || !(project.StartsWith(Path.GetFullPath(Path.GetTempPath())) || project.StartsWith("/private/tmp/")))
             throw new InvalidOperationException("Run in a disposable batch-mode project under the system temporary directory.");
-        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial/Tutorial.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial/Tutorial Demo.unity");
+        SignalLost.Progression.CampSave.Clear(); // start (and finish) with an empty camp
         SessionState.SetBool(Key, true);
         SessionState.SetFloat(Key + "Time", (float)EditorApplication.timeSinceStartup);
         EditorApplication.EnterPlaymode();
@@ -229,8 +230,59 @@ public static class TutorialStorySmoke
         ReadCardsThen(interactor);
         Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("Twenty frogs"), "Cavendish warns of the Chief Toad.");
         yield return ReadToEnd(ui);
-        Check(story.Current == TutorialStory.Stage.ChiefToad, "The tutorial stops at the Chief Toad quest.");
+        ChiefToadEncounter encounter = UnityEngine.Object.FindAnyObjectByType<ChiefToadEncounter>();
+        Check(story.Current == TutorialStory.Stage.ChiefToad && encounter.Current == ChiefToadEncounter.State.Armed && !encounter.Toad.gameObject.activeSelf,
+            "Cavendish gives the Chief Toad quest; the toad is not there until the player reaches the pond.");
         yield return Capture("ChiefToad");
+
+        // ---------- The Chief Toad ----------
+        Teleport(life, frogs.transform.position + Vector3.back * 30f);
+        yield return WaitFor(() => encounter.Current == ChiefToadEncounter.State.Cutscene, 3f, "Reaching the pond starts the cutscene.");
+        yield return 2.5f;
+        Check(encounter.Toad.gameObject.activeSelf && !encounter.Toad.enabled && Camera.main != view, "The toad rises from the middle of the pond, seen from the bank.");
+        var shot = UnityEngine.Object.FindObjectsByType<Camera>().FirstOrDefault(c => c.name.Contains("Cutscene"));
+        if (shot != null) { Camera player = view; view = shot; yield return Capture("ToadRise"); view = player; }
+        yield return WaitFor(() => encounter.Current == ChiefToadEncounter.State.Fighting, 8f, "Control returns for the fight.");
+        Check(encounter.Toad.enabled && view.enabled && life.GetComponent<FirstPersonController>().enabled, "The player can move again.");
+        yield return 1.5f;
+        Check(encounter.Toad.Engaged, "The Chief Toad engages (his boss bar is up).");
+        yield return 4f;
+        Check(frogs.Sustaining && frogs.Alive.Count >= 3 && frogs.Alive.Count <= 5, $"3-5 frogs keep him company ({frogs.Alive.Count} out).");
+        yield return Capture("ToadFight");
+        life.Health.Invulnerable = true;
+        var toadHealth = encounter.Toad.GetComponent<Health>();
+        for (int i = 0; i < 200 && encounter.Current != ChiefToadEncounter.State.Defeated; i++)
+        {
+            toadHealth.TakeDamage(120f, life.gameObject);
+            yield return 0.2f;
+        }
+        Check(encounter.Current == ChiefToadEncounter.State.Defeated && story.Current == TutorialStory.Stage.ToadBeaten, "The Chief Toad is beaten.");
+        yield return 0.5f;
+        Check(!frogs.Sustaining && frogs.Alive.Count == 0, "His frogs leave with him.");
+        Check(encounter.Trophy != null && UnityEngine.Object.FindObjectsByType<ScrapPickup>().Length > 0, "He leaves a loot pile: scrap, the cooling system and his crown.");
+        yield return 1f;
+        yield return Capture("ToadLoot");
+        Check(encounter.Trophy.Interact(interactor) && inventory.HasKeyItem("chief_toad_crown"), "The crown goes into the pockets.");
+        ReadCardsThen(interactor);
+
+        // ---------- The trophy at camp, and the end ----------
+        Teleport(life, PlayerSpawnPoint.Current.transform.position);
+        yield return 0.3f;
+        var stand = UnityEngine.Object.FindObjectsByType<SignalLost.Progression.TrophyStand>().OrderBy(t => t.Index).First();
+        Check(stand.Prompt.Contains("Crown") && stand.Interact(interactor) && stand.TrophyId == "chief_toad_crown", "The crown goes on a trophy stand at camp.");
+        yield return null;
+        Check(stand.GetComponentsInChildren<Transform>().Any(t => t.name == "Chief Toad's Crown") && File.Exists(SignalLost.Progression.CampSave.FilePath) &&
+              File.ReadAllText(SignalLost.Progression.CampSave.FilePath).Contains("chief_toad_crown"), "It is shown on the stand and saved to disk.");
+        Check(story.Current == TutorialStory.Stage.TrophyPlaced, "Then: tell Cavendish.");
+        view.transform.LookAt(stand.transform.position + Vector3.up);
+        yield return Capture("Trophy");
+        Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("You did it"), "Cavendish wraps up the demo.");
+        yield return ReadToEnd(ui);
+        Check(story.Current == TutorialStory.Stage.DemoComplete && DemoEndCard.Current != null && DemoEndCard.Current.IsOpen, "The 'Thanks for playing' card appears.");
+        yield return Capture("EndCard");
+        DemoEndCard.Current.KeepExploring();
+        Check(!DemoEndCard.Current.IsOpen && !UiMenus.AnyOpen, "Keep Exploring returns the player to the meadow.");
+        SignalLost.Progression.CampSave.Clear();
 
         // ---------- Angry merchant ----------
         for (int hit = 0; hit < 6; hit++) merchant.GetComponent<Health>().TakeDamage(10f, life.gameObject);

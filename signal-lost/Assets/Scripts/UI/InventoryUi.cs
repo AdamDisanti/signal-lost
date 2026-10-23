@@ -167,7 +167,7 @@ namespace SignalLost.UI
             string[] keys = inventory.KeyItems.ToArray();
             TextMeshProUGUI list = UiTheme.Label("Key Items", page, 24f, keys.Length > 0 ? UiTheme.Text : UiTheme.Muted, TextAlignmentOptions.TopLeft);
             UiTheme.Place(list.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(900f, -44f), new Vector2(480f, 400f));
-            list.text = keys.Length > 0 ? string.Join("\n", keys.Select(k => "- " + k)) :
+            list.text = keys.Length > 0 ? string.Join("\n", keys.Select(k => "- " + (SignalLost.Progression.Trophy.Find(k)?.Name ?? k))) :
                 "<i>None yet. Mini-bosses drop rare parts that some upgrades need.</i>";
         }
 

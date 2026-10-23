@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SignalLost.Core;
 using SignalLost.Effects;
 using SignalLost.Enemies;
 using SignalLost.Enemies.Meadow;
@@ -17,7 +18,7 @@ namespace SignalLost.Audio
     /// <summary>
     /// Starts itself when the game runs (no scene setup needed) and adds sound to whatever is in the current scene:
     /// <list type="bullet">
-    /// <item>a background ambience loop chosen by scene name;</item>
+    /// <item>a background ambience loop chosen by scene name, and the title screen's music (looping seamlessly);</item>
     /// <item><see cref="PlayerAudio"/> on the player and <see cref="CreatureAudio"/> on every hermit crab;</item>
     /// <item>crackling loops on fires, a fizzing loop on electrical fires and sparks, lapping water at the pond;</item>
     /// <item>hover/click sounds on every UI button, open/close sounds for menus, a cha-ching when the shop opens;</item>
@@ -33,8 +34,10 @@ namespace SignalLost.Audio
         public static SoundDirector Instance { get; private set; }
 
         private const float AmbienceVolume = 0.22f;
+        private const float MusicLevel = 0.8f;
 
         private SfxLoop ambience;
+        private AudioSource music;
         private float sceneStarted, nextScan;
         private bool menusWereOpen, shopWasOpen;
         private TutorialStory story;
@@ -54,6 +57,13 @@ namespace SignalLost.Audio
             Instance = this;
             Sfx.SetRoot(transform);
             ambience = Sfx.AddLoop(gameObject, "amb_meadow", AmbienceVolume, false, bus: SoundBus.Ambience, childName: "Ambience");
+            // Music: one 2D track, looped sample-accurately (the clip is imported uncompressed so the loop has no gap).
+            music = new GameObject("Music").AddComponent<AudioSource>();
+            music.transform.SetParent(transform, false);
+            music.loop = true;
+            music.playOnAwake = false;
+            music.spatialBlend = 0f;
+            music.ignoreListenerPause = true;
             SceneManager.sceneLoaded += OnSceneLoaded;
             StageProgress.MainPartRecovered += OnMainPartRecovered;
             SetUpScene(SceneManager.GetActiveScene());
@@ -80,6 +90,15 @@ namespace SignalLost.Audio
             if (story != null) story.StageChanged -= OnStageChanged;
             story = null;
 
+            string track = MusicFor(scene.name);
+            AudioClip clip = track != null ? Sfx.Clip(track) : null;
+            if (clip != music.clip || (clip != null && !music.isPlaying))
+            {
+                music.Stop();
+                music.clip = clip;
+                if (clip != null) music.Play();
+            }
+
             string bed = AmbienceFor(scene.name);
             if (ambience != null)
             {
@@ -89,12 +108,16 @@ namespace SignalLost.Audio
             }
         }
 
+        /// <summary>Music per scene (follows the Music slider). Only the title screen has a track so far.</summary>
+        private static string MusicFor(string sceneName) =>
+            sceneName.ToLowerInvariant().Contains("mainmenu") ? "Signal lost main menu music" : null;
+
         /// <summary>Background loop per scene. Add a line here for new levels; test scenes stay quiet.</summary>
         private static string AmbienceFor(string sceneName)
         {
             string name = sceneName.ToLowerInvariant();
             if (name.Contains("desert")) return "amb_desert";
-            if (name.Contains("tutorial") || name.Contains("mainmenu")) return "amb_meadow";
+            if (name.Contains("tutorial")) return "amb_meadow"; // the title screen has music instead
             if (name.Contains("sandbox")) return "amb_wind";
             return null;
         }
@@ -102,6 +125,7 @@ namespace SignalLost.Audio
         private void Update()
         {
             if (ambience != null) ambience.Level = Mathf.MoveTowards(ambience.Level, 1f, Time.unscaledDeltaTime / 2.5f);
+            if (music != null) music.volume = MusicLevel * GameSettings.MusicVolume;
             if (Time.unscaledTime >= nextScan)
             {
                 // Every second at first, then every 3 s (scanning is cheap but not free in big scenes).

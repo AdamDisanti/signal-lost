@@ -148,6 +148,18 @@ public static class CoreSystemsSmoke
         Check(movement.IsSliding && GetField<Vector3>(movement, "momentum").magnitude >= 7f * movement.MovementScale * 1.5f - 0.01f, "A slide starts at 1.5x sprint speed.");
         movement.ResetMotion();
 
+        // ---------- Low health (10-23) ----------
+        float healthy = life.Health.Current;
+        life.Health.TakeDamage(life.Health.Current - 20f);
+        yield return 1.2f;
+        Image lowHealth = GetField<Image>(GameHud.Instance, "lowHealthImage");
+        Check(lowHealth.color.a > 0.2f && GetField<TMPro.TextMeshProUGUI>(GameHud.Instance, "lowHealthText").alpha > 0.3f,
+            "At 30 health or less the screen edges pulse red and say LOW HEALTH.");
+        yield return Capture("LowHealth");
+        life.Health.Heal(healthy);
+        yield return 1.2f;
+        Check(lowHealth.color.a < 0.05f, "Healing above 30 clears it.");
+
         // ---------- Menus ----------
         PauseMenu.Instance.Open();
         Check(Time.timeScale == 0f && UiMenus.FullScreenOpen, "Pause stops time and owns the screen.");

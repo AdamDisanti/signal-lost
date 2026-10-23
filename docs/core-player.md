@@ -87,6 +87,7 @@ All UI is drawn in code on singleton canvases (`Scripts/UI/`), so there are no U
   - New Game loads the Tutorial (`SceneNames.FirstLevel`);
   - Continue is a placeholder; Settings and Exit work.
 - **Item cards** ("NEW GEAR"): stay up until the player presses **E** or Enter; several queue up. **Rule for all future tutorial pop-ups: never on a timer.**
+- **Low health:** at 30 health or less the screen edges pulse red with a heartbeat (sound too) and "LOW HEALTH - drink [F]" appears; stronger the lower you go (`GameHud.LowHealth`).
 - **Pips:** the three combo pips drain right to left during the 2 s combo recharge; the top flask pip drains as the current drink wears off, a timer for the next sip.
 - **Menus:** `UiMenus` tracks open menus, so full-screen ones hide the HUD and Esc closes the top one first.
 

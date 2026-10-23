@@ -1,5 +1,6 @@
 using System.Linq;
 using SignalLost.Enemies;
+using SignalLost.Enemies.Meadow;
 using SignalLost.Inventory;
 using SignalLost.NPC;
 using SignalLost.Player;
@@ -25,6 +26,7 @@ namespace SignalLost.Editor
         private const string ScannerRigPath = "Assets/Prefabs/Player/Scanner/ScannerRig.prefab";
         private const string MerchantPath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
         private const string FrogPath = "Assets/Prefabs/Enemies/MortarFrog.prefab";
+        private const string ChiefToadPath = "Assets/Prefabs/Enemies/Meadow/ChiefToad.prefab";
         private static readonly Color LaserGlow = new Color(1f, 0.7f, 0.3f);
         private static readonly Color ScannerGlow = new Color(0.42f, 0.9f, 0.86f);
         private static readonly Color FlaskGlow = new Color(1f, 0.62f, 0.2f); // warm Scotch amber
@@ -60,6 +62,7 @@ namespace SignalLost.Editor
             ItemPickup scanner = BuildScanner(crash);
             MerchantCrab merchant = BuildMerchant(story, hollow, camp);
             FrogWaves frogs = BuildPondFrogs(story);
+            ChiefToadEncounter toad = BuildChiefToad(story, frogs);
 
             var flow = new SerializedObject(story.gameObject.AddComponent<TutorialStory>());
             flow.FindProperty("cavendish").objectReferenceValue = cavendish;
@@ -73,6 +76,7 @@ namespace SignalLost.Editor
             flow.FindProperty("laserPickup").objectReferenceValue = laser;
             flow.FindProperty("scannerPickup").objectReferenceValue = scanner;
             flow.FindProperty("frogs").objectReferenceValue = frogs;
+            flow.FindProperty("toad").objectReferenceValue = toad;
             flow.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -119,6 +123,35 @@ namespace SignalLost.Editor
             for (int i = 0; i < points.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = points[i];
             waves.ApplyModifiedPropertiesWithoutUndo();
             return colony.GetComponent<FrogWaves>();
+        }
+
+        // The Chief Toad, switched off in the middle of the pond until Cavendish's last quest arms the encounter. His
+        // arena is widened to cover our pond (50 x 34 m; his test pond is much smaller).
+        private static ChiefToadEncounter BuildChiefToad(Transform story, FrogWaves frogs)
+        {
+            Vector2 pond = TutorialLevelBuilder.Pond, radii = TutorialLevelBuilder.PondRadii;
+            var encounter = new GameObject("Chief Toad Encounter").transform;
+            encounter.SetParent(story, false);
+            var centre = new GameObject("Pond Centre").transform;
+            centre.SetParent(encounter, false);
+            centre.position = new Vector3(pond.x, TutorialLevelBuilder.PondWater, pond.y);
+            centre.gameObject.AddComponent<QuestSignalSource>().enabled = false;
+
+            GameObject toad = Instance(ChiefToadPath, encounter);
+            toad.name = "Chief Toad";
+            toad.transform.position = centre.position;
+            var boss = new SerializedObject(toad.GetComponent<ChiefToad>());
+            boss.FindProperty("arenaRadius").floatValue = Mathf.Max(radii.x, radii.y) + 15f;
+            boss.ApplyModifiedPropertiesWithoutUndo();
+            toad.SetActive(false);
+
+            var data = new SerializedObject(encounter.gameObject.AddComponent<ChiefToadEncounter>());
+            data.FindProperty("toad").objectReferenceValue = toad.GetComponent<ChiefToad>();
+            data.FindProperty("frogs").objectReferenceValue = frogs;
+            data.FindProperty("pondCentre").objectReferenceValue = centre;
+            data.FindProperty("triggerRadius").floatValue = Mathf.Max(radii.x, radii.y) + 15f;
+            data.ApplyModifiedPropertiesWithoutUndo();
+            return encounter.GetComponent<ChiefToadEncounter>();
         }
 
         private static MerchantCrab BuildMerchant(Transform story, Transform hollow, Vector2 camp)

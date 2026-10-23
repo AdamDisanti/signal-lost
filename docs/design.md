@@ -233,3 +233,12 @@ Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutoria
 - **Pockets:** four tabs (the notes said three but listed four): Materials, Gear (3D mechanic wearing upgrades, tool close-ups, supplies), Upgrades, Stats.
 - **Tutorial ending:** buy a first upgrade (required before Cavendish's next job), clear 20 pond frogs in three growing waves (5, 7, 8), then take the Chief Toad quest; the tutorial stops there until the mini-boss is merged.
 - **Open:** the Chief Toad itself and its reward (ideas in [upgrades](upgrades.md#ideas-for-the-chief-toad-reward-not-built)); costs and frog drop rates need a play-test; crouch and slide feel can only be judged by playing.
+
+## Demo round (meeting notes 10-23-26, second list)
+
+- **Music:** the title screen plays "Signal lost main menu music" on a seamless loop (imported uncompressed so the loop has no gap); the Music slider controls it.
+- **Low health:** at 30 health or less, a pulsing red vignette, a heartbeat and a "drink [F]" reminder.
+- **Chief Toad in the tutorial:** spawned only after Cavendish's quest; a short rise-from-the-pond cutscene with his boss bar; 3-5 frogs kept alive during the fight (no scrap from them); beaten, he drops a loot pile including his crown.
+- **Base camp and trophies:** the camp is one prefab (`Prefabs/Core/BaseCamp.prefab`) with three trophy stands, to be placed in every later level. Boss trophies are picked up from the loot and set on a stand; placed trophies are saved to disk (`CampSave`), and New Game clears them. This is the game's first real save data.
+- **Demo:** the tutorial scene is now **Tutorial Demo**; the demo build is the title screen plus that scene. Adam asked for a Mac build now and Windows-ready setup for teammates (the Windows module is not installed on his Mac). See [demo build](demo-build.md).
+- **End of the demo:** Cavendish's wrap-up, then a "Thanks for playing" card (Keep Exploring / Main Menu).

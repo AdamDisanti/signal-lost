@@ -80,6 +80,11 @@ namespace SignalLost.Inventory
             if (keyItems.Add(id)) Changed?.Invoke();
         }
 
+        public void RemoveKeyItem(string id)
+        {
+            if (keyItems.Remove(id)) Changed?.Invoke();
+        }
+
         /// <summary>Why it cannot be bought right now, or null if it can.</summary>
         public string WhyNot(Upgrade upgrade)
         {

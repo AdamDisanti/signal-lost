@@ -30,7 +30,12 @@ namespace SignalLost.UI
         private PlayerFlask flask;
         private PlayerInteractor interactor;
         private Health health;
-        private float trail = 1f, hurtFlash, nextFind, shownHealth = -1f;
+        private float trail = 1f, hurtFlash, nextFind, shownHealth = -1f, lowHealthLevel;
+        private Image lowHealthImage;
+        private TextMeshProUGUI lowHealthText;
+
+        /// <summary>At or below this much health the screen edges pulse red with a heartbeat: time to drink.</summary>
+        public const float LowHealth = 30f;
 
         private CanvasGroup barGroup, centreGroup;
         private TextMeshProUGUI healthValue, flaskTitle, flaskInfo, handTitle, handInfo, prompt, targetName, chargeText, centreMessage, centreSub;
@@ -147,6 +152,7 @@ namespace SignalLost.UI
             centreGroup.alpha = hasPlayer && !UiMenus.AnyOpen && Cursor.lockState == CursorLockMode.Locked ? 1f : 0f;
             hurtFlash = Mathf.MoveTowards(hurtFlash, 0f, Time.unscaledDeltaTime / 0.35f);
             hurtImage.color = new Color(0.75f, 0f, 0f, 0.32f * hurtFlash);
+            UpdateLowHealth(hasPlayer);
             fade.color = new Color(0f, 0f, 0f, Mathf.MoveTowards(fade.color.a, fadeTarget, Time.unscaledDeltaTime / 0.45f));
             centreMessage.text = respawnMessage ?? "";
             centreSub.text = respawnMessage != null ? "Coming round..." : "";
@@ -230,6 +236,42 @@ namespace SignalLost.UI
             }
         }
 
+        // Red screen edges that beat like a heart (lub-dub every 0.86 s, matching the heartbeat sound), stronger the
+        // lower health goes, plus a reminder to drink.
+        private void UpdateLowHealth(bool hasPlayer)
+        {
+            Health health = hasPlayer ? life.Health : null;
+            bool low = health != null && !health.IsDead && !life.IsRespawning && health.Current <= LowHealth;
+            float depth = low ? 1f - Mathf.Clamp01(health.Current / LowHealth) : 0f;
+            lowHealthLevel = Mathf.MoveTowards(lowHealthLevel, low ? 0.55f + 0.45f * depth : 0f, Time.unscaledDeltaTime * 2f);
+            float t = Mathf.Repeat(Time.unscaledTime, 0.86f);
+            float beat = Mathf.Exp(-t * 14f) + 0.7f * Mathf.Exp(-Mathf.Max(0f, t - 0.27f) * 14f) * (t > 0.27f ? 1f : 0f);
+            lowHealthImage.color = new Color(0.8f, 0.02f, 0.02f, lowHealthLevel * (0.45f + 0.35f * beat));
+            bool hasFlask = gear != null && gear.Has(PlayerItem.Flask);
+            lowHealthText.text = hasFlask ? "LOW HEALTH  -  drink  <b>[F]</b>" : "LOW HEALTH";
+            lowHealthText.alpha = UiMenus.AnyOpen ? 0f : Mathf.Clamp01(lowHealthLevel * 1.6f) * (0.75f + 0.25f * beat);
+        }
+
+        private static Sprite vignette;
+
+        // Clear in the middle, solid at the edges.
+        private static Sprite Vignette()
+        {
+            if (vignette != null) return vignette;
+            const int size = 128;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "Low Health Vignette" };
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
+                float d = Mathf.Sqrt(dx * dx * 0.8f + dy * dy);
+                float a = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.55f, 1.25f, d));
+                texture.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+            texture.Apply();
+            return vignette = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+        }
+
         // A coloured bar inside a pip; SetFill grows it upward (vertical) or rightward.
         private static Image Fill(Image pip)
         {
@@ -290,6 +332,12 @@ namespace SignalLost.UI
 
             hurtImage = UiTheme.Block("Hurt Flash", root, Color.clear);
             UiTheme.Stretch(hurtImage.rectTransform);
+            lowHealthImage = UiTheme.Block("Low Health", root, Color.clear);
+            lowHealthImage.sprite = Vignette();
+            UiTheme.Stretch(lowHealthImage.rectTransform);
+            lowHealthText = UiTheme.Label("Low Health Hint", root, 30f, UiTheme.Warning, TextAlignmentOptions.Center, FontStyles.Bold);
+            UiTheme.Place(lowHealthText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, BottomReserved + 70f), new Vector2(900f, 40f));
+            lowHealthText.alpha = 0f;
 
             // Crosshair, charge meter, target readout and prompt.
             RectTransform centre = UiTheme.Stretch(UiTheme.Rect("Centre", root));

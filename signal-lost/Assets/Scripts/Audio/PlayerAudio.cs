@@ -31,7 +31,7 @@ namespace SignalLost.Audio
         private CharacterController body;
         private WakeUpSequence wakeUp;
 
-        private SfxLoop chargeLoop;
+        private SfxLoop chargeLoop, heartbeat;
         private AudioSource ringing;
         private string surface = "dirt";
 
@@ -65,6 +65,8 @@ namespace SignalLost.Audio
                 chargeLoop.Source.loop = false;
                 chargeLoop.Source.Stop();
             }
+            heartbeat = Sfx.AddLoop(gameObject, "low_health_heartbeat", 0.7f, false, childName: "Low Health Heartbeat");
+            if (heartbeat != null) heartbeat.Level = 0f;
             nextHiccup = Time.time + 8f;
             if (laser != null) lastHitSeen = laser.LastHitTime;
         }
@@ -97,6 +99,16 @@ namespace SignalLost.Audio
             UpdateScanner();
             UpdateFlask();
             UpdateWakeUp();
+            UpdateHeartbeat();
+        }
+
+        // A heartbeat under everything while health is at or below the low-health line (the HUD pulses with it).
+        private void UpdateHeartbeat()
+        {
+            if (heartbeat == null || health == null) return;
+            bool low = !health.IsDead && health.Current <= SignalLost.UI.GameHud.LowHealth;
+            float target = low ? Mathf.Lerp(1f, 0.55f, health.Current / SignalLost.UI.GameHud.LowHealth) : 0f;
+            heartbeat.Level = Mathf.MoveTowards(heartbeat.Level, target, Time.unscaledDeltaTime * 1.5f);
         }
 
         // ---------- Mining laser ----------

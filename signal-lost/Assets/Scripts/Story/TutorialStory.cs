@@ -22,15 +22,18 @@ namespace SignalLost.Story
     /// <item>The crab (the merchant) waits in a hidden hollow with its ten cousins. Once the crab surrenders and the
     /// cousins are down, it walks back to camp and introduces itself (Eugene) and its shop.</item>
     /// <item>The shop opens; once an upgrade is bought, Cavendish sends the player to clear 20 frogs at the pond (three
-    /// growing waves, <see cref="FrogWaves"/>), then warns of the Chief Toad. The tutorial stops at that quest until
-    /// the mini-boss is merged in (meeting notes 10-23).</item>
+    /// growing waves, <see cref="FrogWaves"/>), then warns of the Chief Toad.</item>
+    /// <item>The toad rises from the pond (<see cref="ChiefToadEncounter"/>); beaten, he leaves his crown in the loot.
+    /// The player sets it on a trophy stand at camp, Cavendish wraps up, and the demo's end card appears
+    /// (meeting notes 10-23).</item>
     /// </list>
     /// NPCs ask this story what to say (<see cref="INpcStory"/>); quest signals steer the scanner and the tracker
     /// shows the current objective. Space skips the opening.
     /// </summary>
     public sealed class TutorialStory : MonoBehaviour, INpcStory
     {
-        public enum Stage { Opening, Greeting, SearchGear, Fight, MerchantComing, MerchantIntro, FirstUpgrade, ShowCavendish, Frogs, FrogsDone, ChiefToad }
+        public enum Stage { Opening, Greeting, SearchGear, Fight, MerchantComing, MerchantIntro, FirstUpgrade, ShowCavendish, Frogs, FrogsDone, ChiefToad,
+            ToadFight, ToadBeaten, TrophyPlaced, DemoComplete }
 
         [Header("Cast")]
         [SerializeField] private NpcActor cavendish;
@@ -53,6 +56,8 @@ namespace SignalLost.Story
         [SerializeField] private ItemPickup scannerPickup;
         [Tooltip("The pond frogs Cavendish sends the player after (20 in three waves).")]
         [SerializeField] private FrogWaves frogs;
+        [Tooltip("The Chief Toad's fight at the pond, armed by Cavendish's last quest.")]
+        [SerializeField] private ChiefToadEncounter toad;
 
         private const string SearchTitle = "Salvage Run";
         private const string CrabTitle = "The Big Crab";
@@ -97,6 +102,13 @@ namespace SignalLost.Story
             "I'm afraid we've rather annoyed the Chief Toad. Enormous fellow. Lives somewhere past the pond.",
             "He'll come looking for whoever did this. Best we find him first. Get yourself ready."
         };
+        private static readonly string[] WrapUp =
+        {
+            "You did it! The Chief Toad, beaten by a space mechanic with a rusty laser. Splendid.",
+            "And that crown looks rather fetching on the stand. Every chief we topple goes up there, I say.",
+            "That cooling system's a start on the ship, too. There are plenty more parts out there, mind.",
+            "Rest up by the fire, mechanic. Tomorrow: the desert."
+        };
         private const string GearUpTitle = "Kitted Out";
         private const string PondTitle = "Pond Life";
         private const string ToadTitle = "The Chief Toad";
@@ -132,6 +144,9 @@ namespace SignalLost.Story
         {
             pockets.Purchased += OnPurchased;
             if (frogs != null) frogs.Cleared += OnFrogsCleared;
+            if (toad != null) { toad.Started += OnToadFight; toad.Beaten += OnToadBeaten; }
+            SignalLost.Progression.TrophyPickup.PickedUp += OnTrophyPickedUp;
+            SignalLost.Progression.TrophyStand.Placed += OnTrophyPlaced;
             gear.Collected += OnCollected;
             player.Respawned += OnRespawned;
             merchant.ArrivedHome += OnMerchantHome;
@@ -141,6 +156,9 @@ namespace SignalLost.Story
         {
             pockets.Purchased -= OnPurchased;
             if (frogs != null) frogs.Cleared -= OnFrogsCleared;
+            if (toad != null) { toad.Started -= OnToadFight; toad.Beaten -= OnToadBeaten; }
+            SignalLost.Progression.TrophyPickup.PickedUp -= OnTrophyPickedUp;
+            SignalLost.Progression.TrophyStand.Placed -= OnTrophyPlaced;
             gear.Collected -= OnCollected;
             player.Respawned -= OnRespawned;
             merchant.ArrivedHome -= OnMerchantHome;
@@ -211,7 +229,16 @@ namespace SignalLost.Story
                     Converse(cavendish.transform, "Cavendish", ToadTitle, ChiefToadLines, EnterChiefToad);
                     return true;
                 case Stage.ChiefToad:
-                    return Remind(bubble, new[] { "The Chief Toad's out past the pond somewhere. Patch yourself up first." });
+                    return Remind(bubble, new[] { "He'll be at the pond, I'd wager. Patch yourself up first, and mind his beam." });
+                case Stage.ToadFight:
+                    return Remind(bubble, new[] { "Why are you here? There's a giant toad at the pond!" });
+                case Stage.ToadBeaten:
+                    return Remind(bubble, pockets.HasKeyItem("chief_toad_crown")
+                        ? new[] { "Is that his crown? Magnificent! Put it on the trophy stand by the tent, go on." }
+                        : new[] { "You beat him? Then fetch his crown from the pond. Every chief we topple goes on the trophy stand." });
+                case Stage.TrophyPlaced:
+                    Converse(cavendish.transform, "Cavendish", "Trophy Night", WrapUp, EnterDemoComplete);
+                    return true;
                 default:
                     return false; // his own small talk
             }
@@ -371,12 +398,50 @@ namespace SignalLost.Story
             GameplayOverlay.Instance.SetQuest(PondTitle, $"All {frogs.Total} frogs cleared. Report back to Cavendish.");
         }
 
-        // The tutorial stops here until the Chief Toad mini-boss is merged in.
+        // The Chief Toad waits under the pond from now on (meeting notes 10-23: he only appears once the quest is given).
         private void EnterChiefToad()
         {
             SetStage(Stage.ChiefToad);
             Signal(cavendish, false);
-            GameplayOverlay.Instance.SetQuest(ToadTitle, "Find and defeat the Chief Toad, somewhere past the pond.\n<i>Coming soon: the toad is still being built.</i>");
+            if (toad != null) toad.Arm();
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "Find the Chief Toad at the pond, due north of camp, and defeat him.");
+        }
+
+        private void OnToadFight()
+        {
+            SetStage(Stage.ToadFight);
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "Defeat the Chief Toad. Dodge the beam, jump the waves, and keep the frogs off you.");
+        }
+
+        private void OnToadBeaten()
+        {
+            SetStage(Stage.ToadBeaten);
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "The Chief Toad is beaten! Grab his crown from the loot, then take it home to camp.");
+            if (toad.Trophy != null && !toad.Trophy.TryGetComponent(out QuestSignalSource _)) toad.Trophy.gameObject.AddComponent<QuestSignalSource>();
+        }
+
+        private void OnTrophyPickedUp(string id)
+        {
+            if (stage != Stage.ToadBeaten) return;
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "Set the crown on a trophy stand at camp, by the tent.");
+            foreach (var stand in FindObjectsByType<SignalLost.Progression.TrophyStand>()) Signal(stand, true);
+        }
+
+        private void OnTrophyPlaced(string id)
+        {
+            if (stage != Stage.ToadBeaten) return;
+            SetStage(Stage.TrophyPlaced);
+            foreach (var stand in FindObjectsByType<SignalLost.Progression.TrophyStand>()) Signal(stand, false);
+            Signal(cavendish, true);
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "The crown is on the stand. Tell Cavendish.");
+        }
+
+        private void EnterDemoComplete()
+        {
+            SetStage(Stage.DemoComplete);
+            Signal(cavendish, false);
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "Chief Toad defeated. Thanks for playing the demo!", true);
+            DemoEndCard.Show();
         }
 
         private void OnRespawned()
