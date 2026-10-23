@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2157676983486379807}
   - component: {fileID: 5913844441272954398}
   - component: {fileID: 3116716694621831722}
+  - component: {fileID: 7597958189647607168}
   m_Layer: 0
   m_Name: RockA
   m_TagString: Untagged
@@ -91,4 +92,26 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8313574375623428849}
+  m_Mesh: {fileID: 4300000, guid: 3050f397a39f944448a9f466cac81608, type: 2}
+--- !u!64 &7597958189647607168
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8313574375623428849}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 3050f397a39f944448a9f466cac81608, type: 2}

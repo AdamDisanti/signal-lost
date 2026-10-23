@@ -155,7 +155,7 @@ Adam and Lawson's meeting notes asked for a complete tutorial before the demo. T
 The "Major tutorial rework" prompt, with the project lead's answers. See [tutorial](tutorial.md), [enemy rules](enemy-rules.md) and [shared player, HUD and menus](core-player.md). Where it conflicts with the 10-20 decisions above, this section wins.
 
 - **New scene:**
-  - The tutorial is a new generated scene. Tutorial Testing is reference only and becomes a free-play sandbox; none of its dummies, rock basin, gate or damage pad carry over.
+  - The tutorial is a new generated scene. Tutorial Testing is reference only and becomes a free-play sandbox (renamed Testing Sandbox); none of its dummies, rock basin, gate or damage pad carry over.
   - New Game loads it.
   - All art is generated in-project, with no asset packs.
 - **Look:**

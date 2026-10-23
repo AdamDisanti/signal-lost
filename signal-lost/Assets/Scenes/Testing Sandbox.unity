@@ -4474,7 +4474,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6860099280184028994, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       propertyPath: m_Name
-      value: Merchant Crab
+      value: Eugine
       objectReference: {fileID: 0}
     - target: {fileID: 7899117747059539393, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       propertyPath: flaskDrop

@@ -29,7 +29,7 @@ namespace SignalLost.Player
         public bool IsRespawning { get; private set; }
         public bool IsDead => health.IsDead;
 
-        /// <summary>Raised when the fade to black starts. Argument: the message shown ("YOU DIED", "BLACKOUT ...").</summary>
+        /// <summary>Raised when the fade to black starts. Argument: the message shown ("SIGNAL LOST", "BLACKOUT ...").</summary>
         public event Action<string> RespawnStarted;
         /// <summary>Raised once the player has been moved back and restored.</summary>
         public event Action Respawned;
@@ -48,7 +48,7 @@ namespace SignalLost.Player
         private void OnEnable() => health.Died += OnDied;
         private void OnDisable() => health.Died -= OnDied;
 
-        private void OnDied(Health _) => Respawn("YOU DIED");
+        private void OnDied(Health _) => Respawn("SIGNAL LOST");
 
         /// <summary>Knocks the player out (too much Scotch) and brings them back at the spawn point.</summary>
         public void Blackout(string message = "BLACKOUT") => Respawn(message);

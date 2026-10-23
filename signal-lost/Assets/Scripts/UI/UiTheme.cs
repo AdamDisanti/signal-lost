@@ -34,7 +34,7 @@ namespace SignalLost.UI
         {
             string name = (speaker ?? "").ToLowerInvariant();
             if (name.Contains("cavendish")) return new Color(0.42f, 0.9f, 0.86f);
-            if (name.Contains("crab")) return new Color(1f, 0.62f, 0.36f);
+            if (name.Contains("crab") || name.Contains("eugine")) return new Color(1f, 0.62f, 0.36f);
             if (name.Contains("mechanic") || name.Contains("you")) return new Color(1f, 0.86f, 0.42f);
             return Accent;
         }

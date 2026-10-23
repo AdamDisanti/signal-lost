@@ -31,7 +31,7 @@ namespace SignalLost.NPC
         public bool IsQuestGiver => role == Role.Cavendish;
         public MerchantCrab Merchant => merchant;
         public NpcDialogue Dialogue => GetComponentInChildren<NpcDialogue>(true);
-        public string Prompt => role == Role.Cavendish ? "Talk to Cavendish" : "Talk to the merchant crab";
+        public string Prompt => role == Role.Cavendish ? "Talk to Cavendish" : "Talk to Eugine";
 
         private void Awake()
         {

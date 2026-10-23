@@ -38,6 +38,8 @@ namespace SignalLost.Story
         [SerializeField] private bool playOpening = true;
         [Tooltip("The mechanic's eyes in the pilot seat.")]
         [SerializeField] private Transform cockpitView;
+        [Tooltip("The smashed cockpit window Cavendish hauls the mechanic out through (its forward points out of the ship).")]
+        [SerializeField] private Transform cockpitWindow;
         [Tooltip("Where the two glimpses of being dragged start, each facing back toward the wreck.")]
         [SerializeField] private Transform[] dragGlimpses = Array.Empty<Transform>();
         [SerializeField, Min(0.1f)] private float dragSpeed = 1.4f;
@@ -68,7 +70,7 @@ namespace SignalLost.Story
         };
         private static readonly string[] MerchantIntro =
         {
-            "Right. Introductions. Merchant crab, proprietor of Bucket & Barter, finest shop on this rock.",
+            "Right. Introductions. Name's Eugine, proprietor of Bucket & Barter, finest shop on this rock.",
             "The bottle's yours, I suppose. Finders keepers was more of a guideline.",
             "Here's the deal: you bring me scrap, I sell you upgrades. Bits of wreck, critter leftovers, whatever you knock loose.",
             "And by the look of your pockets, my cousins left you plenty. Enough for your first upgrade, I'd say.",
@@ -177,7 +179,7 @@ namespace SignalLost.Story
             if (stage == Stage.MerchantComing)
                 return Remind(merchant.Dialogue, new[] { "Walk now, talk later. Camp first!" });
             if (stage != Stage.MerchantIntro || !merchant.IsHome) return false;
-            Converse(merchant.transform, "Merchant Crab", "Bucket & Barter", MerchantIntro, EnterDone);
+            Converse(merchant.transform, "Eugine", "Bucket & Barter", MerchantIntro, EnterDone);
             return true;
         }
 
@@ -274,7 +276,7 @@ namespace SignalLost.Story
             if (stage != Stage.MerchantComing) return;
             SetStage(Stage.MerchantIntro);
             Signal(merchant, true);
-            GameplayOverlay.Instance.SetQuest(CrabTitle, "Talk to the merchant crab at camp.");
+            GameplayOverlay.Instance.SetQuest(CrabTitle, "Talk to the crab (Eugine) at camp.");
             if (Vector3.Distance(player.transform.position, merchant.transform.position) < 5.5f) TalkToMerchant();
         }
 
@@ -326,10 +328,17 @@ namespace SignalLost.Story
                 Say(ui, "Mechanic", "Why is everything... on fire...?");
                 yield return EyesTo(0.55f, 0.9f);
                 yield return Wait(1.8f);
-                yield return EyesTo(0f, 1f);
-                yield return Wait(0.8f);
-                Say(ui, "Cavendish", "Good heavens. Right, out you come, mechanic. Upsy-daisy.");
-                yield return Wait(2.6f);
+                if (cockpitWindow != null)
+                {
+                    yield return PulledOut();
+                }
+                else
+                {
+                    yield return EyesTo(0f, 1f);
+                    yield return Wait(0.8f);
+                    Say(ui, "Cavendish", "Good heavens. Right, out you come, mechanic. Upsy-daisy.");
+                    yield return Wait(2.6f);
+                }
             }
 
             // 2. Dragged across the meadow: heels first, watching the wreck smoke behind, then a glimpse straight up
@@ -373,6 +382,66 @@ namespace SignalLost.Story
             wake.Play(true, CampMumble);
             yield return new WaitUntil(() => !wake.Playing);
             BeginGreeting();
+        }
+
+        // Cavendish's face rises into the smashed side window; he reaches in and hauls the mechanic out through it, the
+        // view tumbling past the frame and down onto the grass beside the wreck, then the eyes close.
+        private IEnumerator PulledOut()
+        {
+            Transform cav = cavendish.transform;
+            DialogueUi ui = DialogueUi.Instance;
+            Vector3 window = cockpitWindow.position;
+            Vector3 outward = Vector3.ProjectOnPlane(cockpitWindow.forward, Vector3.up).normalized;
+            float head = CavendishHeadHeight();
+            Quaternion facingIn = Quaternion.LookRotation(-outward);
+
+            // He clambers up outside the window and peers in; the mechanic's eyes drift toward him.
+            Vector3 peek = window + outward * 0.8f + Vector3.up * (0.1f - head);
+            Vector3 below = peek + Vector3.down * 0.7f;
+            Vector3 eyeStart = view.position;
+            Quaternion lookStart = view.rotation;
+            Quaternion lookAtWindow = Quaternion.LookRotation(window + Vector3.up * 0.1f - eyeStart);
+            for (float t = 0f; t < 1f && !CheckSkip(); t += Time.deltaTime / 1.1f)
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t);
+                view.rotation = Quaternion.Slerp(lookStart, lookAtWindow, k * 0.85f);
+                cav.SetPositionAndRotation(Vector3.Lerp(below, peek, k), facingIn);
+                yield return null;
+            }
+            Say(ui, "Cavendish", "Good heavens. Right, out you come, mechanic. Upsy-daisy.");
+            yield return Wait(1.9f);
+
+            // Hauled out head first through the frame, over the sill and down to the ground, looking up past him at
+            // the sky and the smoking wreck.
+            Vector3 landing = window + outward * 2.8f;
+            landing.y = GroundBelow(landing) + 0.55f;
+            Vector3 over = window + outward * 0.7f + Vector3.up * 0.35f;
+            Quaternion lookOut = Quaternion.LookRotation(Vector3.up * 1.2f - outward, outward);
+            Vector3 standing = landing + outward * 0.9f;
+            standing.y = GroundBelow(standing);
+            for (float t = 0f; t < 1f && !CheckSkip(); t += Time.deltaTime / 1.5f)
+            {
+                float k = t * t * (3f - 2f * t);
+                Vector3 eye = (1f - k) * (1f - k) * eyeStart + 2f * (1f - k) * k * over + k * k * landing;
+                float tumble = Mathf.Sin(t * Mathf.PI) * 18f;
+                PlaceEyes(eye, Quaternion.Slerp(lookAtWindow, lookOut, k) * Quaternion.Euler(tumble * 0.4f, 0f, tumble));
+                // He backs away from the window, pulling, and ends up standing over the mechanic.
+                cav.SetPositionAndRotation(Vector3.Lerp(peek, standing, Mathf.SmoothStep(0f, 1f, t * 1.3f)), facingIn);
+                yield return null;
+            }
+            Say(ui, "Mechanic", "...hhh...");
+            yield return Wait(0.9f);
+            yield return EyesTo(0f, 1f);
+            yield return Wait(0.8f);
+        }
+
+        // Roughly how far Cavendish's head is above his feet (he has no rig), for lining his face up with the window.
+        private float CavendishHeadHeight()
+        {
+            Transform cav = cavendish.transform;
+            var bounds = new Bounds(cav.position, Vector3.zero);
+            foreach (Renderer part in cavendish.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(part.bounds);
+            return Mathf.Clamp(bounds.max.y - cav.position.y - 0.15f, 0.8f, 2.5f);
         }
 
         // Moves the mechanic (lying down, eyes at the glimpse's height) away from the wreck at walking pace, with

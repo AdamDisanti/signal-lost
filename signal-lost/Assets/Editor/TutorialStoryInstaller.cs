@@ -26,6 +26,7 @@ namespace SignalLost.Editor
         private const string MerchantPath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
         private static readonly Color LaserGlow = new Color(1f, 0.7f, 0.3f);
         private static readonly Color ScannerGlow = new Color(0.42f, 0.9f, 0.86f);
+        private static readonly Color FlaskGlow = new Color(1f, 0.62f, 0.2f); // warm Scotch amber
 
         // Camp layout relative to the fire (x east, y north): the player wakes on the west side facing east,
         // Cavendish sits on the log across the fire, and the merchant settles south-east of it.
@@ -52,6 +53,7 @@ namespace SignalLost.Editor
 
             NpcActor cavendish = BuildCavendish(story, camp);
             Transform cockpit = CockpitView(crash);
+            Transform window = CockpitWindow(crash);
             Transform[] glimpses = DragGlimpses(story);
             ItemPickup laser = BuildLaser(crash);
             ItemPickup scanner = BuildScanner(crash);
@@ -62,6 +64,7 @@ namespace SignalLost.Editor
             flow.FindProperty("merchant").objectReferenceValue = merchant;
             flow.FindProperty("player").objectReferenceValue = player;
             flow.FindProperty("cockpitView").objectReferenceValue = cockpit;
+            flow.FindProperty("cockpitWindow").objectReferenceValue = window;
             SerializedProperty list = flow.FindProperty("dragGlimpses");
             list.arraySize = glimpses.Length;
             for (int i = 0; i < glimpses.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = glimpses[i];
@@ -100,10 +103,12 @@ namespace SignalLost.Editor
             GameObject flask = Instance(FlaskPath, story);
             flask.name = "Scotch Flask";
             SetEnum(flask.AddComponent<ItemPickup>(), "item", (int)ItemPickup.Item.Flask);
+            // Glints like the laser and scanner, but from any distance: it is dropped mid-brawl and should stand out.
+            Glint(flask.transform, new Vector3(0f, 0.4f, 0f), FlaskGlow, null, 0f);
             flask.SetActive(false);
 
             GameObject merchant = Instance(MerchantPath, hollow);
-            merchant.name = "Merchant Crab";
+            merchant.name = "Eugine"; // also its name in the HUD target readout
             merchant.transform.SetPositionAndRotation(TutorialLevelBuilder.Ground(centre + new Vector2(1.5f, 1.5f)), Facing(centre + new Vector2(1.5f, 1.5f), centre + new Vector2(10f, -3f)));
             if (merchant.GetComponent<QuestSignalSource>() == null) merchant.AddComponent<QuestSignalSource>();
             SetZone(merchant.GetComponent<HermitCrab>(), zone);
@@ -192,7 +197,7 @@ namespace SignalLost.Editor
             return pickup;
         }
 
-        private static void Glint(Transform pickup, Vector3 at, Color color, Transform model)
+        private static void Glint(Transform pickup, Vector3 at, Color color, Transform model, float visibleDistance = 8f)
         {
             var light = new GameObject("Glint").AddComponent<Light>();
             light.transform.SetParent(pickup, false);
@@ -205,7 +210,7 @@ namespace SignalLost.Editor
             var glint = new SerializedObject(pickup.gameObject.AddComponent<PickupGlint>());
             glint.FindProperty("glow").objectReferenceValue = light;
             glint.FindProperty("model").objectReferenceValue = model;
-            glint.FindProperty("visibleDistance").floatValue = 8f;
+            glint.FindProperty("visibleDistance").floatValue = visibleDistance;
             glint.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -222,11 +227,22 @@ namespace SignalLost.Editor
             return view;
         }
 
-        // Two glimpses along the path from the wreck to camp, each facing back toward the wreck.
+        // The smashed starboard cockpit window Cavendish pulls the mechanic out through, facing out of the ship.
+        private static Transform CockpitWindow(Transform crash)
+        {
+            Transform hull = Hull(crash);
+            Pose pose = CrashSiteWreckBuilder.CockpitWindow();
+            var window = new GameObject("Opening - Cockpit Window").transform;
+            window.SetParent(hull, false);
+            window.SetLocalPositionAndRotation(pose.position, pose.rotation);
+            return window;
+        }
+
+        // Two glimpses on the way from the wreck to camp, each facing back toward the wreck.
         private static Transform[] DragGlimpses(Transform story)
         {
-            Vector2 ship = TutorialLevelBuilder.Ship, forward = TutorialLevelBuilder.ShipForward;
-            Vector2[] points = { ship - forward * 21f, new Vector2(-31f, -13.5f) };
+            Vector2 ship = TutorialLevelBuilder.Ship;
+            Vector2[] points = TutorialLevelBuilder.DragPoints;
             var marks = new Transform[points.Length];
             for (int i = 0; i < points.Length; i++)
             {

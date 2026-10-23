@@ -22,7 +22,8 @@ namespace SignalLost.Editor
         public enum M
         {
             Bark, Needles, NeedleTips, LeafGreen, LeafGold, LeafYellow, Bush, BushDark, Rock, RockDark, Moss,
-            Grass, GrassDry, FlowerYellow, FlowerWhite, FlowerPink, TentOrange, TentTeal, Canvas, Log, Stone, Ash
+            Grass, GrassDry, FlowerYellow, FlowerWhite, FlowerPink, TentOrange, TentTeal, Canvas, Log, Stone, Ash,
+            Reed, Cattail, LilyPad, LilyFlower
         }
 
         private static readonly Dictionary<M, Material> Materials = new Dictionary<M, Material>();
@@ -31,6 +32,7 @@ namespace SignalLost.Editor
         public static readonly string[] Bushes = { "BushA", "BushB" };
         public static readonly string[] Rocks = { "RockA", "RockB", "RockC", "Boulder", "BoulderTall" };
         public static readonly string[] Ground = { "GrassTuft", "GrassTuftDry", "FlowersYellow", "FlowersWhite", "FlowersPink" };
+        public static readonly string[] ReedClumps = { "ReedsA", "ReedsB" };
 
         [MenuItem("Signal Lost/Tutorial/Build Meadow Assets")]
         public static void Build()
@@ -46,9 +48,9 @@ namespace SignalLost.Editor
             Prefab("BroadleafGold", Broadleaf(2, M.LeafGold), Collider.Trunk);
             Prefab("BushA", Bush(0), Collider.None);
             Prefab("BushB", Bush(1), Collider.None);
-            Prefab("RockA", Rock(0, new Vector3(0.9f, 0.6f, 0.8f)), Collider.None);
-            Prefab("RockB", Rock(1, new Vector3(0.7f, 0.45f, 1f)), Collider.None);
-            Prefab("RockC", Rock(2, new Vector3(1.1f, 0.5f, 0.9f)), Collider.None);
+            Prefab("RockA", Rock(0, new Vector3(0.9f, 0.6f, 0.8f)), Collider.Hull);
+            Prefab("RockB", Rock(1, new Vector3(0.7f, 0.45f, 1f)), Collider.Hull);
+            Prefab("RockC", Rock(2, new Vector3(1.1f, 0.5f, 0.9f)), Collider.Hull);
             Prefab("Boulder", Rock(3, new Vector3(2.6f, 1.8f, 2.2f)), Collider.Hull);
             Prefab("BoulderTall", Rock(4, new Vector3(2.2f, 3.6f, 2f)), Collider.Hull);
             Prefab("GrassTuft", Grass(0, M.Grass), Collider.None);
@@ -59,6 +61,9 @@ namespace SignalLost.Editor
             Prefab("Tent", Tent(), Collider.Hull);
             Prefab("LogSeat", LogSeat(), Collider.Box);
             Prefab("FirePit", FirePit(), Collider.None);
+            Prefab("ReedsA", Reeds(0), Collider.None);
+            Prefab("ReedsB", Reeds(1), Collider.None);
+            Prefab("LilyPads", LilyPads(), Collider.None);
             BuildEffects();
             AssetDatabase.SaveAssets();
             Debug.Log("MEADOW_ASSETS_BUILT");
@@ -94,6 +99,10 @@ namespace SignalLost.Editor
             Mat(M.Log, new Color(0.45f, 0.3f, 0.18f));
             Mat(M.Stone, new Color(0.48f, 0.46f, 0.44f));
             Mat(M.Ash, new Color(0.12f, 0.1f, 0.09f));
+            Mat(M.Reed, new Color(0.4f, 0.56f, 0.24f));
+            Mat(M.Cattail, new Color(0.38f, 0.23f, 0.12f));
+            Mat(M.LilyPad, new Color(0.26f, 0.5f, 0.22f));
+            Mat(M.LilyFlower, new Color(0.98f, 0.84f, 0.9f));
         }
 
         private static void Mat(M key, Color color)
@@ -228,6 +237,59 @@ namespace SignalLost.Editor
                 kit.Box(head, new Vector3(0.11f, 0.05f, 0.11f), Quaternion.Euler(0f, i * 30f, 0f), petals);
                 kit.Box(head + Vector3.up * 0.03f, new Vector3(0.05f, 0.03f, 0.05f), Quaternion.identity, M.FlowerYellow);
             }
+            return kit;
+        }
+
+        // A clump of tall, double-sided reed blades with a few cattails, for the pond's edge.
+        private static FlatMeshKit<M> Reeds(int variant)
+        {
+            var kit = new FlatMeshKit<M>();
+            var random = new System.Random(variant + 41);
+            for (int i = 0; i < 16; i++)
+            {
+                float angle = i * 0.9f + (float)random.NextDouble();
+                Vector3 outward = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                Vector3 root = outward * (float)random.NextDouble() * 0.45f;
+                Vector3 lean = outward * (0.08f + (float)random.NextDouble() * 0.2f);
+                float height = 0.9f + (float)random.NextDouble() * 0.8f + variant * 0.2f;
+                Vector3 side = Vector3.Cross(Vector3.up, outward) * 0.035f;
+                Vector3 tip = root + lean + Vector3.up * height;
+                kit.Tri(root - side, root + side, tip, lean + Vector3.up * 0.01f, M.Reed);
+                kit.Tri(root + side, root - side, tip, -lean - Vector3.up * 0.01f, M.Reed);
+            }
+            for (int i = 0; i < 3 + variant; i++)
+            {
+                float angle = i * 2.3f + variant;
+                Vector3 at = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.25f;
+                float height = 1.3f + i * 0.12f;
+                kit.Box(at + Vector3.up * height * 0.5f, new Vector3(0.025f, height, 0.025f), Quaternion.Euler(i * 3f, 0f, -i * 2f), M.Reed);
+                kit.Box(at + Vector3.up * (height - 0.12f), new Vector3(0.075f, 0.26f, 0.075f), Quaternion.Euler(i * 3f, i * 20f, -i * 2f), M.Cattail);
+            }
+            return kit;
+        }
+
+        // A few floating lily pads (each a disc with a notch), one in flower.
+        private static FlatMeshKit<M> LilyPads()
+        {
+            var kit = new FlatMeshKit<M>();
+            Vector3[] pads = { new Vector3(0f, 0f, 0f), new Vector3(0.75f, 0f, 0.3f), new Vector3(-0.5f, 0f, 0.6f), new Vector3(0.2f, 0f, -0.7f) };
+            for (int p = 0; p < pads.Length; p++)
+            {
+                float radius = 0.32f + 0.08f * (p % 3);
+                const int segments = 10;
+                float turn = p * 1.7f;
+                for (int s = 1; s < segments; s++) // segment 0 is the notch
+                {
+                    float a0 = turn + s * Mathf.PI * 2f / segments, a1 = turn + (s + 1) * Mathf.PI * 2f / segments;
+                    Vector3 rim0 = pads[p] + new Vector3(Mathf.Cos(a0), 0.02f, Mathf.Sin(a0)) * radius;
+                    Vector3 rim1 = pads[p] + new Vector3(Mathf.Cos(a1), 0.02f, Mathf.Sin(a1)) * radius;
+                    kit.Tri(pads[p] + Vector3.up * 0.03f, rim0, rim1, Vector3.up, M.LilyPad);
+                }
+            }
+            Vector3 bloom = pads[1] + Vector3.up * 0.08f;
+            for (int i = 0; i < 6; i++)
+                kit.Box(bloom + Quaternion.Euler(0f, i * 60f, 0f) * new Vector3(0.07f, 0f, 0f), new Vector3(0.12f, 0.05f, 0.05f), Quaternion.Euler(0f, i * 60f, 25f), M.LilyFlower);
+            kit.Box(bloom + Vector3.up * 0.03f, new Vector3(0.05f, 0.04f, 0.05f), Quaternion.identity, M.FlowerYellow);
             return kit;
         }
 
