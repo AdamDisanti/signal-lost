@@ -53,8 +53,9 @@ namespace SignalLost.Combat
         [SerializeField, Min(0f)] private float hitStop = 0.06f;
         [Tooltip("Seconds after the last swing of a full combo before you can swing again. 0 turns it off.")]
         [SerializeField, Min(0f)] private float comboCooldown;
-        [Tooltip("Seconds the last swing of the combo stuns small enemies (anything implementing IStunnable).")]
-        [SerializeField, Min(0f)] private float finisherStun = 2f;
+        [Tooltip("Seconds the last swing of the combo stuns enemies that can be stunned (IStunnable; not bosses). " +
+                 "Nothing else stuns them.")]
+        [SerializeField, Min(0f)] private float finisherStun = 1f;
 
         [Header("Charge effect")]
         [Tooltip("Colour of the charging electricity, the bolt, and the flash where a bolt lands.")]
@@ -79,8 +80,19 @@ namespace SignalLost.Combat
         [SerializeField, Min(0.01f)] private float maxShotRadius = 0.2f;
         [Tooltip("Distance a bolt travels before fading out.")]
         [SerializeField, Min(1f)] private float shotRange = 30f;
-        [Tooltip("Seconds after firing before charging can start again.")]
+        [Tooltip("Seconds after a full-charge shot before charging can start again.")]
         [SerializeField, Min(0f)] private float shotCooldown = 0.5f;
+        [Tooltip("Seconds after a shot charged 10% or less. Cooldowns scale linearly between this and Shot Cooldown " +
+                 "(10% = this, 100% = Shot Cooldown). Negative: always use Shot Cooldown.")]
+        [SerializeField] private float tapShotCooldown = -1f;
+
+        [Header("Full-charge blast")]
+        [Tooltip("A full-charge bolt bursts on impact, hurting everything this close. 0 turns it off.")]
+        [SerializeField, Min(0f)] private float fullChargeBlastRadius = 4f;
+        [Tooltip("Share of the bolt's damage dealt at the edge of the blast (full damage at the centre).")]
+        [SerializeField, Range(0f, 1f)] private float blastEdgeDamage = 0.5f;
+        [Tooltip("How far the blast shoves enemies at its centre.")]
+        [SerializeField, Min(0f)] private float blastKnockback = 1.2f;
 
         /// <summary>
         /// One melee strike, as poses relative to the resting hold (positions in metres, rotations in degrees:
@@ -138,7 +150,7 @@ namespace SignalLost.Combat
         private float lastSwingEnd = float.NegativeInfinity;
         private bool hitApplied, queuedSwing;
 
-        private float chargeStart, cooldownUntil, comboCooldownUntil, recoil;
+        private float chargeStart, cooldownUntil, cooldownLength, comboCooldownUntil, recoil;
 
         // Held-laser motion: smoothed base pose, plus sway, bob and landing offsets added on top.
         private Vector3 basePosition;
@@ -174,7 +186,16 @@ namespace SignalLost.Combat
         public float ShotCooldownRemaining => Mathf.Max(0f, cooldownUntil - Time.time);
         /// <summary>Seconds until melee swings are possible again after a full combo; 0 when ready.</summary>
         public float ComboCooldownRemaining => Mathf.Max(0f, comboCooldownUntil - Time.time);
+        /// <summary>Cooldown after a full-charge shot (the longest).</summary>
         public float ShotCooldown => shotCooldown;
+        /// <summary>Cooldown after a weak tap shot (the shortest).</summary>
+        public float TapShotCooldown => tapShotCooldown < 0f ? shotCooldown : tapShotCooldown;
+        /// <summary>Length of the cooldown currently running (it depends on how charged the last shot was).</summary>
+        public float CurrentCooldownLength => cooldownLength;
+        public float FullChargeBlastRadius => fullChargeBlastRadius;
+
+        /// <summary>Cooldown for a shot at this charge: 10% or less uses the tap cooldown, scaling up to full charge.</summary>
+        public float CooldownFor(float charge) => Mathf.Lerp(TapShotCooldown, shotCooldown, Mathf.InverseLerp(0.1f, 1f, charge));
         public float ComboCooldown => comboCooldown;
         public float FinisherStun => finisherStun;
         public float MinShotDamage => minShotDamage;
@@ -425,14 +446,16 @@ namespace SignalLost.Combat
             Vector3 direction = aimPoint - tip;
             direction = direction.sqrMagnitude > 0.01f ? direction.normalized : aimOrigin.forward;
 
-            LaserBolt.Spawn(
+            LaserBolt bolt = LaserBolt.Spawn(
                 energyMaterial, tip, direction, origin,
                 Mathf.Lerp(minShotDamage, maxShotDamage, charge),
                 Mathf.Lerp(minShotSpeed, maxShotSpeed, charge),
                 Mathf.Lerp(minShotRadius, maxShotRadius, charge),
                 shotRange, hitMask, transform, OnBoltHit);
+            if (charge >= 1f && fullChargeBlastRadius > 0f) bolt.SetBlast(fullChargeBlastRadius, blastEdgeDamage, blastKnockback);
 
-            cooldownUntil = Time.time + shotCooldown;
+            cooldownLength = CooldownFor(charge);
+            cooldownUntil = Time.time + cooldownLength;
             recoil = 1f;
             AddKick(new Vector3(-1f - 1.5f * charge, 0f, 0f));
         }

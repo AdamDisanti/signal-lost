@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SignalLost.Combat;
+using SignalLost.Effects;
 using UnityEngine;
 
 namespace SignalLost.Enemies.Desert

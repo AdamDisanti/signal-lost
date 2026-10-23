@@ -256,7 +256,7 @@ namespace SignalLost.Player
                 overlay.ShowItemCard("Mining Laser",
                     "Your trusty, slightly rusty multitool.\n" +
                     $"<b>Left click</b>  three-hit combo.{combo}\n" +
-                    $"<b>Hold right click</b>  charge a bolt, release to fire. {laser.ShotCooldown:0.#} s to cool down.",
+                    $"<b>Hold right click</b>  charge a bolt, release to fire. {laser.TapShotCooldown:0.#}-{laser.ShotCooldown:0.#} s to cool down; a full charge bursts on impact.",
                     UiTheme.Accent);
             }
             else if (item == PlayerItem.Scanner)

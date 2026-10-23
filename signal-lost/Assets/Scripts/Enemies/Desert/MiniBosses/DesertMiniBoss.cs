@@ -36,10 +36,9 @@ namespace SignalLost.Enemies.Desert
         [SerializeField] private string displayName = "Mini-boss";
         [Tooltip("The ship part it stole, shown when it is recovered.")]
         [SerializeField] private string partName = "Ship part";
-        [Tooltip("It engages when the player is within this distance of its home, and resets if they leave.")]
+        [Tooltip("Its fight radius: it engages when the player is this close to its home, and resets (full health) " +
+                 "once they are twice as far away, the same rule as every enemy's Territory.")]
         [SerializeField, Min(5f)] private float arenaRadius = 20f;
-        [Tooltip("Seconds the player can be outside the arena before it gives up and resets.")]
-        [SerializeField, Min(0f)] private float leashTime = 5f;
         [Tooltip("Phase 2 starts at or below this fraction of its health.")]
         [SerializeField, Range(0.05f, 0.95f)] private float phaseTwoAt = 0.5f;
         [Tooltip("Seconds the phase change takes (the part breaking). It doesn't attack meanwhile.")]
@@ -87,7 +86,7 @@ namespace SignalLost.Enemies.Desert
 
         private readonly List<Vector3> route = new List<Vector3>();
         private int routeIndex;
-        private float routeWait, leashTimer, phaseShiftUntil, phaseShiftStart = float.NegativeInfinity;
+        private float routeWait, phaseShiftUntil, phaseShiftStart = float.NegativeInfinity;
         private bool applyingBonus, shiftEnded = true, patrolStarted;
         private int lastBodyHitFrame = -1;
         private float pendingPartDamage;
@@ -332,8 +331,7 @@ namespace SignalLost.Enemies.Desert
 
         private bool WantsToEngage()
         {
-            if (!TargetAlive || PlayerDistanceFromHome() > arenaRadius) return false;
-            return Alerted || FlatDistance(Target.position) < 8f || CanSee(arenaRadius * 2f);
+            return TargetAlive && PlayerDistanceFromHome() <= arenaRadius;
         }
 
         private void Engage()
@@ -341,7 +339,6 @@ namespace SignalLost.Enemies.Desert
             if (Engaged || IsDead) return;
             Engaged = true;
             LastSeen = Time.time;
-            leashTimer = 0f;
             if (fodderSpawner != null) fodderSpawner.enabled = fodderWhileEngaged;
             MiniBossHud.Register(this);
             OnEngaged();
@@ -349,12 +346,7 @@ namespace SignalLost.Enemies.Desert
 
         private void UpdateLeash(float dt)
         {
-            if (TargetAlive && PlayerDistanceFromHome() > arenaRadius + 4f)
-            {
-                leashTimer += dt;
-                if (leashTimer >= leashTime) ResetBoss();
-            }
-            else leashTimer = 0f;
+            if (TargetAlive && PlayerDistanceFromHome() > arenaRadius * Territory.LeashMultiplier) ResetBoss();
         }
 
         private void BeginPhaseTwo()
@@ -382,7 +374,6 @@ namespace SignalLost.Enemies.Desert
             Phase = 1;
             phaseShiftUntil = 0f;
             shiftEnded = true;
-            leashTimer = 0f;
             DamageTakenMultiplier = 1f;
             shoveRemaining = 0f;
             Health.Restore();

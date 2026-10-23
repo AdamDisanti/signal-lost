@@ -99,7 +99,7 @@ namespace SignalLost.Combat
             else if (laser.IsCoolingDown)
             {
                 // Long cooldowns (the tutorial's 10 s) need a countdown; the old half-second one just says COOLING.
-                string cooling = laser.ShotCooldown > 2f ? $"BOLT COOLING  {Mathf.CeilToInt(laser.ShotCooldownRemaining)}s" : "COOLING";
+                string cooling = laser.CurrentCooldownLength > 2f ? $"BOLT COOLING  {Mathf.CeilToInt(laser.ShotCooldownRemaining)}s" : "COOLING";
                 GUI.Label(new Rect(bar.x, bar.y - 26f, bar.width, 24f), cooling, label);
             }
             else if (laser.ComboStep > 0)

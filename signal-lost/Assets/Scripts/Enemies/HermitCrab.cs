@@ -7,13 +7,14 @@ namespace SignalLost.Enemies
 {
     /// <summary>
     /// Basic enemy: a hermit crab with the design document's four states.
-    /// Idle: wanders near home until it sees the player. Chase: follows them on the NavMesh, keeping its eyes
+    /// Idle: wanders near home until the player enters its fight radius (<see cref="Territory"/>). Chase: follows
+    /// them on the NavMesh until they run twice that far, then walks home and heals. While chasing it keeps its eyes
     /// and claws turned toward them (or, optionally, scuttling sideways like a real crab).
     /// Attack: raises its big claw, which glows hotter as it winds up (the telegraph), then lunges and slams it
     /// down. It stops turning partway through the wind-up, so a late sidestep or backstep dodges it; a miss gets
     /// the claw stuck in the ground for a long recovery, which is the player's opening. Dead: flips over and sinks.
-    /// Light hits make it flinch; heavy hits (the slam, strong bolts) knock it back and make it hide in its
-    /// shell for a moment, which also interrupts an attack.
+    /// Hits make it flinch; heavy hits (the slam, strong bolts) also knock it back. It is only stunned by the laser's
+    /// combo finisher (<see cref="IStunnable"/>): it tucks into its shell for that long, which cancels an attack.
     /// Shell hide: if it watches the player charge a shot for a moment, it tucks in and flips its bucket face down
     /// over itself. Once covered, laser bolts cannot hurt it: they bounce off the bucket and fly back at the player.
     /// A melee hit knocks it out of hiding, and it comes out by itself once the player stops charging. This stops
@@ -21,7 +22,7 @@ namespace SignalLost.Enemies
     /// All numbers are placeholders to tune.
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent), typeof(Health), typeof(HermitCrabRig))]
-    public sealed class HermitCrab : MonoBehaviour, IBoltReflector
+    public sealed class HermitCrab : MonoBehaviour, IBoltReflector, IStunnable, ITerritorial
     {
         private enum State { Idle, Chase, Attack, Stagger, Guard, Dead }
         private enum AttackPhase { Windup, Strike, Recover }
@@ -31,12 +32,9 @@ namespace SignalLost.Enemies
         [SerializeField] private Transform target;
         [SerializeField] private LayerMask sightMask = ~0;
 
-        [Header("Senses")]
-        [SerializeField, Min(1f)] private float detectRange = 12f;
-        [Tooltip("Gives up the chase beyond this distance.")]
-        [SerializeField, Min(1f)] private float loseRange = 18f;
-        [Tooltip("Seconds without seeing the player before giving up.")]
-        [SerializeField, Min(0f)] private float forgetTime = 3f;
+        [Header("Fighting radius")]
+        [Tooltip("Attacks inside this radius; chases until the player is twice as far, then goes home and heals.")]
+        [SerializeField] private Territory territory = new Territory(12f);
 
         [Header("Movement")]
         [SerializeField, Min(0.1f)] private float wanderSpeed = 1.2f;
@@ -75,12 +73,12 @@ namespace SignalLost.Enemies
         [SerializeField, Min(0f)] private float playerShove = 0.6f;
 
         [Header("Getting hit")]
-        [Tooltip("Hits this strong or stronger knock it back, make it hide in its shell and cancel its attack. " +
-                 "20 means the overhead slam and shots charged past about a third, but not jabs or bashes.")]
+        [Tooltip("Hits this strong or stronger knock it back (they no longer stun it; only the combo finisher does).")]
         [SerializeField, Min(0f)] private float staggerThreshold = 20f;
-        [SerializeField, Min(0f)] private float staggerTime = 0.9f;
         [Tooltip("Knockback distance for a 20-damage hit (the slam); scales with damage, up to double.")]
         [SerializeField, Min(0f)] private float knockback = 1.1f;
+        [Tooltip("Can the laser's combo finisher stun it? Off for bosses such as the merchant crab.")]
+        [SerializeField] private bool stunnable = true;
 
         [Header("Shell hide")]
         [Tooltip("Hide in the shell and reflect laser bolts when it sees the player charging a shot.")]
@@ -114,7 +112,8 @@ namespace SignalLost.Enemies
         private State state = State.Idle;
         private AttackPhase phase;
         private float stateTime, phaseTime, lastSeen = float.NegativeInfinity, nextAttack, nextRepath, nextWander;
-        private bool hitLanded, missed, started;
+        private bool hitLanded, missed, started, returningHome;
+        private float stunTime;
         private Vector3 home;
         private Quaternion homeRotation;
         private Vector3 knockDirection;
@@ -126,6 +125,15 @@ namespace SignalLost.Enemies
         public bool IsDead => state == State.Dead;
         public bool IsAttacking => state == State.Attack;
         public bool IsGuarding => state == State.Guard;
+        public bool IsStunned => state == State.Stagger;
+        /// <summary>True while it has given up a chase and is walking home to heal.</summary>
+        public bool IsReturningHome => returningHome;
+        public Territory Territory => territory;
+        public bool Stunnable
+        {
+            get => stunnable;
+            set => stunnable = value;
+        }
 
         private void Awake()
         {
@@ -176,6 +184,7 @@ namespace SignalLost.Enemies
             {
                 Debug.LogWarning("Hermit crab is not near a NavMesh; it will stand still. Is there a NavMeshBaker in the scene?", this);
             }
+            territory.SetHome(home);
             started = true;
             Enter(State.Idle);
         }
@@ -251,12 +260,20 @@ namespace SignalLost.Enemies
 
         private void UpdateIdle()
         {
-            if (TargetAlive && CanSee(detectRange))
+            if (TargetAlive && territory.Contains(target.position))
             {
-                rig.Alert();
+                if (!returningHome) rig.Alert();
+                returningHome = false;
                 lastSeen = Time.time;
                 Enter(State.Chase);
                 return;
+            }
+            if (returningHome)
+            {
+                // Gave up a chase: walk straight home, then heal to full.
+                if (FlatDistance(home) > 1.2f) return;
+                returningHome = false;
+                health.Restore();
             }
 
             // Wander: pause, then amble to a random spot near home.
@@ -279,10 +296,10 @@ namespace SignalLost.Enemies
             }
 
             float distance = FlatDistance(target.position);
-            if (CanSee(loseRange)) lastSeen = Time.time;
-            if (distance > loseRange || Time.time - lastSeen > forgetTime)
+            if (CanSee(territory.LeashRadius)) lastSeen = Time.time;
+            if (territory.Escaped(target.position))
             {
-                Enter(State.Idle);
+                GiveUp();
                 return;
             }
 
@@ -335,16 +352,17 @@ namespace SignalLost.Enemies
                 return;
             }
 
-            float distance = FlatDistance(target.position);
-            if (CanSee(loseRange)) lastSeen = Time.time;
+            if (CanSee(territory.LeashRadius)) lastSeen = Time.time;
             if (targetLaser != null && targetLaser.IsCharging) lastChargeSeen = Time.time;
+            bool escaped = territory.Escaped(target.position);
 
             // Come out once the player has stopped charging for a moment (or has gone). Getting close does not bring
             // it out; a melee hit does (see OnDamaged).
-            if (Time.time - lastChargeSeen > guardHoldTime || distance > loseRange)
+            if (Time.time - lastChargeSeen > guardHoldTime || escaped)
             {
                 nextGuard = Time.time + guardCooldown;
-                Enter(distance > loseRange ? State.Idle : State.Chase);
+                if (escaped) GiveUp();
+                else Enter(State.Chase);
             }
         }
 
@@ -450,7 +468,7 @@ namespace SignalLost.Enemies
 
         private void UpdateStagger()
         {
-            if (stateTime < staggerTime) return;
+            if (stateTime < stunTime) return;
             nextAttack = Time.time + attackCooldown * 0.5f;
             Enter(TargetAlive ? State.Chase : State.Idle);
             lastSeen = Time.time;
@@ -464,6 +482,22 @@ namespace SignalLost.Enemies
         }
 
         public void ResetEncounter() => Respawn();
+
+        /// <summary>IStunnable: the laser's combo finisher tucks it into its shell for this long, cancelling any attack.</summary>
+        public void Stun(float seconds)
+        {
+            if (!stunnable || !started || seconds <= 0f || state == State.Dead || health.IsDead) return;
+            stunTime = seconds;
+            nextGuard = Time.time + guardCooldown;
+            Enter(State.Stagger);
+        }
+
+        // The player ran twice the fight radius away: head home (UpdateIdle heals it on arrival).
+        private void GiveUp()
+        {
+            returningHome = true;
+            Enter(State.Idle);
+        }
 
         /// <summary>Starts chasing the target straight away, as if it had just spotted it (for spawned ambushes).</summary>
         public void Provoke()
@@ -480,6 +514,7 @@ namespace SignalLost.Enemies
             foreach (Collider item in colliders) if (item != null) item.enabled = true;
             agent.enabled = true;
             agent.Warp(home);
+            returningHome = false;
             transform.rotation = homeRotation;
             rig.ResetPose();
             Enter(State.Idle);
@@ -498,9 +533,9 @@ namespace SignalLost.Enemies
             rig.Flinch(heavy);
             StartKnockback(away, heavy ? knockback * Mathf.Clamp(amount / 20f, 0.6f, 2f) : 0.12f);
 
-            if (heavy && !health.IsDead) { nextGuard = Time.time + guardCooldown; Enter(State.Stagger); }
-            else if (state == State.Guard) { lastSeen = Time.time; nextGuard = Time.time + guardCooldown; Enter(State.Chase); } // a melee hit pops it out
-            else if (state == State.Idle) { lastSeen = Time.time; rig.Alert(); Enter(State.Chase); }
+            // Hits no longer stagger it (that let slow taps stun-lock it); only the combo finisher stuns (Stun).
+            if (state == State.Guard) { lastSeen = Time.time; nextGuard = Time.time + guardCooldown; Enter(State.Chase); } // a melee hit pops it out
+            else if (state == State.Idle) { lastSeen = Time.time; returningHome = false; rig.Alert(); Enter(State.Chase); }
         }
 
         private void OnDied(Health _)
@@ -575,5 +610,7 @@ namespace SignalLost.Enemies
             if (direction.sqrMagnitude < 0.001f) return;
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), maxDegrees);
         }
+
+        private void OnDrawGizmosSelected() => territory.DrawGizmos(transform.position);
     }
 }

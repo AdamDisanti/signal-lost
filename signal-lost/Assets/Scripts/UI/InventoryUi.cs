@@ -93,8 +93,8 @@ namespace SignalLost.UI
             var laser = inventory.GetComponent<MiningLaser>();
             laserText.text = !inventory.Has(PlayerItem.MiningLaser) || laser == null ? Missing("in the scorched rock basin") :
                 $"Combo damage  {string.Join(" / ", laser.ComboDamage)}\n" +
-                $"Charged bolt  {laser.MinShotDamage:0}-{laser.MaxShotDamage:0} damage, {laser.ShotRange:0} m\n" +
-                $"Bolt cooldown  {laser.ShotCooldown:0.#} s" +
+                $"Charged bolt  {laser.MinShotDamage:0}-{laser.MaxShotDamage:0} damage, {laser.ShotRange:0} m; full charge bursts {laser.FullChargeBlastRadius:0} m\n" +
+                $"Bolt cooldown  {laser.TapShotCooldown:0.#}-{laser.ShotCooldown:0.#} s (longer the more charged)" +
                 (laser.ComboCooldown > 0f ? $"     Combo recharge  {laser.ComboCooldown:0.#} s\nFinisher stuns small critters for {laser.FinisherStun:0.#} s" : "");
 
             var scanner = inventory.GetComponentInChildren<ScannerController>(true);

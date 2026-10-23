@@ -82,6 +82,7 @@ namespace SignalLost.NPC
             health = GetComponent<Health>();
             agent = GetComponent<NavMeshAgent>();
             brain.enabled = false;
+            brain.Stunnable = false; // a mini-boss: the combo finisher does not stun it
             health.Invulnerable = true;
         }
         private void OnEnable() { health.Died += Defeated; health.Damaged += OnDamaged; health.Blocked += OnBlocked; }

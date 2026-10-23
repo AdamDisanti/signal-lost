@@ -9,6 +9,7 @@ namespace SignalLost.Combat
     /// Health it touches, and disappears on any hit or after travelling its range. It moves by sphere-casting
     /// each frame instead of using physics, so fast bolts cannot pass through thin walls. Something with an
     /// <see cref="IBoltReflector"/> can bounce it back instead; the bounced bolt can then hit whoever fired it.
+    /// A bolt given a blast (<see cref="SetBlast"/>, the full-charge shot) also bursts on impact (<see cref="AreaBlast"/>).
     /// </summary>
     public sealed class LaserBolt : MonoBehaviour
     {
@@ -19,6 +20,7 @@ namespace SignalLost.Combat
         private Vector3 direction, previous;
         private float damage, speed, radius, remaining, range;
         private int reflections;
+        private float blastRadius, blastEdge, blastKnockback;
 
         private const int MaxReflections = 3; // stops bolts bouncing between two reflectors forever
         private LayerMask mask;
@@ -55,6 +57,14 @@ namespace SignalLost.Combat
             bolt.range = range;
             bolt.mask = mask;
             return bolt;
+        }
+
+        /// <summary>Makes the bolt burst on impact, hurting everything within <paramref name="radius"/>.</summary>
+        public void SetBlast(float radius, float edgeMultiplier, float knockback)
+        {
+            blastRadius = radius;
+            blastEdge = edgeMultiplier;
+            blastKnockback = knockback;
         }
 
         private void Update()
@@ -105,10 +115,13 @@ namespace SignalLost.Combat
             }
 
             Health target = hit.collider.GetComponentInParent<Health>();
-            if (target != null && target.TakeDamage(damage, owner != null ? owner.gameObject : null))
+            GameObject source = owner != null ? owner.gameObject : null;
+            if (target != null && target.TakeDamage(damage, source))
                 onHit?.Invoke(target);
 
             var material = GetComponent<Renderer>().sharedMaterial;
+            if (blastRadius > 0f && AreaBlast.Explode(point, blastRadius, damage, blastEdge, blastKnockback, source, target, material) > 0)
+                onHit?.Invoke(null);
             ImpactFlash.Spawn(material, point, radius * 4f);
             Destroy(gameObject);
         }
@@ -120,6 +133,7 @@ namespace SignalLost.Combat
         private void Reflect(Vector3 point, Vector3 newDirection, Transform newOwner, float damageMultiplier)
         {
             reflections++;
+            blastRadius = 0f; // a bounced bolt never blasts the player
             owner = newOwner;
             onHit = null;
             damage *= damageMultiplier;

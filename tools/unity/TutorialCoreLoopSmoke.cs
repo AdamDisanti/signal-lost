@@ -368,7 +368,7 @@ public static class TutorialCoreLoopSmoke
         yield return null;
         Check(!player.ScannerRaised && laser.enabled, "Lowering the scanner (Q again) draws the laser.");
 
-        Invoke(laser, "FireBolt", 1f);
+        Invoke(laser, "FireBolt", 0.5f); // half charge: a full-charge blast would also hit the armadillo spawned next
         Check(laser.ShotCooldownRemaining > 9.5f && laser.IsCoolingDown, "A bolt starts the 10 s cooldown.");
 
         // Combo finisher: stuns a small enemy, then the combo needs 3 s.
@@ -389,7 +389,7 @@ public static class TutorialCoreLoopSmoke
         yield return 3.2f;
         Check(!armadillo.IsStunned && laser.ComboCooldownRemaining <= 0f, "The stun and combo cooldown both wear off.");
         UnityEngine.Object.Destroy(armadillo.gameObject);
-        Check(UnityEngine.Object.FindFirstObjectByType<MerchantCrab>().GetComponent<IStunnable>() == null, "Hermit crabs are not stunnable (fodder only).");
+        Check(!UnityEngine.Object.FindFirstObjectByType<MerchantCrab>().GetComponent<HermitCrab>().Stunnable, "The merchant crab (a mini-boss) cannot be stunned.");
     }
 
     // ---------- Package 2/3: healing, blackout and the short wake-up ----------

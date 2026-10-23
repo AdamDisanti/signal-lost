@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace SignalLost.Enemies.Desert
+namespace SignalLost.Effects
 {
     /// <summary>
     /// A flat ring that grows outward and thins away: the beetle blast wave and the meerkat's shriek.
