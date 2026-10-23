@@ -34,7 +34,7 @@ In the test scene, **Assume Parts Collected** is ticked on the exit, so you can 
 | The **Engine Core** in its throat, mouth closed | 40% |
 | The **Engine Core**, mouth open (after charges and spits, during the beam, after the nova) | **160%** |
 
-Sparks fly when you hit a vent or the core. It has 2200 HP. Between phases it is invulnerable for a moment while it roars and the arena changes.
+Sparks fly when you hit a vent or the core. It has **825 HP**, lowered from 2200 at Lawson's request. Between phases it is invulnerable for a moment while it roars and the arena changes.
 
 ## The phases
 

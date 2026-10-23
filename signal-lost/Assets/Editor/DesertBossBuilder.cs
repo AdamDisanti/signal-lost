@@ -307,7 +307,7 @@ namespace SignalLost.Editor
 
             var health = root.AddComponent<Health>();
             var healthData = new SerializedObject(health);
-            healthData.FindProperty("maxHealth").floatValue = 2200f;
+            healthData.FindProperty("maxHealth").floatValue = 825f;
             healthData.ApplyModifiedPropertiesWithoutUndo();
             var worm = root.AddComponent<Coreworm>();
             var data = new SerializedObject(worm);
