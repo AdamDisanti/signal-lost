@@ -52,9 +52,18 @@ namespace SignalLost.Enemies.Desert
         private MaterialPropertyBlock canBlock;
         private Quaternion canRest = Quaternion.identity;
 
+        private GameObject blame;
+
+        /// <summary>Remembers the player (not an enemy) as the one who set it off.</summary>
+        private void Blame(GameObject source)
+        {
+            if (source != null && !EnemyAllegiance.IsEnemy(source)) blame = source;
+        }
+
         protected override void Awake()
         {
             base.Awake();
+            Health.Damaged += (_, amount, source) => Blame(source); // shot by the player: the blast is the player's
             canBlock = new MaterialPropertyBlock();
             if (can != null) canRest = can.localRotation;
         }
@@ -116,6 +125,7 @@ namespace SignalLost.Enemies.Desert
         public void Ignite(GameObject source)
         {
             if (exploded) return;
+            Blame(source);
             if (IsDead)
             {
                 if (explodeAt > 0f) explodeAt = Mathf.Min(explodeAt, Time.time + ignitedFuseTime);
@@ -131,7 +141,8 @@ namespace SignalLost.Enemies.Desert
             exploded = true;
             Vector3 point = transform.position;
             if (!IsDead) Kill(gameObject); // counts as a kill for the spawner
-            FodderExplosion.Explode(point, blastRadius, blastDamage, edgeDamage, gameObject, transform, explosionMaterial, blastMask);
+            // Credited to whoever set it off: the player's doing hurts enemies, an enemy's doesn't.
+            FodderExplosion.Explode(point, blastRadius, blastDamage, edgeDamage, blame != null ? blame : gameObject, transform, explosionMaterial, blastMask);
             SetRenderersVisible(false); // blown to bits
         }
 

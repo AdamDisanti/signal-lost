@@ -118,7 +118,7 @@ namespace SignalLost.Enemies.Desert
                 if (ignore != null && hit.transform.IsChildOf(ignore)) continue;
                 var ignitable = hit.GetComponentInParent<IIgnitable>();
                 Health health = hit.GetComponentInParent<Health>();
-                bool hurtable = health != null && !health.IsDead && !Damaged.Contains(health);
+                bool hurtable = health != null && !health.IsDead && !Damaged.Contains(health) && EnemyAllegiance.CanHurt(source, health);
                 if (ignitable == null && !hurtable) continue;
                 if (!InSight(point, hit.bounds.center, hit, ignore, mask)) continue;
 

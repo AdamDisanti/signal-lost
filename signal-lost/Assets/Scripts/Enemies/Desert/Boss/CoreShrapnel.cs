@@ -65,7 +65,8 @@ namespace SignalLost.Enemies.Desert
             if (nearest < float.MaxValue)
             {
                 Health target = best.collider.GetComponentInParent<Health>();
-                if (target != null && !target.IsDead) target.TakeDamage(damage, owner != null ? owner.gameObject : null);
+                GameObject source = owner != null ? owner.gameObject : null;
+                if (target != null && !target.IsDead && EnemyAllegiance.CanHurt(source, target)) target.TakeDamage(damage, source);
                 Vector3 at = best.point.sqrMagnitude > 0f ? best.point : transform.position;
                 ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, at, -velocity, 6, 0.08f, 4f, 50f);
                 Destroy(gameObject);

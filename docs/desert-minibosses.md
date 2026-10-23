@@ -95,7 +95,7 @@ The mini-boss patrols near the middle. You start at the south edge, outside its 
 | --- | --- | --- | --- |
 | 1 | **Circling** | Flies 8 m up, out of melee reach. | Charged shots. |
 | 1 | **Dive-bomb** | A dark shadow grows under you. It follows you for the first half of the 1.1 s warning (0.8 s if you're spotted), then locks. It swoops onto the spot (22 damage) and sits on the ground for about a second. | Step out of the shadow, then melee it while it sits. |
-| 1 | **Bombing run** | Flies a line over you dropping hull scrap. Red rings mark each landing spot; each piece bursts for 12 damage (fodder too). | Move off the line. |
+| 1 | **Bombing run** | Flies a line over you dropping hull scrap. Red rings mark each landing spot; each piece bursts for 12 damage (enemies are never hurt by it). | Move off the line. |
 | 1 | **Wobble** | A heavy hit (20+) on a **wing panel** interrupts its attack and knocks it down a few metres. | Aim charged shots at the wings. |
 | 2 | **Wing torn off** | The wing that took more damage tears away and it crashes. It's grounded and lopsided from then on. | |
 | 2 | **Peck** | 0.55 s pull-back, then a lunge (16 damage). | Sidestep. |
@@ -124,7 +124,7 @@ Animation: every joint now eases into its poses instead of snapping. Each wing b
 
 - **Backfire:** a heavy hit (20+, a charged shot or the slam) on the **fuel tank** while it is winding up or spraying, **or while it charges the cannon**. The tank explodes on its back (it takes 70, and anything near it 22), and it is stunned for 3.2 s lying in burning fuel.
 - **Your fires hurt it:** fires it starts don't hurt it, but fires you start do. Shoot a slick it is standing in.
-- **Chain reactions:** beetle blasts light slicks, the cannon's blast hurts any fodder it can see, and fire hurts fodder. Lure them in.
+- **Chain reactions:** beetle blasts light slicks. Enemy attacks never hurt enemies, but a beetle **you** set off (by shooting it, or with a fire you started) blasts for you, enemies included.
 
 Animation: the body is now a chain of five plates. Each bends against turns, so the rear swings wide, and ripples as it walks. The eight legs have knees and walk in two alternating sets of four, bracing for the cannon and flamethrower. Each claw has an elbow and opens, lunges and snaps alternately. The five-joint tail sways in a wave, rears and whips on the sting, recoils from the cannon, and trembles under pressure. The mouthparts chew. Nothing snaps between poses.
 
@@ -192,7 +192,7 @@ For each scene: press Play. No Console errors (a short pause while the NavMesh b
 3. Shoot a puddle it is standing in: it catches fire and Sludge takes damage.
 4. Charge a shot and hit the yellow tank while it is curling or spraying: **BACKFIRE!**. A blast, a big chunk of health gone, and it lies on its side in fire for about 3 s.
 5. Phase 2: oil gushes around it, it leaves burning patches as it walks, and it sprays nine globs.
-6. Beetles that wander into the fire chain-explode.
+6. Beetles that wander into its fire chain-explode without hurting Sludge or other fodder. Shoot a beetle next to Sludge and its blast does hurt Sludge.
 7. Cannon: stand in the open at mid range. "TAKE COVER!" and a red line to you appear. Duck behind the buried hull, a plate or a rock: the line now ends on the cover, the shell bursts against it, and you take no damage. Stay in the open and you take a big hit. Hit the tank with a charged shot while it charges: backfire.
 8. Close range: stand right next to it. It claws when you're in front, stings your spot (a ring, then a stab and a little fire) when you're beside or behind it, and torches you at a few metres. It no longer backs off.
 9. Motion: the body plates curve when it turns and ripple when it walks, the legs step in alternating sets, the claws open and snap one after the other, and the tail sways and whips.

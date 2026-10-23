@@ -106,6 +106,7 @@ namespace SignalLost.Enemies.Desert
                 if (ignitable != null && !ToIgnite.Contains(ignitable)) ToIgnite.Add(ignitable);
                 Health health = hit.GetComponentInParent<Health>();
                 if (health == null || health.IsDead || !Burned.Add(health)) continue;
+                if (!EnemyAllegiance.CanHurt(source, health)) continue; // enemy fire never burns enemies
                 health.TakeDamage(damage, source);
             }
             foreach (IIgnitable item in ToIgnite)
