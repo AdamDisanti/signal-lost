@@ -20,7 +20,7 @@ The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework").
    - Defeated cousins despawn.
    - If the crab gives up first, it drops the bottle (the Scotch flask, glowing amber like the hidden gear, visible from any distance) and waits for the brawl to end.
    - Once the whole family is down, it leads the mechanic back to camp.
-6. **Bucket & Barter.** At camp the crab introduces itself as **Eugine** and shows off its shop. (Eugine is also its name in dialogue, the HUD target readout and the "Talk to" prompt.) The fight leaves enough scrap for a first upgrade, usually well over the Overclocked Coil's 10 metal and 4 wiring. **The tutorial stops here.** Upgrades and the skill tree come next.
+6. **Bucket & Barter.** At camp the crab introduces itself as **Eugene** and shows off its shop. (Eugene is also its name in dialogue, the HUD target readout and the "Talk to" prompt.) The fight leaves enough scrap for a first upgrade, usually well over the Overclocked Coil's 10 metal and 4 wiring. **The tutorial stops here.** Upgrades and the skill tree come next.
 
 After that the merchant is an ordinary friendly shop. Its sixth hit within the anger window brings back **the same ten cousins** around it (the angry-merchant ambush).
 
@@ -101,7 +101,7 @@ Runtime code:
 
 ## Verification
 
-> **Re-verified 10-23 (smoke only):** after the camp move, trail removal, pond, cockpit rebuild, window pull-out, collision and livery fixes and the Eugine rename, the level was rebuilt in Unity 6000.6.2f1 and TutorialStorySmoke passed again on a disposable copy, opening included. It does not look at the pull-out's framing, the pond's appearance or collisions on foot; those still need a play-test.
+> **Re-verified 10-23 (smoke only):** after the camp move, trail removal, pond, cockpit rebuild, window pull-out, collision and livery fixes and the Eugene rename, the level was rebuilt in Unity 6000.6.2f1 and TutorialStorySmoke passed again on a disposable copy, opening included. It does not look at the pull-out's framing, the pond's appearance or collisions on foot; those still need a play-test.
 
 [TutorialStorySmoke.cs](../tools/unity/TutorialStorySmoke.cs) passed in a batch-mode Play Mode run of the generated scene. It covers:
 

@@ -121,9 +121,31 @@ public static class CoreSystemsSmoke
             "The left hand brings the flask up while the right keeps the laser.");
         Check(gear.Laser.enabled, "Drinking does not put the laser away.");
         yield return Capture("Drinking");
-        yield return 0.6f;
+        yield return 0.9f;
         Check(!flask.IsDrinking && life.Health.Current > 50f && Vector3.Distance(hands.LeftHand.localPosition, restLeft) < 0.01f,
-            "The sip heals and the flask is put away.");
+            "The sip heals and the flask is put away (1 s sip, 30% slower than before).");
+
+        // ---------- 10-23 tweaks ----------
+        float[] curve = Enumerable.Range(0, 5).Select(i => (float)typeof(PlayerFlask).GetMethod("HealFor", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(flask, new object[] { i })).ToArray();
+        Check(curve.SequenceEqual(new[] { 35f, 28f, 22f, 17f, 13f }), "Heals per sip: " + string.Join(" / ", curve) + ".");
+        Check(PlayerLife.BlackoutMessage == "SIGNAL LOST - BLACKOUT", "Overdrinking reads SIGNAL LOST - BLACKOUT.");
+        Check(Mathf.Approximately(gear.Laser.ComboCooldown, 2f) && Mathf.Approximately(gear.Laser.TapShotCooldown, 1f) && Mathf.Approximately(gear.Laser.ShotCooldown, 6f),
+            "Laser: combo recharge 2 s, bolt cooldown 1 s (tap) to 6 s (full charge).");
+        GameplayOverlay.Instance.ShowItemCard("Test Card", "Stays until dismissed.", Color.white);
+        GameplayOverlay.Instance.ShowItemCard("Second Card", "Waits its turn.", Color.white);
+        yield return 3f;
+        Check(GameplayOverlay.Instance.CardOpen && interactor.Prompt == "", "Item cards stay up (no timer) and hide the E prompt.");
+        Check(interactor.TryInteract() && GameplayOverlay.Instance.CardOpen, "E dismisses a card; the queued one follows.");
+        Check(interactor.TryInteract() && !GameplayOverlay.Instance.CardOpen, "...and E dismisses that too.");
+        var body = life.GetComponent<CharacterController>();
+        float standing = body.height;
+        Invoke(movement, "Crouch", true);
+        Check(body.height < standing && movement.IsCrouched, "C crouches: the capsule shrinks.");
+        Check((bool)typeof(FirstPersonController).GetMethod("TryStand", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(movement, null) &&
+              Mathf.Approximately(body.height, standing), "...and stands back up where there is room.");
+        Invoke(movement, "StartSlide", life.transform.forward);
+        Check(movement.IsSliding && GetField<Vector3>(movement, "momentum").magnitude >= 7f * movement.MovementScale * 1.5f - 0.01f, "A slide starts at 1.5x sprint speed.");
+        movement.ResetMotion();
 
         // ---------- Menus ----------
         PauseMenu.Instance.Open();

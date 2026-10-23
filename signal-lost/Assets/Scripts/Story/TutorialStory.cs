@@ -70,7 +70,7 @@ namespace SignalLost.Story
         };
         private static readonly string[] MerchantIntro =
         {
-            "Right. Introductions. Name's Eugine, proprietor of Bucket & Barter, finest shop on this rock.",
+            "Right. Introductions. Name's Eugene, proprietor of Bucket & Barter, finest shop on this rock.",
             "The bottle's yours, I suppose. Finders keepers was more of a guideline.",
             "Here's the deal: you bring me scrap, I sell you upgrades. Bits of wreck, critter leftovers, whatever you knock loose.",
             "And by the look of your pockets, my cousins left you plenty. Enough for your first upgrade, I'd say.",
@@ -179,7 +179,7 @@ namespace SignalLost.Story
             if (stage == Stage.MerchantComing)
                 return Remind(merchant.Dialogue, new[] { "Walk now, talk later. Camp first!" });
             if (stage != Stage.MerchantIntro || !merchant.IsHome) return false;
-            Converse(merchant.transform, "Eugine", "Bucket & Barter", MerchantIntro, EnterDone);
+            Converse(merchant.transform, "Eugene", "Bucket & Barter", MerchantIntro, EnterDone);
             return true;
         }
 
@@ -276,7 +276,7 @@ namespace SignalLost.Story
             if (stage != Stage.MerchantComing) return;
             SetStage(Stage.MerchantIntro);
             Signal(merchant, true);
-            GameplayOverlay.Instance.SetQuest(CrabTitle, "Talk to the crab (Eugine) at camp.");
+            GameplayOverlay.Instance.SetQuest(CrabTitle, "Talk to the crab (Eugene) at camp.");
             if (Vector3.Distance(player.transform.position, merchant.transform.position) < 5.5f) TalkToMerchant();
         }
 

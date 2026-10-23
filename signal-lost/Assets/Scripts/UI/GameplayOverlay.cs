@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace SignalLost.UI
@@ -7,7 +8,8 @@ namespace SignalLost.UI
     /// <summary>
     /// Non-blocking gameplay UI in the theme of the dialogue screens: the top-right quest tracker and the
     /// "item acquired" cards that introduce new gear (scrap now lives in the <see cref="GameHud"/> status bar).
-    /// Nothing here takes the cursor or pauses the game.
+    /// Nothing here takes the cursor or pauses the game. Cards stay up until the player dismisses them (E or Enter,
+    /// meeting notes 10-23: tutorial pop-ups are never on a timer); several cards queue up.
     /// Built in code on its own overlay canvas the first time it is used.
     /// </summary>
     public sealed class GameplayOverlay : MonoBehaviour
@@ -23,8 +25,14 @@ namespace SignalLost.UI
         private CanvasGroup cardGroup;
         private RectTransform cardPanel;
         private Image cardStripe;
-        private TextMeshProUGUI cardKicker, cardTitle, cardBody;
-        private float cardShown, cardUntil;
+        private TextMeshProUGUI cardKicker, cardTitle, cardBody, cardHint;
+        private float cardShown, cardClosed = float.NegativeInfinity;
+        private bool cardOpen;
+        private readonly System.Collections.Generic.Queue<(string title, string body, Color color, string kicker)> cards =
+            new System.Collections.Generic.Queue<(string, string, Color, string)>();
+
+        /// <summary>True while a card waits to be dismissed.</summary>
+        public bool CardOpen => cardOpen;
 
         private CanvasGroup rootGroup;
 
@@ -69,18 +77,39 @@ namespace SignalLost.UI
             trackerPanel.sizeDelta = new Vector2(460f, height);
         }
 
-        /// <summary>A card at the right of the screen introducing a new item and its controls.</summary>
-        public void ShowItemCard(string title, string description, Color color, float seconds = 9f)
+        /// <summary>
+        /// A card at the left of the screen introducing a new item (or upgrade) and its controls. It stays until the
+        /// player dismisses it; cards shown while one is open wait their turn.
+        /// </summary>
+        public void ShowItemCard(string title, string description, Color color, string kicker = "NEW GEAR")
         {
-            cardKicker.text = "NEW GEAR";
+            cards.Enqueue((title, description, color, kicker));
+            if (!cardOpen) NextCard();
+        }
+
+        /// <summary>Closes the current card (the next queued one follows). Returns false if none was open.</summary>
+        public bool DismissCard()
+        {
+            if (!cardOpen) return false;
+            cardOpen = false;
+            cardClosed = Time.unscaledTime;
+            if (cards.Count > 0) NextCard();
+            return true;
+        }
+
+        private void NextCard()
+        {
+            (string title, string description, Color color, string kicker) = cards.Dequeue();
+            cardKicker.text = kicker;
             cardTitle.text = title;
             cardTitle.color = color;
             cardStripe.color = color;
             cardBody.text = description;
-            float height = 128f + cardBody.GetPreferredValues(description, 470f, 0f).y;
+            cardHint.text = cards.Count > 0 ? $"<b>[E]</b>  Next ({cards.Count} more)" : "<b>[E]</b>  Got it";
+            float height = 170f + cardBody.GetPreferredValues(description, 470f, 0f).y;
             cardPanel.sizeDelta = new Vector2(540f, height);
             cardShown = Time.unscaledTime;
-            cardUntil = Time.unscaledTime + seconds;
+            cardOpen = true;
         }
 
         private void Update()
@@ -92,8 +121,11 @@ namespace SignalLost.UI
             trackerGroup.alpha = Mathf.MoveTowards(trackerGroup.alpha, trackerVisible ? 1f : 0f, Time.unscaledDeltaTime * 5f);
             trackerPanel.localScale = Vector3.one * Mathf.LerpUnclamped(0.92f, 1f, UiTheme.Pop((now - trackerChanged) / 0.35f));
 
+            if (cardOpen && !UiMenus.AnyOpen && Keyboard.current != null &&
+                (Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.numpadEnterKey.wasPressedThisFrame))
+                DismissCard();
             float cardIn = UiTheme.Pop((now - cardShown) / 0.35f);
-            float cardOut = Mathf.Clamp01((cardUntil - now) / 0.4f);
+            float cardOut = cardOpen ? 1f : 1f - Mathf.Clamp01((now - cardClosed) / 0.25f);
             // Popups and menus own the middle of the screen; the card steps aside while they are open.
             float cardTarget = UiMenus.AnyOpen ? 0f : Mathf.Min(Mathf.Clamp01((now - cardShown) / 0.15f), cardOut);
             cardGroup.alpha = UiMenus.AnyOpen ? Mathf.MoveTowards(cardGroup.alpha, 0f, Time.unscaledDeltaTime * 8f) : cardTarget;
@@ -146,6 +178,9 @@ namespace SignalLost.UI
             cardBody.rectTransform.offsetMin = new Vector2(44f, 24f);
 
             cardBody.rectTransform.offsetMax = new Vector2(-26f, -100f);
+            cardBody.rectTransform.offsetMin = new Vector2(44f, 64f);
+            cardHint = UiTheme.Label("Hint", cardPanel, 24f, UiTheme.Accent, TextAlignmentOptions.BottomRight);
+            UiTheme.Place(cardHint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-26f, 20f), new Vector2(460f, 34f));
         }
     }
 }

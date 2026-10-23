@@ -108,7 +108,7 @@ namespace SignalLost.Editor
             flask.SetActive(false);
 
             GameObject merchant = Instance(MerchantPath, hollow);
-            merchant.name = "Eugine"; // also its name in the HUD target readout
+            merchant.name = "Eugene"; // also its name in the HUD target readout
             merchant.transform.SetPositionAndRotation(TutorialLevelBuilder.Ground(centre + new Vector2(1.5f, 1.5f)), Facing(centre + new Vector2(1.5f, 1.5f), centre + new Vector2(10f, -3f)));
             if (merchant.GetComponent<QuestSignalSource>() == null) merchant.AddComponent<QuestSignalSource>();
             SetZone(merchant.GetComponent<HermitCrab>(), zone);

@@ -125,12 +125,12 @@ public static class TutorialStorySmoke
         yield return null;
         Check(glint.enabled, "...and shows up close.");
         yield return Capture("ScannerFound");
-        Check(interactor.TryInteract() && gear.Has(PlayerItem.Scanner), "The scanner can be picked up from under its panel by the interaction ray.");
+        Check(ReadCardsThen(interactor).TryInteract() && gear.Has(PlayerItem.Scanner), "The scanner can be picked up from under its panel by the interaction ray.");
         Check(QuestSignalSource.Nearest(life.transform.position) == laser.GetComponent<QuestSignalSource>(), "With the scanner back, it points at the laser.");
         Aim(life, laser);
         yield return null;
         yield return Capture("LaserFound");
-        Check(interactor.TryInteract() && gear.Has(PlayerItem.MiningLaser), "The laser can be picked up in the reactor bay by the interaction ray.");
+        Check(ReadCardsThen(interactor).TryInteract() && gear.Has(PlayerItem.MiningLaser), "The laser can be picked up in the reactor bay by the interaction ray.");
         Check(QuestSignalSource.Nearest(life.transform.position) == cavendish.GetComponent<QuestSignalSource>(), "With both found, the scanner points back to Cavendish.");
 
         // ---------- The big crab ----------
@@ -200,9 +200,19 @@ public static class TutorialStorySmoke
         Check(cousins.All(c => Vector3.Distance(c.transform.position, merchant.transform.position) < 10f && c.Crab.Territory.Zone == null), "...defending the spot they were called to.");
         yield return 1.5f;
         yield return Capture("Ambush");
+        int scrapBefore = UnityEngine.Object.FindObjectsByType<ScrapPickup>().Length;
         foreach (CrabCousin cousin in cousins) cousin.GetComponent<Health>().TakeDamage(10000f, life.gameObject);
-        yield return 3.5f;
+        yield return 0.5f;
+        Check(UnityEngine.Object.FindObjectsByType<ScrapPickup>().Length == scrapBefore, "Called-back cousins drop no scrap (no farming the angry merchant).");
+        yield return 3f;
         Check(!merchant.AmbushActive && cousins.All(c => !c.gameObject.activeSelf), "Beating them ends the ambush and they despawn again.");
+    }
+
+    // Item cards wait for the player (E dismisses them first), so read any open ones before interacting.
+    private static PlayerInteractor ReadCardsThen(PlayerInteractor interactor)
+    {
+        while (GameplayOverlay.Current != null && GameplayOverlay.Current.CardOpen) GameplayOverlay.Current.DismissCard();
+        return interactor;
     }
 
     private static IEnumerator ReadToEnd(DialogueUi ui)

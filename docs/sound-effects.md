@@ -9,7 +9,7 @@ There's nothing to set up in a scene. `SoundDirector` (in `Assets/Scripts/Audio/
 | What it finds | What it adds |
 | --- | --- |
 | The player | `PlayerAudio`: laser, footsteps, hurt, flask, scanner, items, scrap, death and wake-up sounds |
-| Every hermit crab (the basic crab, the Bucket Brothers, Eugine) | `CreatureAudio`: skittering, hits, blocks, death squeak, Eugine's surrender whimper |
+| Every hermit crab (the basic crab, the Bucket Brothers, Eugene) | `CreatureAudio`: skittering, hits, blocks, death squeak, Eugene's surrender whimper |
 | Particle effects named "…Fire…", "Campfire", "…Sparks…", and any `FireEffect` | Crackling fire loop; electrical fires and sparks also fizz |
 | "Pond Water" | Lapping water loop |
 | Every button, slider and toggle | Hover tick and click |
@@ -17,7 +17,7 @@ There's nothing to set up in a scene. `SoundDirector` (in `Assets/Scripts/Audio/
 
 The other sounds react to things that already happen in the game:
 - **Menus** play a pop when one opens or closes.
-- **The merchant** plays a cha-ching when its shop opens, and a bell when Eugine arrives back at camp.
+- **The merchant** plays a cha-ching when its shop opens, and a bell when Eugene arrives back at camp.
 - **The tutorial** plays a chime at each new stage.
 - **A recovered main ship part** gets a fanfare.
 
@@ -69,7 +69,7 @@ All clips are in `Assets/Audio/Resources/SignalLostAudio/` and are played by fil
    - Crabs skitter as they move and clang when hit.
    - They squeak when they go down.
    - Their claws snip when they hit you, and you grunt.
-   - Eugine whimpers when it gives up.
+   - Eugene whimpers when it gives up.
 7. Pick up scrap (slurp and clink) and the flask (item jingle). Drink: uncork, glug, "ahh". Keep drinking for hiccups and a burp, then a woozy whoosh on blackout.
 8. Open the merchant's shop: cha-ching. Open and close the inventory and pause menu: pops. Turn the Sound effects and Music sliders down: sounds and ambience get quieter.
 9. Die: "SIGNAL LOST" sting.

@@ -38,6 +38,9 @@ namespace SignalLost.UI
         private RectTransform crosshair, chargeGroup, targetGroup;
         private readonly List<Image> drunkPips = new List<Image>();
         private readonly List<Image> comboPips = new List<Image>();
+        private readonly List<Image> drunkFills = new List<Image>();
+        private readonly List<Image> comboFills = new List<Image>();
+        private static readonly Color PipTrack = new Color(1f, 1f, 1f, 0.12f);
         private readonly TextMeshProUGUI[] scrapCounts = new TextMeshProUGUI[4];
         private TextMeshProUGUI scrapToast;
         private readonly Dictionary<ScrapType, int> recentScrap = new Dictionary<ScrapType, int>();
@@ -178,15 +181,20 @@ namespace SignalLost.UI
             {
                 flaskInfo.text = $"<color={UiTheme.Hex(UiTheme.Muted)}>No flask</color>";
                 foreach (Image pip in drunkPips) pip.color = new Color(1f, 1f, 1f, 0.08f);
+                foreach (Image fill in drunkFills) SetFill(fill, 0f, true);
                 return;
             }
             flaskInfo.text = flask.DrunkStacks == 0 ? $"Sober  <color={UiTheme.Hex(UiTheme.Good)}>next sip +{flask.NextSipHeal:0} HP</color>" :
                 $"Drunk {flask.DrunkStacks}/{flask.BlackoutAfterStacks}  next sip +{flask.NextSipHeal:0.#} HP";
+            // Lit pips are drinks in you; the top one drains as it wears off (a visual timer for the next sip).
+            bool danger = flask.DrunkStacks >= flask.BlackoutAfterStacks;
+            Color drunkColor = danger ? UiTheme.Warning : new Color(1f, 0.72f, 0.3f);
             for (int i = 0; i < drunkPips.Count; i++)
             {
-                bool lit = i < flask.DrunkStacks;
-                bool danger = flask.DrunkStacks >= flask.BlackoutAfterStacks;
-                drunkPips[i].color = lit ? (danger ? UiTheme.Warning : new Color(1f, 0.72f, 0.3f)) : new Color(1f, 1f, 1f, 0.12f);
+                drunkPips[i].color = i < flask.BlackoutAfterStacks ? PipTrack : new Color(1f, 1f, 1f, 0.04f);
+                float fill = i < flask.DrunkStacks - 1 ? 1f : i == flask.DrunkStacks - 1 ? flask.StackWearing : 0f;
+                drunkFills[i].color = drunkColor;
+                SetFill(drunkFills[i], fill, true);
             }
         }
 
@@ -203,6 +211,7 @@ namespace SignalLost.UI
                 handInfo.text = gear != null && gear.Has(PlayerItem.Scanner) ? "Follow the arrow on the scanner" : "Find your gear in the wreck";
                 cooldownFill.rectTransform.anchorMax = new Vector2(0f, 1f);
                 foreach (Image pip in comboPips) pip.color = new Color(1f, 1f, 1f, 0.08f);
+                foreach (Image fill in comboFills) SetFill(fill, 0f, false);
                 return;
             }
             float cooldown = laser.CurrentCooldownLength > 0f ? 1f - laser.ShotCooldownRemaining / laser.CurrentCooldownLength : 1f;
@@ -210,11 +219,32 @@ namespace SignalLost.UI
             cooldownFill.color = laser.IsCoolingDown ? new Color(0.45f, 0.55f, 0.7f) : new Color(0.4f, 0.9f, 1f);
             handInfo.text = laser.IsCoolingDown ? $"Bolt cooling  {laser.ShotCooldownRemaining:0.0}s" :
                 laser.ComboCooldownRemaining > 0f ? $"Bolt ready   Combo recharging {laser.ComboCooldownRemaining:0.0}s" : "Bolt ready   Combo ready";
+            // Pips count the combo; after the stunning third hit all three drain right to left as its recharge timer.
+            bool recharging = laser.ComboCooldownRemaining > 0f;
+            float left = recharging && laser.ComboCooldown > 0f ? laser.ComboCooldownRemaining / laser.ComboCooldown : 0f;
             for (int i = 0; i < comboPips.Count; i++)
             {
-                bool recharging = laser.ComboCooldownRemaining > 0f;
-                comboPips[i].color = recharging ? new Color(1f, 1f, 1f, 0.1f) : i < laser.ComboStep ? UiTheme.Accent : new Color(1f, 1f, 1f, 0.3f);
+                comboPips[i].color = recharging ? PipTrack : new Color(1f, 1f, 1f, 0.3f);
+                comboFills[i].color = recharging ? new Color(1f, 0.55f, 0.25f) : UiTheme.Accent;
+                SetFill(comboFills[i], recharging ? Mathf.Clamp01(left * comboPips.Count - i) : i < laser.ComboStep ? 1f : 0f, false);
             }
+        }
+
+        // A coloured bar inside a pip; SetFill grows it upward (vertical) or rightward.
+        private static Image Fill(Image pip)
+        {
+            Image fill = UiTheme.Panel("Fill", pip.transform, Color.white, null, 0.35f);
+            fill.rectTransform.anchorMin = Vector2.zero;
+            fill.rectTransform.anchorMax = Vector2.one;
+            fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
+            return fill;
+        }
+
+        private static void SetFill(Image fill, float amount, bool vertical)
+        {
+            amount = Mathf.Clamp01(amount);
+            fill.enabled = amount > 0.01f;
+            fill.rectTransform.anchorMax = vertical ? new Vector2(1f, amount) : new Vector2(amount, 1f);
         }
 
         private void UpdateScrap()
@@ -302,11 +332,12 @@ namespace SignalLost.UI
 
             RectTransform flaskBlock = Block(barRect, "Flask", 404f, 270f, "SCOTCH");
             flaskTitle = flaskBlock.Find("Title").GetComponent<TextMeshProUGUI>();
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 6; i++) // five drinks, a sixth with the Cast-Iron Liver upgrade
             {
                 Image pip = UiTheme.Panel("Drunk Pip", flaskBlock, Color.white, null, 0.35f);
                 UiTheme.Place(pip.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(i * 34f, -40f), new Vector2(26f, 34f));
                 drunkPips.Add(pip);
+                drunkFills.Add(Fill(pip));
             }
             flaskInfo = UiTheme.Label("Info", flaskBlock, 21f, UiTheme.Text, TextAlignmentOptions.BottomLeft);
             UiTheme.Place(flaskInfo.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 10f), new Vector2(280f, 30f));
@@ -321,6 +352,7 @@ namespace SignalLost.UI
                 Image pip = UiTheme.Panel("Combo Pip", handBlock, Color.white, null, 0.35f);
                 UiTheme.Place(pip.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(i * 30f, -40f), new Vector2(22f, 22f));
                 comboPips.Add(pip);
+                comboFills.Add(Fill(pip));
             }
             cooldownFill = Meter(handBlock, new Vector2(110f, -46f), new Vector2(210f, 12f), new Vector2(0f, 1f));
             handInfo = UiTheme.Label("Info", handBlock, 21f, UiTheme.Text, TextAlignmentOptions.BottomLeft);

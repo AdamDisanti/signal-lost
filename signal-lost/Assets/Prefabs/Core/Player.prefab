@@ -366,7 +366,7 @@ MonoBehaviour:
   - 45
   comboWindow: 0.4
   hitStop: 0.06
-  comboCooldown: 3
+  comboCooldown: 2
   finisherStun: 1
   energyColor: {r: 0.4, g: 0.9, b: 1, a: 1}
   viewKick: 0.9
@@ -380,8 +380,8 @@ MonoBehaviour:
   minShotRadius: 0.06
   maxShotRadius: 0.2
   shotRange: 30
-  shotCooldown: 8
-  tapShotCooldown: 4
+  shotCooldown: 6
+  tapShotCooldown: 1
   fullChargeBlastRadius: 4
   blastEdgeDamage: 0.5
   blastKnockback: 1.2
@@ -427,9 +427,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Player.PlayerFlask
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   drunkVolume: {fileID: 6153774300539712530}
-  healAmount: 35
+  healPerSip:
+  - 35
+  - 28
+  - 22
+  - 17
+  - 13
+  - 10
   blackoutAfterStacks: 5
-  drinkSeconds: 0.75
+  drinkSeconds: 1
   drinkCooldown: 1
   secondsPerStack: 15
 --- !u!114 &116424125715236192

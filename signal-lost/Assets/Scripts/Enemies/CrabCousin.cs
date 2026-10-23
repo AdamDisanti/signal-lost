@@ -8,7 +8,8 @@ namespace SignalLost.Enemies
     /// One of the merchant crab's ten cousins, the Bucket Brothers (meeting notes 10-22): an ordinary hermit crab
     /// with its own name (the GameObject's, so the HUD target readout shows it), shell, colours and lines. It barks
     /// when it first gets hit, says a last line when it goes down, and then despawns instead of leaving a corpse.
-    /// Cousins only come back when the angry merchant calls them (<see cref="Summon"/>), always the same ten.
+    /// Cousins only come back when the angry merchant calls them (<see cref="Summon"/>), always the same ten, and
+    /// then drop no scrap.
     /// Their looks are baked into each cousin's prefab by CrabCousinBuilder.
     /// </summary>
     [RequireComponent(typeof(HermitCrab))]
@@ -68,6 +69,8 @@ namespace SignalLost.Enemies
             despawnAt = -1f;
             barked = false;
             Crab.Territory.Zone = null; // it now defends the spot it was called to, not its old hangout
+            // Called-back cousins drop nothing (meeting notes 10-23): otherwise the angry merchant is a scrap farm.
+            if (TryGetComponent(out SignalLost.Inventory.ScrapDropper dropper)) dropper.enabled = false;
             gameObject.SetActive(true);
             Crab.enabled = true;
             Crab.Relocate(position, rotation);

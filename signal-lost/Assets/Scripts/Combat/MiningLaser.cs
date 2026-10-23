@@ -197,7 +197,8 @@ namespace SignalLost.Combat
         public Transform HeldTool => toolPivot;
 
         /// <summary>Cooldown for a shot at this charge: 10% or less uses the tap cooldown, scaling up to full charge.</summary>
-        public float CooldownFor(float charge) => Mathf.Lerp(TapShotCooldown, shotCooldown, Mathf.InverseLerp(0.1f, 1f, charge));
+        // Eased so part charges stay quick and only near-full shots pay the long cooldown (10-23 tuning: 1 s to 6 s).
+        public float CooldownFor(float charge) => Mathf.Lerp(TapShotCooldown, shotCooldown, Mathf.Pow(Mathf.InverseLerp(0.1f, 1f, charge), 1.5f));
         public float ComboCooldown => comboCooldown;
         public float FinisherStun => finisherStun;
         public float MinShotDamage => minShotDamage;

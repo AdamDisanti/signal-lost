@@ -48,10 +48,14 @@ namespace SignalLost.Player
         private void OnEnable() => health.Died += OnDied;
         private void OnDisable() => health.Died -= OnDied;
 
-        private void OnDied(Health _) => Respawn("SIGNAL LOST");
+        public const string DeathMessage = "SIGNAL LOST";
+        /// <summary>Overdrinking reads like dying in action (meeting notes 10-23).</summary>
+        public const string BlackoutMessage = "SIGNAL LOST - BLACKOUT";
+
+        private void OnDied(Health _) => Respawn(DeathMessage);
 
         /// <summary>Knocks the player out (too much Scotch) and brings them back at the spawn point.</summary>
-        public void Blackout(string message = "BLACKOUT") => Respawn(message);
+        public void Blackout(string message = BlackoutMessage) => Respawn(message);
 
         private void Respawn(string message)
         {

@@ -17,11 +17,20 @@ Player components:
 | Component | Job |
 | --- | --- |
 | `PlayerGear` | Items (laser, scanner, flask), Q to swap, holstering, starting items, "new gear" cards |
-| `PlayerFlask` | F to sip: heals 35, halved per drunk stack; blackout after 5 stacks |
+| `PlayerFlask` | F to sip (1 s): heals 35 / 28 / 22 / 17 / 13 as you get drunker; one drink wears off every 15 s; the 6th sip blacks out ("SIGNAL LOST - BLACKOUT"). From the 3rd sip on, each one ends in a burp |
 | `PlayerLife` | Death ("SIGNAL LOST") and blackout, fade, respawn at the spawn point, short wake-up |
 | `PlayerInteractor` | E on whatever is under the crosshair (`IInteractable`) |
 | `FirstPersonHands` | On-screen gloves |
 | `WakeUpSequence` | Eyelid wake-ups (tutorial intro, respawns) |
+
+## Movement
+
+- WASD, Shift to sprint, Space to jump.
+- **C** (tap) crouches or stands (only where there is headroom).
+- **C held while sprinting** slides: a burst at 1.5× sprint speed that bleeds off; let go of C to stand up.
+- **Slide cancel:** jump during a slide to keep its speed in the air. Landing with C still held slides again, so slide-jump chains outrun sprinting.
+
+Tuning is on `FirstPersonController` ("Crouch and slide"). Upgrades can lengthen slides (`SlideDistanceScale`).
 
 ## Moving a scene to the shared player
 
@@ -37,7 +46,7 @@ Use **Signal Lost > Scenes**, or `CoreSceneSetup.UpgradeToCorePlayer(scene, star
 The hands stay fixed at the bottom of the screen, just above the status bar.
 
 - **Right hand:** holds the laser or the scanner (Q cycles), so laser swings carry it along. With nothing out it rests as a fist.
-- **Left hand:** on F it grabs the flask, takes a quick sip and puts the flask away.
+- **Left hand:** on F it reaches down out of view for the flask, snaps it up to the mouth, swigs, and stows it again.
 
 Everything is built from boxes at runtime. Colours, size and poses are at the top of `FirstPersonHands.cs`.
 
@@ -76,6 +85,8 @@ All UI is drawn in code on singleton canvases (`Scripts/UI/`), so there are no U
   - a Terraria-style title over a code-drawn golden-hour scene;
   - New Game loads the Tutorial (`SceneNames.FirstLevel`);
   - Continue is a placeholder; Settings and Exit work.
+- **Item cards** ("NEW GEAR"): stay up until the player presses **E** or Enter; several queue up. **Rule for all future tutorial pop-ups: never on a timer.**
+- **Pips:** the three combo pips drain right to left during the 2 s combo recharge; the top flask pip drains as the current drink wears off, a timer for the next sip.
 - **Menus:** `UiMenus` tracks open menus, so full-screen ones hide the HUD and Esc closes the top one first.
 
 ## Verification

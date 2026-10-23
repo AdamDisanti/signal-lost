@@ -285,7 +285,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.NPC.NpcDialogue
   text: {fileID: 7983126383743592789}
-  speaker: Eugine
+  speaker: Eugene
   secondsPerLine: 6
   visibleDistance: 14
   subtitleDistance: 20

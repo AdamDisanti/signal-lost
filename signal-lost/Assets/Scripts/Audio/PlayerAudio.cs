@@ -297,7 +297,8 @@ namespace SignalLost.Audio
         private void AfterSip()
         {
             float drunk = flask != null ? flask.Drunkenness : 0f;
-            if (drunk >= 0.6f) Sfx.Play("flask_burp", 0.6f, Random.Range(0.9f, 1.05f));
+            // Every sip from the third on ends in a burp (meeting notes 10-23).
+            if (flask != null && flask.DrunkStacks >= 3) Sfx.Play("flask_burp", 0.6f, Random.Range(0.9f, 1.05f));
             else if (drunk >= 0.35f) Sfx.Play("flask_hiccup", 0.5f);
             else Sfx.Play("flask_ahh", 0.5f, Random.Range(0.97f, 1.03f));
         }

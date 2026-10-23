@@ -82,15 +82,15 @@ namespace SignalLost.Editor
                 Array(laserData, "comboDamage", 20f, 20f, 40f);
                 Array(laserData, "comboDuration", 0.35f, 0.35f, 0.6f);
                 laserData.FindProperty("meleeRange").floatValue = 2.5f;
-                laserData.FindProperty("comboCooldown").floatValue = 3f;
+                laserData.FindProperty("comboCooldown").floatValue = 2f;
                 laserData.FindProperty("finisherStun").floatValue = 1f;
                 laserData.FindProperty("energyColor").colorValue = new Color(0.4f, 0.9f, 1f);
                 laserData.FindProperty("swayStrength").floatValue = 0f;
                 laserData.FindProperty("bobStrength").floatValue = 0f;
                 laserData.FindProperty("minShotDamage").floatValue = 10f;
                 laserData.FindProperty("maxShotDamage").floatValue = 70f;
-                laserData.FindProperty("shotCooldown").floatValue = 8f;
-                laserData.FindProperty("tapShotCooldown").floatValue = 4f;
+                laserData.FindProperty("shotCooldown").floatValue = 6f;
+                laserData.FindProperty("tapShotCooldown").floatValue = 1f;
                 laserData.FindProperty("fullChargeBlastRadius").floatValue = 4f;
                 laserData.ApplyModifiedPropertiesWithoutUndo();
 
