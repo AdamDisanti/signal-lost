@@ -1200,6 +1200,9 @@ namespace SignalLost.Enemies.Desert
                 }
                 yield return null;
             }
+            // Its last frame is usually a part-step, which would read as nearly stopped: carry on at the dive's real
+            // speed, so its body keeps sliding into the sand and eases off instead of suddenly crawling.
+            currentSpeed = Mathf.Max(currentSpeed, 2f * (to - control).magnitude / Mathf.Max(0.05f, time));
             mouthTarget = 0f;
         }
 
