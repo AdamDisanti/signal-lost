@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 478a7880a914249ac910e44e8c26be42, type: 3}
+  m_Name: ItemCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Inventory.ItemCatalog
+  entries:
+  - id: overclocked_coil
+    model: {fileID: 7098084892940344435, guid: 7e15bbf4928dc4757bd17ef4ce33ed19, type: 3}
+    icon: {fileID: -1688114717184716838, guid: d11a8036b579241488b510778361a098, type: 3}
+  - id: quickcool_fins
+    model: {fileID: 2510752388495957383, guid: abc0cfcf0a8144497b6ecce19ce39500, type: 3}
+    icon: {fileID: 3448850588594418671, guid: 3ab8f7217f3d7463cb44fb5615f3ff20, type: 3}
+  - id: heavy_slam
+    model: {fileID: 2553461701415699086, guid: b37e21958f2f846fcbfb9f10ae726ec0, type: 3}
+    icon: {fileID: 6938663725138399633, guid: 5a14141014efe4bf7a9f55c6ca110dc6, type: 3}
+  - id: longnose_antenna
+    model: {fileID: 726765392296763955, guid: 0d3a365e2c0bd4c46bcd59f2cc234a2c, type: 3}
+    icon: {fileID: -3922096915303067337, guid: ad1c0a5f885294d0fbe7904fa8d33f87, type: 3}
+  - id: castiron_liver
+    model: {fileID: 6629260386818203022, guid: 1b191fbf33a11480b9925adfd2f7349d, type: 3}
+    icon: {fileID: -7579369652338847738, guid: 242a2f7e0f5ba42c3a025a55952fc490, type: 3}
+  - id: padded_overalls
+    model: {fileID: 6112664929761296452, guid: 0e39142792cdc4e8680bb5f6f22f38f9, type: 3}
+    icon: {fileID: -3477076272365953433, guid: f75679150f5af441488dcdbe8c4ac612, type: 3}
+  - id: slick_kneepads
+    model: {fileID: 3308217728924534030, guid: 15e936fc4e35c4b51a3f5aeddf61c51b, type: 3}
+    icon: {fileID: 7912985942011535253, guid: 3c158346e4f6849d4b73e6cfdc91ff3e, type: 3}
+  - id: hangover_pills
+    model: {fileID: 5766076857454781045, guid: ac12beee7c2a44b77ae06c9fc6eeb3b1, type: 3}
+    icon: {fileID: 3261322502446747787, guid: 401ae6d56d80346ad911aa7d95814dd5, type: 3}
+  - id: mystery_snack
+    model: {fileID: 4668257648977790383, guid: 6ef22e6580dc2405c9a64c479e7631db, type: 3}
+    icon: {fileID: -7722516526374950911, guid: ee1496a02fb9e4bc783a954066a520fe, type: 3}

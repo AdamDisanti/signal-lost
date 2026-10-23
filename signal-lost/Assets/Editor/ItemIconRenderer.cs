@@ -29,13 +29,14 @@ namespace SignalLost.Editor
             camera.backgroundColor = new Color(0f, 0f, 0f, 0f);
             camera.orthographic = true;
             camera.orthographicSize = Mathf.Max(bounds.extents.x, bounds.extents.y) * padding;
-            camera.transform.position = bounds.center + Vector3.back * (bounds.extents.magnitude + 2f);
-            camera.transform.rotation = Quaternion.identity;
+            // From the front (+Z), where models put their labels and details.
+            camera.transform.position = bounds.center + Vector3.forward * (bounds.extents.magnitude + 2f);
+            camera.transform.rotation = Quaternion.LookRotation(Vector3.back);
             camera.nearClipPlane = 0.01f;
             camera.farClipPlane = bounds.extents.magnitude * 2f + 4f;
 
-            Light key = Lamp(new Color(1f, 0.92f, 0.8f), 1.3f, new Vector3(35f, -35f, 0f));
-            Light rim = Lamp(new Color(0.55f, 0.75f, 1f), 0.8f, new Vector3(-20f, 150f, 0f));
+            Light key = Lamp(new Color(1f, 0.92f, 0.8f), 1.3f, new Vector3(35f, 145f, 0f));
+            Light rim = Lamp(new Color(0.55f, 0.75f, 1f), 0.8f, new Vector3(-20f, -30f, 0f));
             AmbientMode ambientMode = RenderSettings.ambientMode;
             Color ambient = RenderSettings.ambientLight;
             RenderSettings.ambientMode = AmbientMode.Flat;

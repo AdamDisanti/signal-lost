@@ -251,7 +251,7 @@ namespace SignalLost.UI
         {
             PlayerInventory inventory = gear != null ? gear.Inventory : null;
             for (int i = 0; i < scrapCounts.Length; i++) scrapCounts[i].text = inventory != null ? inventory.Scrap(ScrapInfo.All[i]).ToString() : "0";
-            scrapToast.alpha = Mathf.Clamp01((toastUntil - Time.unscaledTime) / 0.4f);
+            scrapToast.alpha = UiMenus.FullScreenOpen ? 0f : Mathf.Clamp01((toastUntil - Time.unscaledTime) / 0.4f);
         }
 
         private void UpdateCrosshair()

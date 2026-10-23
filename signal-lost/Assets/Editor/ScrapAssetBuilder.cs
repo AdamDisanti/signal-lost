@@ -70,10 +70,10 @@ namespace SignalLost.Editor
 
         private static Vector3 IconAngles(ScrapType type) => type switch
         {
-            ScrapType.CircuitBoards => new Vector3(-60f, 20f, 0f),
+            ScrapType.CircuitBoards => new Vector3(55f, 20f, 0f),
             ScrapType.FuelCells => new Vector3(0f, 25f, -35f),
-            ScrapType.Wiring => new Vector3(-20f, 30f, 0f),
-            _ => new Vector3(-30f, 35f, 0f)
+            ScrapType.Wiring => new Vector3(20f, 30f, 0f),
+            _ => new Vector3(30f, 35f, 0f)
         };
 
         // ---------- Models ----------
@@ -211,7 +211,7 @@ namespace SignalLost.Editor
             Lit(Mat.Capacitor, new Color(0.15f, 0.55f, 0.7f), 0.2f, 0.6f);
             Lit(Mat.Silver, new Color(0.8f, 0.82f, 0.84f), 0.9f, 0.6f);
             Lit(Mat.Band, new Color(0.9f, 0.48f, 0.18f), 0.7f, 0.5f);
-            Lit(Mat.Led, new Color(0.25f, 0.9f, 0.2f), 0f, 0.6f, new Color(0.15f, 0.75f, 0.1f));
+            Lit(Mat.Led, new Color(0.2f, 0.8f, 0.2f), 0f, 0.6f, new Color(0.04f, 0.4f, 0.06f));
             Lit(Mat.Charge, new Color(0.2f, 0.85f, 1f), 0f, 0.6f, new Color(0.05f, 0.65f, 0.95f) * 1.3f);
             Material glass = Lit(Mat.Glass, new Color(0.55f, 0.8f, 1f, 0.16f), 0f, 0.95f);
             MakeTransparent(glass);

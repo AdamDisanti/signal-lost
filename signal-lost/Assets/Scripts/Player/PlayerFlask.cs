@@ -157,6 +157,13 @@ namespace SignalLost.Player
             ApplyIntoxication();
         }
 
+        /// <summary>Wears off some drinks at once (Hangover Pills).</summary>
+        public void SoberBy(int drinks)
+        {
+            DrunkStacks = Mathf.Max(0, DrunkStacks - drinks);
+            nextSober = Time.time + secondsPerStack;
+        }
+
         private void SoberUp()
         {
             DrunkStacks = 0;

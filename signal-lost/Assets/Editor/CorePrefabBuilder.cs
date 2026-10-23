@@ -122,6 +122,7 @@ namespace SignalLost.Editor
                 Set(interactor, "view", view);
                 Set(Add<FirstPersonHands>(player), "flaskModel", Load<GameObject>(FlaskModel));
                 Set(Add<WakeUpSequence>(player), "cameraPivot", view.transform);
+                Add<PlayerUpgrades>(player);
 
                 PrefabUtility.SaveAsPrefabAsset(player, PlayerPath);
             }

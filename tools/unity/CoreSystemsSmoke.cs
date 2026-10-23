@@ -16,6 +16,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 // Play Mode smoke for the shared player, hands, HUD and menus (tutorial overhaul phase 2), in the free-play
@@ -175,7 +176,71 @@ public static class CoreSystemsSmoke
         interactor.TryInteract();
         Aim(life, merchant.GetComponent<Collider>(), merchant.transform);
         Check(interactor.TryInteract() && MerchantMenuUi.Instance.IsOpen, "The friendly merchant opens its shop.");
+
+        // ---------- Upgrades, supplies, trades (10-23) ----------
+        var pockets = life.GetComponent<PlayerInventory>();
+        foreach (ScrapType type in ScrapInfo.All) pockets.AddScrap(type, 60);
+        MerchantMenuUi.Instance.ShowTab(0);
+        yield return 0.3f;
+        Check(MerchantMenuUi.Instance.ListingCount == 7, "The shop sells the seven tutorial upgrades.");
+        yield return Capture("ShopUpgrades");
+        float boltBefore = gear.Laser.MaxShotDamage, cooldownBefore = gear.Laser.ShotCooldown, stunBefore = gear.Laser.FinisherStun;
+        var scannerController = life.GetComponentInChildren<ScannerController>(true);
+        float rangeBefore = scannerController.Range;
+        Button buy = MerchantMenuUi.Instance.GetComponentsInChildren<Button>().First(b => b.name == "Buy" && b.transform.parent.name == "Overclocked Coil");
+        buy.onClick.Invoke();
+        Check(pockets.Owns("overclocked_coil") && pockets.Scrap(ScrapType.ScrapMetal) == 50 && pockets.Scrap(ScrapType.Wiring) == 56,
+            "Buy in the shop pays 10 metal and 4 wiring and installs the Overclocked Coil.");
+        Check(Mathf.Approximately(gear.Laser.MaxShotDamage, boltBefore * 1.25f), "Overclocked Coil: bolts hit 25% harder.");
+        Check(!pockets.Buy(UpgradeCatalog.Find("overclocked_coil")), "An upgrade cannot be bought twice.");
+        foreach (string id in new[] { "quickcool_fins", "heavy_slam", "longnose_antenna", "castiron_liver", "padded_overalls", "slick_kneepads" })
+            Check(pockets.Buy(UpgradeCatalog.Find(id)), "Bought " + UpgradeCatalog.Find(id).Name + ".");
+        Check(Mathf.Approximately(gear.Laser.ShotCooldown, cooldownBefore * 0.75f), "Quick-Cool Fins: bolt cooldowns 25% shorter.");
+        Check(Mathf.Approximately(gear.Laser.FinisherStun, stunBefore + 0.5f), "Heavy Slam: the finisher stuns for 1.5 s.");
+        Check(Mathf.Approximately(scannerController.Range, rangeBefore + 10f), "Long-Nose Antenna: +10 m scanner range.");
+        Check(flask.BlackoutAfterStacks == 6, "Cast-Iron Liver: six drinks before a blackout.");
+        Check(Mathf.Approximately(life.Health.Max, 125f), "Padded Overalls: 125 max health.");
+        Check(Mathf.Approximately(movement.SlideDistanceScale, 1.3f), "Slick Kneepads: slides 30% further.");
+        int wiringBefore = pockets.Scrap(ScrapType.Wiring);
+        Check(pockets.Buy(UpgradeCatalog.Find("trade_wiring")) && pockets.Scrap(ScrapType.Wiring) == wiringBefore + 1, "Trades turn 5 metal into 1 wiring.");
+        Check(pockets.Buy(UpgradeCatalog.Find("hangover_pills")) && pockets.Buy(UpgradeCatalog.Find("mystery_snack")) &&
+              pockets.SupplyCount("hangover_pills") == 1, "Supplies stack in the pockets.");
+        MerchantMenuUi.Instance.ShowTab(1);
+        yield return 0.2f;
+        yield return Capture("ShopSupplies");
         MerchantMenuUi.Instance.Close();
+        yield return null;
+        while (GameplayOverlay.Instance.CardOpen) GameplayOverlay.Instance.DismissCard();
+        flask.TryDrink();
+        yield return 1.2f;
+        int drunk = flask.DrunkStacks;
+        var upgrades = life.GetComponent<PlayerUpgrades>();
+        Check(drunk > 0 && upgrades.UseSupply("hangover_pills") && flask.DrunkStacks == drunk - 1 && pockets.SupplyCount("hangover_pills") == 0, "Hangover Pills sober you up by one drink.");
+        life.Health.TakeDamage(30f);
+        float hurt = life.Health.Current;
+        Check(upgrades.UseSupply("mystery_snack") && Mathf.Approximately(life.Health.Current, hurt + 15f), "Mystery Snack heals 15.");
+
+        // ---------- Pockets: four tabs and the 3D mechanic ----------
+        InventoryUi.Instance.Open(0);
+        yield return 0.3f;
+        yield return Capture("PocketsMaterials");
+        InventoryUi.Instance.ShowTab(1);
+        yield return 0.4f;
+        GearFigure figure = InventoryUi.Instance.Figure;
+        Check(figure != null && figure.gameObject.activeSelf && figure.GetComponentsInChildren<MeshRenderer>().Length > 20,
+            "The Gear tab shows the 3D mechanic with the laser, scanner and flask.");
+        Check(figure.GetComponentsInChildren<Transform>().Count(t => t.name.StartsWith("overclocked_coil")) == 2 &&
+              figure.GetComponentsInChildren<Transform>().Count(t => t.name.StartsWith("slick_kneepads")) == 2,
+            "Upgrades are fitted to the mechanic and the tool close-ups (coil on both laser copies, a pad on each knee).");
+        yield return Capture("PocketsGear");
+        InventoryUi.Instance.ShowTab(2);
+        yield return 0.3f;
+        yield return Capture("PocketsUpgrades");
+        InventoryUi.Instance.ShowTab(3);
+        yield return 0.3f;
+        yield return Capture("PocketsStats");
+        InventoryUi.Instance.Close();
+        Check(!figure.gameObject.activeSelf, "Closing the pockets switches the 3D stage off.");
 
         // ---------- Death, fade and stage reset ----------
         var dummy = UnityEngine.Object.FindObjectsByType<TrainingDummy>().First();

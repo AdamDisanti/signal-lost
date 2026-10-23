@@ -46,6 +46,8 @@ namespace SignalLost.Player
         private Material glove, sleeve, cuff;
 
         public Transform RightHand => rightHand;
+        /// <summary>The flask model prefab (the pockets menu shows a copy).</summary>
+        public GameObject FlaskModel => flaskModel;
         public Transform LeftHand => leftHand;
 
         private void Awake()

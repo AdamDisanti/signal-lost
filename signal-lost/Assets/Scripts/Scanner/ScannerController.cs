@@ -22,7 +22,10 @@ namespace SignalLost.Scanner
         public float SignalStrength01 => signalStrength01;
         public Vector3 DirectionToTarget => directionToTarget;
         /// <summary>How far away creatures are detected (quest objectives are tracked at any distance).</summary>
-        public float Range => config != null ? config.MaxRange : 0f;
+        public float Range => config != null ? config.MaxRange + RangeBonus : 0f;
+
+        /// <summary>Extra critter range from upgrades (Long-Nose Antenna).</summary>
+        public float RangeBonus { get; set; }
 
         public event Action<TrackableTarget> OnTargetReached;
 
@@ -65,7 +68,7 @@ namespace SignalLost.Scanner
             }
 
             EnemySignalSource bestTarget = null;
-            float maxRange = config.MaxRange;
+            float maxRange = Range;
             float nearestDistanceSquared = maxRange * maxRange;
 
             foreach (EnemySignalSource candidate in FindObjectsByType<EnemySignalSource>())
@@ -99,7 +102,7 @@ namespace SignalLost.Scanner
 
             Vector3 offset = currentTarget.transform.position - scanOrigin.position;
             float distance = offset.magnitude;
-            float MaxRange = config.MaxRange;
+            float MaxRange = Range;
 
             if (distance > MaxRange && !(currentTarget is QuestSignalSource))
             {

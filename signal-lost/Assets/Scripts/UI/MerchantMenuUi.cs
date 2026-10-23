@@ -9,45 +9,25 @@ using UnityEngine.UI;
 namespace SignalLost.UI
 {
     /// <summary>
-    /// Bucket &amp; Barter, the merchant crab's shop menu (meeting notes 2026-10-20). A placeholder: three tabs of
-    /// listings priced in scrap, every purchase disabled until upgrades and trading exist. Shows the player's
-    /// sorted scrap so prices can be compared. Tabs by click or 1/2/3; E, Escape, the Close button or walking
-    /// away closes it. Opening it frees the cursor; walking keeps working.
+    /// Bucket &amp; Barter, the merchant crab's shop menu (meeting notes 10-20, stocked 10-23): upgrades, supplies and
+    /// scrap trades from <see cref="UpgradeCatalog"/>, each a fixed recipe of scrap (and sometimes a mini-boss key
+    /// item). Buy pays and installs straight away. Shows the player's sorted scrap so prices can be compared. Tabs by
+    /// click or 1/2/3; E, Escape, the Close button or walking away closes it. Opening it frees the cursor.
     /// </summary>
     public sealed class MerchantMenuUi : MonoBehaviour
     {
         private const float Range = 6f;
 
-        private struct Listing
-        {
-            public string Name, Description;
-            public (ScrapType type, int amount)[] Price;
-        }
-
-        // Placeholder stock; names and prices are for the look of the menu only.
         private static readonly string[] Tabs = { "Upgrades", "Supplies", "Trade Scrap" };
-        private static readonly Listing[][] Stock =
+        private static readonly UpgradeSlot[][] TabSlots =
         {
-            new[]
-            {
-                new Listing { Name = "Overclocked Coil", Description = "Charged bolts hit 25% harder.", Price = new[] { (ScrapType.ScrapMetal, 10), (ScrapType.Wiring, 4) } },
-                new Listing { Name = "Quick-Cool Fins", Description = "Bolt cooldown 10 s, down to 7 s.", Price = new[] { (ScrapType.ScrapMetal, 8), (ScrapType.CircuitBoards, 3) } },
-                new Listing { Name = "Heavy Slam", Description = "The combo finisher hits harder and stuns longer.", Price = new[] { (ScrapType.ScrapMetal, 12), (ScrapType.FuelCells, 2) } },
-                new Listing { Name = "Long-Nose Antenna", Description = "Scanner finds critters 10 m further away.", Price = new[] { (ScrapType.Wiring, 6), (ScrapType.CircuitBoards, 2) } }
-            },
-            new[]
-            {
-                new Listing { Name = "Hangover Pills", Description = "Instantly sober up by one drink. Probably safe.", Price = new[] { (ScrapType.Wiring, 3) } },
-                new Listing { Name = "Bucket Helmet", Description = "Purely cosmetic. Extremely shiny.", Price = new[] { (ScrapType.ScrapMetal, 20) } },
-                new Listing { Name = "Mystery Snack", Description = "The crab won't say what's in it.", Price = new[] { (ScrapType.FuelCells, 1) } }
-            },
-            new[]
-            {
-                new Listing { Name = "Metal for Wiring", Description = "5 Scrap Metal into 1 Wiring.", Price = new[] { (ScrapType.ScrapMetal, 5) } },
-                new Listing { Name = "Wiring for Boards", Description = "4 Wiring into 1 Circuit Board.", Price = new[] { (ScrapType.Wiring, 4) } },
-                new Listing { Name = "Boards for a Cell", Description = "3 Circuit Boards into 1 Fuel Cell.", Price = new[] { (ScrapType.CircuitBoards, 3) } }
-            }
+            new[] { UpgradeSlot.Laser, UpgradeSlot.Scanner, UpgradeSlot.Flask, UpgradeSlot.Suit },
+            new[] { UpgradeSlot.Supply },
+            new[] { UpgradeSlot.Trade }
         };
+
+        /// <summary>The area whose stock is on the shelves (only the tutorial's so far).</summary>
+        public UpgradeRegion Region { get; set; } = UpgradeRegion.Tutorial;
 
         private static MerchantMenuUi instance;
 
@@ -124,8 +104,11 @@ namespace SignalLost.UI
             }
             foreach (GameObject row in rows) Destroy(row);
             rows.Clear();
-            Listing[] listings = Stock[tab];
-            for (int i = 0; i < listings.Length; i++) rows.Add(Row(listings[i], i));
+            int slot = 0;
+            foreach (Upgrade listing in UpgradeCatalog.For(Region, TabSlots[tab])) rows.Add(Row(listing, slot++));
+            foreach (Upgrade listing in UpgradeCatalog.All)
+                if (System.Array.IndexOf(TabSlots[tab], listing.Slot) >= 0 && (listing.IsSupply || listing.IsTrade) && listing.Region != Region)
+                    rows.Add(Row(listing, slot++)); // supplies and trades are sold everywhere
             RefreshBalance();
         }
 
@@ -164,7 +147,7 @@ namespace SignalLost.UI
             dim.raycastTarget = true;
 
             Image background = UiTheme.Panel("Panel", root.transform, UiTheme.PanelColor, UiTheme.SpeakerColor("crab"), 1.4f);
-            panel = UiTheme.Place(background.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1300f, 800f));
+            panel = UiTheme.Place(background.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(1300f, 940f));
 
             Image sign = UiTheme.Panel("Sign", panel, UiTheme.SpeakerColor("crab"), null, 0.8f);
             RectTransform signRect = UiTheme.Place(sign.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(640f, 86f));
@@ -190,7 +173,7 @@ namespace SignalLost.UI
                 tabButtons.Add(button);
             }
 
-            listArea = UiTheme.Place(UiTheme.Rect("Listings", panel), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(46f, -226f), new Vector2(1208f, 470f));
+            listArea = UiTheme.Place(UiTheme.Rect("Listings", panel), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(46f, -226f), new Vector2(1208f, 640f));
 
             Button close = UiTheme.Button("Close", panel, "Close");
             UiTheme.Place((RectTransform)close.transform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, -30f), new Vector2(150f, 52f));
@@ -201,36 +184,30 @@ namespace SignalLost.UI
             hint.text = "[1] [2] [3]  Tabs     [E] / [Esc]  Close";
             TextMeshProUGUI note = UiTheme.Label("Note", panel, 24f, UiTheme.Muted, TextAlignmentOptions.BottomLeft, FontStyles.Italic);
             UiTheme.Place(note.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(46f, 24f), new Vector2(600f, 34f));
-            note.text = "Shelves still being stocked. Check back soon!";
+            note.text = "All sales final. Installation free. Claws optional.";
             root.SetActive(false);
         }
 
-        private GameObject Row(Listing listing, int index)
+        private GameObject Row(Upgrade listing, int index)
         {
-            Image row = UiTheme.Panel(listing.Name, listArea, UiTheme.PanelLight, null, 0.7f);
-            UiTheme.Place(row.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -index * 114f), new Vector2(1208f, 102f));
-            TextMeshProUGUI name = UiTheme.Label("Name", row.transform, 30f, UiTheme.Text, TextAlignmentOptions.TopLeft, FontStyles.Bold);
-            UiTheme.Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24f, -12f), new Vector2(520f, 40f));
-            name.text = listing.Name;
-            TextMeshProUGUI description = UiTheme.Label("Description", row.transform, 22f, UiTheme.Muted, TextAlignmentOptions.TopLeft);
-            UiTheme.Place(description.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24f, -56f), new Vector2(560f, 34f));
-            description.text = listing.Description;
-
             PlayerInventory inventory = PlayerInventory.Current;
-            var price = new StringBuilder();
-            foreach ((ScrapType type, int amount) in listing.Price)
-            {
-                bool affordable = inventory != null && inventory.Scrap(type) >= amount;
-                Color color = affordable ? ScrapInfo.Color(type) : UiTheme.Muted;
-                price.Append($"<color={UiTheme.Hex(color)}>{amount} {ScrapInfo.Name(type)}</color>   ");
-            }
-            TextMeshProUGUI cost = UiTheme.Label("Price", row.transform, 24f, UiTheme.Text, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
-            UiTheme.Place(cost.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(600f, 0f), new Vector2(380f, 60f));
-            cost.text = price.ToString();
+            Sprite icon = listing.IsTrade ? ScrapCatalog.Icon(listing.Gives) : ItemCatalog.Icon(listing.Id);
+            string body = listing.OneOff ? $"<color={UiTheme.Hex(ItemRows.SlotColor(listing.Slot))}>{ItemRows.SlotName(listing.Slot)}</color>  {listing.Description}" : listing.Description;
+            if (listing.IsSupply && inventory != null) body += $"   <color={UiTheme.Hex(UiTheme.Text)}>(you have {inventory.SupplyCount(listing.Id)})</color>";
+            RectTransform row = ItemRows.Row(listArea, listing.Name, icon, listing.Name, UiTheme.Text, body, new Vector2(0f, -index * 90f), new Vector2(1208f, 84f), 590f);
 
-            Button buy = UiTheme.Button("Buy", row.transform, "COMING SOON", 22f);
-            UiTheme.Place((RectTransform)buy.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-20f, 0f), new Vector2(200f, 56f));
-            buy.interactable = false;
+            TextMeshProUGUI cost = UiTheme.Label("Price", row, 22f, UiTheme.Text, TextAlignmentOptions.MidlineRight, FontStyles.Bold);
+            UiTheme.Place(cost.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-230f, 0f), new Vector2(330f, 80f));
+            cost.text = ItemRows.Price(listing, inventory);
+
+            string why = inventory != null ? inventory.WhyNot(listing) : "No pockets";
+            Button buy = UiTheme.Button("Buy", row, why == null ? "BUY" : why == "Owned" ? "INSTALLED" : "BUY", 22f);
+            UiTheme.Place((RectTransform)buy.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-16f, 0f), new Vector2(196f, 56f));
+            buy.interactable = why == null;
+            buy.onClick.AddListener(() =>
+            {
+                if (inventory != null && inventory.Buy(listing)) ShowTab(tab);
+            });
             return row.gameObject;
         }
     }
