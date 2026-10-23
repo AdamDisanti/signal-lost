@@ -120,6 +120,23 @@ Clear, open dunes. A sand ridge racing under the surface shows where it is betwe
 
 It reuses the fire effect and particle bursts, `FireZone`, `FuelShell.Blast` (the line-of-sight blast), `ScrapBomb`, `GroundMarker`, `ExpandingRing`, `MiniBossHud` banners and the desert fodder.
 
+## Diagnostics
+
+`CorewormDiagnostics` is a test recorder, Editor only. It is off unless the file `signal-lost/Logs/coreworm-diagnostics.on` exists. When it is on, pressing Play in CorewormTest:
+- puts the player at the stage exit, starting the ambush;
+- keeps the player alive;
+- writes a line per frame to `signal-lost/Logs/coreworm-diagnostics.csv`: frame time, the worm's current attack and move, speed, head and body positions, body layout time and garbage collections;
+- stops Play mode after 90 s.
+
+Delete the `.on` file to turn it off. The Logs folder is git-ignored.
+
+The stutter fix used it. In the first run, at about 200 fps, the head stopped dead for a frame at nearly every change of move, then re-accelerated from zero (for example 26 m/s → 0 → 4 m/s). Breach exits also snapped the head 4 m inward. There were three causes:
+- Unity resumed the outer routine a frame after each nested move.
+- The tracked speed dropped to 0 on that frame.
+- The boundary clamp in `Circle` caused the inward snap.
+
+The fixes were inline nested moves (`Inline`), easing the tracked speed, steering back inside the arena, carrying the dive's end speed, and rising during line-up. In the final run the median speed kept across move changes went from 3% to about 100%, with no jumps. The only remaining stops are the deliberate ones: rearing up and the slam landing.
+
 ## Manual acceptance checks
 
 1. Play `CorewormTest`. Walk north to the beacon: the ground shakes, the worm erupts in front of the exit, roars and lunges at you, and the screen goes black. *"Dragged beneath the dunes"* shows, then you are in the arena. The worm erupts, the name card shows, and you have control again with the boss bar showing.
