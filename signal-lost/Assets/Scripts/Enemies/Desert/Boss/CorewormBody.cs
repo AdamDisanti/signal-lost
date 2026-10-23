@@ -25,6 +25,8 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(0.2f)] private float ringSpacing = 0.4f;
         [Tooltip("Metres between the worm's annular ridges.")]
         [SerializeField, Min(0.2f)] private float ridgeSpacing = 0.85f;
+        [Tooltip("Metres behind the head over which the body bends from the way the head faces into the path it travelled.")]
+        [SerializeField, Min(0.5f)] private float neckLength = 3.5f;
         [Tooltip("How many smoothing passes the path gets (more: rounder turns).")]
         [SerializeField, Range(0, 12)] private int smoothing = 6;
         [Tooltip("The glowing energy veins (unlit).")]
@@ -142,12 +144,15 @@ namespace SignalLost.Enemies.Desert
 
         /// <summary>
         /// Rebuilds the body along a path in world space that starts at the head pivot and runs back along where the
-        /// head has been (it is carried straight on if it is shorter than the body).
+        /// head has been (it is carried straight on if it is shorter than the body). The first
+        /// <see cref="neckLength"/> metres bend out of the back of the skull (<paramref name="headForward"/>) into that path.
+        /// The path should be the head and its trail with nothing skipped: then the body moves smoothly as the head does.
         /// </summary>
-        public void Rebuild(IReadOnlyList<Vector3> path, Vector3 upHint)
+        public void Rebuild(IReadOnlyList<Vector3> path, Vector3 upHint, Vector3 headForward)
         {
             if (bodyMesh == null || path == null || path.Count < 2) return;
             Resample(path);
+            BendNeck(headForward);
             Smooth();
 
             // Ring centres along the smoothed curve; frames carried down the body so it never twists.
@@ -224,6 +229,20 @@ namespace SignalLost.Enemies.Desert
                 carried = span - (at - Step);
             }
             while (even.Count < needed) even.Add(even[even.Count - 1] + direction * Step);
+        }
+
+        /// <summary>The neck leaves straight out of the back of the skull and eases into the travelled path.</summary>
+        private void BendNeck(Vector3 headForward)
+        {
+            if (headForward.sqrMagnitude < 0.0001f) return;
+            headForward.Normalize();
+            Vector3 head = even[0];
+            for (int i = 1; i < even.Count; i++)
+            {
+                float d = i * Step;
+                if (d >= neckLength) break;
+                even[i] = Vector3.Lerp(head - headForward * d, even[i], Mathf.SmoothStep(0f, 1f, d / neckLength));
+            }
         }
 
         /// <summary>Rounds off corners: repeated neighbour averaging, keeping the first points pinned to the head.</summary>

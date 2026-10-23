@@ -62,6 +62,8 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Range(10f, 90f)] private float maxNeckBend = 55f;
         [Tooltip("How deep it swims under the sand (keep its back below the floor).")]
         [SerializeField, Min(1f)] private float swimDepth = 3.6f;
+        [Tooltip("How quickly the part of its body still above the sand sinks after its head has gone under (higher: faster).")]
+        [SerializeField, Min(0f)] private float trailSinkRate = 3f;
         [Tooltip("The three jaws around the mouth, which open outward.")]
         [SerializeField] private Transform[] jaws = new Transform[0];
         [Tooltip("The Engine Core in its throat: the weak spot, and the part it drops.")]
@@ -633,6 +635,12 @@ namespace SignalLost.Enemies.Desert
             yield return GoUnder();
             int fakes = Phase >= 4 ? 4 : 3;
             const float travel = 1.7f;
+            // First it slips unseen (deep, no ridge) to about 18 m from the player on its own side, so the real ridge
+            // starts from where it actually is instead of it jumping there (which yanked its whole body through the sand).
+            Vector3 ownSide = Flat(head.position - PlayerGround(0f));
+            if (ownSide.sqrMagnitude < 0.01f) ownSide = Flat(UnityEngine.Random.insideUnitSphere);
+            Vector3 staging = ClampToArena(PlayerGround(0f) + ownSide.normalized * 18f);
+            yield return SwimTo(() => staging, 30f, 2f, 3f, false);
             Vector3 centre = PlayerGround(0.4f);
             float baseAngle = UnityEngine.Random.value * 360f;
             int real = UnityEngine.Random.Range(0, fakes + 1);
@@ -649,9 +657,7 @@ namespace SignalLost.Enemies.Desert
                 RunAlongside(FakeRidge(from, spots[i], travel));
             }
             Vector3 strike = spots[real];
-            Vector3 approach = ClampToArena(strike + Flat(UnityEngine.Random.insideUnitSphere).normalized * 18f);
-            head.position = new Vector3(approach.x, UnderY, approach.z);
-            float distance = Vector3.Distance(Flat(approach), Flat(strike));
+            float distance = Vector3.Distance(Flat(head.position), Flat(strike));
             yield return SwimTo(() => strike, Mathf.Max(8f, distance / travel), travel + 0.5f, 1f, true, true);
             GroundMarker marker = Marker(strike, 3.5f);
             yield return Countdown(marker, 0.45f);
@@ -1189,17 +1195,50 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Keeps a wanted facing within <see cref="maxNeckBend"/> of the line of its neck.</summary>
         private Vector3 LimitToNeck(Vector3 want)
         {
-            Vector3 neck = Vector3.zero;
-            foreach (Vector3 point in trail)
-            {
-                Vector3 back = point - head.position;
-                if (back.sqrMagnitude < 9f) continue; // the first point about 3 m back along the body
-                neck = -back.normalized;
-                break;
-            }
-            if (neck == Vector3.zero) return want;
+            Vector3 back = TrailPointAt(3f) - head.position; // about 3 m back along the body (measured along the trail, so it changes smoothly)
+            if (back.sqrMagnitude < 0.25f) return want;
+            Vector3 neck = -back.normalized;
             float angle = Vector3.Angle(neck, want);
             return angle <= maxNeckBend ? want : Vector3.Slerp(neck, want, maxNeckBend / angle);
+        }
+
+        /// <summary>The point a distance back along the trail from the head.</summary>
+        private Vector3 TrailPointAt(float distance)
+        {
+            Vector3 previous = head.position;
+            foreach (Vector3 point in trail)
+            {
+                float span = Vector3.Distance(previous, point);
+                if (span >= distance && span > 0.0001f) return Vector3.Lerp(previous, point, distance / span);
+                distance -= span;
+                previous = point;
+            }
+            return previous;
+        }
+
+        /// <summary>
+        /// Once its head is under the sand, whatever of its body is still sticking out sinks after it, so the tail
+        /// slides under smoothly instead of hanging in the air while the head waits or swims off.
+        /// </summary>
+        private void SinkTrail(float dt)
+        {
+            if (IsDefeated) return;
+            // Eases in as the head gets deeper (no sudden start), sinks each point in proportion to its height (no hard
+            // stop at the bottom), and leaves the neck alone so the head's own movement stays smooth.
+            float depth = Mathf.SmoothStep(0f, 1f, (GroundY - 0.5f - head.position.y) / 2f);
+            if (depth <= 0f) return;
+            float floor = UnderY + 0.5f, amount = (1f - Mathf.Exp(-trailSinkRate * dt)) * depth, along = 0f;
+            Vector3 previous = head.position;
+            for (int i = 0; i < trail.Count; i++)
+            {
+                Vector3 point = trail[i];
+                along += Vector3.Distance(previous, point);
+                previous = point;
+                if (point.y <= floor) continue;
+                float weight = Mathf.SmoothStep(0f, 1f, (along - 2f) / 4f);
+                point.y -= (point.y - floor) * amount * weight;
+                trail[i] = point;
+            }
         }
 
         private void TrackPlayer(float rate)
@@ -1229,19 +1268,18 @@ namespace SignalLost.Enemies.Desert
         private void PlaceBody()
         {
             if (head == null) return;
-            // The path the body lies along: out of the back of the skull, then everywhere the head has been.
+            // The path the body lies along: the head, then everywhere it has been, with nothing skipped (skipping points
+            // near the head made the body jump about whenever the trail passed close to it). The body bends the neck
+            // out of the back of the skull itself.
             path.Clear();
             path.Add(head.position);
-            path.Add(head.position - head.forward * 0.8f);
-            path.Add(head.position - head.forward * 1.6f);
             foreach (Vector3 point in trail)
-                if ((point - head.position).sqrMagnitude > 2.6f * 2.6f && (point - path[path.Count - 1]).sqrMagnitude > 0.0001f)
-                    path.Add(point);
-            if (path.Count < 4) path.Add(head.position - head.forward * 3f);
+                if ((point - path[path.Count - 1]).sqrMagnitude > 0.0001f) path.Add(point);
+            if (path.Count < 2) path.Add(head.position - head.forward * 3f);
 
             if (body != null)
             {
-                body.Rebuild(path, head.up);
+                body.Rebuild(path, head.up, head.forward);
                 // Anchors (hit boxes and weak spots) on the smoothed curve the body is built on.
                 for (int i = 0; i < segments.Length; i++)
                 {
@@ -1285,6 +1323,7 @@ namespace SignalLost.Enemies.Desert
         {
             if (!movedThisFrame) currentSpeed = 0f;
             movedThisFrame = false;
+            SinkTrail(Time.deltaTime);
             PlaceBody();
             if (pendingDamage > 0f)
             {
