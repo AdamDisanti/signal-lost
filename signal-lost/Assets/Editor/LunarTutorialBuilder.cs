@@ -93,7 +93,7 @@ namespace SignalLost.Editor
             Transform cliffs=environment.Find("Perimeter Cliffs");cliffs.localScale=new Vector3(1.5f,1,1.5f);cliffs.localPosition=new Vector3(0,-4,0);PrefabUtility.RecordPrefabInstancePropertyModifications(cliffs);
             foreach(Renderer renderer in cliffs.GetComponentsInChildren<Renderer>()){renderer.sharedMaterials=new[]{rocks[1],rocks[2],rocks[0]};PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);}
             SaveEnvironment();Lighting();terrain.Flush();EditorUtility.SetDirty(terrain.terrainData);AssetDatabase.SaveAssets();Physics.SyncTransforms();
-            EditorSceneManager.MarkSceneDirty(scene);if(!EditorSceneManager.SaveScene(scene))throw new IOException("Could not save lunar tutorial.");TutorialGameplayBuilder.Validate();Debug.Log("LUNAR_TUTORIAL_CREATED");
+            EditorSceneManager.MarkSceneDirty(scene);if(!EditorSceneManager.SaveScene(scene))throw new IOException("Could not save lunar tutorial.");Debug.Log("LUNAR_TUTORIAL_CREATED");
         }
         private static void Sculpt()
         {

@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Text;
-using SignalLost.Inventory;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,8 +5,8 @@ using UnityEngine.UI;
 namespace SignalLost.UI
 {
     /// <summary>
-    /// Non-blocking gameplay UI in the theme of the dialogue screens: the top-right quest tracker, the
-    /// "item acquired" cards that introduce new gear, and the scrap counter with its pickup toasts.
+    /// Non-blocking gameplay UI in the theme of the dialogue screens: the top-right quest tracker and the
+    /// "item acquired" cards that introduce new gear (scrap now lives in the <see cref="GameHud"/> status bar).
     /// Nothing here takes the cursor or pauses the game.
     /// Built in code on its own overlay canvas the first time it is used.
     /// </summary>
@@ -29,13 +26,10 @@ namespace SignalLost.UI
         private TextMeshProUGUI cardKicker, cardTitle, cardBody;
         private float cardShown, cardUntil;
 
-        private CanvasGroup scrapGroup;
-        private readonly TextMeshProUGUI[] scrapCounts = new TextMeshProUGUI[4];
-        private TextMeshProUGUI scrapToast;
-        private readonly Dictionary<ScrapType, int> recentScrap = new Dictionary<ScrapType, int>();
-        private float toastShown, toastUntil;
-        private PlayerInventory inventory;
         private CanvasGroup rootGroup;
+
+        /// <summary>The existing instance, or null. Use this in OnDisable/OnDestroy so nothing is created during unload.</summary>
+        public static GameplayOverlay Current => instance;
 
         public static GameplayOverlay Instance
         {
@@ -47,9 +41,6 @@ namespace SignalLost.UI
             }
         }
 
-        /// <summary>The panel area other overlay widgets (the scrap counter) can stack under.</summary>
-        public RectTransform Root => (RectTransform)transform;
-
         private void Awake()
         {
             if (instance != null && instance != this) { Destroy(gameObject); return; }
@@ -59,7 +50,6 @@ namespace SignalLost.UI
 
         private void OnDestroy()
         {
-            if (inventory != null) inventory.ScrapChanged -= OnScrapChanged;
             if (instance == this) instance = null;
         }
 
@@ -93,42 +83,11 @@ namespace SignalLost.UI
             cardUntil = Time.unscaledTime + seconds;
         }
 
-        private void BindInventory()
-        {
-            if (inventory == PlayerInventory.Current) return;
-            if (inventory != null) inventory.ScrapChanged -= OnScrapChanged;
-            inventory = PlayerInventory.Current;
-            if (inventory != null) inventory.ScrapChanged += OnScrapChanged;
-        }
-
-        private void OnScrapChanged(ScrapType type, int change, int total)
-        {
-            if (change <= 0) return;
-            // Chunks arrive one by one; gather the last moment's pickups into one "+3 Scrap Metal  +1 Wiring" toast.
-            if (Time.unscaledTime > toastUntil) recentScrap.Clear();
-            recentScrap.TryGetValue(type, out int sum);
-            recentScrap[type] = sum + change;
-            var text = new StringBuilder();
-            foreach (ScrapType kind in ScrapInfo.All)
-                if (recentScrap.TryGetValue(kind, out int count))
-                    text.Append($"<color={UiTheme.Hex(ScrapInfo.Color(kind))}>+{count} {ScrapInfo.Name(kind)}</color>   ");
-            scrapToast.text = text.ToString();
-            if (Time.unscaledTime > toastUntil - 1.6f) toastShown = Time.unscaledTime;
-            toastUntil = Time.unscaledTime + 2.2f;
-        }
-
         private void Update()
         {
             float now = Time.unscaledTime;
-            BindInventory();
             // Full-screen menus (inventory, shop) get the whole screen; the HUD steps aside.
             rootGroup.alpha = Mathf.MoveTowards(rootGroup.alpha, UiMenus.FullScreenOpen ? 0f : 1f, Time.unscaledDeltaTime * 8f);
-            bool hasScrap = inventory != null && inventory.TotalScrap > 0;
-            scrapGroup.alpha = Mathf.MoveTowards(scrapGroup.alpha, hasScrap ? 1f : 0f, Time.unscaledDeltaTime * 4f);
-            if (hasScrap)
-                for (int i = 0; i < scrapCounts.Length; i++) scrapCounts[i].text = inventory.Scrap(ScrapInfo.All[i]).ToString();
-            scrapToast.alpha = Mathf.Clamp01((toastUntil - now) / 0.4f);
-            scrapToast.rectTransform.localScale = Vector3.one * Mathf.LerpUnclamped(0.8f, 1f, UiTheme.Pop((now - toastShown) / 0.3f));
             bool trackerVisible = !string.IsNullOrEmpty(trackedKey) && !trackedKey.StartsWith("|");
             trackerGroup.alpha = Mathf.MoveTowards(trackerGroup.alpha, trackerVisible ? 1f : 0f, Time.unscaledDeltaTime * 5f);
             trackerPanel.localScale = Vector3.one * Mathf.LerpUnclamped(0.92f, 1f, UiTheme.Pop((now - trackerChanged) / 0.35f));
@@ -186,25 +145,6 @@ namespace SignalLost.UI
             cardBody.rectTransform.anchorMax = Vector2.one;
             cardBody.rectTransform.offsetMin = new Vector2(44f, 24f);
 
-            // Scrap counter under the health readout: one chip per type, shown once the player has any scrap.
-            RectTransform scrap = UiTheme.Place(UiTheme.Rect("Scrap Counter", root),
-                new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -196f), new Vector2(560f, 52f));
-            scrapGroup = scrap.gameObject.AddComponent<CanvasGroup>();
-            scrapGroup.alpha = 0f;
-            scrapGroup.blocksRaycasts = false;
-            for (int i = 0; i < ScrapInfo.All.Length; i++)
-            {
-                ScrapType type = ScrapInfo.All[i];
-                Image chip = UiTheme.Panel(ScrapInfo.Name(type), scrap, UiTheme.PanelColor, null, 0.6f);
-                UiTheme.Place(chip.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * 132f, 0f), new Vector2(122f, 48f));
-                Image dot = UiTheme.Panel("Dot", chip.transform, ScrapInfo.Color(type), null, 0.3f);
-                UiTheme.Place(dot.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(14f, 0f), new Vector2(22f, 22f));
-                scrapCounts[i] = UiTheme.Label("Count", chip.transform, 28f, UiTheme.Text, TextAlignmentOptions.Left, FontStyles.Bold);
-                UiTheme.Place(scrapCounts[i].rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(46f, 0f), new Vector2(72f, 40f));
-            }
-            scrapToast = UiTheme.Label("Scrap Toast", root, 28f, UiTheme.Text, TextAlignmentOptions.Left, FontStyles.Bold);
-            UiTheme.Place(scrapToast.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -252f), new Vector2(900f, 40f));
-            scrapToast.alpha = 0f;
             cardBody.rectTransform.offsetMax = new Vector2(-26f, -100f);
         }
     }

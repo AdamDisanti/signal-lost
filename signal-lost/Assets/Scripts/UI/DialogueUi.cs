@@ -42,6 +42,9 @@ namespace SignalLost.UI
         private string finishLabel;
         private Transform player;
 
+        /// <summary>The existing instance, or null. Use this in OnDisable/OnDestroy so nothing is created during unload.</summary>
+        public static DialogueUi Current => instance;
+
         public static DialogueUi Instance
         {
             get
@@ -220,7 +223,7 @@ namespace SignalLost.UI
             bubbleGroup.blocksRaycasts = false;
 
             RectTransform subtitle = UiTheme.Place(UiTheme.Rect("Subtitle", root),
-                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(1160f, 120f));
+                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, GameHud.BottomReserved + 28f), new Vector2(1160f, 120f));
             subtitleGroup = subtitle.gameObject.AddComponent<CanvasGroup>();
             subtitleGroup.alpha = 0f;
             subtitleGroup.blocksRaycasts = false;
@@ -238,7 +241,7 @@ namespace SignalLost.UI
 
             Image panel = UiTheme.Panel("Panel", popupRoot.transform, UiTheme.PanelColor, UiTheme.Edge, 1.3f);
             popupPanel = UiTheme.Place(panel.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 110f), new Vector2(1240f, 330f));
+                new Vector2(0f, GameHud.BottomReserved + 10f), new Vector2(1240f, 330f));
             popupPanel.localRotation = Quaternion.Euler(0f, 0f, -0.6f);
 
             nameTagImage = UiTheme.Panel("Name Tag", popupPanel, UiTheme.Accent, null, 0.8f);

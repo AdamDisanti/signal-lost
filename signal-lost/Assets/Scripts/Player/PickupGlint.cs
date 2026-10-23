@@ -4,7 +4,7 @@ namespace SignalLost.Player
 {
     /// <summary>
     /// Makes a pickup lying in the wreckage easy to spot: its light pulses and, optionally, the model bobs and turns.
-    /// Purely visual; collecting is handled by <see cref="TutorialPickup"/>.
+    /// Purely visual; collecting is handled by <see cref="ItemPickup"/>.
     /// </summary>
     public sealed class PickupGlint : MonoBehaviour
     {

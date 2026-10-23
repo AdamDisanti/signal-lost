@@ -27,7 +27,7 @@ namespace SignalLost.UI
         // Reference resolution for every overlay canvas; sizes below are in these pixels.
         public static readonly Vector2 Reference = new Vector2(1920f, 1080f);
 
-        private static Sprite rounded, outline;
+        private static Sprite rounded, outline, disc, glow;
 
         /// <summary>Speaker name colours, so each character is recognisable at a glance.</summary>
         public static Color SpeakerColor(string speaker)
@@ -46,6 +46,21 @@ namespace SignalLost.UI
 
         /// <summary>The border of the same rounded rectangle, for outlines.</summary>
         public static Sprite Outline => outline != null ? outline : outline = MakeRounded(true);
+
+        /// <summary>A filled circle with a soft edge.</summary>
+        public static Sprite Disc => disc != null ? disc : disc = MakeRadial(false);
+
+        /// <summary>A radial glow: bright centre fading to nothing at the edge.</summary>
+        public static Sprite Glow => glow != null ? glow : glow = MakeRadial(true);
+
+        public static Image Circle(string name, Transform parent, Color color, bool soft = false)
+        {
+            var image = Rect(name, parent).gameObject.AddComponent<Image>();
+            image.sprite = soft ? Glow : Disc;
+            image.color = color;
+            image.raycastTarget = false;
+            return image;
+        }
 
         public static Canvas CreateCanvas(string name, int sortingOrder)
         {
@@ -83,6 +98,36 @@ namespace SignalLost.UI
             Stretch(text.rectTransform, 6f);
             text.text = label;
             return button;
+        }
+
+        /// <summary>A rounded horizontal slider (0 to 1 by default) with an orange fill and a round handle.</summary>
+        public static Slider Slider(string name, Transform parent, float value, float min = 0f, float max = 1f)
+        {
+            RectTransform root = Rect(name, parent);
+            Image track = Panel("Track", root, new Color(0f, 0f, 0f, 0.5f), null, 0.4f);
+            track.raycastTarget = true;
+            Stretch(track.rectTransform);
+            RectTransform area = Stretch(Rect("Fill Area", root));
+            area.offsetMin = new Vector2(4f, 4f);
+            area.offsetMax = new Vector2(-4f, -4f);
+            Image fill = Panel("Fill", area, Accent, null, 0.4f);
+            Stretch(fill.rectTransform);
+            RectTransform handleArea = Stretch(Rect("Handle Area", root));
+            handleArea.offsetMin = new Vector2(10f, 0f);
+            handleArea.offsetMax = new Vector2(-10f, 0f);
+            Image handle = Panel("Handle", handleArea, Text, Edge, 0.3f);
+            handle.raycastTarget = true;
+            handle.rectTransform.sizeDelta = new Vector2(26f, 0f);
+            handle.rectTransform.anchorMin = new Vector2(0f, -0.35f);
+            handle.rectTransform.anchorMax = new Vector2(0f, 1.35f);
+            var slider = root.gameObject.AddComponent<Slider>();
+            slider.fillRect = fill.rectTransform;
+            slider.handleRect = handle.rectTransform;
+            slider.targetGraphic = handle;
+            slider.minValue = min;
+            slider.maxValue = max;
+            slider.value = value;
+            return slider;
         }
 
         public static RectTransform Rect(string name, Transform parent)
@@ -160,6 +205,28 @@ namespace SignalLost.UI
             const float c = 1.9f;
             float p = t - 1f;
             return 1f + (c + 1f) * p * p * p + c * p * p;
+        }
+
+        private static Sprite MakeRadial(bool soft)
+        {
+            const int size = 128;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = soft ? "UiGlow" : "UiDisc", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear, hideFlags = HideFlags.HideAndDontSave
+            };
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float d = new Vector2(x + 0.5f - size * 0.5f, y + 0.5f - size * 0.5f).magnitude / (size * 0.5f);
+                float alpha = soft ? Mathf.Pow(Mathf.Clamp01(1f - d), 1.6f) : Mathf.Clamp01((1f - d) * size * 0.5f);
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(alpha * 255f));
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            var sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f));
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
         }
 
         private static Sprite MakeRounded(bool border)

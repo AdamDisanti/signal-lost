@@ -60,6 +60,9 @@ namespace SignalLost.UI
         private int tab, openedFrame = -1;
         private float shownAt;
 
+        /// <summary>The existing instance, or null. Use this in OnDisable/OnDestroy so nothing is created during unload.</summary>
+        public static MerchantMenuUi Current => instance;
+
         public static MerchantMenuUi Instance
         {
             get

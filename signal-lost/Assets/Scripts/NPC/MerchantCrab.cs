@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using SignalLost.Combat;
 using SignalLost.Enemies;
+using SignalLost.Inventory;
 using SignalLost.Player;
 using UnityEngine;
 using UnityEngine.AI;
@@ -13,10 +14,12 @@ namespace SignalLost.NPC
     public sealed class MerchantCrab : MonoBehaviour
     {
         [SerializeField] private Transform returnPoint;
-        [SerializeField] private TutorialPickup flaskDrop;
+        [SerializeField] private ItemPickup flaskDrop;
         [SerializeField] private GameObject carriedFlask;
         [SerializeField] private NpcDialogue dialogue;
         [SerializeField] private MerchantShop shop;
+        [Tooltip("Free-play scenes: the crab is already friendly (no fight, no flask drop) and just runs its shop.")]
+        [SerializeField] private bool startFriendly;
         [Tooltip("After surrendering, the crab leads the player home; it waits while the player is this far behind.")]
         [SerializeField, Min(2f)] private float leadWaitDistance = 12f;
 
@@ -33,8 +36,8 @@ namespace SignalLost.NPC
         private NavMeshAgent agent;
         private bool questStarted;
         private bool returning, encounterGreetingShown, friendlyGreetingShown;
-        private TutorialPlayer player;
-        private TutorialQuestFlow quest;
+        private PlayerLife player;
+        private PlayerGear playerGear;
         private float nextRoute, nextLeadCall;
         private bool waitingForPlayer;
         private int nextHealthDialogue;
@@ -75,8 +78,8 @@ namespace SignalLost.NPC
 
         private void Awake()
         {
-            player = FindFirstObjectByType<TutorialPlayer>();
-            quest = FindFirstObjectByType<TutorialQuestFlow>();
+            player = FindAnyObjectByType<PlayerLife>();
+            playerGear = player != null ? player.GetComponent<PlayerGear>() : null;
             brain = GetComponent<HermitCrab>();
             rig = GetComponent<HermitCrabRig>();
             health = GetComponent<Health>();
@@ -127,7 +130,17 @@ namespace SignalLost.NPC
             brain.enabled = true;
         }
 
-        public void Interact()
+        private void Start()
+        {
+            if (!startFriendly) return;
+            IsDefeated = IsHome = friendlyGreetingShown = true;
+            brain.enabled = false;
+            health.Invulnerable = true;
+            if (carriedFlask != null) carriedFlask.SetActive(false);
+        }
+
+        /// <summary>The friendly crab's own small talk and shop, once the story no longer needs it.</summary>
+        public void OpenShop(bool greet = true)
         {
             if (!IsDefeated) return;
             if (AmbushActive)
@@ -135,13 +148,6 @@ namespace SignalLost.NPC
                 dialogue.Warn("Busy! Watching my cousins teach you some manners.");
                 return;
             }
-            if (quest != null && quest.TalkToMerchant()) return;
-            OpenShop();
-        }
-
-        /// <summary>The friendly crab's own small talk and shop, once the tutorial no longer needs it.</summary>
-        public void OpenShop(bool greet = true)
-        {
             if (!greet) friendlyGreetingShown = true;
             if (!friendlyGreetingShown)
             {
@@ -241,7 +247,7 @@ namespace SignalLost.NPC
             if (Time.time >= nextLeadCall)
             {
                 nextLeadCall = Time.time + 9f;
-                dialogue.Speak(3.5f, player.HasFlask ? "This way, mechanic! Shop's back at your wreck." : "Grab your flask, then follow me! I'll wait.");
+                dialogue.Speak(3.5f, playerGear != null && playerGear.Has(PlayerItem.Flask) ? "This way, mechanic! Shop's back at your wreck." : "Grab your flask, then follow me! I'll wait.");
             }
         }
 
@@ -250,7 +256,7 @@ namespace SignalLost.NPC
         // The friendly crab cannot be hurt, but it notices every hit: warnings first, then the Bucket Brothers.
         private void OnBlocked(Health _, float amount, GameObject source)
         {
-            if (!IsDefeated || source == null || source.GetComponentInParent<TutorialPlayer>() == null) return;
+            if (!IsDefeated || source == null || source.GetComponentInParent<PlayerLife>() == null) return;
             rig.Flinch(false);
             if (AmbushActive) return;
             anger++;

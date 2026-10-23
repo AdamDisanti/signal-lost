@@ -14,7 +14,7 @@ namespace SignalLost.Editor
     /// dorsal hatch, navigation computer in the cockpit), plus a kit of junk prefabs to scatter around it.
     /// All geometry and materials are original and generated here; no imported assets.
     /// Re-running overwrites the generated assets in place, keeping their GUIDs.
-    /// Menu: Signal Lost > Tutorial > Build Shipwreck Assets. TutorialCoreLoopInstaller places them in the scene.
+    /// Menu: Signal Lost > Tutorial > Build Shipwreck Assets. The tutorial scene builder places them.
     /// </summary>
     internal static class CrashSiteWreckBuilder
     {

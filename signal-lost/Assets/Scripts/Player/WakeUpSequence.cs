@@ -26,7 +26,7 @@ namespace SignalLost.Player
         };
 
         private FirstPersonController movement;
-        private TutorialPlayer player;
+        private PlayerFlask player;
         private Canvas canvas;
         private RectTransform upperLid, lowerLid;
 
@@ -36,7 +36,7 @@ namespace SignalLost.Player
         private void Awake()
         {
             movement = GetComponent<FirstPersonController>();
-            player = GetComponent<TutorialPlayer>();
+            player = GetComponent<PlayerFlask>();
             if (cameraPivot == null)
             {
                 Camera view = GetComponentInChildren<Camera>();

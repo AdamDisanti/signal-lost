@@ -26,6 +26,9 @@ namespace SignalLost.UI
         private TextMeshProUGUI laserText, scannerText, flaskText, upgradesText;
         private float shownAt, nextRefresh;
 
+        /// <summary>The existing instance, or null. Use this in OnDisable/OnDestroy so nothing is created during unload.</summary>
+        public static InventoryUi Current => instance;
+
         public static InventoryUi Instance
         {
             get
@@ -101,9 +104,9 @@ namespace SignalLost.UI
             scannerText.text = !inventory.Has(PlayerItem.Scanner) ? Missing("somewhere in the wreckage") :
                 $"Critter range  {ScannerRange(scanner)}\nQuest objectives: any distance\nQ  raise / lower (swaps with the laser)";
 
-            var tutorial = inventory.GetComponent<TutorialPlayer>();
-            flaskText.text = !inventory.Has(PlayerItem.Flask) ? Missing("a crab ran off with it") : tutorial == null ? "F  take a sip" :
-                $"Next sip  +{tutorial.NextSipHeal:0.#} HP\nDrunk  {tutorial.DrunkStacks} / {tutorial.BlackoutAfterStacks}  (blackout after that)\nF  take a sip";
+            var flask = inventory.GetComponent<PlayerFlask>();
+            flaskText.text = !inventory.Has(PlayerItem.Flask) ? Missing("a crab ran off with it") : flask == null ? "F  take a sip" :
+                $"Next sip  +{flask.NextSipHeal:0.#} HP\nDrunk  {flask.DrunkStacks} / {flask.BlackoutAfterStacks}  (blackout after that)\nF  take a sip";
 
             var upgrades = new StringBuilder();
             foreach (string upgrade in inventory.Upgrades) upgrades.Append("- ").Append(upgrade).Append('\n');

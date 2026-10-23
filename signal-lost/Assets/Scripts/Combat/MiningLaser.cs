@@ -193,6 +193,8 @@ namespace SignalLost.Combat
         /// <summary>Length of the cooldown currently running (it depends on how charged the last shot was).</summary>
         public float CurrentCooldownLength => cooldownLength;
         public float FullChargeBlastRadius => fullChargeBlastRadius;
+        /// <summary>The held laser's grip point; it moves with every swing (hands attach here).</summary>
+        public Transform HeldTool => toolPivot;
 
         /// <summary>Cooldown for a shot at this charge: 10% or less uses the tap cooldown, scaling up to full charge.</summary>
         public float CooldownFor(float charge) => Mathf.Lerp(TapShotCooldown, shotCooldown, Mathf.InverseLerp(0.1f, 1f, charge));
