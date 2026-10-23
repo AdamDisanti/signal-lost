@@ -1146,7 +1146,7 @@ namespace SignalLost.Enemies.Desert
             {
                 float lineUp = 0f;
                 MoveName = "Rise/LineUp";
-                while (lineUp < 0.35f && !LineUpStep(ground))
+                while (lineUp < 0.35f && !LineUpStep(ground, Mathf.Lerp(UnderY - 0.5f, GroundY - 1.3f, lineUp / 0.35f)))
                 {
                     lineUp += Time.deltaTime;
                     yield return null;
