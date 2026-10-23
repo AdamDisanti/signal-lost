@@ -114,6 +114,31 @@ Lawson requested a main boss for the desert stage. See [desert stage boss](deser
 
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
 
+## Chief Toad decisions (10-23-26)
+
+Lawson's request: a chief toad boss for the tutorial pond, built in its own test arena first. See [Chief Toad](chief-toad.md).
+
+- **Design:** from Lawson's concept art. He wears the ship's cooling system (pump, glowing coolant tubes, chest core).
+- **Attacks (Lawson):** a high-pressure water beam, water blades, a jump slam whose splash radiates out from the impact, and a stunning scream.
+  - He may leave the pond to fight.
+  - His water effects work out of the water too.
+- **Answers to the questions asked before building:**
+  - **Phases:** three. A new pattern at 66% and at 33%.
+  - **Scream:** dodgeable, a 1.5 s stun inside a telegraphed 12 m ring, blocked by line-of-sight cover.
+  - **Reward:** the ship's cooling system, as a recoverable part.
+  - **Branch:** a separate `feature/chief-toad-boss` branch.
+- **Chosen while building (open to change):**
+  - 750 HP.
+  - Phase 3 adds the "tidal spin" (a low spinning beam to jump).
+  - The chest core is a ×1.5 weak spot.
+  - The splash wave only hits a grounded player.
+  - Parts now count per stage, so the cooling system does not count toward the desert exit's three parts.
+- **Open:**
+  - his placement and arena radius on the tutorial map;
+  - whether the cooling system gates tutorial progress;
+  - balance against the rest of the tutorial;
+  - his own sounds (placeholders reused for now; see [sound effects](sound-effects.md)).
+
 ## Cavendish and merchant tutorial integration
 
 The project lead confirmed world-space text with movement active, E interactions, and a dedicated larger merchant crab carrying the flask. Cavendish assigns the first quest; the existing basin laser is used for the fight. The loose flask becomes a one-time drop on the merchant's defeat. The lead's final clarification supersedes the earlier fight-location option: after surrender the crab walks back and stands beside Cavendish. Both NPCs stay in the tutorial for this step. The shop is a disabled purchase preview with no scrap economy. See [tutorial NPCs](tutorial-npcs.md).

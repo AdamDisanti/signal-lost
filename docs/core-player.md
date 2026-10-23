@@ -19,6 +19,7 @@ Player components:
 | `PlayerGear` | Items (laser, scanner, flask), Q to swap, holstering, starting items, "new gear" cards |
 | `PlayerFlask` | F to sip (1 s): heals 35 / 28 / 22 / 17 / 13 as you get drunker; one drink wears off every 15 s; the 6th sip blacks out ("SIGNAL LOST - BLACKOUT"). From the 3rd sip on, each one ends in a burp |
 | `PlayerLife` | Death ("SIGNAL LOST") and blackout, fade, respawn at the spawn point, short wake-up |
+| `PlayerStun` | Added when needed: a short stun (the Chief Toad's scream) with no moving, jumping, tools or flask, and a screen effect (`FirstPersonController.Stun`) |
 | `PlayerInteractor` | E on whatever is under the crosshair (`IInteractable`) |
 | `FirstPersonHands` | On-screen gloves |
 | `WakeUpSequence` | Eyelid wake-ups (tutorial intro, respawns) |

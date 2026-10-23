@@ -1,13 +1,15 @@
 using System.Collections.Generic;
 using SignalLost.Combat;
 using SignalLost.Player;
+using SignalLost.Progression;
 using UnityEngine;
 
 namespace SignalLost.Enemies.Desert
 {
     /// <summary>
     /// The stolen ship part a defeated mini-boss drops: it falls to the ground, then floats, spins and glows until the
-    /// player walks up to it. Recovering it shows a message and adds it to <see cref="Recovered"/>.
+    /// player walks up to it. Recovering it shows a message and adds it to <see cref="Recovered"/>, under the stage it
+    /// belongs to (the desert's three, or another stage's, such as the tutorial's cooling system).
     ///
     /// PLACEHOLDER reward: there is no inventory or ship-repair system yet, so recovering a part only records its
     /// name. Whether these parts are progression items is an open design question.
@@ -16,8 +18,11 @@ namespace SignalLost.Enemies.Desert
     {
         /// <summary>Names of the parts recovered since Play started.</summary>
         public static readonly List<string> Recovered = new List<string>();
+        private static readonly List<string> RecoveredStages = new List<string>();
 
         [SerializeField] private string partName = "Ship part";
+        [Tooltip("The stage whose part count it adds to.")]
+        [SerializeField] private string stage = StageProgress.Desert;
         [SerializeField, Min(0.5f)] private float pickupRadius = 2.4f;
 
         private Transform player;
@@ -28,16 +33,29 @@ namespace SignalLost.Enemies.Desert
         private Light glow;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => Recovered.Clear();
+        private static void ResetStatics()
+        {
+            Recovered.Clear();
+            RecoveredStages.Clear();
+        }
+
+        /// <summary>How many of a stage's parts have been recovered since Play started.</summary>
+        public static int CountFor(string stage)
+        {
+            int count = 0;
+            foreach (string item in RecoveredStages) if (item == stage) count++;
+            return count;
+        }
 
         /// <summary>Detaches <paramref name="part"/> from its owner and turns it into a pickup near <paramref name="near"/>.</summary>
-        public static ShipPartDrop Create(Transform part, string name, Vector3 near)
+        public static ShipPartDrop Create(Transform part, string name, Vector3 near, string stage = StageProgress.Desert)
         {
             part.SetParent(null, true);
             foreach (Collider collider in part.GetComponentsInChildren<Collider>(true)) Destroy(collider);
             foreach (Health health in part.GetComponentsInChildren<Health>(true)) Destroy(health);
             var drop = part.gameObject.AddComponent<ShipPartDrop>();
             drop.partName = name;
+            drop.stage = stage;
             return drop;
         }
 
@@ -85,8 +103,9 @@ namespace SignalLost.Enemies.Desert
             if (offset.magnitude > pickupRadius) return;
 
             Recovered.Add(partName);
-            MiniBossHud.Message($"RECOVERED: {partName.ToUpperInvariant()}  ({Recovered.Count}/{DesertMiniBoss.MiniBossesPerBiome})",
-                new Color(0.55f, 1f, 0.6f));
+            RecoveredStages.Add(stage);
+            string tally = stage == StageProgress.Desert ? $"  ({CountFor(stage)}/{DesertMiniBoss.MiniBossesPerBiome})" : "";
+            MiniBossHud.Message($"RECOVERED: {partName.ToUpperInvariant()}{tally}", new Color(0.55f, 1f, 0.6f));
             Destroy(gameObject);
         }
 

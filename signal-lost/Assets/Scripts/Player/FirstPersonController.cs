@@ -41,7 +41,7 @@ namespace SignalLost.Player
         private InputActionAsset runtimeActions;
         private InputActionMap playerMap;
         private InputAction move, look, jump, sprint;
-        private float verticalSpeed, pitch;
+        private float verticalSpeed, pitch, stunnedUntil;
         private bool captured;
         private InputAction crouch;
         private bool crouched, sliding;
@@ -59,6 +59,12 @@ namespace SignalLost.Player
 
         public float Impairment { get; set; }
         public float MovementScale => 1f - (0.55f * 2f / 3f) * Mathf.Clamp01(Impairment);
+
+        /// <summary>True while stunned (see <see cref="Stun"/>): no walking or jumping, but looking and gravity still work.</summary>
+        public bool IsStunned => Time.time < stunnedUntil;
+
+        /// <summary>Roots the player to the spot for a few seconds (the Chief Toad's scream). Use PlayerStun for the full effect.</summary>
+        public void Stun(float seconds) => stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds);
 
         public void ResetMotion()
         {
@@ -155,7 +161,7 @@ namespace SignalLost.Player
                 cameraPivot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
             }
 
-            bool canMove = canControl || (menuOpen && Application.isFocused);
+            bool canMove = (canControl || (menuOpen && Application.isFocused)) && !IsStunned;
             bool grounded = controller.isGrounded;
             float dt = Time.deltaTime;
             if (grounded && verticalSpeed < 0f) verticalSpeed = -2f;

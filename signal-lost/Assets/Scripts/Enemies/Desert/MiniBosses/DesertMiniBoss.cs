@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SignalLost.Combat;
+using SignalLost.Progression;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -83,6 +84,8 @@ namespace SignalLost.Enemies.Desert
         protected float DamageTakenMultiplier { get; set; } = 1f;
         /// <summary>The part dropped on defeat. Old Buzzard swaps it for the wing torn off in phase 2.</summary>
         protected Transform ShipPart { get => shipPart; set => shipPart = value; }
+        /// <summary>The stage whose part count the dropped part adds to.</summary>
+        protected virtual string PartStage => StageProgress.Desert;
 
         private readonly List<Vector3> route = new List<Vector3>();
         private int routeIndex;
@@ -181,7 +184,7 @@ namespace SignalLost.Enemies.Desert
             OnBossDeath();
             if (shipPart != null)
             {
-                ShipPartDrop.Create(shipPart, partName, transform.position);
+                ShipPartDrop.Create(shipPart, partName, transform.position, PartStage);
                 shipPart = null;
             }
             DefeatedCount++;
