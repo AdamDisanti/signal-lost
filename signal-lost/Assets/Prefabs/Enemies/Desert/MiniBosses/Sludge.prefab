@@ -1941,10 +1941,10 @@ NavMeshAgent:
   m_Enabled: 0
   m_AgentTypeID: 0
   m_Radius: 0.95
-  m_Speed: 3
+  m_Speed: 4.5
   m_Acceleration: 30
   avoidancePriority: 50
-  m_AngularSpeed: 360
+  m_AngularSpeed: 540
   m_StoppingDistance: 0.3
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
@@ -2007,22 +2007,22 @@ MonoBehaviour:
   fodderSpawner: {fileID: 0}
   fodderWhileEngaged: 1
   shipPart: {fileID: 6541160065363096857}
-  walkSpeed: 3
+  walkSpeed: 4.5
   preferredRange: 7
-  sprayWindup: 0.8
-  phaseTwoSprayWindup: 0.6
-  sprayTime: 0.5
+  sprayWindup: 0.6
+  phaseTwoSprayWindup: 0.45
+  sprayTime: 0.4
   sprayGlobs: 3
   phaseTwoSprayGlobs: 5
-  sprayRange: 15
-  sprayScatter: 2.6
-  slickRadius: 2
+  sprayRange: 20
+  sprayScatter: 5
+  slickRadius: 2.6
   slickLife: 14
   slickSlow: 0.5
-  sprayCooldown: 4.5
-  phaseTwoSprayCooldown: 2.7
-  igniteWindup: 0.6
-  igniteCooldown: 3
+  sprayCooldown: 3
+  phaseTwoSprayCooldown: 2
+  igniteWindup: 0.45
+  igniteCooldown: 2
   igniteNearPlayer: 3
   fire:
     flame: {fileID: 2100000, guid: dc150ae0f97f1de46a011a3680d21a58, type: 2}
@@ -2039,6 +2039,16 @@ MonoBehaviour:
   clawArc: 100
   clawDamage: 12
   clawCooldown: 1.6
+  torchRange: 10
+  torchWindup: 0.4
+  torchCooldown: 4.5
+  cannonCharge: 1.6
+  phaseTwoCannonCharge: 1.2
+  cannonShellSpeed: 60
+  cannonRecover: 0.8
+  firstCannonDelay: 5
+  cannonCooldown: 9
+  phaseTwoCannonCooldown: 6
   tankHealth: {fileID: 4817746061492952069}
   backfireDamage: 70
   backfireBlastRadius: 3.2

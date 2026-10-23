@@ -733,7 +733,8 @@ namespace SignalLost.Editor
             body.radius = 0.62f;
             body.height = 2.4f;
 
-            var brain = AddBrain<Sludge>(root, 440f, 0.95f, 1.2f, 3.2f);
+            var brain = AddBrain<Sludge>(root, 440f, 0.95f, 1.2f, 4.5f);
+            root.GetComponent<NavMeshAgent>().angularSpeed = 540f;
             var data = new SerializedObject(brain);
             BossBasics(data, visual, "Sludge", "Fuel tank");
             SetArray(data.FindProperty("bodySegments"), segments);

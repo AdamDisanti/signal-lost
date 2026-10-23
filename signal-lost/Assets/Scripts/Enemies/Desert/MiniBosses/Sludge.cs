@@ -46,31 +46,31 @@ namespace SignalLost.Enemies.Desert
         }
 
         [Header("Movement")]
-        [SerializeField, Min(0.1f)] private float walkSpeed = 3.2f;
+        [SerializeField, Min(0.1f)] private float walkSpeed = 4.5f;
         [Tooltip("Distance it likes to keep from the player when nothing is ready.")]
         [SerializeField, Min(2f)] private float preferredRange = 7f;
 
         [Header("Oil spray")]
         [Tooltip("Tail curling forward and the tank gurgling: the warning, and the backfire window.")]
-        [SerializeField, Min(0.1f)] private float sprayWindup = 0.8f;
-        [SerializeField, Min(0.1f)] private float phaseTwoSprayWindup = 0.6f;
+        [SerializeField, Min(0.1f)] private float sprayWindup = 0.6f;
+        [SerializeField, Min(0.1f)] private float phaseTwoSprayWindup = 0.45f;
         [Tooltip("Seconds the volley takes to leave the hose.")]
-        [SerializeField, Min(0.1f)] private float sprayTime = 0.9f;
+        [SerializeField, Min(0.1f)] private float sprayTime = 0.4f;
         [SerializeField, Range(1, 16)] private int globsPerSpray = 6;
         [SerializeField, Range(1, 20)] private int phaseTwoGlobsPerSpray = 9;
-        [SerializeField, Min(2f)] private float sprayRange = 16f;
+        [SerializeField, Min(2f)] private float sprayRange = 20f;
         [Tooltip("How far around the player the volley spreads (the first glob lands on them).")]
-        [SerializeField, Min(0f)] private float sprayScatter = 3.4f;
-        [SerializeField, Min(0.5f)] private float slickRadius = 1.8f;
+        [SerializeField, Min(0f)] private float sprayScatter = 5f;
+        [SerializeField, Min(0.5f)] private float slickRadius = 2.6f;
         [SerializeField, Min(1f)] private float slickLife = 14f;
         [Tooltip("Fraction of the player's movement taken away while standing in oil.")]
         [SerializeField, Range(0f, 0.95f)] private float slickSlow = 0.5f;
-        [SerializeField, Min(0f)] private float sprayCooldown = 4.5f;
-        [SerializeField, Min(0f)] private float phaseTwoSprayCooldown = 3f;
+        [SerializeField, Min(0f)] private float sprayCooldown = 3f;
+        [SerializeField, Min(0f)] private float phaseTwoSprayCooldown = 2f;
 
         [Header("Igniter")]
-        [SerializeField, Min(0.1f)] private float igniteWindup = 0.6f;
-        [SerializeField, Min(0f)] private float igniteCooldown = 3f;
+        [SerializeField, Min(0.1f)] private float igniteWindup = 0.45f;
+        [SerializeField, Min(0f)] private float igniteCooldown = 2f;
         [Tooltip("Lights a slick when the player is within this distance of its edge.")]
         [SerializeField, Min(0f)] private float igniteNearPlayer = 3f;
         [SerializeField] private FireStyle fire = new FireStyle { damage = 9f, interval = 0.5f, duration = 4f, smoke = 0.9f };
@@ -102,8 +102,8 @@ namespace SignalLost.Enemies.Desert
 
         [Header("Torch (short flamethrower)")]
         [SerializeField, Min(0f)] private float torchMinRange = 2.5f;
-        [SerializeField, Min(1f)] private float torchRange = 6.5f;
-        [SerializeField, Min(0.1f)] private float torchWindup = 0.5f;
+        [SerializeField, Min(1f)] private float torchRange = 10f;
+        [SerializeField, Min(0.1f)] private float torchWindup = 0.4f;
         [SerializeField, Min(0.1f)] private float torchTime = 1.4f;
         [Tooltip("Half-width of the flame, in degrees.")]
         [SerializeField, Range(3f, 45f)] private float torchHalfAngle = 16f;
@@ -112,16 +112,16 @@ namespace SignalLost.Enemies.Desert
         [Tooltip("Damage each tick while caught in the flame.")]
         [SerializeField, Min(0f)] private float torchDamage = 6f;
         [SerializeField, Min(0.05f)] private float torchTick = 0.25f;
-        [SerializeField, Min(0f)] private float torchCooldown = 6.5f;
+        [SerializeField, Min(0f)] private float torchCooldown = 4.5f;
 
         [Header("Fuel cannon (take cover!)")]
         [SerializeField, Min(1f)] private float cannonMinRange = 6f;
         [Tooltip("Seconds it charges: the player's time to reach cover.")]
-        [SerializeField, Min(0.3f)] private float cannonCharge = 2.4f;
-        [SerializeField, Min(0.3f)] private float phaseTwoCannonCharge = 2f;
+        [SerializeField, Min(0.3f)] private float cannonCharge = 1.6f;
+        [SerializeField, Min(0.3f)] private float phaseTwoCannonCharge = 1.2f;
         [Tooltip("Part of the charge spent tracking the player; after this the aim is locked.")]
         [SerializeField, Range(0f, 1f)] private float cannonAimLock = 0.85f;
-        [SerializeField, Min(1f)] private float cannonShellSpeed = 38f;
+        [SerializeField, Min(1f)] private float cannonShellSpeed = 60f;
         [SerializeField, Min(5f)] private float cannonRange = 45f;
         [SerializeField, Min(1f)] private float cannonBlastRadius = 7f;
         [SerializeField, Min(0f)] private float cannonDamage = 45f;
@@ -130,10 +130,10 @@ namespace SignalLost.Enemies.Desert
         [SerializeField, Min(0f)] private float cannonFireRadius = 2.4f;
         [SerializeField, Min(0.1f)] private float cannonFireDuration = 4f;
         [Tooltip("Seconds it stands venting after a shot: an opening.")]
-        [SerializeField, Min(0f)] private float cannonRecover = 1.1f;
-        [SerializeField, Min(0f)] private float firstCannonDelay = 8f;
-        [SerializeField, Min(0f)] private float cannonCooldown = 15f;
-        [SerializeField, Min(0f)] private float phaseTwoCannonCooldown = 11f;
+        [SerializeField, Min(0f)] private float cannonRecover = 0.8f;
+        [SerializeField, Min(0f)] private float firstCannonDelay = 5f;
+        [SerializeField, Min(0f)] private float cannonCooldown = 9f;
+        [SerializeField, Min(0f)] private float phaseTwoCannonCooldown = 6f;
 
         [Header("Fuel tank weak spot")]
         [Tooltip("Health on the tank's own collider. A heavy hit while it sprays or charges makes it backfire.")]
@@ -268,20 +268,20 @@ namespace SignalLost.Enemies.Desert
             {
                 case State.Stalk: UpdateStalk(dt); break;
                 case State.SprayWindup:
-                    if (stateTime < SprayWindupTime * 0.8f) TurnToward(Target.position, 200f * dt);
+                    if (stateTime < SprayWindupTime * 0.8f) TurnToward(Target.position, 300f * dt);
                     if (stateTime >= SprayWindupTime) Enter(State.Spray);
                     break;
                 case State.Spray: UpdateSpray(); break;
                 case State.IgniteWindup: UpdateIgnite(dt); break;
                 case State.ClawWindup:
-                    if (stateTime < clawWindup * 0.8f) TurnToward(Target.position, 320f * dt);
+                    if (stateTime < clawWindup * 0.8f) TurnToward(Target.position, 480f * dt);
                     if (stateTime >= clawWindup) Enter(State.Claw);
                     break;
                 case State.Claw: UpdateClaw(dt); break;
                 case State.StingWindup: UpdateStingWindup(dt); break;
                 case State.Sting: UpdateSting(dt); break;
                 case State.TorchWindup:
-                    TurnToward(Target.position, 240f * dt);
+                    TurnToward(Target.position, 360f * dt);
                     if (stateTime >= torchWindup) BeginTorch();
                     break;
                 case State.Torch: UpdateTorch(dt); break;
@@ -312,9 +312,9 @@ namespace SignalLost.Enemies.Desert
             if (now >= nextSpray && seen && distance >= 3f && distance <= sprayRange) { Enter(State.SprayWindup); return; }
             if (now >= nextIgnite && FindSlickToIgnite(out igniteTarget)) { Enter(State.IgniteWindup); return; }
 
-            if (distance < 5f) TurnToward(Target.position, 160f * dt); // keeps its claws on the player
+            if (distance < 5f) TurnToward(Target.position, 260f * dt); // keeps its claws on the player
             if (now < nextRepath) return;
-            nextRepath = now + 0.3f;
+            nextRepath = now + 0.2f;
             if (distance > preferredRange + 2f) Chase(Target.position, walkSpeed);
             else if (distance < 5f)
             {
@@ -340,7 +340,7 @@ namespace SignalLost.Enemies.Desert
                 Vector3 target = SprayPoint(globsSent, total);
                 if (NavMesh.SamplePosition(target, out NavMeshHit hit, 2.5f, NavMesh.AllAreas)) target = hit.position;
                 Vector3 from = HoseTipPosition;
-                OilGlob.Launch(oilMaterial, warningMaterial, fire, from, GroundBelow(target), 0.7f + FlatDistance(target) * 0.03f,
+                OilGlob.Launch(oilMaterial, warningMaterial, fire, from, GroundBelow(target), 0.45f + FlatDistance(target) * 0.02f,
                     slickRadius, slickLife, slickSlow, gameObject);
                 globsSent++;
             }
@@ -388,7 +388,7 @@ namespace SignalLost.Enemies.Desert
         private void UpdateIgnite(float dt)
         {
             if (igniteTarget == null) { RecoverFor(0.2f); return; } // the slick dried up or burned already
-            TurnToward(igniteTarget.transform.position, 200f * dt);
+            TurnToward(igniteTarget.transform.position, 300f * dt);
             if (stateTime < igniteWindup) return;
             Vector3 from = HoseTipPosition;
             Vector3 to = igniteTarget.transform.position + Vector3.up * 0.2f;
@@ -413,7 +413,7 @@ namespace SignalLost.Enemies.Desert
             while (snaps < total && stateTime >= snaps * SnapInterval)
             {
                 snaps++;
-                TurnToward(Target.position, 30f);
+                TurnToward(Target.position, 45f);
                 if (FlatDistance(Target.position) <= clawReach && AngleToTarget() <= clawArc * 0.5f && HurtPlayer(clawDamage))
                     ShovePlayer(FlatDirectionTo(Target.position), 0.6f);
             }
@@ -444,7 +444,7 @@ namespace SignalLost.Enemies.Desert
         private void UpdateStingWindup(float dt)
         {
             float k = stateTime / stingWindup;
-            TurnToward(Target.position, 360f * dt);
+            TurnToward(Target.position, 540f * dt);
             if (k < 0.7f)
             {
                 stingSpot = StingSpot();
@@ -502,7 +502,7 @@ namespace SignalLost.Enemies.Desert
 
         private void UpdateTorch(float dt)
         {
-            TurnToward(Target.position, 70f * dt); // follows the player slowly; the sweep does the rest
+            TurnToward(Target.position, 110f * dt); // tracks the player while the flame sweeps
             float sweep = Mathf.Sin(stateTime / torchTime * Mathf.PI * 2f) * torchSweep;
             torchDirection = TorchDirection(sweep);
             Vector3 from = HoseTipPosition;
@@ -552,7 +552,7 @@ namespace SignalLost.Enemies.Desert
             if (k < cannonAimLock)
             {
                 cannonAim = CannonAimPoint();
-                TurnToward(Target.position, 150f * dt);
+                TurnToward(Target.position, 240f * dt);
             }
             UpdateSight(k);
             if (Time.time >= nextChargeFx)

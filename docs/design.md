@@ -92,6 +92,7 @@ Lawson requested these changes after playing the mini-bosses. See [desert mini-b
   - It was weak up close, so it now has a claw combo, a tail sting that reaches any side, and a short flamethrower, and it no longer backs away.
   - Its body was too stiff. It is now a segmented scorpion: five bending body plates, jointed legs in an alternating gait, claw elbows and a five-joint whipping tail.
 - **Numbers:** timings and damage values for the new moves are placeholders, not agreed balance.
+- **Sludge pressure follow-up:** Lawson requested faster projectiles, wider oil coverage, longer flamethrower reach, quicker movement/turning and more frequent shooting. Combat speed is now 4.5 m/s, oil slick radius 2.6 m, flamethrower reach 10 m and cannon speed 60 m/s, with shorter ranged wind-ups/cooldowns in both phases. Health and damage per hit are unchanged; these are provisional tuning values, not a new progression rule. See the [Sludge tuning](desert-minibosses.md#sludge-fuel-tank).
 
 ## Desert stage boss decisions
 
