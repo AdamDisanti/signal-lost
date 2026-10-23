@@ -8,6 +8,8 @@ A low-poly first-person action-adventure shooter with exploration, goofy alien c
 
 The flask heals without a fixed use limit; excessive drinking affects visibility and can cause blackout and checkpoint respawn. Cavendish the capybara gives optional quests; the hermit crab becomes a merchant. Per-biome progression includes three mini encounters before the boss becomes scannable; the document allows an early boss fight at much higher difficulty. Previous ship parts gate later biomes.
 
+**Current scanner prototype:** the active in-hand scanner no longer has a directional arrow. It retains its proximity bar and audio feedback. This is an implementation change; the supplied design document's directional-scanner intent above remains unchanged.
+
 | Area | Planned boss / reward |
 | --- | --- |
 | Crash site tutorial | Recover laser/flask; learn movement, scanner, combat, resources, and healing |
@@ -160,7 +162,7 @@ Adam and Lawson's meeting notes asked for a complete tutorial before the demo. T
 - **Quest order:** wake up beside Cavendish, then "Gear Up" (find the laser in the basin and the scanner in the wreckage), return, "Hair of the Crab" (beat the flask crab, collect the flask), follow the crab home, hear its scrap and shop rundown, then report back. This supersedes the earlier single "Recover Your Flask" quest.
 - **Dialogue:** subtitles at the bottom middle plus speech bubbles for chatter. Quest information goes in a rounded, transparent popup that advances with a click or E. Earlier rules still hold: walking stays active and cancelling does not accept.
 - **Items:** Q swaps between scanner and laser, and F drinks. The scanner is found in the tutorial. The two-handed, both-items-at-once idea from the UI notes was not built.
-- **Scanner:** it points at the current quest objective, or at the NPC with a quest waiting, at any distance. Quest objectives outrank creatures. This resolves the mini-boss doc's open question for quest targets only; boss priority is still undecided.
+- **Scanner:** quest signals (the current objective or an NPC with a quest waiting) remain selected at any distance and outrank creature signals. In the current implementation, the in-hand display has no directional arrow: its bar strength is calculated using the active scene's range, so a distant quest can remain selected while showing zero strength. This resolves the mini-boss doc's open question for quest targets only; boss priority is still undecided.
 - **Healing (supersedes 35 HP flat, blackout above 8):** each sip heals half as much per drunk stack and returns to full once sober. Blackout comes on the sip after 5 stacks.
 - **Laser (the lead wants the starting weapon to feel weak):**
   - a 10 s cooldown on the charged shot only;

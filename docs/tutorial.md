@@ -13,8 +13,8 @@ The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework"),
    - the **mining laser** is wedged under a rib in the open reactor bay;
    - the **scanner** is under a fallen hull panel by the tail, on the port side of the trench.
 
-   Once the scanner is found, it points at the laser. Coming back to Cavendish early gets a "keep looking" line. The quest tracker ticks both items off.
-4. **The Big Crab.** With both items found, Cavendish describes a big crab that scuttled off with a massive bottle. The scanner now points at it. It waits in a hollow north-east of camp, ringed by boulders, bushes and pines. The trail from the crash fades out before the hollow, and the only gap in the ring faces away from the crash site.
+   Once the scanner is found, the laser becomes its selected quest signal. The in-hand display has a proximity bar and audio feedback but no directional arrow, so it does not indicate the laser's bearing. Coming back to Cavendish early gets a "keep looking" line. The quest tracker ticks both items off.
+4. **The Big Crab.** With both items found, Cavendish describes a big crab that scuttled off with a massive bottle. The crab becomes the selected quest signal. It waits in a hollow north-east of camp, ringed by boulders, bushes and pines. The trail from the crash fades out before the hollow, and the only gap in the ring faces away from the crash site.
 5. **The fight.**
    - The merchant crab and its ten cousins, the **Bucket Brothers**, share one fighting radius (14 m).
    - Defeated cousins despawn.
@@ -70,6 +70,8 @@ Landmarks:
 
 The NavMesh is baked when the level is built and saved as `Scenes/Tutorial/TutorialNavMesh.asset`. It is baked before any creature is placed.
 
+The Tutorial scene's `ScannerRig` has a 200 m level-range override. Quest signals remain selected at any distance, but the proximity bar's strength is calculated against this effective range and can be zero for a more distant quest.
+
 ## Building and editing
 
 Run **Signal Lost > Tutorial > Rebuild Tutorial Level**. It rebuilds the shipwreck, meadow assets, core prefabs and cousins, then **replaces** the scene. Do hand edits in the builders, not in the scene.
@@ -95,9 +97,9 @@ Runtime code:
 1. Press Play in the Tutorial scene. The cockpit, Cavendish pulling you out through the side window, two drag glimpses and the campfire wake play, and Space skips them.
 2. Cavendish greets you across the fire. Walk off and come back: he says to keep looking.
 3. Find the wreck by its smoke (there is no trail from camp). Neither item glints until you are close. The wreck, its debris and the rocks around it are solid.
-   - Find the scanner under the panel; it points at the laser.
+   - Find the scanner under the panel; the laser becomes its selected quest signal. The bar and beeps indicate signal strength, but the scanner has no directional arrow.
    - Find the laser in the reactor bay.
-4. Return to Cavendish for the big-crab quest. Q raises the scanner, and it points north-east.
+4. Return to Cavendish for the big-crab quest. Q raises the scanner and selects the crab as the quest signal. The scanner does not show its north-east bearing; use the level landmarks and quest text to navigate. The Tutorial's 200 m override controls enemy acquisition and signal strength; a quest remains selected beyond that range, but its bar strength is zero.
 5. Enter the hollow: the whole family attacks.
    - Run more than 28 m from its centre: they walk home and heal.
    - Beat the crab and all ten cousins; cousins vanish when beaten.

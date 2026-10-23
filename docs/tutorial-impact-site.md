@@ -50,7 +50,7 @@ These are sampled distribution/gradient checks, not claims that every square met
 
 **BurntRockBasin > MiningLaserAnchor > Mining Laser** remains the orange/graphite industrial tool, fitted just above the basin floor, with its pickup binding, original combat model, collider and anchors. The existing player, capybara, flask, basin, gate, tutorial HUD, pad and targets retain their saved transforms and working roles. The checked core floor within 38 meters is **unchanged**, with zero measured height delta from the latest saved pre-revision terrain.
 
-The existing [tutorial gameplay](tutorial-gameplay.md) is unchanged: unarmed start, E pickups, original laser melee/charged bolts, health/HUD, F flask healing/intoxication, blackout/death and gear/target reset. Movement remains **4 m/s walking, 7 m/s sprinting, 1.2-meter jump and gravity 20**. There is no new fall damage, climbing, inventory, quest, reward or checkpoint system.
+The lunar environment revision did not change the existing [tutorial gameplay](tutorial-gameplay.md): unarmed start, E pickups, original laser melee/charged bolts, health/HUD, F flask healing/intoxication, blackout/death and gear/target reset. Movement remains **4 m/s walking, 7 m/s sprinting, 1.2-meter jump and gravity 20**. Later scanner work changes the scanner display and range as described in the [scanner reference](scanner-prototype.md); it does not add fall damage, climbing, inventory, rewards or checkpoints.
 
 The prior eight-jump industrial course is deliberately no longer part of this layout. Natural slopes and stones supply traversal; the eight tested exploration circuits and the original prop/gate approaches are walkable without jumping. The gate remains an open visual frame inside the closed perimeter, including 50 meters beyond it. Its eventual transition/unlock behavior is still unspecified.
 
@@ -65,7 +65,7 @@ Current lunar assets:
 - `Materials/`: three matte grey rock palettes and the airless procedural sky.
 - `Terrain/`: three original texture maps and native TerrainLayer assets.
 
-The existing `TutorialCrashSite/CraterEnvironment.prefab`, `Terrain/ImpactCrater.asset` and scene are updated **in place with their GUIDs preserved**. The reusable environment contains terrain, lunar stone field, original rocks/debris and perimeter, not the ship, player or scene lighting. Other scenes, runtime scripts, shared player/scanner/HUD prefabs and source models are not modified.
+The existing `TutorialCrashSite/CraterEnvironment.prefab`, `Terrain/ImpactCrater.asset` and scene were updated **in place with their GUIDs preserved**. The reusable environment contains terrain, lunar stone field, original rocks/debris and perimeter, not the ship, player or scene lighting. In the current Testing Sandbox scene, the shared scanner rig has a 300 m level-range override; the shared scanner code and prefab have also since changed. The lunar environment documentation does not describe those scanner implementation changes in detail; see the [scanner reference](scanner-prototype.md).
 
 [LunarTutorialBuilder.cs](../signal-lost/Assets/Editor/LunarTutorialBuilder.cs) is the protected one-shot authoring recipe, reusing the existing `LowPolyMesh` helper. It requires the 480-meter traversal baseline, backs up its saved scene/terrain and refuses to overwrite an existing lunar revision. Delivered content is static/editor-authored, not runtime generation. Edit through Unity normally; duplicated environment instances share TerrainData, so duplicate that asset before making an independent terrain copy.
 

@@ -24,9 +24,9 @@ The walkthrough:
 
 1. **Wake up.** You blink awake on your back beside Cavendish, through a hangover blur, mumbling. He greets you in speech bubbles and subtitles.
 2. **Crash Landing.** Press E on Cavendish. His popup gives the first quest.
-3. **Gear Up.** Pick up the mining laser from the scorched rock basin beside him, and the scanner, which glows teal beside the wreck's empty engine bay. Each item shows a card explaining what it does. Once you have the scanner, it points at whatever you still need.
-4. **Return to Cavendish** (the scanner points at him) for the second quest.
-5. **Hair of the Crab.** Raise the scanner and follow it to the big crab with the copper bucket. Beat it. It surrenders and drops your flask and a first haul of scrap. Walk over the scrap to suck it in, then pick up the flask with E.
+3. **Gear Up.** Pick up the mining laser from the scorched rock basin beside him, and the scanner, which glows teal beside the wreck's empty engine bay. Each item shows a card explaining what it does. Once you have the scanner, it selects the quest target you still need.
+4. **Return to Cavendish** for the second quest; he becomes the selected quest signal.
+5. **Hair of the Crab.** Raise the scanner and use the quest text and level landmarks to find the big crab with the copper bucket. The scanner keeps the crab selected but has no directional arrow. Beat it. It surrenders and drops your flask and a first haul of scrap. Walk over the scrap to suck it in, then pick up the flask with E.
 6. **Follow the crab** back to the crash site. It waits and waves you on if you fall behind.
 7. **Talk to the merchant crab.** Its popup explains scrap and the shop, then opens the Bucket & Barter menu.
 8. **Report back to Cavendish.** The tracker reads Tutorial Complete. From here the scanner hunts critters, and they drop scrap.
@@ -51,9 +51,9 @@ The top-right tracker always shows the current objective. The bottom-left hint s
 
 ### Scanner guidance
 
-- The scanner points at the current quest objective at any distance: Cavendish when he has a quest waiting, the missing laser, the flask crab, the dropped flask, and the crab again on the walk home.
-- The signal-strength meter still fills only within the scanner's 30 m range.
-- Once the tutorial ends there are no quest objectives, so it goes back to the nearest creature.
+- Quest signals stay selected at any distance and outrank creature signals: Cavendish when he has a quest waiting, the missing laser, the flask crab, the dropped flask, and the crab again on the walk home. The active in-hand display has no directional arrow; use quest text and level landmarks to navigate.
+- The proximity bar's strength uses the effective range set for the current scene. The Tutorial override is 200 m; a quest can remain selected beyond that distance while its bar shows zero strength. See the [scanner reference](scanner-prototype.md) for all current scene values and fallback behavior.
+- Once the tutorial ends there are no quest objectives, so it goes back to the nearest eligible creature within the current scene's effective range.
 
 ### Scrap, inventory and shop
 
