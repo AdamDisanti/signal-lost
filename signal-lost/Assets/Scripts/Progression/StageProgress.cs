@@ -10,12 +10,14 @@ namespace SignalLost.Progression
     /// main ship parts recovered. There is no save system yet, so this resets when Play stops; the design for saving
     /// and death persistence is still open (see docs/design.md).
     ///
-    /// The three desert mini-bosses' parts are tracked by <see cref="ShipPartDrop.Recovered"/>; the Engine Core, one of
-    /// the main parts needed to finish the game, is recorded here when the desert stage boss drops it.
+    /// Mini-boss parts are tracked by <see cref="ShipPartDrop"/>, per stage (the desert's three; the tutorial's cooling
+    /// system from the Chief Toad); the Engine Core, one of the main parts needed to finish the game, is recorded here
+    /// when the desert stage boss drops it.
     /// </summary>
     public static class StageProgress
     {
         public const string Desert = "Desert";
+        public const string Tutorial = "Tutorial";
 
         private static readonly HashSet<string> Cleared = new HashSet<string>();
         private static readonly HashSet<string> Unlocked = new HashSet<string>();
@@ -43,7 +45,7 @@ namespace SignalLost.Progression
         public static bool IsUnlocked(string stage) => Unlocked.Contains(stage);
 
         /// <summary>The desert mini-bosses' parts recovered so far this session.</summary>
-        public static int StagePartsRecovered => ShipPartDrop.Recovered.Count;
+        public static int StagePartsRecovered => ShipPartDrop.CountFor(Desert);
 
         public static void RecoverMainPart(string part)
         {

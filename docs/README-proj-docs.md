@@ -9,6 +9,7 @@
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
 - [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
 - [Desert stage boss](desert-boss.md): the Core Worm: exit ambush cutscene, four phases that change the arena, Engine Core drop and next-stage unlock.
+- [Chief Toad](chief-toad.md): the pond boss for the tutorial meadow (in its own test arena for now): water beam, water blades, jump slam and splash wave, stunning scream, three phases, cooling-system drop.
 - [Fire effect](fire-effect.md): the reusable particle fire (and sand/smoke/spark bursts) for stage design and gameplay.
 - [Tutorial](tutorial.md): the 10-22 tutorial: crash opening, hidden gear, the big crab and its ten cousins, the merchant's shop; how the level is generated and tested.
 - [Shared player, HUD and menus](core-player.md): the Player/GameSystems prefabs, hands, status-bar HUD, pause menu, settings and title screen, and how to move a scene onto them.

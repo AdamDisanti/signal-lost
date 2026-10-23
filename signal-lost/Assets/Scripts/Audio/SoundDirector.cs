@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using SignalLost.Effects;
 using SignalLost.Enemies;
+using SignalLost.Enemies.Meadow;
 using SignalLost.NPC;
 using SignalLost.Player;
 using SignalLost.Progression;
@@ -119,6 +120,9 @@ namespace SignalLost.Audio
 
             foreach (HermitCrab crab in FindObjectsByType<HermitCrab>(FindObjectsInactive.Include))
                 if (crab.GetComponent<CreatureAudio>() == null) crab.gameObject.AddComponent<CreatureAudio>();
+
+            foreach (ChiefToad toad in FindObjectsByType<ChiefToad>(FindObjectsInactive.Include))
+                if (toad.GetComponent<ToadAudio>() == null) toad.gameObject.AddComponent<ToadAudio>();
 
             foreach (MerchantCrab merchant in FindObjectsByType<MerchantCrab>(FindObjectsInactive.Include))
                 if (Hook(merchant)) merchant.ArrivedHome += () => Sfx.PlayAt("shop_bell", merchant.transform.position, 0.7f, 1f, 30f);

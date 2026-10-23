@@ -10,6 +10,7 @@ There's nothing to set up in a scene. `SoundDirector` (in `Assets/Scripts/Audio/
 | --- | --- |
 | The player | `PlayerAudio`: laser, footsteps, hurt, flask, scanner, items, scrap, death and wake-up sounds |
 | Every hermit crab (the basic crab, the Bucket Brothers, Eugine) | `CreatureAudio`: skittering, hits, blocks, death squeak, Eugine's surrender whimper |
+| The Chief Toad | `ToadAudio`: hop thuds, hits, death, and a sound for each attack (it listens to `ChiefToad.Cued`) |
 | Particle effects named "…Fire…", "Campfire", "…Sparks…", and any `FireEffect` | Crackling fire loop; electrical fires and sparks also fizz |
 | "Pond Water" | Lapping water loop |
 | Every button, slider and toggle | Hover tick and click |
@@ -40,6 +41,7 @@ All clips are in `Assets/Audio/Resources/SignalLostAudio/` and are played by fil
 | Flask | `flask_uncork`, `flask_glug`, then `flask_ahh` when sober, `flask_hiccup` when tipsy and `flask_burp` when drunk. A tipsy mechanic also hiccups now and then |
 | Gear and scrap | `scanner_raise/lower`, `scanner_ping`, `item_pickup`, `scrap_vacuum`, `scrap_clink_1–3` |
 | Crabs | `crab_skitter` (loop, louder the faster it walks), `crab_snip` (claw hits you), `crab_hit_1/2` (bucket clang), `crab_block`, `crab_death`, `crab_whimper` |
+| Chief Toad (reused, pitched down) | `footstep_grass_1-4` (hop thuds), `crab_hit_1/2` (hit), `crab_death` + `laser_blast` (death), `laser_charge` (beam and spin charge), `laser_blast` (beam fires), `water_lap` sped up (jet loop while the beam or spin runs; a shorter rush for the splash wave), `laser_swing_1/2` (blade volley), `bolt_impact` (blade splash), `player_jump` and `laser_slam` + `player_land` (slam), `laser_charge_hold` (scream charge), `crab_whimper` + `laser_blast` (the scream), `wake_ringing` (your ears while stunned), `laser_fizzle` and an `electric_sizzle` loop (coolant cracking and overflowing) |
 | Shop | `shop_chaching`, `shop_bell` |
 | Interface | `ui_hover`, `ui_click`, `ui_open`, `ui_close`, `quest_chime`, `part_fanfare` |
 | Ambience loops | `amb_meadow` (wind and birds: tutorial, title screen), `amb_desert` (howling wind), `amb_wind` (sandbox), `fire_crackle`, `electric_sizzle`, `water_lap` |
@@ -78,6 +80,6 @@ All clips are in `Assets/Audio/Resources/SignalLostAudio/` and are played by fil
 
 - These are synthesized placeholders. Burps and grunts in particular will sound better recorded by the team, as the design document suggests.
 - No music yet. Ambience uses the Music slider for now.
-- Only hermit crabs have creature sounds. The frog, desert fodder, mini-bosses and the Core Worm only get their fires; they'd need their own sounds.
+- Only hermit crabs and the Chief Toad have creature sounds. The frog, desert fodder, desert mini-bosses and the Core Worm only get their fires; they'd need their own sounds.
 - Merchant purchases are still "coming soon". The cha-ching on spending scrap will start working once buying does.
 - Not yet checked in Unity Play Mode by the author. Run the checklist above and report anything off.

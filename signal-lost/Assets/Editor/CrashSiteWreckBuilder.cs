@@ -112,7 +112,7 @@ namespace SignalLost.Editor
             {
                 material.EnableKeyword("_EMISSION");
                 material.SetColor("_EmissionColor", emission.Value);
-                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive; // with None, URP's material check drops _EMISSION on import
             }
             EditorUtility.SetDirty(material);
             Materials[key] = material;
