@@ -109,6 +109,15 @@ namespace SignalLost.Enemies.Desert
         public bool Invulnerable { get; private set; } = true;
         public bool IsDefeated { get; private set; }
         public bool Fighting { get; private set; }
+
+        // For diagnostics (CorewormDiagnostics): what it is doing, how fast, and what laying out its body costs.
+        public string AttackName { get; private set; } = "";
+        public string MoveName { get; private set; } = "";
+        public float CurrentSpeed => currentSpeed;
+        public int TrailCount => trail.Count;
+        public CorewormBody Body => body;
+        public static double LastBodyMs { get; private set; }
+        private readonly System.Diagnostics.Stopwatch bodyTimer = new System.Diagnostics.Stopwatch();
         public Transform Head => head;
 
         private Health health;
@@ -471,6 +480,7 @@ namespace SignalLost.Enemies.Desert
 
         private IEnumerator PhaseChange(int next)
         {
+            AttackName = "PhaseChange"; MoveName = "PhaseChange";
             Invulnerable = true;
             yield return GoUnder();
             Phase = next;
@@ -492,6 +502,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Races at the player under the sand, then erupts under them (a ring warns a moment before).</summary>
         private IEnumerator BurrowCharge()
         {
+            AttackName = "BurrowCharge"; MoveName = "BurrowCharge";
             yield return GoUnder();
             float speed = 15f * Fierce;
             yield return SwimTo(() => PlayerGround(0.5f), speed, 3f, 2.5f, true);
@@ -510,6 +521,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Leaps out of the sand in a huge arc over the player and dives back in; debris rains down.</summary>
         private IEnumerator BreachArc()
         {
+            AttackName = "BreachArc"; MoveName = "BreachArc";
             yield return GoUnder();
             Vector3 across = Flat(UnityEngine.Random.insideUnitSphere);
             if (across.sqrMagnitude < 0.01f) across = Vector3.right;
@@ -534,6 +546,7 @@ namespace SignalLost.Enemies.Desert
                 ScrapBomb.Drop(rockMaterial, warningMaterial, blastMaterial, drop + Vector3.up * 16f, drop, 1.6f, 12f, gameObject, transform, hitMask);
             }
             float t = 0f;
+            MoveName = "BreachFlight";
             while (t < time)
             {
                 t += Time.deltaTime;
@@ -555,6 +568,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Rears up at range, opens its mouth and lobs a volley of burning core slag at and around the player.</summary>
         private IEnumerator CoreSpit(int count)
         {
+            AttackName = "CoreSpit"; MoveName = "CoreSpit";
             yield return GoUnder();
             Vector3 spot = ClampToArena(PlayerGround(0f) + Flat(UnityEngine.Random.insideUnitSphere).normalized * 14f);
             yield return SwimTo(() => spot, 22f, 2.5f, 2f, true);
@@ -582,6 +596,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Surfaces beside the player, rears up and slams its body down in a line across them.</summary>
         private IEnumerator BodySlam()
         {
+            AttackName = "BodySlam"; MoveName = "BodySlam";
             yield return GoUnder();
             Vector3 start = ClampToArena(PlayerGround(0f) + Flat(UnityEngine.Random.insideUnitSphere).normalized * 7f);
             yield return SwimTo(() => start, 22f, 2.5f, 2f, true);
@@ -599,6 +614,7 @@ namespace SignalLost.Enemies.Desert
                 Face(direction + Vector3.up * 0.6f, 8f);
                 yield return null;
             }
+            MoveName = "Slam";
             // Down it comes, the body following the head along the line.
             Vector3 from = head.position, to = new Vector3(end.x, GroundY + 0.8f, end.z);
             t = 0f;
@@ -631,6 +647,7 @@ namespace SignalLost.Enemies.Desert
         /// </summary>
         private IEnumerator Ambush()
         {
+            AttackName = "Ambush"; MoveName = "Ambush";
             yield return GoUnder();
             int fakes = Phase >= 4 ? 4 : 3;
             const float travel = 1.7f;
@@ -692,6 +709,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Rears up and sweeps a beam of core energy across the arena, scorching a line of fire. Cover blocks it.</summary>
         private IEnumerator CoreBeam()
         {
+            AttackName = "CoreBeam"; MoveName = "CoreBeam";
             yield return GoUnder();
             Vector3 spot = ClampToArena(PlayerGround(0f) + Flat(UnityEngine.Random.insideUnitSphere).normalized * 16f);
             yield return SwimTo(() => spot, 22f, 2.5f, 2f, true);
@@ -702,6 +720,7 @@ namespace SignalLost.Enemies.Desert
 
         private IEnumerator BeamSweep(Vector3 spot)
         {
+            MoveName = "BeamSweep";
             // Charge: the core blazes up, the mouth opens wide, fire and sparks pour into its throat, the ground shakes.
             mouthTarget = 1f;
             glowTarget = 1.8f;
@@ -807,6 +826,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Its plating opens and fires shrapnel in patterns: fans, rings with gaps, spirals. Weave through.</summary>
         private IEnumerator Barrage()
         {
+            AttackName = "Barrage"; MoveName = "Barrage";
             yield return GoUnder();
             Vector3 spot = ClampToArena(PlayerGround(0f) + Flat(UnityEngine.Random.insideUnitSphere).normalized * 12f);
             yield return SwimTo(() => spot, 22f, 2.5f, 2f, true);
@@ -817,6 +837,7 @@ namespace SignalLost.Enemies.Desert
 
         private IEnumerator BarragePatterns(Vector3 spot, int volleys)
         {
+            MoveName = "BarragePatterns";
             for (int v = 0; v < volleys; v++)
             {
                 switch ((v + UnityEngine.Random.Range(0, 3)) % 3)
@@ -891,6 +912,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Overlap: shrapnel from the plating while the beam sweeps.</summary>
         private IEnumerator BeamAndBarrage()
         {
+            AttackName = "BeamAndBarrage"; MoveName = "BeamAndBarrage";
             yield return GoUnder();
             Vector3 spot = ClampToArena(PlayerGround(0f) + Flat(UnityEngine.Random.insideUnitSphere).normalized * 15f);
             yield return SwimTo(() => spot, 22f, 2.5f, 2f, true);
@@ -909,6 +931,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Overlap: a slag volley with a shrapnel spiral underneath it.</summary>
         private IEnumerator SpitAndSpiral()
         {
+            AttackName = "SpitAndSpiral"; MoveName = "SpitAndSpiral";
             yield return GoUnder();
             Vector3 spot = ClampToArena(PlayerGround(0f) + Flat(UnityEngine.Random.insideUnitSphere).normalized * 13f);
             yield return SwimTo(() => spot, 22f, 2.5f, 2f, true);
@@ -934,6 +957,7 @@ namespace SignalLost.Enemies.Desert
         /// </summary>
         private IEnumerator CoreNova()
         {
+            AttackName = "CoreNova"; MoveName = "CoreNova";
             yield return GoUnder();
             Vector3 middle = ArenaCentre;
             yield return SwimTo(() => middle, 24f, 3f, 1.5f, true);
@@ -1015,6 +1039,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Gets below the sand from wherever it is (it might be in the air when interrupted).</summary>
         private IEnumerator GoUnder()
         {
+            MoveName = "GoUnder";
             if (head.position.y < GroundY - 1f)
             {
                 yield break;
@@ -1026,6 +1051,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Swims under the sand toward a moving target, leaving a ridge of sand on the surface.</summary>
         private IEnumerator SwimTo(Func<Vector3> target, float speed, float maxTime, float arrive, bool ridge, bool glowing = false)
         {
+            MoveName = "SwimTo";
             float t = 0f, nextPuff = 0f, v = currentSpeed;
             while (t < maxTime)
             {
@@ -1055,6 +1081,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Circles the player under the sand between attacks (the ridge shows where it is).</summary>
         private IEnumerator Circle(float time)
         {
+            MoveName = "Circle";
             float t = 0f, nextPuff = 0f;
             float side = UnityEngine.Random.value < 0.5f ? 1f : -1f;
             yield return GoUnder();
@@ -1085,18 +1112,21 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Bursts straight up out of the sand at a point.</summary>
         private IEnumerator Rise(Vector3 ground, float height, float time, bool facePlayer, float damage = 0f)
         {
+            MoveName = "Rise";
             ground.y = GroundY;
             // Under the sand, it first gets right beneath the spot with its head turned up, so it bursts out straight
             // up where it should instead of breaking the surface sideways and lurching across.
             if (head.position.y < GroundY - 1f)
             {
                 float lineUp = 0f;
+                MoveName = "Rise/LineUp";
                 while (lineUp < 0.35f && !LineUpStep(ground))
                 {
                     lineUp += Time.deltaTime;
                     yield return null;
                 }
             }
+            MoveName = "Rise";
             // From where it actually is (no jump): any distance left is covered in the first part of the rise.
             Vector3 from = head.position;
             Vector3 to = ground + Vector3.up * height;
@@ -1124,6 +1154,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Arcs over and down into the sand at a point, then on below it.</summary>
         private IEnumerator DiveInto(Vector3 ground, float time)
         {
+            MoveName = "DiveInto";
             ground = ClampToArena(ground);
             Vector3 from = head.position;
             Vector3 control = Vector3.Lerp(from, ground, 0.5f) + Vector3.up * Mathf.Max(2f, (from.y - GroundY) * 0.4f);
@@ -1148,6 +1179,7 @@ namespace SignalLost.Enemies.Desert
 
         private IEnumerator Hold(float time, bool trackPlayer)
         {
+            MoveName = "Hold";
             float t = 0f;
             while (t < time)
             {
@@ -1170,6 +1202,7 @@ namespace SignalLost.Enemies.Desert
 
         private IEnumerator Countdown(GroundMarker marker, float time, bool lurk = true)
         {
+            MoveName = "Countdown";
             float t = 0f, v = currentSpeed;
             Vector3 spot = marker != null ? marker.transform.position : head.position;
             while (t < time)
@@ -1180,7 +1213,11 @@ namespace SignalLost.Enemies.Desert
                 {
                     // Circles beneath the spot, then for the last part lines up under it, head turned up, ready.
                     if (t < time * 0.6f) v = Lurk(spot, v);
-                    else LineUpStep(spot);
+                    else
+                    {
+                        MoveName = "Countdown/LineUp";
+                        LineUpStep(spot);
+                    }
                 }
                 yield return null;
             }
@@ -1354,7 +1391,10 @@ namespace SignalLost.Enemies.Desert
         {
             if (!movedThisFrame) currentSpeed = 0f;
             movedThisFrame = false;
+            bodyTimer.Restart();
             PlaceBody();
+            bodyTimer.Stop();
+            LastBodyMs = bodyTimer.Elapsed.TotalMilliseconds;
             if (pendingDamage > 0f)
             {
                 float amount = pendingDamage;
