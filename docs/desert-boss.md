@@ -135,7 +135,15 @@ The stutter fix used it. In the first run, at about 200 fps, the head stopped de
 - The tracked speed dropped to 0 on that frame.
 - The boundary clamp in `Circle` caused the inward snap.
 
-The fixes were inline nested moves (`Inline`), easing the tracked speed, steering back inside the arena, carrying the dive's end speed, and rising during line-up. In the final run the median speed kept across move changes went from 3% to about 100%, with no jumps. The only remaining stops are the deliberate ones: rearing up and the slam landing.
+The fixes were inline nested moves (`Inline`), easing the tracked speed, steering back inside the arena, carrying the dive's end speed, and rising during line-up. In that run the median speed kept across move changes went from 3% to about 100%, with no jumps. That transition statistic did not catch every last-frame dive stall.
+
+### Dive end-frame follow-up
+
+A further Play Mode regression reproduced the intermittent stall: `DiveInto` clamped its curve parameter to 1 on the final frame. If only a tiny fraction of the dive remained, the head barely moved (sometimes not at all) for a whole rendered frame. Restoring `currentSpeed` afterwards did not undo that visible pause. Six of 15 baseline cases lost 60–100% of their final-frame speed.
+
+The dive now finishes a full movement step, continuing just beyond its nominal endpoint beneath the sand for at most that final frame. The overshoot is capped at 10% of the curve, so a long hitch frame (Unity allows up to 0.33 s) can't push the head 10–15 m past the end; normal frames never reach the cap. The next swim still inherits its momentum. The change is shared by every attack using `DiveInto`; attack timings, damage, health, deliberate pauses and the existing body-following path are unchanged. No prefab or scene regeneration is needed.
+
+[CorewormMotionSmoke](../tools/unity/CorewormMotionSmoke.cs) is the regression harness. Install it only in a disposable project's `Assets/Editor`, then run `CorewormMotionSmoke.Start` in batch mode without `-quit` (it exits itself). It checks actual head displacement for the three dive durations at simulated 30, 60, 144 and 240 fps, plus variable frame steps, then runs all four fight phases.
 
 ## Manual acceptance checks
 
@@ -159,4 +167,11 @@ The fixes were inline nested moves (`Inline`), easing the tracked speed, steerin
 
 ## Validation performed
 
-Every script, including the whole project, was compiled with the C# compiler against the Unity **6000.6.2f1** assemblies, with the project's defines and C# 9: no errors and no new warnings. **Nothing has been run in Unity yet.** Generating the prefab and scene, the cutscene, the worm's motion, the arena changes, balance and performance all need a first run in the Editor.
+The original check used the standalone C# compiler against Unity **6000.6.2f1** assemblies. The dive end-frame follow-up also ran actual Unity **6000.6.2f1**, D3D11 compilation and Play Mode checks in a disposable copy using the same gameplay package versions:
+
+- Before the fix, 6 of 15 dive cases failed the end-frame speed-retention check; after it, all 15 passed without the near-zero final step.
+- All four fight phases ran, including ambush, breach, slam, spit, beam, barrage, overlapping attacks and the core nova, with finite head positions and the body/trail present.
+- The existing `UnityEditor.Search.SearchDatabase` startup exception was narrowly excluded; other Console errors/exceptions fail the harness.
+- No scenes, prefabs, materials, meshes or settings were regenerated or delivered from the disposable copy.
+
+This is not full manual acceptance: the cutscene, defeat/retry/progression loop, visual smoothness with physical input, balance and target-hardware performance still need playtesting. Reports and the pre-change snapshot are under the ignored `signal-lost/Logs/CorewormStutter/` folder.

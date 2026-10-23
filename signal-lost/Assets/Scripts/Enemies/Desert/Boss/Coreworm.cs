@@ -1190,7 +1190,9 @@ namespace SignalLost.Enemies.Desert
             while (t < time)
             {
                 t += Time.deltaTime;
-                float k = Mathf.Clamp01(t / time);
+                // Finish the full step below the sand; clamping the last fraction stalls the head for a frame.
+                // Capped so a long hitch frame can't fling it far past the end (only frames over ~10% of the dive hit it).
+                float k = Mathf.Min(t / time, 1.1f);
                 Vector3 p = (1f - k) * (1f - k) * from + 2f * (1f - k) * k * control + k * k * to;
                 MoveHead(p);
                 if (!burst && p.y < GroundY)
@@ -1200,8 +1202,7 @@ namespace SignalLost.Enemies.Desert
                 }
                 yield return null;
             }
-            // Its last frame is usually a part-step, which would read as nearly stopped: carry on at the dive's real
-            // speed, so its body keeps sliding into the sand and eases off instead of suddenly crawling.
+            // Carry the dive's end momentum into the next swim.
             currentSpeed = Mathf.Max(currentSpeed, 2f * (to - control).magnitude / Mathf.Max(0.05f, time));
             mouthTarget = 0f;
         }
