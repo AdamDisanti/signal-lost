@@ -24,6 +24,7 @@ namespace SignalLost.Editor
         private const string LaserPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Upgrades/MiningLaser.prefab";
         private const string ScannerRigPath = "Assets/Prefabs/Player/Scanner/ScannerRig.prefab";
         private const string MerchantPath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
+        private const string FrogPath = "Assets/Prefabs/Enemies/MortarFrog.prefab";
         private static readonly Color LaserGlow = new Color(1f, 0.7f, 0.3f);
         private static readonly Color ScannerGlow = new Color(0.42f, 0.9f, 0.86f);
         private static readonly Color FlaskGlow = new Color(1f, 0.62f, 0.2f); // warm Scotch amber
@@ -58,6 +59,7 @@ namespace SignalLost.Editor
             ItemPickup laser = BuildLaser(crash);
             ItemPickup scanner = BuildScanner(crash);
             MerchantCrab merchant = BuildMerchant(story, hollow, camp);
+            FrogWaves frogs = BuildPondFrogs(story);
 
             var flow = new SerializedObject(story.gameObject.AddComponent<TutorialStory>());
             flow.FindProperty("cavendish").objectReferenceValue = cavendish;
@@ -70,6 +72,7 @@ namespace SignalLost.Editor
             for (int i = 0; i < glimpses.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = glimpses[i];
             flow.FindProperty("laserPickup").objectReferenceValue = laser;
             flow.FindProperty("scannerPickup").objectReferenceValue = scanner;
+            flow.FindProperty("frogs").objectReferenceValue = frogs;
             flow.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -89,6 +92,33 @@ namespace SignalLost.Editor
             dialogue.FindProperty("speaker").stringValue = "Cavendish";
             dialogue.ApplyModifiedPropertiesWithoutUndo();
             return actor;
+        }
+
+        // The pond's frog colony: nothing until Cavendish's quest, then 20 frogs in three waves from around the bank.
+        private static FrogWaves BuildPondFrogs(Transform story)
+        {
+            Vector2 pond = TutorialLevelBuilder.Pond, radii = TutorialLevelBuilder.PondRadii;
+            var colony = new GameObject("Pond Frogs").transform;
+            colony.SetParent(story, false);
+            colony.position = TutorialLevelBuilder.Ground(pond);
+            var zone = colony.gameObject.AddComponent<CombatZone>();
+            zone.Radius = Mathf.Max(radii.x, radii.y) + 12f;
+            var points = new Transform[12];
+            for (int i = 0; i < points.Length; i++)
+            {
+                float angle = i * Mathf.PI * 2f / points.Length;
+                Vector2 at = pond + new Vector2(Mathf.Cos(angle) * radii.x, Mathf.Sin(angle) * radii.y) * 1.35f;
+                points[i] = new GameObject("Bank " + (i + 1)).transform;
+                points[i].SetParent(colony, false);
+                points[i].position = TutorialLevelBuilder.Ground(at);
+            }
+            var waves = new SerializedObject(colony.gameObject.AddComponent<FrogWaves>());
+            waves.FindProperty("frogPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<MortarFrog>(FrogPath);
+            SerializedProperty list = waves.FindProperty("spawnPoints");
+            list.arraySize = points.Length;
+            for (int i = 0; i < points.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = points[i];
+            waves.ApplyModifiedPropertiesWithoutUndo();
+            return colony.GetComponent<FrogWaves>();
         }
 
         private static MerchantCrab BuildMerchant(Transform story, Transform hollow, Vector2 camp)

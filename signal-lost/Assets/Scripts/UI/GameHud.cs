@@ -366,8 +366,8 @@ namespace SignalLost.UI
                     new Vector2((i % 2) * 150f, -38f - (i / 2) * 38f), new Vector2(140f, 32f));
                 Sprite icon = ScrapCatalog.Icon(type);
                 Image dot = icon != null ? UiTheme.Icon("Icon", chip, icon) : UiTheme.Panel("Dot", chip, ScrapInfo.Color(type), null, 0.3f);
-                UiTheme.Place(dot.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), icon != null ? new Vector2(-4f, 0f) : Vector2.zero,
-                    icon != null ? new Vector2(32f, 32f) : new Vector2(20f, 20f));
+                UiTheme.Place(dot.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), icon != null ? new Vector2(-8f, 0f) : Vector2.zero,
+                    icon != null ? new Vector2(40f, 40f) : new Vector2(20f, 20f));
                 scrapCounts[i] = UiTheme.Label("Count", chip, 26f, UiTheme.Text, TextAlignmentOptions.Left, FontStyles.Bold);
                 UiTheme.Place(scrapCounts[i].rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(30f, 0f), new Vector2(110f, 32f));
             }

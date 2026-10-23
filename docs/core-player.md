@@ -61,7 +61,7 @@ All UI is drawn in code on singleton canvases (`Scripts/UI/`), so there are no U
 | GameplayOverlay (quest tracker, item cards) | 40 |
 | Wake-up eyelids | 45 |
 | DialogueUi | 50 |
-| Inventory / merchant menu | 60 |
+| Pockets / Bucket & Barter (see [upgrades](upgrades.md)) | 60 |
 | Pause | 70 |
 | Screen fade | 80 |
 

@@ -42,7 +42,7 @@ namespace SignalLost.Editor
         public static readonly Vector2 ShipForward = new Vector2(0.91f, 0.41f).normalized; // the nose points north-east
         public static readonly Vector2 Hollow = new Vector2(66f, 58f);
         public static readonly Vector2 Pond = new Vector2(-60f, 62f);
-        private static readonly Vector2 PondRadii = new Vector2(25f, 17f); // half-widths along x and z (longest east-west)
+        public static readonly Vector2 PondRadii = new Vector2(25f, 17f); // half-widths along x and z (longest east-west)
         private const float PondBank = 1.45f;  // where the bank meets the meadow, in pond radii
         private const float PondDepth = 1.1f;  // shallow enough to wade
 

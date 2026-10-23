@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using SignalLost.Enemies;
 using SignalLost.Inventory;
 using SignalLost.NPC;
 using SignalLost.Player;
@@ -19,14 +20,17 @@ namespace SignalLost.Story
     /// scanner are hidden in the wreck; coming back early gets a "keep looking".</item>
     /// <item>With both found, Cavendish tells of a big crab that left the wreck hugging a massive bottle.</item>
     /// <item>The crab (the merchant) waits in a hidden hollow with its ten cousins. Once the crab surrenders and the
-    /// cousins are down, it walks back to camp and introduces itself and its shop. The tutorial stops there.</item>
+    /// cousins are down, it walks back to camp and introduces itself (Eugene) and its shop.</item>
+    /// <item>The shop opens; once an upgrade is bought, Cavendish sends the player to clear 20 frogs at the pond (three
+    /// growing waves, <see cref="FrogWaves"/>), then warns of the Chief Toad. The tutorial stops at that quest until
+    /// the mini-boss is merged in (meeting notes 10-23).</item>
     /// </list>
     /// NPCs ask this story what to say (<see cref="INpcStory"/>); quest signals steer the scanner and the tracker
     /// shows the current objective. Space skips the opening.
     /// </summary>
     public sealed class TutorialStory : MonoBehaviour, INpcStory
     {
-        public enum Stage { Opening, Greeting, SearchGear, Fight, MerchantComing, MerchantIntro, Done }
+        public enum Stage { Opening, Greeting, SearchGear, Fight, MerchantComing, MerchantIntro, FirstUpgrade, ShowCavendish, Frogs, FrogsDone, ChiefToad }
 
         [Header("Cast")]
         [SerializeField] private NpcActor cavendish;
@@ -47,6 +51,8 @@ namespace SignalLost.Story
         [Header("Objectives")]
         [SerializeField] private ItemPickup laserPickup;
         [SerializeField] private ItemPickup scannerPickup;
+        [Tooltip("The pond frogs Cavendish sends the player after (20 in three waves).")]
+        [SerializeField] private FrogWaves frogs;
 
         private const string SearchTitle = "Salvage Run";
         private const string CrabTitle = "The Big Crab";
@@ -74,11 +80,30 @@ namespace SignalLost.Story
             "The bottle's yours, I suppose. Finders keepers was more of a guideline.",
             "Here's the deal: you bring me scrap, I sell you upgrades. Bits of wreck, critter leftovers, whatever you knock loose.",
             "And by the look of your pockets, my cousins left you plenty. Enough for your first upgrade, I'd say.",
-            "Shop's open whenever you are. Just... no more hitting."
+            "Have a browse. Pick something shiny, then go and show off to the capybara. Just... no more hitting."
         };
+        private static readonly string[] PondLife =
+        {
+            "Ooh, look at that! Very shiny. Very... dangerous-looking.",
+            "Now then. The frogs down at the pond have been lobbing goo at my tent all week.",
+            "There's a whole colony of them. Twenty at least, and they keep hopping in.",
+            "The pond's due north of camp. Thin them out, would you? Your scanner will find them.",
+            "Mind the goo. It does not come out of fur."
+        };
+        private static readonly string[] ChiefToadLines =
+        {
+            "Twenty frogs! You're a menace, mechanic. A useful menace.",
+            "But listen... hear that? That deep, rumbling croak, under everything?",
+            "I'm afraid we've rather annoyed the Chief Toad. Enormous fellow. Lives somewhere past the pond.",
+            "He'll come looking for whoever did this. Best we find him first. Get yourself ready."
+        };
+        private const string GearUpTitle = "Kitted Out";
+        private const string PondTitle = "Pond Life";
+        private const string ToadTitle = "The Chief Toad";
 
         private Stage stage;
         private PlayerGear gear;
+        private PlayerInventory pockets;
         private WakeUpSequence wake;
         private FirstPersonController movement;
         private CharacterController body;
@@ -95,6 +120,7 @@ namespace SignalLost.Story
         {
             if (player == null) player = FindAnyObjectByType<PlayerLife>();
             gear = player.GetComponent<PlayerGear>();
+            pockets = player.GetComponent<PlayerInventory>();
             wake = player.GetComponent<WakeUpSequence>();
             movement = player.GetComponent<FirstPersonController>();
             body = player.GetComponent<CharacterController>();
@@ -104,6 +130,8 @@ namespace SignalLost.Story
 
         private void OnEnable()
         {
+            pockets.Purchased += OnPurchased;
+            if (frogs != null) frogs.Cleared += OnFrogsCleared;
             gear.Collected += OnCollected;
             player.Respawned += OnRespawned;
             merchant.ArrivedHome += OnMerchantHome;
@@ -111,6 +139,8 @@ namespace SignalLost.Story
 
         private void OnDisable()
         {
+            pockets.Purchased -= OnPurchased;
+            if (frogs != null) frogs.Cleared -= OnFrogsCleared;
             gear.Collected -= OnCollected;
             player.Respawned -= OnRespawned;
             merchant.ArrivedHome -= OnMerchantHome;
@@ -132,6 +162,7 @@ namespace SignalLost.Story
                 if (merchant.IsDefeated && merchant.CousinsDown) EnterMerchantComing();
                 else UpdateFightObjective();
             }
+            else if (stage == Stage.Frogs) UpdateFrogObjective();
         }
 
         // ---------- NPC conversations (INpcStory) ----------
@@ -169,6 +200,18 @@ namespace SignalLost.Story
                     return Remind(bubble, new[] { "Is that crab following you home? How marvellous. I'll put the kettle on." });
                 case Stage.MerchantIntro:
                     return Remind(bubble, new[] { "Go on, say hello to our new friend. I'll be right here." });
+                case Stage.FirstUpgrade:
+                    return Remind(bubble, new[] { "Before anything else, see Eugene and get yourself kitted out. A mechanic's only as good as their gear." });
+                case Stage.ShowCavendish:
+                    Converse(cavendish.transform, "Cavendish", PondTitle, PondLife, EnterFrogs);
+                    return true;
+                case Stage.Frogs:
+                    return Remind(bubble, new[] { "Still croaking out there. I can hear them from here. Due north, mechanic." });
+                case Stage.FrogsDone:
+                    Converse(cavendish.transform, "Cavendish", ToadTitle, ChiefToadLines, EnterChiefToad);
+                    return true;
+                case Stage.ChiefToad:
+                    return Remind(bubble, new[] { "The Chief Toad's out past the pond somewhere. Patch yourself up first." });
                 default:
                     return false; // his own small talk
             }
@@ -179,7 +222,7 @@ namespace SignalLost.Story
             if (stage == Stage.MerchantComing)
                 return Remind(merchant.Dialogue, new[] { "Walk now, talk later. Camp first!" });
             if (stage != Stage.MerchantIntro || !merchant.IsHome) return false;
-            Converse(merchant.transform, "Eugene", "Bucket & Barter", MerchantIntro, EnterDone);
+            Converse(merchant.transform, "Eugene", "Bucket & Barter", MerchantIntro, EnterFirstUpgrade);
             return true;
         }
 
@@ -280,12 +323,60 @@ namespace SignalLost.Story
             if (Vector3.Distance(player.transform.position, merchant.transform.position) < 5.5f) TalkToMerchant();
         }
 
-        private void EnterDone()
+        // After the introduction the shop opens; the next quest waits until something is bought.
+        private void EnterFirstUpgrade()
         {
-            SetStage(Stage.Done);
-            Signal(merchant, false);
+            SetStage(Stage.FirstUpgrade);
             merchant.MarkGreeted();
-            GameplayOverlay.Instance.SetQuest(CrabTitle, "Bottle recovered. Spend your scrap at Bucket & Barter.", true);
+            if (pockets.Upgrades.Count > 0) { EnterShowCavendish(); return; }
+            Signal(merchant, true);
+            GameplayOverlay.Instance.SetQuest(GearUpTitle, "Buy your first upgrade from Eugene at Bucket & Barter.");
+            merchant.OpenShop(false);
+        }
+
+        private void OnPurchased(Upgrade upgrade)
+        {
+            if (stage == Stage.FirstUpgrade && upgrade.OneOff) EnterShowCavendish();
+        }
+
+        private void EnterShowCavendish()
+        {
+            SetStage(Stage.ShowCavendish);
+            Signal(merchant, false);
+            Signal(cavendish, true);
+            GameplayOverlay.Instance.SetQuest(GearUpTitle, "Show Cavendish your new gear.");
+        }
+
+        private void EnterFrogs()
+        {
+            SetStage(Stage.Frogs);
+            Signal(cavendish, false);
+            if (frogs != null) frogs.Begin();
+            UpdateFrogObjective();
+        }
+
+        private void UpdateFrogObjective()
+        {
+            if (frogs == null) return;
+            GameplayOverlay.Instance.SetQuest(PondTitle,
+                $"Clear out the frogs at the pond, due north of camp. The scanner points at the nearest one.\n" +
+                $"Frogs: {frogs.Defeated} / {frogs.Total}   (wave {Mathf.Max(1, frogs.Wave)} of {frogs.WaveCount})");
+        }
+
+        private void OnFrogsCleared()
+        {
+            if (stage != Stage.Frogs) return;
+            SetStage(Stage.FrogsDone);
+            Signal(cavendish, true);
+            GameplayOverlay.Instance.SetQuest(PondTitle, $"All {frogs.Total} frogs cleared. Report back to Cavendish.");
+        }
+
+        // The tutorial stops here until the Chief Toad mini-boss is merged in.
+        private void EnterChiefToad()
+        {
+            SetStage(Stage.ChiefToad);
+            Signal(cavendish, false);
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "Find and defeat the Chief Toad, somewhere past the pond.\n<i>Coming soon: the toad is still being built.</i>");
         }
 
         private void OnRespawned()

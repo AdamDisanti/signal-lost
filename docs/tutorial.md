@@ -1,6 +1,6 @@
 # Tutorial
 
-The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework"). It replaces the lunar crash-site tutorial; that scene is now **Testing Sandbox**, a free-play sandbox. New Game on the title screen loads it.
+The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework"), finished by the 10-23-26 notes ("Final tutorial tweaking"). It replaces the lunar crash-site tutorial; that scene is now **Testing Sandbox**, a free-play sandbox. New Game on the title screen loads it.
 
 - Scene: `signal-lost/Assets/Scenes/Tutorial/Tutorial.unity`
 - Build order: MainMenu, Tutorial, Testing Sandbox, Desert Dunes, Prototype
@@ -20,9 +20,12 @@ The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework").
    - Defeated cousins despawn.
    - If the crab gives up first, it drops the bottle (the Scotch flask, glowing amber like the hidden gear, visible from any distance) and waits for the brawl to end.
    - Once the whole family is down, it leads the mechanic back to camp.
-6. **Bucket & Barter.** At camp the crab introduces itself as **Eugene** and shows off its shop. (Eugene is also its name in dialogue, the HUD target readout and the "Talk to" prompt.) The fight leaves enough scrap for a first upgrade, usually well over the Overclocked Coil's 10 metal and 4 wiring. **The tutorial stops here.** Upgrades and the skill tree come next.
+6. **Bucket & Barter.** At camp the crab introduces itself as **Eugene** and its shop opens. The fight leaves enough scrap for a first upgrade (each cousin drops a guaranteed wire). See [upgrades](upgrades.md).
+7. **Kitted Out.** Cavendish won't give his next job until an upgrade is bought; then the scanner points back to him.
+8. **Pond Life.** Cavendish sends the mechanic to the pond due north of camp. **20 mortar frogs** come in three growing waves (5, then 7, then 8), each hopping in from the bank once the last is beaten. The scanner points at the nearest frog; the tracker counts them. Frogs drop scrap metal and fuel cells, about two more upgrades' worth.
+9. **The Chief Toad.** Back at camp, Cavendish hears a deep croak: the frogs have annoyed the Chief Toad, a mini-boss. The quest is given and **the tutorial stops here** until a teammate's Chief Toad is merged in.
 
-After that the merchant is an ordinary friendly shop. Its sixth hit within the anger window brings back **the same ten cousins** around it (the angry-merchant ambush).
+After that Eugene is an ordinary friendly shop. Its sixth hit within the anger window brings back **the same ten cousins** around it (the angry-merchant ambush); called-back cousins drop no scrap, so the ambush cannot be farmed.
 
 ## The Bucket Brothers
 
@@ -96,8 +99,9 @@ Runtime code:
    - Run more than 28 m from its centre: they walk home and heal.
    - Beat the crab and all ten cousins; cousins vanish when beaten.
    - Pick up the flask and the scrap.
-6. Follow the crab to camp and hear its introduction.
-7. Hit the friendly crab six times: the same ten cousins return around it.
+6. Follow the crab to camp and hear its introduction; the shop opens. Buy an upgrade and check it in the pockets (Tab, Gear).
+7. Cavendish sends you to the pond: clear three waves of frogs (5, 7, 8) with the scanner's help, then report back for the Chief Toad quest.
+8. Hit the friendly crab six times: the same ten cousins return around it, and drop nothing when beaten.
 
 ## Verification
 
@@ -114,7 +118,8 @@ Runtime code:
 - the ten distinct names and shells;
 - surrender, waiting, despawning, the flask and enough scrap;
 - the path to camp, the walk home and the introduction;
-- the ambush bringing the same ten back.
+- the ambush bringing the same ten back, with no scrap;
+- (10-23) the shop opening after the introduction, the first-upgrade gate, the three frog waves (5, 7, 8) and the Chief Toad hand-off.
 
 It does not cover physical input, timing feel or a full on-foot playthrough.
 
@@ -123,4 +128,4 @@ It does not cover physical input, timing feel or a full on-foot playthrough.
 These are recorded in [design](design.md#tutorial-overhaul-meeting-notes-10-22-26):
 
 - The opening is first-person only. Cavendish slides and bobs because he has no rig.
-- No audio yet.
+- The Chief Toad mini-boss (a teammate is building it). The tutorial ends when its quest is given.

@@ -193,3 +193,18 @@ The "Major tutorial rework" prompt, with the project lead's answers. See [tutori
   - Space skips the opening.
   - Cousins drop one guaranteed wiring each, so the fight pays for a first upgrade.
 - **Open:** audio; a real save; upgrades and the skill tree; whether bosses should share the 2× leash or keep their own reset rules (they now use the 2× rule on their arena radius).
+
+## Final tutorial tweaking (meeting notes 10-23-26)
+
+Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutorial.md), [upgrades](upgrades.md) and [shared player](core-player.md).
+
+- **Movement:** tap C to crouch or stand; hold C while sprinting to slide; jumping out of a slide keeps its speed (slide cancel), so slide-jump chains are the fast way around.
+- **Pop-ups:** tutorial and item cards are dismissed by the player (E or Enter), never on a timer. **This applies to every pop-up from now on.**
+- **Angry merchant:** called-back cousins drop no scrap (no farming).
+- **Laser:** combo recharge 2 s, shown by the three combo pips draining; bolt cooldown 1 s (tap) to 6 s (full charge), eased between (about 2.8 s at half charge).
+- **Flask:** heals 35 / 28 / 22 / 17 / 13 (gentler than halving); the top drunk pip drains as a drink wears off; the sip is 30% slower and reaches down for the flask before snapping it up; burps from the 3rd sip; overdrinking reads "SIGNAL LOST - BLACKOUT".
+- **Merchant:** renamed **Eugene** (from Eugine).
+- **Scrap and upgrades:** four scrap models from Adam's references; seven tutorial upgrades, two supplies and three trades, all fixed recipes (no crafting); key-item recipes supported for mini-boss drops.
+- **Pockets:** four tabs (the notes said three but listed four): Materials, Gear (3D mechanic wearing upgrades, tool close-ups, supplies), Upgrades, Stats.
+- **Tutorial ending:** buy a first upgrade (required before Cavendish's next job), clear 20 pond frogs in three growing waves (5, 7, 8), then take the Chief Toad quest; the tutorial stops there until the mini-boss is merged.
+- **Open:** the Chief Toad itself and its reward (ideas in [upgrades](upgrades.md#ideas-for-the-chief-toad-reward-not-built)); costs and frog drop rates need a play-test; crouch and slide feel can only be judged by playing.

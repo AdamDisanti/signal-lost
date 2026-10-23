@@ -125,11 +125,13 @@ public static class TutorialStorySmoke
         yield return null;
         Check(glint.enabled, "...and shows up close.");
         yield return Capture("ScannerFound");
+        Aim(life, scanner); // captures take a few frames, in which the player can settle off the spot
         Check(ReadCardsThen(interactor).TryInteract() && gear.Has(PlayerItem.Scanner), "The scanner can be picked up from under its panel by the interaction ray.");
         Check(QuestSignalSource.Nearest(life.transform.position) == laser.GetComponent<QuestSignalSource>(), "With the scanner back, it points at the laser.");
         Aim(life, laser);
         yield return null;
         yield return Capture("LaserFound");
+        Aim(life, laser);
         Check(ReadCardsThen(interactor).TryInteract() && gear.Has(PlayerItem.MiningLaser), "The laser can be picked up in the reactor bay by the interaction ray.");
         Check(QuestSignalSource.Nearest(life.transform.position) == cavendish.GetComponent<QuestSignalSource>(), "With both found, the scanner points back to Cavendish.");
 
@@ -189,7 +191,46 @@ public static class TutorialStorySmoke
         Check(story.Current == TutorialStory.Stage.MerchantIntro && ui.PopupOpen && ui.Owner == merchant.transform, "It introduces itself right away.");
         yield return Capture("MerchantIntro");
         yield return ReadToEnd(ui);
-        Check(story.Current == TutorialStory.Stage.Done, "The tutorial stops after the introduction.");
+        Check(story.Current == TutorialStory.Stage.FirstUpgrade && MerchantMenuUi.Current != null && MerchantMenuUi.Current.IsOpen,
+            "After the introduction Eugene's shop opens for a first upgrade.");
+        yield return Capture("FirstShop");
+        MerchantMenuUi.Current.Close();
+        yield return null;
+
+        // ---------- First upgrade, then the pond frogs ----------
+        Check(ReadCardsThen(interactor) != null && cavendish.Interact(interactor) && cavendish.Dialogue.CurrentLine.Contains("kitted out"),
+            "Cavendish holds his next job until an upgrade is bought.");
+        cavendish.Dialogue.AdvanceManual();
+        Upgrade first = UpgradeCatalog.All.First(u => u.OneOff && inventory.WhyNot(u) == null);
+        Check(inventory.Buy(first) && story.Current == TutorialStory.Stage.ShowCavendish, "Buying " + first.Name + " sends the player back to Cavendish.");
+        Check(QuestSignalSource.Nearest(life.transform.position) == cavendish.GetComponent<QuestSignalSource>(), "The scanner points at Cavendish.");
+        ReadCardsThen(interactor);
+        Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("shiny"), "Cavendish admires the upgrade and asks about the pond frogs.");
+        yield return ReadToEnd(ui);
+        FrogWaves frogs = UnityEngine.Object.FindAnyObjectByType<FrogWaves>();
+        Check(story.Current == TutorialStory.Stage.Frogs && frogs.Started && frogs.Total == 20 && frogs.WaveCount == 3, "The frog quest begins: 20 frogs in three waves.");
+        yield return 1f;
+        Check(frogs.Alive.Count == 5, "Wave 1: five frogs at the pond.");
+        Check(QuestSignalSource.Nearest(life.transform.position).GetComponent<MortarFrog>() != null, "The scanner points at the nearest frog.");
+        Teleport(life, frogs.transform.position + Vector3.forward * 20f);
+        view.transform.LookAt(frogs.Alive[0].transform.position);
+        yield return 1.5f;
+        yield return Capture("PondFrogs");
+        int[] expected = { 5, 7, 8 };
+        for (int w = 0; w < 3; w++)
+        {
+            Check(frogs.Wave == w + 1 && frogs.Alive.Count == expected[w], $"Wave {w + 1}: {expected[w]} frogs.");
+            foreach (MortarFrog frog in frogs.Alive.ToArray()) frog.GetComponent<Health>().TakeDamage(10000f, life.gameObject);
+            yield return w < 2 ? 4f : 1f;
+        }
+        Check(frogs.Finished && frogs.Defeated == 20 && story.Current == TutorialStory.Stage.FrogsDone, "All 20 frogs cleared; report back to Cavendish.");
+        Teleport(life, PlayerSpawnPoint.Current.transform.position);
+        yield return 0.3f;
+        ReadCardsThen(interactor);
+        Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("Twenty frogs"), "Cavendish warns of the Chief Toad.");
+        yield return ReadToEnd(ui);
+        Check(story.Current == TutorialStory.Stage.ChiefToad, "The tutorial stops at the Chief Toad quest.");
+        yield return Capture("ChiefToad");
 
         // ---------- Angry merchant ----------
         for (int hit = 0; hit < 6; hit++) merchant.GetComponent<Health>().TakeDamage(10f, life.gameObject);
