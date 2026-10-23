@@ -15,7 +15,7 @@ namespace SignalLost.UI
             UpgradeSlot.Laser => "Mining Laser",
             UpgradeSlot.Scanner => "Scanner",
             UpgradeSlot.Flask => "Scotch Flask",
-            UpgradeSlot.Suit => "Suit",
+            UpgradeSlot.Suit => "Player",
             UpgradeSlot.Supply => "Supply",
             _ => "Trade"
         };
@@ -29,14 +29,14 @@ namespace SignalLost.UI
             _ => UiTheme.Muted
         };
 
-        /// <summary>The price, each part coloured by type, or greyed out if the player is short of it.</summary>
+        /// <summary>The price as amounts with scrap icons ("10 [icon]  4 [icon]"); amounts the player is short of are red.</summary>
         public static string Price(Upgrade upgrade, PlayerInventory inventory)
         {
             var price = new StringBuilder();
             foreach ((ScrapType type, int amount) in upgrade.Cost)
             {
                 bool enough = inventory != null && inventory.Scrap(type) >= amount;
-                price.Append($"<color={UiTheme.Hex(enough ? ScrapInfo.Color(type) : UiTheme.Muted)}>{amount} {ScrapInfo.Name(type)}</color>   ");
+                price.Append($"<color={UiTheme.Hex(enough ? UiTheme.Text : UiTheme.Warning)}>{amount}</color> {ScrapInfo.Inline(type)}   ");
             }
             if (upgrade.KeyItem != null)
             {

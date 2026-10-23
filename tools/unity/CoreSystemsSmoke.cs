@@ -194,15 +194,27 @@ public static class CoreSystemsSmoke
         foreach (ScrapType type in ScrapInfo.All) pockets.AddScrap(type, 60);
         MerchantMenuUi.Instance.ShowTab(0);
         yield return 0.3f;
-        Check(MerchantMenuUi.Instance.ListingCount == 7, "The shop sells the seven tutorial upgrades.");
+        Check(MerchantMenuUi.Instance.ListingCount == 3, "The Laser filter lists the three laser upgrades.");
+        int[] perType = Enumerable.Range(0, 4).Select(t => { MerchantMenuUi.Instance.ShowTab(t); return MerchantMenuUi.Instance.ListingCount; }).ToArray();
+        Check(perType.SequenceEqual(new[] { 3, 1, 1, 2 }), "Filters by type: laser 3, scanner 1, flask 1, player 2.");
+        MerchantMenuUi.Instance.ShowTab(0);
         yield return Capture("ShopUpgrades");
         float boltBefore = gear.Laser.MaxShotDamage, cooldownBefore = gear.Laser.ShotCooldown, stunBefore = gear.Laser.FinisherStun;
         var scannerController = life.GetComponentInChildren<ScannerController>(true);
         float rangeBefore = scannerController.Range;
-        Button buy = MerchantMenuUi.Instance.GetComponentsInChildren<Button>().First(b => b.name == "Buy" && b.transform.parent.name == "Overclocked Coil");
-        buy.onClick.Invoke();
+        Button Buy() => MerchantMenuUi.Instance.GetComponentsInChildren<Button>().First(b => b.name == "Buy" && b.transform.parent.name == "Overclocked Coil");
+        Buy().onClick.Invoke();
+        string preview = GetField<TMPro.TextMeshProUGUI>(MerchantMenuUi.Instance, "balanceText").text;
+        Check(!pockets.Owns("overclocked_coil") && MerchantMenuUi.Instance.Selected?.Id == "overclocked_coil" && preview.Contains("<b>50</b>") && preview.Contains("<b>56</b>"),
+            "The first press previews: 60 \u2192 50 metal, 60 \u2192 56 wiring.");
+        yield return Capture("ShopPreview");
+        Buy().onClick.Invoke();
         Check(pockets.Owns("overclocked_coil") && pockets.Scrap(ScrapType.ScrapMetal) == 50 && pockets.Scrap(ScrapType.Wiring) == 56,
-            "Buy in the shop pays 10 metal and 4 wiring and installs the Overclocked Coil.");
+            "Confirm pays 10 metal and 4 wiring and installs the Overclocked Coil.");
+        Check(MerchantMenuUi.Instance.ListingCount == 2, "Bought upgrades leave the type list...");
+        MerchantMenuUi.Instance.ShowPurchased();
+        Check(MerchantMenuUi.Instance.ListingCount == 1, "...and show under Purchased.");
+        MerchantMenuUi.Instance.ShowTab(0);
         Check(Mathf.Approximately(gear.Laser.MaxShotDamage, boltBefore * 1.25f), "Overclocked Coil: bolts hit 25% harder.");
         Check(!pockets.Buy(UpgradeCatalog.Find("overclocked_coil")), "An upgrade cannot be bought twice.");
         foreach (string id in new[] { "quickcool_fins", "heavy_slam", "longnose_antenna", "castiron_liver", "padded_overalls", "slick_kneepads" })
@@ -217,7 +229,7 @@ public static class CoreSystemsSmoke
         Check(pockets.Buy(UpgradeCatalog.Find("trade_wiring")) && pockets.Scrap(ScrapType.Wiring) == wiringBefore + 1, "Trades turn 5 metal into 1 wiring.");
         Check(pockets.Buy(UpgradeCatalog.Find("hangover_pills")) && pockets.Buy(UpgradeCatalog.Find("mystery_snack")) &&
               pockets.SupplyCount("hangover_pills") == 1, "Supplies stack in the pockets.");
-        MerchantMenuUi.Instance.ShowTab(1);
+        MerchantMenuUi.Instance.ShowTab(4);
         yield return 0.2f;
         yield return Capture("ShopSupplies");
         MerchantMenuUi.Instance.Close();

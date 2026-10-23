@@ -14,6 +14,10 @@ namespace SignalLost.NPC
     public sealed class MerchantCrab : MonoBehaviour
     {
         [SerializeField] private Transform returnPoint;
+        [Tooltip("Where it settles once home (on a camp log). Empty: it stays at the return point.")]
+        [SerializeField] private Transform seat;
+        [Tooltip("Walking speed while leading the player home.")]
+        [SerializeField, Min(0.5f)] private float leadSpeed = 3.75f;
         [SerializeField] private ItemPickup flaskDrop;
         [SerializeField] private GameObject carriedFlask;
         [SerializeField] private NpcDialogue dialogue;
@@ -190,6 +194,13 @@ namespace SignalLost.NPC
                 drop = hit.point + Vector3.up * 0.03f;
             flaskDrop.transform.position = drop;
             flaskDrop.gameObject.SetActive(true);
+            // It floats and turns above the grass so it is easy to spot.
+            Transform bottle = flaskDrop.transform.Find("Visual");
+            if (bottle != null && flaskDrop.GetComponent<SignalLost.Progression.PickupSpin>() == null)
+            {
+                bottle.localPosition += Vector3.up * 0.45f;
+                flaskDrop.gameObject.AddComponent<SignalLost.Progression.PickupSpin>().Model = bottle;
+            }
             if (CousinsDown)
                 dialogue.Speak("All right! Claws down!",
                     "Trading is my business. Brawling is clearly yours.",
@@ -214,7 +225,7 @@ namespace SignalLost.NPC
             agent.enabled = true;
             if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 3, NavMesh.AllAreas)) agent.Warp(hit.position);
             agent.updateRotation = true;
-            agent.speed = 2.5f;
+            agent.speed = leadSpeed;
             agent.stoppingDistance = 0.6f;
             agent.isStopped = false;
             returning = true;
@@ -245,6 +256,7 @@ namespace SignalLost.NPC
                 rig.MoveSpeed = 0;
                 transform.rotation = returnPoint.rotation;
                 IsHome = true;
+                if (seat != null) StartCoroutine(TakeSeat());
                 ArrivedHome?.Invoke();
             }
         }
@@ -343,6 +355,22 @@ namespace SignalLost.NPC
             ambush.Clear();
             anger = 0;
             dialogue.Speak(4f, "All right, all right! Claws down... AGAIN.", "No hard feelings? The shop's still open.");
+        }
+
+        // A little hop up onto its log by the fire.
+        private IEnumerator TakeSeat()
+        {
+            agent.enabled = false;
+            Vector3 from = transform.position;
+            Quaternion turnFrom = transform.rotation;
+            for (float t = 0f; t < 0.5f; t += Time.deltaTime)
+            {
+                float k = t / 0.5f;
+                transform.SetPositionAndRotation(Vector3.Lerp(from, seat.position, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 0.6f,
+                    Quaternion.Slerp(turnFrom, seat.rotation, k));
+                yield return null;
+            }
+            transform.SetPositionAndRotation(seat.position, seat.rotation);
         }
 
         public void ResetAfterPlayerRespawn()

@@ -32,6 +32,12 @@ namespace SignalLost.Inventory
             }
         }
 
+        /// <summary>The type's icon inside text (any UiTheme label shows it): "4 " + Inline(type) reads "4 [icon]".</summary>
+        public static string Inline(ScrapType type) => $"<sprite name=\"{type}\">";
+
+        /// <summary>An amount with its icon, e.g. "4 [icon]".</summary>
+        public static string Amount(ScrapType type, int amount) => amount + " " + Inline(type);
+
         public static string Blurb(ScrapType type)
         {
             switch (type)

@@ -245,22 +245,40 @@ namespace SignalLost.UI
             }
         }
 
+        // Only upgrades actually installed, grouped by type (meeting notes 10-23); the shop lists what is for sale.
         private void UpgradesPage()
         {
-            TextMeshProUGUI note = UiTheme.Label("Note", page, 22f, UiTheme.Muted, TextAlignmentOptions.TopLeft, FontStyles.Italic);
-            UiTheme.Place(note.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), Vector2.zero, new Vector2(1380f, 32f));
-            note.text = "No tinkering in the field: every upgrade is a set recipe. Buy them from Eugene at Bucket & Barter.";
-            int i = 0;
-            foreach (Upgrade upgrade in UpgradeCatalog.All.Where(u => u.OneOff && u.Region == UpgradeRegion.Tutorial))
+            Upgrade[] owned = inventory.Upgrades.Select(UpgradeCatalog.Find).Where(u => u != null).ToArray();
+            if (owned.Length == 0)
             {
-                bool owned = inventory.Owns(upgrade.Id);
-                Vector2 at = new Vector2((i % 2) * 700f, -44f - (i / 2) * 128f);
-                RectTransform row = ItemRows.Row(page, upgrade.Name, ItemCatalog.Icon(upgrade.Id), upgrade.Name, owned ? UiTheme.Good : ItemRows.SlotColor(upgrade.Slot),
-                    $"<color={UiTheme.Hex(ItemRows.SlotColor(upgrade.Slot))}>{ItemRows.SlotName(upgrade.Slot)}</color>  {upgrade.Description}", at, new Vector2(680f, 116f), 250f);
-                string why = inventory.WhyNot(upgrade);
-                ItemRows.RightLabel(row, owned ? "INSTALLED" : why == null ? "Affordable" : ItemRows.Price(upgrade, inventory), owned ? 26f : 20f,
-                    owned ? UiTheme.Good : why == null ? UiTheme.Accent : UiTheme.Text, 230f);
-                i++;
+                TextMeshProUGUI none = UiTheme.Label("None", page, 28f, UiTheme.Muted, TextAlignmentOptions.TopLeft, FontStyles.Italic);
+                UiTheme.Place(none.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), Vector2.zero, new Vector2(1300f, 80f));
+                none.text = "No upgrades installed yet. Eugene sells them at Bucket & Barter: set recipes, no tinkering in the field.";
+                return;
+            }
+            // Two columns: Mining Laser and Scanner on the left, Flask and Player on the right.
+            UpgradeSlot[][] columns = { new[] { UpgradeSlot.Laser, UpgradeSlot.Scanner }, new[] { UpgradeSlot.Flask, UpgradeSlot.Suit } };
+            for (int c = 0; c < columns.Length; c++)
+            {
+                float y = 0f;
+                foreach (UpgradeSlot slot in columns[c])
+                {
+                    Upgrade[] group = owned.Where(u => u.Slot == slot).ToArray();
+                    if (group.Length == 0) continue;
+                    TextMeshProUGUI heading = UiTheme.Label(slot.ToString(), page, 26f, ItemRows.SlotColor(slot), TextAlignmentOptions.TopLeft, FontStyles.Bold | FontStyles.UpperCase);
+                    UiTheme.Place(heading.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(c * 700f, y), new Vector2(680f, 34f));
+                    heading.text = ItemRows.SlotName(slot);
+                    y -= 40f;
+                    foreach (Upgrade upgrade in group)
+                    {
+                        RectTransform row = ItemRows.Row(page, upgrade.Name, ItemCatalog.Icon(upgrade.Id), upgrade.Name, UiTheme.Text,
+                            upgrade.Description, new Vector2(c * 700f, y), new Vector2(680f, 100f), 160f);
+                        TextMeshProUGUI installed = ItemRows.RightLabel(row, "INSTALLED", 20f, UiTheme.Good, 150f);
+                        installed.textWrappingMode = TextWrappingModes.NoWrap;
+                        y -= 108f;
+                    }
+                    y -= 12f;
+                }
             }
         }
 

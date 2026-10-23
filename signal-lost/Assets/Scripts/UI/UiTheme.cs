@@ -185,6 +185,19 @@ namespace SignalLost.UI
             return image;
         }
 
+        private static TMP_SpriteAsset inlineIcons;
+        private static bool inlineSearched;
+
+        /// <summary>The scrap icons usable inside any label's text (ScrapInfo.Inline), from Resources.</summary>
+        public static TMP_SpriteAsset InlineIcons
+        {
+            get
+            {
+                if (!inlineSearched) { inlineIcons = Resources.Load<TMP_SpriteAsset>("SignalLost/ScrapIcons"); inlineSearched = true; }
+                return inlineIcons;
+            }
+        }
+
         /// <summary>A plain sprite (an item icon), keeping its aspect.</summary>
         public static Image Icon(string name, Transform parent, Sprite sprite)
         {
@@ -199,6 +212,7 @@ namespace SignalLost.UI
             TextAlignmentOptions alignment = TextAlignmentOptions.Left, FontStyles style = FontStyles.Normal)
         {
             var text = Rect(name, parent).gameObject.AddComponent<TextMeshProUGUI>();
+            if (InlineIcons != null) text.spriteAsset = InlineIcons; // scrap icons inside text
             text.fontSize = size;
             text.color = color;
             text.alignment = alignment;

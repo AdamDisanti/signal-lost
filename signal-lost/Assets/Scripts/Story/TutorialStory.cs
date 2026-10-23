@@ -4,6 +4,8 @@ using SignalLost.Enemies;
 using SignalLost.Inventory;
 using SignalLost.NPC;
 using SignalLost.Player;
+using SignalLost.Progression;
+using SignalLost.Enemies.Desert;
 using SignalLost.Scanner;
 using SignalLost.UI;
 using UnityEngine;
@@ -50,6 +52,8 @@ namespace SignalLost.Story
         [Tooltip("Where the two glimpses of being dragged start, each facing back toward the wreck.")]
         [SerializeField] private Transform[] dragGlimpses = Array.Empty<Transform>();
         [SerializeField, Min(0.1f)] private float dragSpeed = 1.4f;
+        [Tooltip("How far Cavendish's model is sunk onto his log while sitting; he stands up for the drag.")]
+        [SerializeField, Min(0f)] private float cavendishSitDrop;
 
         [Header("Objectives")]
         [SerializeField] private ItemPickup laserPickup;
@@ -101,6 +105,13 @@ namespace SignalLost.Story
             "But listen... hear that? That deep, rumbling croak, under everything?",
             "I'm afraid we've rather annoyed the Chief Toad. Enormous fellow. Lives somewhere past the pond.",
             "He'll come looking for whoever did this. Best we find him first. Get yourself ready."
+        };
+        // Lore: Cavendish keeps every main ship part the bosses drop... for "safe keeping".
+        private static readonly string[] SafeKeeping =
+        {
+            "Is that the ship's cooling system? Well I never. Hand it here, mechanic.",
+            "I'll hold on to that for... safe keeping. Yes. Safe keeping.",
+            "Don't you worry about it. It'll be perfectly safe with me. Perfectly."
         };
         private static readonly string[] WrapUp =
         {
@@ -181,6 +192,11 @@ namespace SignalLost.Story
                 else UpdateFightObjective();
             }
             else if (stage == Stage.Frogs) UpdateFrogObjective();
+            else if (stage == Stage.ToadBeaten && (ShipPartDrop.CountFor(StageProgress.Tutorial) > 0) != partSeen)
+            {
+                partSeen = !partSeen; // the part is picked up by walking over it
+                UpdateLootObjective();
+            }
         }
 
         // ---------- NPC conversations (INpcStory) ----------
@@ -232,10 +248,15 @@ namespace SignalLost.Story
                     return Remind(bubble, new[] { "He'll be at the pond, I'd wager. Patch yourself up first, and mind his beam." });
                 case Stage.ToadFight:
                     return Remind(bubble, new[] { "Why are you here? There's a giant toad at the pond!" });
+                case Stage.ToadBeaten when CarryingPart:
+                    Converse(cavendish.transform, "Cavendish", "Safe Keeping", SafeKeeping, OnPartGiven);
+                    return true;
                 case Stage.ToadBeaten:
                     return Remind(bubble, pockets.HasKeyItem("chief_toad_crown")
                         ? new[] { "Is that his crown? Magnificent! Put it on the trophy stand by the tent, go on." }
-                        : new[] { "You beat him? Then fetch his crown from the pond. Every chief we topple goes on the trophy stand." });
+                        : !partGiven && ShipPartDrop.CountFor(StageProgress.Tutorial) == 0
+                            ? new[] { "You beat him? Then fetch what he dropped: his crown, and that bit of the ship he was wearing." }
+                            : new[] { "Now that crown. Every chief we topple goes on the trophy stand by the tent." });
                 case Stage.TrophyPlaced:
                     Converse(cavendish.transform, "Cavendish", "Trophy Night", WrapUp, EnterDemoComplete);
                     return true;
@@ -318,6 +339,9 @@ namespace SignalLost.Story
             SetStage(Stage.Fight);
             Signal(cavendish, false);
             Signal(merchant, true);
+            // The crab and its cousins only turn up in the hollow now (meeting notes 10-23).
+            merchant.gameObject.SetActive(true);
+            foreach (var cousin in merchant.Cousins) if (cousin != null) cousin.gameObject.SetActive(true);
             merchant.BeginQuest();
             UpdateFightObjective();
         }
@@ -413,27 +437,54 @@ namespace SignalLost.Story
             GameplayOverlay.Instance.SetQuest(ToadTitle, "Defeat the Chief Toad. Dodge the beam, jump the waves, and keep the frogs off you.");
         }
 
+        // After the fight two jobs remain: the crown on a trophy stand, and the cooling system (the boss's ship part) to
+        // Cavendish, who keeps the ship parts "for safe keeping". When both are done, his wrap-up ends the demo.
+        private bool partGiven, crownPlaced, partSeen;
+
+        private bool CarryingPart => !partGiven && ShipPartDrop.CountFor(StageProgress.Tutorial) > 0;
+
         private void OnToadBeaten()
         {
             SetStage(Stage.ToadBeaten);
-            GameplayOverlay.Instance.SetQuest(ToadTitle, "The Chief Toad is beaten! Grab his crown from the loot, then take it home to camp.");
             if (toad.Trophy != null && !toad.Trophy.TryGetComponent(out QuestSignalSource _)) toad.Trophy.gameObject.AddComponent<QuestSignalSource>();
+            UpdateLootObjective();
+        }
+
+        private void UpdateLootObjective()
+        {
+            bool hasCrown = pockets.HasKeyItem("chief_toad_crown"), hasPart = ShipPartDrop.CountFor(StageProgress.Tutorial) > 0;
+            string crown = crownPlaced ? "[x] Crown on a trophy stand" : hasCrown ? "[  ] Set the crown on a trophy stand by the tent" : "[  ] Pick up his crown from the loot";
+            string part = partGiven ? "[x] Cooling system given to Cavendish" : hasPart ? "[  ] Give the cooling system to Cavendish" : "[  ] Pick up the cooling system from the loot";
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "The Chief Toad is beaten! Take the loot home to camp.\n" + crown + "\n" + part);
+            foreach (var stand in FindObjectsByType<SignalLost.Progression.TrophyStand>()) Signal(stand, hasCrown && !crownPlaced);
+            Signal(cavendish, CarryingPart);
         }
 
         private void OnTrophyPickedUp(string id)
         {
-            if (stage != Stage.ToadBeaten) return;
-            GameplayOverlay.Instance.SetQuest(ToadTitle, "Set the crown on a trophy stand at camp, by the tent.");
-            foreach (var stand in FindObjectsByType<SignalLost.Progression.TrophyStand>()) Signal(stand, true);
+            if (stage == Stage.ToadBeaten) UpdateLootObjective();
         }
 
         private void OnTrophyPlaced(string id)
         {
             if (stage != Stage.ToadBeaten) return;
+            crownPlaced = true;
+            FinishLootOrUpdate();
+        }
+
+        private void OnPartGiven()
+        {
+            partGiven = true;
+            FinishLootOrUpdate();
+        }
+
+        private void FinishLootOrUpdate()
+        {
+            if (!crownPlaced || !partGiven) { UpdateLootObjective(); return; }
             SetStage(Stage.TrophyPlaced);
             foreach (var stand in FindObjectsByType<SignalLost.Progression.TrophyStand>()) Signal(stand, false);
             Signal(cavendish, true);
-            GameplayOverlay.Instance.SetQuest(ToadTitle, "The crown is on the stand. Tell Cavendish.");
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "The crown is on the stand and the cooling system is... safe. Talk to Cavendish.");
         }
 
         private void EnterDemoComplete()
@@ -462,6 +513,9 @@ namespace SignalLost.Story
             SetStage(Stage.Opening);
             Transform cav = cavendish.transform;
             Vector3 seat = cav.position;
+            Transform cavVisual = cav.Find("Visual");
+            Vector3 seated = cavVisual != null ? cavVisual.localPosition : Vector3.zero;
+            if (cavVisual != null) cavVisual.localPosition = seated + Vector3.up * cavendishSitDrop; // standing to drag
             Quaternion seatFacing = cav.rotation;
             movement.enabled = false;
             body.enabled = false;
@@ -529,6 +583,7 @@ namespace SignalLost.Story
             // 3. Awake by the fire, Cavendish across from them.
             if (skipped) ui.ClearSubtitle();
             cav.SetPositionAndRotation(seat, seatFacing);
+            if (cavVisual != null) cavVisual.localPosition = seated; // back on his log
             Transform spawn = PlayerSpawnPoint.Current != null ? PlayerSpawnPoint.Current.transform : player.transform;
             player.transform.SetPositionAndRotation(spawn.position, Quaternion.Euler(0f, spawn.eulerAngles.y, 0f));
             view.localRotation = Quaternion.identity;

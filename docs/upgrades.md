@@ -42,11 +42,12 @@ The shop shows only the current region's upgrades (`MerchantMenuUi.Region`); sup
 
 ## Menus
 
-- **Bucket & Barter** (talk to Eugene): Upgrades, Supplies and Trade Scrap tabs with icons, prices (greyed out when short) and Buy. A purchase shows an "upgrade installed" card.
+- **Bucket & Barter** (talk to Eugene): filters by type (Laser, Scanner, Flask, Player, Supplies, Trades; keys 1-6) and a **Purchased** filter at the bottom for what you own, kept out of the way. Prices are amounts with scrap icons ("10 [icon]"), red when you are short. **BUY** selects an item and previews your scrap after the purchase ("60 → 50"); **CONFIRM** buys it. A purchase shows an "upgrade installed" card.
+- **Scrap amounts everywhere** (shop, HUD toast, trades) are written as a number and the scrap's icon, using the TextMeshPro sprite asset `Resources/SignalLost/ScrapIcons` (built with the scrap assets; `ScrapInfo.Inline`).
 - **Pockets** (Tab): four tabs, 1-4.
   - **Materials:** scrap with icons and counts; key items.
   - **Gear:** a blocky 3D mechanic (Minecraft-inspired, drag to turn) holding the laser and scanner with the flask on the belt, wearing every upgrade; close-ups of each tool with what is fitted; supplies with Use buttons.
-  - **Upgrades:** every recipe for this area: installed, affordable or what it costs.
+  - **Upgrades:** only the upgrades you have installed, grouped by type (Mining Laser, Scanner, Flask, Player).
   - **Stats:** health, healing, drinks, scanner range, slide, combo and bolt numbers.
 
 The 3D view (`UI/GearFigure.cs`) is built at runtime from boxes and the player's own tool models, on a hidden stage on layer 30, rendered only while the Gear tab is open.

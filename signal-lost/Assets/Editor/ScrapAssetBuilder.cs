@@ -22,6 +22,9 @@ namespace SignalLost.Editor
     {
         public const string Folder = "Assets/Prefabs/Items/Scrap";
         public const string CatalogPath = "Assets/Resources/SignalLost/ScrapCatalog.asset";
+        /// <summary>TextMeshPro sprite asset with the four icons, so text can show "4 &lt;sprite name="ScrapMetal"&gt;".</summary>
+        public const string InlineIconsPath = "Assets/Resources/SignalLost/ScrapIcons.asset";
+        private const int InlineSize = 128;
 
         private enum Mat { Metal, Rust, DarkMetal, Cable, Flange, Board, Trace, Chip, Capacitor, Silver, Led, Glass, Charge, Band }
 
@@ -62,11 +65,84 @@ namespace SignalLost.Editor
                 entry.FindPropertyRelative("icon").objectReferenceValue = entries[i].icon;
             }
             data.ApplyModifiedPropertiesWithoutUndo();
+            BuildInlineIcons();
             AssetDatabase.SaveAssets();
             Debug.Log("SCRAP_ASSETS_BUILT");
         }
 
         public static string PrefabPath(ScrapType type) => Folder + "/" + type + ".prefab";
+
+        // ---------- Inline icons for text ----------
+
+        // The four icons side by side in one atlas, and a TMP sprite asset naming each after its ScrapType.
+        private static void BuildInlineIcons()
+        {
+            int count = ScrapInfo.All.Length;
+            var atlas = new Texture2D(InlineSize * count, InlineSize, TextureFormat.RGBA32, false);
+            atlas.SetPixels32(new Color32[atlas.width * atlas.height]);
+            for (int i = 0; i < count; i++)
+            {
+                var icon = new Texture2D(2, 2);
+                icon.LoadImage(System.IO.File.ReadAllBytes(Folder + "/Icons/" + ScrapInfo.All[i] + ".png"));
+                // Crop to the visible pixels (a square around them), so the icon fills its slot in the text.
+                int minX = icon.width, minY = icon.height, maxX = 0, maxY = 0;
+                Color32[] pixels = icon.GetPixels32();
+                for (int y = 0; y < icon.height; y++)
+                for (int x = 0; x < icon.width; x++)
+                    if (pixels[y * icon.width + x].a > 20) { minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x); minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y); }
+                float side = Mathf.Max(maxX - minX, maxY - minY) + 4f;
+                float cx = (minX + maxX) * 0.5f, cy = (minY + maxY) * 0.5f;
+                for (int y = 0; y < InlineSize; y++)
+                for (int x = 0; x < InlineSize; x++)
+                {
+                    float u = (cx - side * 0.5f + (x + 0.5f) / InlineSize * side) / icon.width;
+                    float v = (cy - side * 0.5f + (y + 0.5f) / InlineSize * side) / icon.height;
+                    atlas.SetPixel(i * InlineSize + x, y, u < 0f || v < 0f || u > 1f || v > 1f ? Color.clear : icon.GetPixelBilinear(u, v));
+                }
+                UnityEngine.Object.DestroyImmediate(icon);
+            }
+            atlas.Apply();
+            string atlasPath = Folder + "/Icons/ScrapIconAtlas.png";
+            System.IO.File.WriteAllBytes(atlasPath, atlas.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(atlas);
+            AssetDatabase.ImportAsset(atlasPath, ImportAssetOptions.ForceUpdate);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(atlasPath);
+            importer.textureType = TextureImporterType.Default;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = false;
+            importer.SaveAndReimport();
+            var sheet = AssetDatabase.LoadAssetAtPath<Texture2D>(atlasPath);
+
+            AssetDatabase.DeleteAsset(InlineIconsPath);
+            var asset = ScriptableObject.CreateInstance<TMPro.TMP_SpriteAsset>();
+            asset.name = "ScrapIcons";
+            asset.spriteSheet = sheet;
+            // Sized like a font of the icon's height, so an icon matches the size of the text around it.
+            asset.faceInfo = new UnityEngine.TextCore.FaceInfo
+            {
+                pointSize = InlineSize, scale = 1f, lineHeight = InlineSize,
+                ascentLine = InlineSize * 0.8f, descentLine = -InlineSize * 0.2f, baseline = 0f
+            };
+            for (int i = 0; i < count; i++)
+            {
+                var glyph = new TMPro.TMP_SpriteGlyph((uint)i,
+                    new UnityEngine.TextCore.GlyphMetrics(InlineSize, InlineSize, 0f, InlineSize * 0.72f, InlineSize),
+                    new UnityEngine.TextCore.GlyphRect(i * InlineSize, 0, InlineSize, InlineSize), 1.6f, 0);
+                asset.spriteGlyphTable.Add(glyph);
+                asset.spriteCharacterTable.Add(new TMPro.TMP_SpriteCharacter(0xE000u + (uint)i, glyph) { name = ScrapInfo.All[i].ToString() });
+            }
+            AssetDatabase.CreateAsset(asset, InlineIconsPath);
+            var material = new Material(Shader.Find("TextMeshPro/Sprite")) { name = "ScrapIcons Material" };
+            material.mainTexture = sheet;
+            AssetDatabase.AddObjectToAsset(material, asset);
+            asset.material = material;
+            // A version stamp, or TMP treats it as a legacy asset and "upgrades" (empties) its tables on load.
+            var data = new SerializedObject(asset);
+            data.FindProperty("m_Version").stringValue = "1.1.0";
+            data.ApplyModifiedPropertiesWithoutUndo();
+            asset.UpdateLookupTables();
+            EditorUtility.SetDirty(asset);
+        }
 
         private static Vector3 IconAngles(ScrapType type) => type switch
         {

@@ -48,6 +48,7 @@ The hands stay fixed at the bottom of the screen, just above the status bar.
 
 - **Right hand:** holds the laser or the scanner (Q cycles), so laser swings carry it along. With nothing out it rests as a fist.
 - **Left hand:** on F it reaches down out of view for the flask, snaps it up to the mouth, swigs, and stows it again.
+- **Footsteps:** a soft, low bass note per step (pitched per surface), replacing the old crunch.
 
 Everything is built from boxes at runtime. Colours, size and poses are at the top of `FirstPersonHands.cs`.
 
@@ -88,6 +89,7 @@ All UI is drawn in code on singleton canvases (`Scripts/UI/`), so there are no U
   - Continue is a placeholder; Settings and Exit work.
 - **Item cards** ("NEW GEAR"): stay up until the player presses **E** or Enter; several queue up. **Rule for all future tutorial pop-ups: never on a timer.**
 - **Low health:** at 30 health or less the screen edges pulse red with a heartbeat (sound too) and "LOW HEALTH - drink [F]" appears; stronger the lower you go (`GameHud.LowHealth`).
+- **Pause menu:** centred; Settings and Controls replace it in the middle (Back or Esc returns).
 - **Pips:** the three combo pips drain right to left during the 2 s combo recharge; the top flask pip drains as the current drink wears off, a timer for the next sip.
 - **Menus:** `UiMenus` tracks open menus, so full-screen ones hide the HUD and Esc closes the top one first.
 

@@ -76,6 +76,7 @@ namespace SignalLost.Editor
             flow.FindProperty("laserPickup").objectReferenceValue = laser;
             flow.FindProperty("scannerPickup").objectReferenceValue = scanner;
             flow.FindProperty("frogs").objectReferenceValue = frogs;
+            flow.FindProperty("cavendishSitDrop").floatValue = SitDrop;
             flow.FindProperty("toad").objectReferenceValue = toad;
             flow.ApplyModifiedPropertiesWithoutUndo();
         }
@@ -86,7 +87,12 @@ namespace SignalLost.Editor
         {
             GameObject cavendish = Instance(CavendishPath, story);
             cavendish.name = "Cavendish";
-            cavendish.transform.SetPositionAndRotation(TutorialLevelBuilder.Ground(camp + CavendishSpot), Facing(camp + CavendishSpot, camp));
+            // Sitting on his log across the fire: the log top is his seat, and his (unrigged) model sinks onto it.
+            Transform log = CampLog(story.root, "Cavendish's Log");
+            Vector3 seat = log != null ? LogTop(log) : TutorialLevelBuilder.Ground(camp + CavendishSpot);
+            cavendish.transform.SetPositionAndRotation(seat, Facing(new Vector2(seat.x, seat.z), camp));
+            Transform visual = cavendish.transform.Find("Visual");
+            if (log != null && visual != null) visual.localPosition += Vector3.down * SitDrop;
             var actor = cavendish.AddComponent<NpcActor>();
             cavendish.AddComponent<QuestSignalSource>();
             var voice = new GameObject("Cavendish Dialogue");
@@ -163,6 +169,12 @@ namespace SignalLost.Editor
             var spot = new GameObject("Merchant Spot At Camp").transform;
             spot.SetParent(story, false);
             spot.SetPositionAndRotation(TutorialLevelBuilder.Ground(camp + MerchantSpot), Facing(camp + MerchantSpot, camp));
+            // Once home it hops up onto the other log by the fire.
+            var seat = new GameObject("Merchant Seat").transform;
+            seat.SetParent(story, false);
+            Transform otherLog = CampLog(story.root, "LogSeat");
+            Vector3 top = otherLog != null ? LogTop(otherLog) : spot.position;
+            seat.SetPositionAndRotation(top, Facing(new Vector2(top.x, top.z), camp));
             GameObject flask = Instance(FlaskPath, story);
             flask.name = "Scotch Flask";
             SetEnum(flask.AddComponent<ItemPickup>(), "item", (int)ItemPickup.Item.Flask);
@@ -191,12 +203,16 @@ namespace SignalLost.Editor
 
             var data = new SerializedObject(merchant.GetComponent<MerchantCrab>());
             data.FindProperty("returnPoint").objectReferenceValue = spot;
+            data.FindProperty("seat").objectReferenceValue = seat;
             data.FindProperty("flaskDrop").objectReferenceValue = flask.GetComponent<ItemPickup>();
             data.FindProperty("startFriendly").boolValue = false;
             SerializedProperty list = data.FindProperty("cousins");
             list.arraySize = cousins.Length;
             for (int c = 0; c < cousins.Length; c++) list.GetArrayElementAtIndex(c).objectReferenceValue = cousins[c];
             data.ApplyModifiedPropertiesWithoutUndo();
+            // Nobody is in the hollow until Cavendish's big-crab quest (TutorialStory switches them on).
+            merchant.SetActive(false);
+            foreach (CrabCousin cousin in cousins) cousin.gameObject.SetActive(false);
             return merchant.GetComponent<MerchantCrab>();
         }
 
@@ -321,6 +337,23 @@ namespace SignalLost.Editor
         }
 
         // ---------- Helpers ----------
+
+        // How far Cavendish's model sinks so he looks seated on his log.
+        private const float SitDrop = 0.55f;
+
+        private static Transform CampLog(Transform root, string name)
+        {
+            var camp = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include).FirstOrDefault(t => t.name == "Campsite");
+            return camp == null ? null : camp.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == name);
+        }
+
+        // The middle of a log's top surface.
+        private static Vector3 LogTop(Transform log)
+        {
+            var bounds = new Bounds(log.position, Vector3.zero);
+            foreach (Renderer part in log.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(part.bounds);
+            return new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+        }
 
         private static Transform Hull(Transform crash) => crash.GetComponentsInChildren<Transform>(true).First(t => t.name == "Hull");
 

@@ -136,7 +136,7 @@ namespace SignalLost.UI
             var text = new StringBuilder();
             foreach (ScrapType kind in ScrapInfo.All)
                 if (recentScrap.TryGetValue(kind, out int count))
-                    text.Append($"<color={UiTheme.Hex(ScrapInfo.Color(kind))}>+{count} {ScrapInfo.Name(kind)}</color>  ");
+                    text.Append($"<color={UiTheme.Hex(ScrapInfo.Color(kind))}>+{count}</color> {ScrapInfo.Inline(kind)}   ");
             scrapToast.text = text.ToString();
             toastUntil = Time.unscaledTime + 2.2f;
         }
@@ -187,12 +187,13 @@ namespace SignalLost.UI
             {
                 flaskInfo.text = $"<color={UiTheme.Hex(UiTheme.Muted)}>No flask</color>";
                 foreach (Image pip in drunkPips) pip.color = new Color(1f, 1f, 1f, 0.08f);
-                foreach (Image fill in drunkFills) SetFill(fill, 0f, true);
+                foreach (Image fill in drunkFills) SetFill(fill, 0f, false);
                 return;
             }
             flaskInfo.text = flask.DrunkStacks == 0 ? $"Sober  <color={UiTheme.Hex(UiTheme.Good)}>next sip +{flask.NextSipHeal:0} HP</color>" :
                 $"Drunk {flask.DrunkStacks}/{flask.BlackoutAfterStacks}  next sip +{flask.NextSipHeal:0.#} HP";
-            // Lit pips are drinks in you; the top one drains as it wears off (a visual timer for the next sip).
+            // Lit pips are drinks in you; the last one drains right to left as it wears off (a visual timer for the next
+            // sip, the same style as the combo pips), then the one before it, and so on.
             bool danger = flask.DrunkStacks >= flask.BlackoutAfterStacks;
             Color drunkColor = danger ? UiTheme.Warning : new Color(1f, 0.72f, 0.3f);
             for (int i = 0; i < drunkPips.Count; i++)
@@ -200,7 +201,7 @@ namespace SignalLost.UI
                 drunkPips[i].color = i < flask.BlackoutAfterStacks ? PipTrack : new Color(1f, 1f, 1f, 0.04f);
                 float fill = i < flask.DrunkStacks - 1 ? 1f : i == flask.DrunkStacks - 1 ? flask.StackWearing : 0f;
                 drunkFills[i].color = drunkColor;
-                SetFill(drunkFills[i], fill, true);
+                SetFill(drunkFills[i], fill, false);
             }
         }
 

@@ -242,3 +242,14 @@ Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutoria
 - **Base camp and trophies:** the camp is one prefab (`Prefabs/Core/BaseCamp.prefab`) with three trophy stands, to be placed in every later level. Boss trophies are picked up from the loot and set on a stand; placed trophies are saved to disk (`CampSave`), and New Game clears them. This is the game's first real save data.
 - **Demo:** the tutorial scene is now **Tutorial Demo**; the demo build is the title screen plus that scene. Adam asked for a Mac build now and Windows-ready setup for teammates (the Windows module is not installed on his Mac). See [demo build](demo-build.md).
 - **End of the demo:** Cavendish's wrap-up, then a "Thanks for playing" card (Keep Exploring / Main Menu).
+
+## Demo polish (10-23-26, third list)
+
+- NPCs sit on the camp logs when home: Cavendish on his log (his unrigged model sinks onto it), Eugene hops onto the other log after walking home (now 50% faster).
+- The flask pips drain right to left like the combo pips; the dropped flask floats and spins.
+- Footsteps are a soft low bass note.
+- Lore: bosses' main ship parts go to Cavendish "for safe keeping"; the tutorial asks for the cooling system to be handed over.
+- The Chief Toad's beam tilts to the player's real height and distance, and both the jet and its hitbox are wider.
+- Pause menu centred.
+- Shop: type filters, a Purchased filter, scrap amounts as icons, and a preview-then-confirm purchase. The pockets' Upgrades tab shows only what is installed.
+- The merchant crab and its cousins only appear once Cavendish gives the big-crab quest.

@@ -91,11 +91,12 @@ public static class TutorialStorySmoke
         var inventory = life.GetComponent<PlayerInventory>();
         view = life.GetComponentInChildren<Camera>();
         NpcActor cavendish = UnityEngine.Object.FindObjectsByType<NpcActor>().First(n => n.Kind == NpcActor.Role.Cavendish);
-        MerchantCrab merchant = UnityEngine.Object.FindAnyObjectByType<MerchantCrab>();
+        MerchantCrab merchant = UnityEngine.Object.FindAnyObjectByType<MerchantCrab>(FindObjectsInactive.Include);
         DialogueUi ui = DialogueUi.Instance;
 
         // ---------- Opening ----------
         Check(story.Current == TutorialStory.Stage.Opening, "The tutorial opens with the crash cutscene.");
+        Check(!merchant.gameObject.activeSelf && merchant.Cousins.All(c => !c.gameObject.activeSelf), "The hollow is empty until Cavendish's big-crab quest.");
         Check(!gear.Has(PlayerItem.MiningLaser) && !gear.Has(PlayerItem.Scanner) && !gear.Has(PlayerItem.Flask), "The mechanic starts empty-handed.");
         Transform cockpit = GameObject.Find("Opening - Cockpit View").transform;
         yield return 3f;
@@ -141,7 +142,9 @@ public static class TutorialStorySmoke
         yield return 0.3f;
         Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("You found them both"), "Cavendish tells of the big crab.");
         yield return ReadToEnd(ui);
-        Check(story.Current == TutorialStory.Stage.Fight && !merchant.GetComponent<Health>().Invulnerable, "The crab hunt is on.");
+        yield return null;
+        Check(story.Current == TutorialStory.Stage.Fight && merchant.gameObject.activeSelf && !merchant.GetComponent<Health>().Invulnerable,
+            "The crab hunt is on: the crab and its cousins are now in the hollow.");
         Check(QuestSignalSource.Nearest(life.transform.position) == merchant.GetComponent<QuestSignalSource>(), "The scanner points at the crab.");
         CrabCousin[] cousins = merchant.Cousins.ToArray();
         Check(cousins.Length == 10 && cousins.Select(c => c.name).Distinct().Count() == 10, "Ten cousins with distinct names: " + string.Join(", ", cousins.Select(c => c.name)));
@@ -264,6 +267,10 @@ public static class TutorialStorySmoke
         yield return Capture("ToadLoot");
         Check(encounter.Trophy.Interact(interactor) && inventory.HasKeyItem("chief_toad_crown"), "The crown goes into the pockets.");
         ReadCardsThen(interactor);
+        var part = UnityEngine.Object.FindAnyObjectByType<SignalLost.Enemies.Desert.ShipPartDrop>();
+        Check(part != null, "The cooling system lies in the loot.");
+        Teleport(life, part.transform.position);
+        yield return WaitFor(() => SignalLost.Enemies.Desert.ShipPartDrop.CountFor(SignalLost.Progression.StageProgress.Tutorial) > 0, 5f, "Walking over the cooling system picks it up.");
 
         // ---------- The trophy at camp, and the end ----------
         Teleport(life, PlayerSpawnPoint.Current.transform.position);
@@ -273,7 +280,10 @@ public static class TutorialStorySmoke
         yield return null;
         Check(stand.GetComponentsInChildren<Transform>().Any(t => t.name == "Chief Toad's Crown") && File.Exists(SignalLost.Progression.CampSave.FilePath) &&
               File.ReadAllText(SignalLost.Progression.CampSave.FilePath).Contains("chief_toad_crown"), "It is shown on the stand and saved to disk.");
-        Check(story.Current == TutorialStory.Stage.TrophyPlaced, "Then: tell Cavendish.");
+        Check(story.Current == TutorialStory.Stage.ToadBeaten, "With the crown placed, the cooling system still has to go to Cavendish.");
+        Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("cooling system"), "Cavendish takes the cooling system...");
+        yield return ReadToEnd(ui);
+        Check(story.Current == TutorialStory.Stage.TrophyPlaced, "...for 'safe keeping'. Then: talk to Cavendish.");
         view.transform.LookAt(stand.transform.position + Vector3.up);
         yield return Capture("Trophy");
         Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("You did it"), "Cavendish wraps up the demo.");

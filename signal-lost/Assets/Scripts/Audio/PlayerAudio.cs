@@ -230,7 +230,7 @@ namespace SignalLost.Audio
                 if (stride >= strideLength)
                 {
                     stride = 0f;
-                    Sfx.Play(Sfx.Pick("footstep_" + surface, 4), speed > 5.5f ? 0.38f : 0.28f, Random.Range(0.9f, 1.1f));
+                    Sfx.Play(Sfx.Pick("footstep_" + surface, 4), speed > 5.5f ? 0.3f : 0.22f, Random.Range(0.95f, 1.05f));
                 }
             }
             else if (grounded) stride = 1.5f; // first step comes quickly after starting to move
