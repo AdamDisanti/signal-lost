@@ -1086,7 +1086,18 @@ namespace SignalLost.Enemies.Desert
         private IEnumerator Rise(Vector3 ground, float height, float time, bool facePlayer, float damage = 0f)
         {
             ground.y = GroundY;
-            // From where it actually is (no jump): it slides under the spot in the first part of the rise.
+            // Under the sand, it first gets right beneath the spot with its head turned up, so it bursts out straight
+            // up where it should instead of breaking the surface sideways and lurching across.
+            if (head.position.y < GroundY - 1f)
+            {
+                float lineUp = 0f;
+                while (lineUp < 0.35f && !LineUpStep(ground))
+                {
+                    lineUp += Time.deltaTime;
+                    yield return null;
+                }
+            }
+            // From where it actually is (no jump): any distance left is covered in the first part of the rise.
             Vector3 from = head.position;
             Vector3 to = ground + Vector3.up * height;
             bool burst = false;
@@ -1165,7 +1176,12 @@ namespace SignalLost.Enemies.Desert
             {
                 t += Time.deltaTime;
                 if (marker != null) marker.Progress = t / time;
-                if (lurk) v = Lurk(spot, v);
+                if (lurk)
+                {
+                    // Circles beneath the spot, then for the last part lines up under it, head turned up, ready.
+                    if (t < time * 0.6f) v = Lurk(spot, v);
+                    else LineUpStep(spot);
+                }
                 yield return null;
             }
         }
@@ -1174,6 +1190,24 @@ namespace SignalLost.Enemies.Desert
         /// While it waits under the sand it keeps moving, slowly circling just beneath a spot, so its body keeps
         /// following its head down into the sand rather than freezing with the tail in the air.
         /// </summary>
+        /// <summary>
+        /// One frame of getting into position under the sand: moves toward right below <paramref name="spot"/> and turns
+        /// its head up. True once it is there.
+        /// </summary>
+        private bool LineUpStep(Vector3 spot)
+        {
+            if (head.position.y > GroundY - 1f) return true;
+            Vector3 below = new Vector3(spot.x, UnderY - 0.5f, spot.z);
+            Vector3 offset = below - head.position;
+            float speed = Mathf.Max(currentSpeed, 16f);
+            Vector3 step = Vector3.ClampMagnitude(offset, speed * Time.deltaTime);
+            MoveHead(head.position + step, false);
+            Face(Vector3.up + Flat(offset).normalized * 0.15f, 14f);
+            bool there = Flat(offset).magnitude < 0.2f;
+            bool upright = Vector3.Dot(head.forward, Vector3.up) > 0.9f;
+            return there && upright;
+        }
+
         private float Lurk(Vector3 spot, float v)
         {
             if (head.position.y > GroundY - 1f) return v;
@@ -1190,11 +1224,11 @@ namespace SignalLost.Enemies.Desert
             return v;
         }
 
-        private void MoveHead(Vector3 position)
+        private void MoveHead(Vector3 position, bool faceTravel = true)
         {
             Vector3 travel = position - head.position;
             head.position = position;
-            if (travel.sqrMagnitude > 0.00001f) Face(travel, 10f);
+            if (faceTravel && travel.sqrMagnitude > 0.00001f) Face(travel, 10f);
             Vector3 flat = Flat(travel);
             if (flat.sqrMagnitude > 0.000001f) heading = flat.normalized; // so the next swim carries on the same way
             if (Time.deltaTime > 0f) currentSpeed = flat.magnitude / Time.deltaTime;
@@ -1216,6 +1250,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Keeps a wanted facing within <see cref="maxNeckBend"/> of the line of its neck.</summary>
         private Vector3 LimitToNeck(Vector3 want)
         {
+            if (head.position.y < GroundY - 0.5f) return want; // hidden under the sand: free to turn (e.g. upright before erupting)
             Vector3 back = TrailPointAt(3f) - head.position; // about 3 m back along the body (measured along the trail, so it changes smoothly)
             if (back.sqrMagnitude < 0.25f) return want;
             Vector3 neck = -back.normalized;
