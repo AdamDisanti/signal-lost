@@ -1241,8 +1241,11 @@ namespace SignalLost.Enemies.Desert
                     if (t < time * 0.6f) v = Lurk(spot, v);
                     else
                     {
+                        // Lines up under the spot, then keeps rising slowly toward the surface (so its body keeps
+                        // moving instead of stopping dead before the eruption).
                         MoveName = "Countdown/LineUp";
-                        LineUpStep(spot);
+                        float rising = Mathf.InverseLerp(time * 0.6f, time, t);
+                        LineUpStep(spot, Mathf.Lerp(UnderY - 0.5f, GroundY - 1.3f, rising));
                     }
                 }
                 yield return null;
@@ -1257,10 +1260,10 @@ namespace SignalLost.Enemies.Desert
         /// One frame of getting into position under the sand: moves toward right below <paramref name="spot"/> and turns
         /// its head up. True once it is there.
         /// </summary>
-        private bool LineUpStep(Vector3 spot)
+        private bool LineUpStep(Vector3 spot, float depth = float.NaN)
         {
             if (head.position.y > GroundY - 1f) return true;
-            Vector3 below = new Vector3(spot.x, UnderY - 0.5f, spot.z);
+            Vector3 below = new Vector3(spot.x, float.IsNaN(depth) ? UnderY - 0.5f : depth, spot.z);
             Vector3 offset = below - head.position;
             float speed = Mathf.Max(currentSpeed, 16f);
             Vector3 step = Vector3.ClampMagnitude(offset, speed * Time.deltaTime);
@@ -1294,7 +1297,7 @@ namespace SignalLost.Enemies.Desert
             if (faceTravel && travel.sqrMagnitude > 0.00001f) Face(travel, 10f);
             Vector3 flat = Flat(travel);
             if (flat.sqrMagnitude > 0.000001f) heading = flat.normalized; // so the next swim carries on the same way
-            if (Time.deltaTime > 0f) currentSpeed = flat.magnitude / Time.deltaTime;
+            if (Time.deltaTime > 0f) currentSpeed = travel.magnitude / Time.deltaTime; // full speed, so a plunge into the sand carries on at its pace and eases off
             movedThisFrame = true;
             Record();
         }
