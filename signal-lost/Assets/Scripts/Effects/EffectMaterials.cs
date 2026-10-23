@@ -13,13 +13,13 @@ namespace SignalLost.Effects
     /// </summary>
     public static class EffectMaterials
     {
-        public enum Look { Flame, Glow, Smoke }
+        public enum Look { Flame, Glow, Smoke, Beam }
 
         private const string AdditivePath = "SignalLostEffects/ParticleAdditive";
         private const string AlphaPath = "SignalLostEffects/ParticleAlpha";
 
         private static readonly Dictionary<int, Material> Cache = new Dictionary<int, Material>();
-        private static Texture2D flame, glow, smoke;
+        private static Texture2D flame, glow, smoke, beam;
 
         /// <summary>Glowing, added on top of what is behind it: flames, embers, sparks, glows.</summary>
         public static Material Additive(Look look) => Get(look, true);
@@ -33,6 +33,7 @@ namespace SignalLost.Effects
             {
                 case Look.Flame: return flame != null ? flame : flame = Draw("Fire Tongue", FlameAlpha);
                 case Look.Smoke: return smoke != null ? smoke : smoke = Draw("Smoke Puff", SmokeAlpha);
+                case Look.Beam: return beam != null ? beam : beam = Draw("Beam Band", BeamAlpha);
                 default: return glow != null ? glow : glow = Draw("Soft Glow", GlowAlpha);
             }
         }
@@ -118,6 +119,13 @@ namespace SignalLost.Effects
             float d = dx * dx + dy * dy;
             float body = Mathf.Clamp01(1f - d);
             return body * body * Mathf.Clamp01((1f - v) * 4f);
+        }
+
+        // A band of light for beams and lasers: solid along its length, soft across it (lines stretch it lengthwise).
+        private static float BeamAlpha(float x, float y)
+        {
+            float k = 1f - Mathf.Clamp01(Mathf.Abs(y));
+            return k * k * (0.5f + 0.5f * k);
         }
 
         // A soft round glow, bright in the middle.

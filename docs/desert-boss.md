@@ -70,7 +70,7 @@ Clear, open dunes. A sand ridge racing under the surface shows where it is betwe
 
 ### Phase 3: Collapse (50–25%)
 - **Arena:** the storm clears and the fodder is cleared away. Floor tiles near you shake, darken and puff dust for 1.8 s, then fall away in waves until about half the floor is gone. The floor around the pillars, the hull slabs and the drop point never falls. Falling into a pit costs 20 and puts you back on the nearest solid floor. You can see the worm swimming in the pits.
-- **Core beam:** rears up, charges for about 1.4 s (core brightening, sparks gathering), then sweeps a beam 140° across the arena (9 every 0.2 s), leaving a line of fire. Pillars block it.
+- **Core beam:** rears up, charges for about 1.4 s (core blazing, mouth flame swelling, fire and sparks pouring into its throat, the ground shaking), fires with a flash, then sweeps a beam 140° across the arena (9 every 0.2 s, hits within 2 m of the beam), leaving a wide line of fire. Pillars block it.
 - **Shrapnel barrage:** its plating fires white-hot shrapnel at chest height (jumping won't help) in fans, rings with a gap, and spirals. Cover stops it.
 - **Beam and barrage together:** rings of shrapnel during the beam sweep.
 - **Also:** breach arcs and burrow charges over the pits.
@@ -87,7 +87,7 @@ Clear, open dunes. A sand ridge racing under the surface shows where it is betwe
 - **Effects:**
   - **Sand:** geysers and dust rings where it breaks the surface, and the racing sand ridge.
   - **Core:** the glow brightens as it charges, and its light flickers.
-  - **Projectiles:** the beam is a glowing line with a flame jet at the mouth and sparks where it hits; slag globs trail flame; shrapnel leaves glowing streaks.
+  - **Projectiles:** the beam has three layers (a white-hot core, a wide crackling orange beam and a broad glow) with orange lights at the mouth and the impact, a doubled flame jet at the mouth, and a fountain of fire, sparks and smoke where it hits; slag globs trail flame; shrapnel leaves glowing streaks.
   - **Arena:** sandstorm particles and fog, swirling cyclones, collapsing tiles, fire lanes.
   - **Screen shake** for every eruption, slam and blast.
 - **Death:** the core flickers out of control, then an explosion. The body crashes and sinks segment by segment, and the core floats free.

@@ -131,7 +131,9 @@ namespace SignalLost.Enemies.Desert
         private GameObject pendingSource;
         private Vector3 shoveDirection;
         private float shoveRemaining;
-        private LineRenderer beam;
+        private LineRenderer beam, beamHalo, beamCore;
+        private Light beamMouthLight, beamImpactLight;
+        private const int BeamPoints = 12;
         private FireEffect mouthFlame;
         private bool contactHit;
         private readonly List<Vector3> path = new List<Vector3>();
@@ -182,21 +184,76 @@ namespace SignalLost.Enemies.Desert
             }
         }
 
+        // The core beam in three layers (a wide glow, the orange beam, a white-hot core), with lights at both ends.
         private void BuildBeam()
         {
-            var go = new GameObject("Core Beam");
+            beamHalo = BeamLayer("Core Beam Glow", new Color(1f, 0.45f, 0.1f, 0.35f), new Color(1f, 0.3f, 0.05f, 0.2f), 2);
+            beam = BeamLayer("Core Beam", new Color(1f, 0.75f, 0.3f, 1f), new Color(1f, 0.45f, 0.12f, 0.95f), 3);
+            beamCore = BeamLayer("Core Beam Heart", new Color(1f, 1f, 0.95f, 1f), new Color(1f, 0.92f, 0.75f, 1f), 4);
+            beamMouthLight = BeamLight("Beam Light (mouth)");
+            beamImpactLight = BeamLight("Beam Light (impact)");
+        }
+
+        private LineRenderer BeamLayer(string name, Color start, Color end, int order)
+        {
+            var go = new GameObject(name);
             go.transform.SetParent(transform, false);
-            beam = go.AddComponent<LineRenderer>();
-            beam.sharedMaterial = EffectMaterials.Additive(EffectMaterials.Look.Glow);
-            beam.positionCount = 2;
-            beam.useWorldSpace = true;
-            beam.numCapVertices = 4;
-            beam.textureMode = LineTextureMode.Stretch;
-            beam.startColor = new Color(1f, 0.95f, 0.75f, 1f);
-            beam.endColor = new Color(1f, 0.5f, 0.15f, 0.9f);
-            beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            beam.receiveShadows = false;
-            beam.enabled = false;
+            var line = go.AddComponent<LineRenderer>();
+            line.sharedMaterial = EffectMaterials.Additive(EffectMaterials.Look.Beam);
+            line.positionCount = BeamPoints;
+            line.useWorldSpace = true;
+            line.numCapVertices = 6;
+            line.textureMode = LineTextureMode.Stretch;
+            line.startColor = start;
+            line.endColor = end;
+            line.sortingOrder = order;
+            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.enabled = false;
+            return line;
+        }
+
+        private Light BeamLight(string name)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(transform, false);
+            var light = go.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.6f, 0.25f);
+            light.range = 16f;
+            light.intensity = 0f;
+            light.shadows = LightShadows.None;
+            light.enabled = false;
+            return light;
+        }
+
+        private void ShowBeam(bool on)
+        {
+            foreach (LineRenderer line in new[] { beamHalo, beam, beamCore }) if (line != null) line.enabled = on;
+            foreach (Light light in new[] { beamMouthLight, beamImpactLight }) if (light != null) light.enabled = on;
+            if (!on && mouthFlame != null) mouthFlame.transform.localScale = Vector3.one;
+        }
+
+        /// <summary>Lays a beam layer from the mouth to its end, crackling sideways (more in the middle) by up to <paramref name="crackle"/> m.</summary>
+        private void DrawBeam(LineRenderer line, Vector3 from, Vector3 to, float width, float crackle)
+        {
+            if (line == null) return;
+            Vector3 along = to - from;
+            Vector3 side = Vector3.Cross(along, Vector3.up);
+            if (side.sqrMagnitude < 0.0001f) side = Vector3.right;
+            side.Normalize();
+            Vector3 lift = Vector3.Cross(side, along).normalized;
+            for (int i = 0; i < BeamPoints; i++)
+            {
+                float k = i / (float)(BeamPoints - 1);
+                float envelope = Mathf.Sin(k * Mathf.PI);
+                float n = Time.time * 30f + i * 1.7f;
+                Vector3 jitter = (side * (Mathf.PerlinNoise(n, 0.3f) - 0.5f) + lift * (Mathf.PerlinNoise(0.7f, n) - 0.5f)) * 2f * crackle * envelope;
+                line.SetPosition(i, from + along * k + jitter);
+            }
+            float flicker = 1f + 0.18f * Mathf.Sin(Time.time * 47f) + 0.12f * Mathf.Sin(Time.time * 73f);
+            line.startWidth = width * flicker;
+            line.endWidth = width * flicker * 1.15f; // flares where it hits
         }
 
         private void Relay(Health box, HitKind kind)
@@ -337,7 +394,7 @@ namespace SignalLost.Enemies.Desert
             side.Clear();
             foreach (GameObject item in temporary) if (item != null) Destroy(item);
             temporary.Clear();
-            if (beam != null) beam.enabled = false;
+            ShowBeam(false);
             if (mouthFlame != null) mouthFlame.Strength = 0f;
             mouthTarget = 0f;
             shoveRemaining = 0f;
@@ -629,29 +686,49 @@ namespace SignalLost.Enemies.Desert
 
         private IEnumerator BeamSweep(Vector3 spot)
         {
-            // Charge: the core brightens, the mouth opens, sparks gather.
+            // Charge: the core blazes up, the mouth opens wide, fire and sparks pour into its throat, the ground shakes.
             mouthTarget = 1f;
-            glowTarget = 1.5f;
+            glowTarget = 1.8f;
             float charge = 1.4f / Mathf.Sqrt(Fierce), t = 0f, nextSpark = 0f;
+            if (beamMouthLight != null) beamMouthLight.enabled = true;
             while (t < charge)
             {
                 t += Time.deltaTime;
+                float k = t / charge;
                 TrackPlayer(6f);
-                if (mouthFlame != null) mouthFlame.Strength = 0.2f + 0.4f * t / charge;
+                if (mouthFlame != null)
+                {
+                    mouthFlame.Strength = 0.3f + 0.6f * k;
+                    mouthFlame.transform.localScale = Vector3.one * (1f + k);
+                }
+                if (beamMouthLight != null)
+                {
+                    beamMouthLight.transform.position = Mouth;
+                    beamMouthLight.intensity = 3f + 9f * k * (0.8f + 0.2f * Mathf.Sin(Time.time * 30f));
+                }
                 if (Time.time >= nextSpark)
                 {
-                    nextSpark = Time.time + 0.08f;
-                    ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, Mouth + UnityEngine.Random.onUnitSphere * 2f, Mouth - head.position, 3, 0.08f, 3f, 20f);
+                    nextSpark = Time.time + Mathf.Lerp(0.1f, 0.04f, k);
+                    Vector3 from = Mouth + UnityEngine.Random.onUnitSphere * (2.5f - k);
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, from, Mouth - from, 4, 0.1f, 5f, 10f);
+                    if (UnityEngine.Random.value < 0.4f) ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, Mouth, head.forward, 3, 0.4f + k * 0.6f, 1.5f, 40f);
                 }
+                CameraShake.Add(Time.deltaTime * 0.25f * k);
                 yield return null;
             }
 
             Vector3 toPlayer = Flat(PlayerGround(0f) - spot).normalized;
             if (toPlayer.sqrMagnitude < 0.01f) toPlayer = Flat(head.forward).normalized;
             float sweep = 70f, direction = UnityEngine.Random.value < 0.5f ? 1f : -1f;
-            float sweepTime = 2.6f / Mathf.Sqrt(Fierce), nextTick = 0f, nextFire = 0f;
-            beam.enabled = true;
+            float sweepTime = 2.6f / Mathf.Sqrt(Fierce), nextTick = 0f, nextFire = 0f, nextBurst = 0f;
+            const float hitRadius = 2f;
+            ShowBeam(true);
+            // It fires: a flash at the mouth and a jolt.
+            ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, Mouth, head.forward, 24, 1.6f, 7f, 35f);
+            ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, Mouth, head.forward, 30, 0.14f, 12f, 40f);
+            CameraShake.Add(0.5f);
             t = 0f;
+            bool first = true;
             while (t < sweepTime)
             {
                 t += Time.deltaTime;
@@ -661,30 +738,53 @@ namespace SignalLost.Enemies.Desert
                 Vector3 origin = Mouth;
                 Face(aim - head.position, 12f);
                 Vector3 end = BeamEnd(origin, aim - origin, 70f);
-                beam.SetPosition(0, origin);
-                beam.SetPosition(1, end);
-                float width = 0.55f + 0.15f * Mathf.Sin(Time.time * 40f);
-                beam.startWidth = width;
-                beam.endWidth = width * 0.8f;
-                if (mouthFlame != null) mouthFlame.Strength = 0.9f;
+                DrawBeam(beamHalo, origin, end, 4.6f, 0.15f);
+                DrawBeam(beam, origin, end, 1.7f, 0.25f);
+                DrawBeam(beamCore, origin, end, 0.55f, 0.08f);
+                if (mouthFlame != null)
+                {
+                    mouthFlame.Strength = 1f;
+                    mouthFlame.transform.localScale = Vector3.one * 2.2f;
+                }
+                float flicker = 0.85f + 0.3f * Mathf.PerlinNoise(Time.time * 25f, 1.1f);
+                if (beamMouthLight != null)
+                {
+                    beamMouthLight.transform.position = origin;
+                    beamMouthLight.intensity = 12f * flicker;
+                }
+                if (beamImpactLight != null)
+                {
+                    beamImpactLight.transform.position = end - (end - origin).normalized * 1.2f + Vector3.up * 0.8f;
+                    beamImpactLight.intensity = 10f * flicker;
+                }
+                if (first || Time.time >= nextBurst)
+                {
+                    // Where it lands: a fountain of fire, sparks and molten sand.
+                    first = false;
+                    nextBurst = Time.time + 0.08f;
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, end, Vector3.up + (origin - end).normalized * 0.4f, 6, 1.3f, 5f, 55f);
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, end, origin - end + Vector3.up * 3f, 10, 0.14f, 9f, 70f);
+                    if (UnityEngine.Random.value < 0.35f) ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, end + Vector3.up, Vector3.up, 2, 1.4f, 2f, 30f);
+                }
                 if (Time.time >= nextTick)
                 {
                     nextTick = Time.time + 0.2f;
-                    ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, end, origin - end, 8, 0.12f, 6f, 60f);
-                    if (player != null && DistanceToLine(ChestOf(player), origin, end) <= 1.3f) HurtPlayer(beamDamagePerTick);
+                    if (player != null && DistanceToLine(ChestOf(player), origin, end) <= hitRadius) HurtPlayer(beamDamagePerTick);
                 }
                 if (Time.time >= nextFire && end.y < GroundY + 0.6f)
                 {
-                    nextFire = Time.time + 0.3f;
-                    FireZone.Spawn(fire, new Vector3(end.x, GroundY, end.z), 1.1f, gameObject, transform, 2.5f);
+                    nextFire = Time.time + 0.22f;
+                    FireZone.Spawn(fire, new Vector3(end.x, GroundY, end.z), 1.6f, gameObject, transform, 3f);
+                    if (dustMaterial != null) ExpandingRing.Spawn(blastMaterial != null ? blastMaterial : dustMaterial, new Vector3(end.x, GroundY + 0.05f, end.z), 2.5f, 0.25f, 0.15f);
                 }
-                CameraShake.Add(Time.deltaTime * 0.3f);
+                CameraShake.Add(Time.deltaTime * 0.6f);
                 yield return null;
             }
-            beam.enabled = false;
+            ShowBeam(false);
+            ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, Mouth, head.forward + Vector3.up, 10, 1.2f, 2.5f, 35f);
             if (mouthFlame != null) mouthFlame.Strength = 0f;
             glowTarget = 0.6f;
-            yield return Hold(0.8f / Mathf.Sqrt(Fierce), false); // spent: mouth still open
+            yield return Hold(0.8f / Mathf.Sqrt(Fierce), false); // spent: mouth still open, smoking
             mouthTarget = 0f;
         }
 
