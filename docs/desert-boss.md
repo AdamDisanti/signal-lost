@@ -1,6 +1,24 @@
 # Desert stage boss: the Core Worm
 
-The boss of the Desert / Dunes stage: a sandworm about 28 m long that swallowed the ship's **Engine Core**, one of the main parts needed to finish the game. The core glows in its throat, hull plating is bolted along its back, and glowing vents run down its sides. It is much harder than the three [mini-bosses](desert-minibosses.md): it has four phases, each of which changes the arena, and its attacks get denser and overlap more as the fight goes on. Owner: Lawson. The model is a low-poly placeholder built by the builder script, and all numbers are placeholders to tune.
+The boss of the Desert / Dunes stage: a 29 m **ship-fused abomination** that swallowed the ship's **Engine Core**, one of the main parts needed to finish the game. It is much harder than the three [mini-bosses](desert-minibosses.md): it has four phases, each of which changes the arena, and its attacks get denser and overlap more as the fight goes on. Owner: Lawson. The model is a low-poly placeholder built by the builder script, and all numbers are placeholders to tune.
+
+## Look
+
+Lawson chose a ship-fused abomination with a petal mouth, glowing core veins, and dark obsidian with molten orange.
+
+- **Body:** one continuous, bending obsidian body (`CorewormBody`), not a chain of segments. It is rebuilt every frame along the path the head has taken. It swells behind the head, then tapers to a thin tail, with faint ridges and a flatter belly.
+- **Core veins:** four molten-orange veins wind down its sides and belly. They pulse, and burn brighter each phase and whenever the core charges.
+- **The ship grown into it:**
+  - hull plates along its back
+  - metal pipe clamps around it
+  - two ship cables running down its spine
+  - two engine housings with glowing intakes
+  - three exhaust stacks that smoke (and belch fire once the core runs hot in phase 4)
+  - a rocket nozzle for a tail
+- **Head:** an armored obsidian skull, 15% bigger than before. It has a glowing molten lip, molten cracks running back over it, a frill of bent hull fins and two smoking exhaust pipes behind it, an engine intake grown into its crown, and ship-metal teeth. The three petal jaws have molten veins inside and open on the glowing Engine Core in its throat.
+- **Weak spots:** glowing intake vents, set in metal frames on both sides of four points along the body.
+
+The body mesh only exists in Play mode (it is built at runtime), so in the Scene view outside Play you see the head and ship parts on their own.
 
 ## How it plays out
 
@@ -23,7 +41,7 @@ It creates:
   - an 80 m stretch of desert canyon. You start at the south end, and the exit beacon is at the north end.
   - far away, the worm's round arena: 68 m across with a floor of 5 m tiles (these collapse), a ring of dune walls, six rock pillars and three hull slabs for cover, a NavMesh and a fodder spawner.
 
-In the test scene, **Assume Parts Collected** is ticked on the exit, so you can walk straight up and get ambushed. **Regenerate Prefab** rebuilds the worm (same GUID). **Validate** re-runs the checks. Commit the generated files with their `.meta` files.
+In the test scene, **Assume Parts Collected** is ticked on the exit, so you can walk straight up and get ambushed. **Regenerate Prefab** rebuilds the worm (same GUID), then re-links the test scene's worm to its arena, exit and fodder spawner if needed. **Validate** re-runs the checks. Commit the generated files with their `.meta` files.
 
 ## Where you can hurt it
 
@@ -90,6 +108,7 @@ Clear, open dunes. A sand ridge racing under the surface shows where it is betwe
 
 - `Scripts/Enemies/Desert/Boss/`:
   - `Coreworm` (the boss)
+  - `CorewormBody` (the continuous body mesh, veins and cables)
   - `CorewormArena` (the arena changes)
   - `DesertStageExit` (the exit, the ambush cutscene, retry and the return)
   - `CorewormHud` (bar, name card, fades, subtitles)

@@ -107,10 +107,52 @@ namespace SignalLost.Editor
                     "This rebuilds the Coreworm from the builder script, replacing any edits made to the prefab. Materials are " +
                     "kept, and the test scene keeps its worm. Continue?", "Regenerate", "Cancel"))
                 return;
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            string previous = SceneManager.GetActiveScene().path;
             EnsureFolders();
             BuildWorm();
             AssetDatabase.SaveAssets();
+            RepairScene();
+            if (!string.IsNullOrEmpty(previous) && AssetDatabase.LoadAssetAtPath<SceneAsset>(previous) != null) EditorSceneManager.OpenScene(previous);
             Debug.Log("DESERT_BOSS_PREFAB_REGENERATED");
+        }
+
+        /// <summary>Re-links the test scene's worm to its arena, exit and fodder spawner if rebuilding the prefab knocked them loose.</summary>
+        private static void RepairScene()
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null) return;
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            List<Coreworm> worms = All<Coreworm>();
+            List<CorewormArena> arenas = All<CorewormArena>();
+            if (worms.Count == 0 || arenas.Count == 0) return;
+            bool changed = false;
+            var wormData = new SerializedObject(worms[0]);
+            if (wormData.FindProperty("arena").objectReferenceValue == null)
+            {
+                wormData.FindProperty("arena").objectReferenceValue = arenas[0];
+                wormData.ApplyModifiedPropertiesWithoutUndo();
+                changed = true;
+            }
+            foreach (DesertStageExit exit in All<DesertStageExit>())
+            {
+                var exitData = new SerializedObject(exit);
+                if (exitData.FindProperty("worm").objectReferenceValue != null) continue;
+                exitData.FindProperty("worm").objectReferenceValue = worms[0];
+                exitData.ApplyModifiedPropertiesWithoutUndo();
+                changed = true;
+            }
+            foreach (FodderSpawner spawner in All<FodderSpawner>())
+            {
+                var spawnerData = new SerializedObject(spawner);
+                if (spawnerData.FindProperty("stopWhenDead").objectReferenceValue != null) continue;
+                spawnerData.FindProperty("stopWhenDead").objectReferenceValue = worms[0].GetComponent<Health>();
+                spawnerData.ApplyModifiedPropertiesWithoutUndo();
+                changed = true;
+            }
+            if (!changed) return;
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log(ScenePath + ": re-linked the Coreworm after regenerating.");
         }
 
         [MenuItem("Signal Lost/Desert Boss/Validate")]
@@ -121,7 +163,7 @@ namespace SignalLost.Editor
             var worm = prefab.GetComponent<Coreworm>();
             Require(worm != null && prefab.GetComponent<Health>() != null, WormPath + " needs a Coreworm and Health.");
             var data = new SerializedObject(worm);
-            foreach (string field in new[] { "head", "segments", "jaws", "core", "coreRenderer", "coreLight", "ventRenderers", "armorHitboxes",
+            foreach (string field in new[] { "head", "body", "exhaustStacks", "segments", "jaws", "core", "coreRenderer", "coreLight", "ventRenderers", "armorHitboxes",
                          "coreHitbox", "ventHitboxes", "warningMaterial", "slagMaterial", "shrapnelMaterial", "rockMaterial", "blastMaterial", "dustMaterial" })
             {
                 SerializedProperty property = data.FindProperty(field);
@@ -155,21 +197,24 @@ namespace SignalLost.Editor
 
         // ---------- The worm ----------
 
-        private static Mesh blob, gem, spike;
+        private static Mesh blob, gem, spike, limb;
 
-        // About 28 m long. The head's +Z is the mouth: a cup-shaped skull open at the front, three jaws around the rim,
-        // teeth, and the Engine Core glowing in the throat. Sixteen segments taper to the tail, plated with the crash
-        // site's bent hull panels, four of them with glowing vents on both sides (weak spots).
+        // A 29 m ship-fused abomination, mouth along +Z. An obsidian skull open at the front with a glowing molten lip,
+        // three petal jaws, ship-metal teeth and the Engine Core in the throat; behind the head a frill of bent hull fins
+        // and two exhaust pipes, with an engine intake grown into its crown. One continuous body (CorewormBody) with
+        // molten veins and two cables; anchors along it carry hull plates, pipe clamps, two engine housings, three smoking
+        // exhaust stacks, glowing intake vents (the weak spots, both sides of four anchors) and a rocket nozzle for a tail.
         private static GameObject BuildWorm()
         {
             blob = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Icosphere("DesertBlob", 1));
             gem = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Icosphere("DesertGem", 0));
             spike = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.TaperedPrism("DesertSpike", 5, 0f));
-            Material hide = DesertFodderBuilder.Lit("WormHide", new Color(0.72f, 0.56f, 0.38f), 0f, 0.25f);
-            Material belly = DesertFodderBuilder.Lit("WormBelly", new Color(0.86f, 0.74f, 0.56f), 0f, 0.2f);
-            Material gums = DesertFodderBuilder.Lit("WormGums", new Color(0.4f, 0.1f, 0.08f), 0f, 0.5f);
-            Material teeth = DesertFodderBuilder.Lit("WormTeeth", new Color(0.92f, 0.88f, 0.76f), 0f, 0.6f);
-            Material metal = DesertFodderBuilder.Lit("WormMetal", new Color(0.45f, 0.45f, 0.48f), 0.85f, 0.45f);
+            limb = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.TaperedPrism("DesertLimb", 5, 0.6f));
+            Material obsidian = DesertFodderBuilder.Lit("WormObsidian", new Color(0.07f, 0.065f, 0.075f), 0.3f, 0.65f);
+            Material gums = DesertFodderBuilder.Lit("WormMoltenGums", new Color(0.3f, 0.05f, 0.03f), 0f, 0.7f);
+            Material teeth = DesertFodderBuilder.Lit("WormShipTeeth", new Color(0.36f, 0.37f, 0.41f), 0.9f, 0.55f);
+            Material metal = DesertFodderBuilder.Lit("WormMetal", new Color(0.3f, 0.3f, 0.33f), 0.85f, 0.45f);
+            Material molten = DesertFodderBuilder.Unlit("WormMolten", new Color(1f, 0.42f, 0.08f));
             Material vent = DesertFodderBuilder.Unlit("WormVent", new Color(1f, 0.5f, 0.15f));
             Material coreMat = DesertFodderBuilder.Unlit("WormCore", new Color(1f, 0.78f, 0.38f));
             Material coreHeart = DesertFodderBuilder.Unlit("WormCoreHeart", new Color(1f, 0.97f, 0.85f));
@@ -182,9 +227,11 @@ namespace SignalLost.Editor
             var armor = new List<Health>();
             var vents = new List<Health>();
             var ventRenderers = new List<Renderer>();
+            var stacks = new List<Transform>();
 
-            // Head: lathe shells turned from +Y to +Z, open at the front.
+            // ---- Head (scaled up 15%): lathe shells turned from +Y to +Z, open at the front. ----
             Transform head = Empty("Head", root.transform, Vector3.zero);
+            head.localScale = Vector3.one * 1.15f;
             Quaternion toZ = Quaternion.Euler(90f, 0f, 0f);
             Mesh skull = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Lathe("WormSkull", new[]
             {
@@ -198,7 +245,7 @@ namespace SignalLost.Editor
             Mesh throatIn = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Lathe("WormThroat", throatProfile, 12));
             Array.Reverse(throatProfile);
             Mesh throatOut = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Lathe("WormThroatBack", throatProfile, 12));
-            Part("Skull", head, skull, hide, Vector3.zero, toZ, Vector3.one);
+            Part("Skull", head, skull, obsidian, Vector3.zero, toZ, Vector3.one);
             Part("Throat", head, throatIn, gums, Vector3.zero, toZ, Vector3.one);
             Part("Throat Back", head, throatOut, gums, Vector3.zero, toZ, Vector3.one); // both facings, so it's solid from any side
             var lipPath = new Vector3[17];
@@ -207,19 +254,49 @@ namespace SignalLost.Editor
                 float a = i * Mathf.PI * 2f / (lipPath.Length - 1);
                 lipPath[i] = new Vector3(Mathf.Cos(a) * 1.2f, Mathf.Sin(a) * 1.2f, 0f);
             }
-            Part("Lip", head, DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Tube("WormLip", lipPath, 0.18f, 5)), gums, new Vector3(0f, 0f, 1.62f), Quaternion.identity, Vector3.one);
+            DisableShadows(Part("Molten Lip", head, DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Tube("WormLip", lipPath, 0.16f, 5)), molten,
+                new Vector3(0f, 0f, 1.62f), Quaternion.identity, Vector3.one));
             for (int i = 0; i < 12; i++)
             {
                 float a = i * Mathf.PI * 2f / 12f;
                 Vector3 at = new Vector3(Mathf.Cos(a) * 1.05f, Mathf.Sin(a) * 1.05f, 1.45f);
-                // Pointing inward and forward, like a lamprey's ring of teeth.
                 Quaternion inward = Quaternion.LookRotation((-at.normalized + Vector3.forward * 0.6f).normalized, Vector3.up);
-                Part("Tooth", head, spike, teeth, at, inward, new Vector3(0.09f, 0.09f, 0.42f));
+                Part("Ship Tooth", head, spike, teeth, at, inward, new Vector3(0.1f, 0.1f, 0.45f));
             }
-            Part("Head Plate", head, panel, hull, new Vector3(0f, 1.55f, -0.4f), Quaternion.Euler(-8f, 0f, 0f), Vector3.one * 0.85f);
-            Part("Head Plate", head, panel, hull, new Vector3(0f, 1.25f, 0.8f), Quaternion.Euler(-22f, 0f, 0f), Vector3.one * 0.6f);
+            // Molten cracks running back over the skull from the lip.
+            for (int i = 0; i < 6; i++)
+            {
+                float a = (i + 0.5f) * Mathf.PI * 2f / 6f;
+                Vector3 from = new Vector3(Mathf.Cos(a) * 1.5f, Mathf.Sin(a) * 1.5f, 1.05f);
+                Vector3 to = new Vector3(Mathf.Cos(a + 0.25f) * 1.62f, Mathf.Sin(a + 0.25f) * 1.62f, -0.4f);
+                DisableShadows(Segment("Molten Crack", head, limb, molten, from, to, 0.06f));
+            }
+            // A frill of bent hull fins fanning back from the crown, and two exhaust pipes poking out behind them.
+            for (int i = 0; i < 7; i++)
+            {
+                float a = Mathf.Lerp(-75f, 75f, i / 6f);
+                Quaternion around = Quaternion.Euler(0f, 0f, a);
+                Vector3 at = around * new Vector3(0f, 1.45f, -0.9f);
+                Part("Hull Fin", head, panel, hull, at, around * Quaternion.Euler(-55f, 0f, 0f), new Vector3(0.55f, 0.7f, 0.9f));
+            }
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Vector3 from = new Vector3(side * 0.7f, 1.25f, -0.6f), to = new Vector3(side * 1.05f, 2.1f, -1.9f);
+                Segment("Exhaust Pipe", head, limb, metal, from, to, 0.2f);
+                Transform tip = Empty("Exhaust Tip", head, to);
+                tip.localRotation = Quaternion.LookRotation(to - from);
+                DisableShadows(Part("Exhaust Glow", tip, gem, molten, Vector3.zero, Quaternion.identity, Vector3.one * 0.16f));
+                stacks.Add(tip);
+            }
+            // An engine intake grown into the crown.
+            Mesh nacelle = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Lathe("WormNacelle", new[]
+            {
+                new Vector2(0.38f, 0f), new Vector2(0.5f, 0.1f), new Vector2(0.52f, 0.9f), new Vector2(0.45f, 1.2f), new Vector2(0.3f, 1.25f),
+            }, 10));
+            Part("Crown Intake", head, nacelle, hull, new Vector3(0f, 1.35f, 0.2f), toZ * Quaternion.Euler(0f, 0f, 0f), Vector3.one * 0.9f);
+            DisableShadows(Part("Intake Glow", head, gem, molten, new Vector3(0f, 1.35f, 1.3f), Quaternion.identity, new Vector3(0.3f, 0.3f, 0.06f)));
 
-            // Three jaws round the rim; each opens by tilting outward about its own X axis.
+            // Three petal jaws round the rim; each opens by tilting outward about its own X axis.
             var jaws = new Transform[3];
             for (int i = 0; i < 3; i++)
             {
@@ -227,9 +304,10 @@ namespace SignalLost.Editor
                 Vector3 rim = new Vector3(Mathf.Cos(a * Mathf.Deg2Rad), Mathf.Sin(a * Mathf.Deg2Rad), 0f) * 1.25f + Vector3.forward * 1.55f;
                 Transform jaw = Empty("Jaw " + (i + 1), head, rim);
                 jaw.localRotation = Quaternion.Euler(0f, 0f, a - 90f); // local +Y points out from the mouth
-                Part("Mandible", jaw, spike, hide, Vector3.zero, Quaternion.Euler(14f, 0f, 0f), new Vector3(0.5f, 0.32f, 1.7f));
-                for (int t = 0; t < 3; t++)
-                    Part("Fang", jaw, spike, teeth, new Vector3(0f, -0.22f, 0.35f + t * 0.4f), Quaternion.Euler(110f, 0f, 0f), new Vector3(0.08f, 0.08f, 0.32f));
+                Part("Petal", jaw, spike, obsidian, Vector3.zero, Quaternion.Euler(14f, 0f, 0f), new Vector3(0.65f, 0.38f, 2.1f));
+                DisableShadows(Segment("Petal Vein", jaw, limb, molten, new Vector3(0f, -0.12f, 0.15f), new Vector3(0f, -0.38f, 1.7f), 0.07f));
+                for (int t = 0; t < 4; t++)
+                    Part("Fang", jaw, spike, teeth, new Vector3(0f, -0.24f, 0.3f + t * 0.42f), Quaternion.Euler(110f, 0f, 0f), new Vector3(0.09f, 0.09f, 0.36f));
                 jaws[i] = jaw;
             }
 
@@ -237,13 +315,7 @@ namespace SignalLost.Editor
             Transform core = Empty("Engine Core", head, new Vector3(0f, 0f, 0.15f));
             Transform coreShell = Part("Core Shell", core, gem, coreMat, Vector3.zero, Quaternion.identity, Vector3.one * 0.75f);
             Part("Core Heart", core, blob, coreHeart, Vector3.zero, Quaternion.identity, Vector3.one * 0.45f);
-            var ringPath = new Vector3[13];
-            for (int i = 0; i < ringPath.Length; i++)
-            {
-                float a = i * Mathf.PI * 2f / (ringPath.Length - 1);
-                ringPath[i] = new Vector3(Mathf.Cos(a) * 0.82f, Mathf.Sin(a) * 0.82f, 0f);
-            }
-            Mesh ring = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Tube("WormCoreRing", ringPath, 0.06f, 4));
+            Mesh ring = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Tube("WormCoreRing", Circle(0.82f, 12), 0.06f, 4));
             Part("Core Ring", core, ring, metal, Vector3.zero, Quaternion.identity, Vector3.one);
             Part("Core Ring", core, ring, metal, Vector3.zero, Quaternion.Euler(0f, 90f, 0f), Vector3.one);
             foreach (Transform piece in core.GetComponentsInChildren<Transform>()) DisableShadows(piece);
@@ -252,7 +324,7 @@ namespace SignalLost.Editor
             lightObject.transform.localPosition = Vector3.forward * 0.9f;
             var coreLight = lightObject.AddComponent<Light>();
             coreLight.type = LightType.Point;
-            coreLight.color = new Color(1f, 0.6f, 0.25f);
+            coreLight.color = new Color(1f, 0.55f, 0.2f);
             coreLight.range = 12f;
             coreLight.intensity = 3f;
             coreLight.shadows = LightShadows.None;
@@ -270,37 +342,89 @@ namespace SignalLost.Editor
             headCollider.height = 2.4f; // stops short of the mouth, so the core can be hit from the front
             armor.Add(HitboxHealth(headBox));
 
-            // Body segments, front to tail.
+            // ---- The continuous body ----
+            var bodyObject = new GameObject("Body");
+            bodyObject.transform.SetParent(root.transform, false);
+            bodyObject.AddComponent<MeshFilter>();
+            bodyObject.AddComponent<MeshRenderer>().sharedMaterial = obsidian;
+            var veinObject = new GameObject("Core Veins");
+            veinObject.transform.SetParent(bodyObject.transform, false);
+            var veinFilter = veinObject.AddComponent<MeshFilter>();
+            var veinRenderer = veinObject.AddComponent<MeshRenderer>();
+            veinRenderer.sharedMaterial = molten;
+            veinRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            var cableObject = new GameObject("Cables");
+            cableObject.transform.SetParent(bodyObject.transform, false);
+            var cableFilter = cableObject.AddComponent<MeshFilter>();
+            cableObject.AddComponent<MeshRenderer>().sharedMaterial = metal;
+            var bodyComponent = bodyObject.AddComponent<CorewormBody>();
+            var bodyData = new SerializedObject(bodyComponent);
+            bodyData.FindProperty("length").floatValue = BodyLength;
+            bodyData.FindProperty("veins").objectReferenceValue = veinFilter;
+            bodyData.FindProperty("cables").objectReferenceValue = cableFilter;
+            bodyData.ApplyModifiedPropertiesWithoutUndo();
+
+            // ---- Anchors along the body: hit boxes and the ship parts grown into it (local +Z points toward the head) ----
+            Mesh clamp = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Tube("WormClamp", Circle(1f, 14), 0.1f, 4));
+            Mesh nozzle = DesertFodderBuilder.SaveDesertMesh(LowPolyMesh.Lathe("WormTailNozzle", new[]
+            {
+                new Vector2(0.22f, 0f), new Vector2(0.28f, 0.2f), new Vector2(0.62f, 0.9f), new Vector2(0.56f, 0.92f), new Vector2(0.24f, 0.22f), new Vector2(0.16f, 0f),
+            }, 12));
             var segments = new Transform[SegmentCount];
             for (int i = 0; i < SegmentCount; i++)
             {
-                float k = i / (float)(SegmentCount - 1);
-                float r = Mathf.Lerp(1.45f, 0.5f, k * k);
-                Transform segment = Empty("Segment " + (i + 1), root.transform, new Vector3(0f, 0f, -1.9f - i * 1.7f));
-                Part("Hide", segment, blob, hide, Vector3.zero, Quaternion.identity, new Vector3(r, r * 0.95f, r * 1.15f));
-                Part("Belly", segment, blob, belly, new Vector3(0f, -r * 0.45f, 0f), Quaternion.identity, new Vector3(r * 0.85f, r * 0.5f, r * 0.95f));
-                if (i < 12)
-                    Part("Plating", segment, panel, hull, new Vector3(0f, r * 0.92f, 0f), Quaternion.Euler(-5f, i % 2 == 0 ? 6f : -6f, i % 3 == 0 ? 4f : -3f), Vector3.one * r * 0.6f);
-                else
-                    Part("Tail Spike", segment, spike, teeth, new Vector3(0f, r * 0.8f, 0f), Quaternion.Euler(-60f, 0f, 0f), new Vector3(0.12f, 0.12f, r * 0.8f));
+                float t = (NeckGap + i * SegmentSpacing) / BodyLength;
+                float r = CorewormBody.RadiusAt(t);
+                Transform segment = Empty("Anchor " + (i + 1), root.transform, new Vector3(0f, 0f, -NeckGap - i * SegmentSpacing));
                 var box = new GameObject("Coreworm (body)");
                 box.transform.SetParent(segment, false);
                 box.AddComponent<SphereCollider>().radius = r;
                 armor.Add(HitboxHealth(box));
+
+                if (i % 2 == 0 && i <= 10)
+                    Part("Hull Plate", segment, panel, hull, new Vector3(0f, r * 0.95f, 0f), Quaternion.Euler(-5f, i % 4 == 0 ? 6f : -6f, i % 3 == 0 ? 4f : -3f), Vector3.one * r * 0.65f);
+                if (i == 1 || i == 6 || i == 9 || i == 13)
+                    Part("Pipe Clamp", segment, clamp, metal, Vector3.zero, Quaternion.identity, Vector3.one * r * 1.04f);
+                if (i == 3 || i == 7)
+                {
+                    float side = i == 3 ? 1f : -1f;
+                    Part("Engine Housing", segment, nacelle, hull, new Vector3(side * r * 0.85f, r * 0.3f, -0.6f), toZ * Quaternion.Euler(0f, 0f, side * 10f), Vector3.one * (0.7f + r * 0.15f));
+                    DisableShadows(Part("Housing Glow", segment, gem, molten, new Vector3(side * r * 0.85f, r * 0.3f, 0.55f), Quaternion.identity, new Vector3(0.35f, 0.35f, 0.08f)));
+                }
+                if (i == 4 || i == 8 || i == 11)
+                {
+                    Vector3 from = new Vector3(0f, r * 0.7f, 0f), to = new Vector3(0f, r * 0.7f + 1.1f, -0.7f);
+                    Segment("Exhaust Stack", segment, limb, metal, from, to, 0.18f);
+                    Transform tip = Empty("Stack Tip", segment, to);
+                    tip.localRotation = Quaternion.LookRotation(to - from);
+                    DisableShadows(Part("Stack Glow", tip, gem, molten, Vector3.zero, Quaternion.identity, Vector3.one * 0.15f));
+                    stacks.Add(tip);
+                }
                 if (i == 2 || i == 5 || i == 8 || i == 11)
                 {
                     for (int side = -1; side <= 1; side += 2)
                     {
+                        // A glowing intake grille set into the hide: the weak spot.
                         Vector3 at = new Vector3(side * r * 0.95f, r * 0.1f, 0f);
-                        Transform glow = Part("Vent", segment, gem, vent, at, Quaternion.identity, new Vector3(0.25f, 0.45f, 0.55f) * r);
+                        Transform glow = Part("Intake Vent", segment, gem, vent, at, Quaternion.identity, new Vector3(0.22f, 0.45f, 0.6f) * r);
                         DisableShadows(glow);
                         ventRenderers.Add(glow.GetComponent<Renderer>());
+                        Part("Vent Frame", segment, clamp, metal, at, Quaternion.Euler(0f, 90f, 0f), new Vector3(0.32f, 0.5f, 0.32f) * r);
                         var ventBox = new GameObject("Coreworm (vent)");
                         ventBox.transform.SetParent(segment, false);
                         ventBox.transform.localPosition = at;
                         ventBox.AddComponent<SphereCollider>().radius = 0.45f * r;
                         vents.Add(HitboxHealth(ventBox));
                     }
+                }
+                if (i == SegmentCount - 1)
+                {
+                    // The tail ends in a rocket nozzle pointing back (lathe +Y turned to -Z).
+                    Part("Tail Nozzle", segment, nozzle, metal, new Vector3(0f, 0f, -0.5f), Quaternion.Euler(-90f, 0f, 0f), Vector3.one);
+                    Transform tip = Empty("Nozzle Tip", segment, new Vector3(0f, 0f, -1.35f));
+                    tip.localRotation = Quaternion.LookRotation(Vector3.back);
+                    DisableShadows(Part("Nozzle Glow", segment, gem, molten, new Vector3(0f, 0f, -0.9f), Quaternion.identity, new Vector3(0.45f, 0.45f, 0.08f)));
+                    stacks.Add(tip);
                 }
                 segments[i] = segment;
             }
@@ -312,7 +436,11 @@ namespace SignalLost.Editor
             var worm = root.AddComponent<Coreworm>();
             var data = new SerializedObject(worm);
             data.FindProperty("head").objectReferenceValue = head;
+            data.FindProperty("body").objectReferenceValue = bodyComponent;
+            SetArray(data.FindProperty("exhaustStacks"), stacks.ToArray());
             SetArray(data.FindProperty("segments"), segments);
+            data.FindProperty("segmentSpacing").floatValue = SegmentSpacing;
+            data.FindProperty("neckGap").floatValue = NeckGap;
             SetArray(data.FindProperty("jaws"), jaws);
             data.FindProperty("core").objectReferenceValue = core;
             data.FindProperty("coreRenderer").objectReferenceValue = coreShell.GetComponent<Renderer>();
@@ -329,6 +457,21 @@ namespace SignalLost.Editor
             data.FindProperty("dustMaterial").objectReferenceValue = DesertFodderBuilder.Unlit("DesertDust", new Color(0.88f, 0.75f, 0.54f));
             data.ApplyModifiedPropertiesWithoutUndo();
             return DesertFodderBuilder.SaveDesertPrefab(root, WormPath);
+        }
+
+        private const float NeckGap = 1.9f;
+        private const float SegmentSpacing = 1.7f;
+        private const float BodyLength = NeckGap + SegmentSpacing * SegmentCount;
+
+        private static Vector3[] Circle(float radius, int points)
+        {
+            var path = new Vector3[points + 1];
+            for (int i = 0; i <= points; i++)
+            {
+                float a = i * Mathf.PI * 2f / points;
+                path[i] = new Vector3(Mathf.Cos(a) * radius, Mathf.Sin(a) * radius, 0f);
+            }
+            return path;
         }
 
         private static Health HitboxHealth(GameObject holder)

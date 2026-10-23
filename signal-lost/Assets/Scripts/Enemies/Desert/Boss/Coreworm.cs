@@ -9,8 +9,10 @@ using UnityEngine;
 namespace SignalLost.Enemies.Desert
 {
     /// <summary>
-    /// The desert stage boss: a sandworm about 28 m long that swallowed the ship's Engine Core. The core glows in its
-    /// throat, hull plating is bolted along its back, and glowing vents run down its sides. Most of the time it swims
+    /// The desert stage boss: a 29 m ship-fused abomination that swallowed the ship's Engine Core. One continuous obsidian
+    /// body (<see cref="CorewormBody"/>) bends along its path, molten core veins burning down its sides; the ship has
+    /// grown into it: hull plates, pipe clamps, engine housings, smoking exhaust stacks and a nozzle for a tail. The
+    /// petal mouth opens on the core in its throat, and glowing intake vents along its sides are its weak spots. Most of the time it swims
     /// under the sand (a racing ridge of sand gives it away) and erupts to attack.
     ///
     /// Four phases, each also changing the arena (<see cref="CorewormArena"/>):
@@ -47,7 +49,11 @@ namespace SignalLost.Enemies.Desert
 
         [Header("Body")]
         [SerializeField] private Transform head;
-        [Tooltip("Body segments from the neck to the tail tip; they follow the path the head took.")]
+        [Tooltip("The continuous body mesh, rebuilt along the path every frame.")]
+        [SerializeField] private CorewormBody body;
+        [Tooltip("Tips of the exhaust stacks and the tail nozzle: they smoke, and belch fire as the core overloads.")]
+        [SerializeField] private Transform[] exhaustStacks = new Transform[0];
+        [Tooltip("Anchors along the body from the neck to the tail (hit boxes and ship parts); they follow the path the head took.")]
         [SerializeField] private Transform[] segments = new Transform[0];
         [SerializeField, Min(0.5f)] private float segmentSpacing = 1.7f;
         [Tooltip("Distance from the head pivot to the first segment.")]
@@ -125,7 +131,9 @@ namespace SignalLost.Enemies.Desert
         private float shoveRemaining;
         private LineRenderer beam;
         private FireEffect mouthFlame;
-        private bool contactHit, bodyFrozen;
+        private bool contactHit;
+        private readonly List<Vector3> path = new List<Vector3>();
+        private float nextExhaust;
 
         private float GroundY => arena != null ? arena.GroundY : 0f;
         private float UnderY => GroundY - swimDepth;
@@ -292,7 +300,6 @@ namespace SignalLost.Enemies.Desert
         public void BeginFight()
         {
             IsDefeated = false;
-            bodyFrozen = false;
             Fighting = true;
             Phase = 1;
             attacksThisPhase = 0;
@@ -1073,14 +1080,22 @@ namespace SignalLost.Enemies.Desert
         private void PlaceBody()
         {
             if (head == null) return;
+            // The path the body lies along: the head pivot, then everywhere the head has been.
+            path.Clear();
+            path.Add(head.position);
+            foreach (Vector3 point in trail)
+                if ((point - path[path.Count - 1]).sqrMagnitude > 0.0001f) path.Add(point);
+            if (path.Count < 2) path.Add(head.position - head.forward);
+            if (body != null) body.Rebuild(path, head.up);
+
+            // Anchors (hit boxes, ship parts) at fixed distances along it.
             int s = 0;
-            float want = neckGap;
-            float walked = 0f;
-            Vector3 previous = head.position;
-            Vector3 lastDirection = -head.forward;
-            for (int i = 0; i <= trail.Count && s < segments.Length; i++)
+            float want = neckGap, walked = 0f;
+            Vector3 previous = path[0];
+            Vector3 lastDirection = (path[1] - path[0]).normalized;
+            for (int i = 1; i <= path.Count && s < segments.Length; i++)
             {
-                Vector3 next = i < trail.Count ? trail[i] : previous + lastDirection * 1000f;
+                Vector3 next = i < path.Count ? path[i] : previous + lastDirection * 1000f;
                 float step = Vector3.Distance(previous, next);
                 if (step > 0.0001f) lastDirection = (next - previous) / step;
                 while (s < segments.Length && walked + step >= want)
@@ -1102,7 +1117,7 @@ namespace SignalLost.Enemies.Desert
 
         private void LateUpdate()
         {
-            if (!bodyFrozen) PlaceBody();
+            PlaceBody();
             if (pendingDamage > 0f)
             {
                 float amount = pendingDamage;
@@ -1135,6 +1150,8 @@ namespace SignalLost.Enemies.Desert
                 coreLight.intensity = (1.5f + glow * 4f) * pulse * (0.3f + 0.7f * Mathf.Max(mouth, 0.2f));
                 coreLight.range = 8f + glow * 6f;
             }
+            if (body != null) body.SetGlow((0.7f + 0.3f * Mathf.Sin(Time.time * 2.2f)) * (0.6f + glow * 0.5f) * (0.85f + 0.15f * Phase));
+            Exhaust();
             float vent = 0.6f + 0.4f * Mathf.Sin(Time.time * 3f) + glow * 0.3f;
             foreach (Renderer item in ventRenderers)
             {
@@ -1143,6 +1160,18 @@ namespace SignalLost.Enemies.Desert
                 block.SetColor(BaseColor, ventColor * vent);
                 item.SetPropertyBlock(block);
             }
+        }
+
+        /// <summary>The ship's exhausts grown into it smoke when above the sand, and belch fire as the core runs hot.</summary>
+        private void Exhaust()
+        {
+            if (exhaustStacks.Length == 0 || Time.time < nextExhaust || IsDefeated) return;
+            nextExhaust = Time.time + UnityEngine.Random.Range(0.25f, 0.6f) / Mathf.Max(1f, glow);
+            Transform stack = exhaustStacks[UnityEngine.Random.Range(0, exhaustStacks.Length)];
+            if (stack == null || stack.position.y < GroundY + 0.3f) return;
+            bool fiery = Phase >= 4 || glow > 1.1f;
+            ParticleBurst.Spawn(fiery ? ParticleBurst.Kind.Fireball : ParticleBurst.Kind.Smoke, stack.position, stack.forward,
+                fiery ? 5 : 3, fiery ? 0.5f : 0.6f, fiery ? 4f : 2f, 20f);
         }
 
         // ---------- Hurting the player ----------
@@ -1311,15 +1340,14 @@ namespace SignalLost.Enemies.Desert
             Burst(to, 3f);
             foreach (Collider collider in GetComponentsInChildren<Collider>()) collider.enabled = false;
             yield return Wait(1.5f);
-            bodyFrozen = true;
             t = 0f;
-            Vector3 headStart = head.position;
             while (t < 4f)
             {
+                // Everything sinks together: the head, and the path the body is laid along.
                 t += Time.deltaTime;
-                head.position = headStart + Vector3.down * (t * 1.5f);
-                foreach (Transform segment in segments)
-                    if (segment != null) segment.position += Vector3.down * 1.5f * Time.deltaTime;
+                Vector3 sink = Vector3.down * 1.5f * Time.deltaTime;
+                head.position += sink;
+                for (int i = 0; i < trail.Count; i++) trail[i] += sink;
                 yield return null;
             }
             gameObject.SetActive(false);
