@@ -387,7 +387,7 @@ namespace SignalLost.Enemies.Desert
             health.Restore();
             CorewormHud.ShowBoss(this);
             if (arena != null) arena.Active = true;
-            fight = StartCoroutine(Fight());
+            fight = StartCoroutine(Inline(Fight()));
         }
 
         /// <summary>Stops everything and puts it back to full health, hidden under a point (the player died).</summary>
@@ -421,7 +421,33 @@ namespace SignalLost.Enemies.Desert
             shoveRemaining = 0f;
         }
 
-        private void RunAlongside(IEnumerator routine) => side.Add(StartCoroutine(routine));
+        private void RunAlongside(IEnumerator routine) => side.Add(StartCoroutine(Inline(routine)));
+
+        /// <summary>
+        /// Runs a routine and the moves it yields (SwimTo, Rise, ...) back to back. When Unity runs a nested routine
+        /// itself, the outer one only carries on the frame after it finishes, so the worm stood still for a frame at
+        /// every change of move; here the next move starts in the same frame.
+        /// </summary>
+        private static IEnumerator Inline(IEnumerator routine)
+        {
+            var stack = new Stack<IEnumerator>();
+            stack.Push(routine);
+            while (stack.Count > 0)
+            {
+                IEnumerator top = stack.Peek();
+                if (!top.MoveNext())
+                {
+                    stack.Pop();
+                    continue;
+                }
+                if (top.Current is IEnumerator inner)
+                {
+                    stack.Push(inner);
+                    continue;
+                }
+                yield return top.Current;
+            }
+        }
 
         private IEnumerator Fight()
         {
@@ -475,7 +501,7 @@ namespace SignalLost.Enemies.Desert
             if (IsDefeated || Invulnerable || Phase >= 4) return;
             if (health.Normalized > phaseThresholds[Mathf.Clamp(Phase - 1, 0, phaseThresholds.Length - 1)]) return;
             StopFight();
-            fight = StartCoroutine(PhaseChange(Phase + 1));
+            fight = StartCoroutine(Inline(PhaseChange(Phase + 1)));
         }
 
         private IEnumerator PhaseChange(int next)
@@ -494,7 +520,7 @@ namespace SignalLost.Enemies.Desert
             yield return Wait(0.4f);
             yield return DiveInto(middle + Flat(head.forward) * 6f, 0.8f);
             Invulnerable = false;
-            fight = StartCoroutine(Fight());
+            fight = StartCoroutine(Inline(Fight()));
         }
 
         // ---------- Attacks ----------
@@ -562,7 +588,7 @@ namespace SignalLost.Enemies.Desert
             Burst(end, 2.6f);
             AreaHit(end, 5f, breachLandDamage, 3f);
             CameraShake.Add(0.5f);
-            yield return SwimTo(() => end + across * 6f, 14f, 0.8f, 1f, false);
+            yield return SwimTo(() => ClampToArena(end + across * 6f), 14f, 0.8f, 1f, false);
         }
 
         /// <summary>Rears up at range, opens its mouth and lobs a volley of burning core slag at and around the player.</summary>
@@ -1099,7 +1125,7 @@ namespace SignalLost.Enemies.Desert
                 v = Mathf.MoveTowards(v, 12f, SwimAcceleration * Time.deltaTime);
                 Vector3 p = head.position + heading * v * Time.deltaTime;
                 p.y = Mathf.MoveTowards(head.position.y, UnderY, 12f * Time.deltaTime);
-                MoveHead(ClampToArena(p) + Vector3.up * (p.y - GroundY));
+                MoveHead(p); // its goal is inside the arena, so it steers back in (clamping here snapped it inward)
                 if (Time.time >= nextPuff)
                 {
                     nextPuff = Time.time + 0.08f;
@@ -1389,7 +1415,7 @@ namespace SignalLost.Enemies.Desert
 
         private void LateUpdate()
         {
-            if (!movedThisFrame) currentSpeed = 0f;
+            if (!movedThisFrame) currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, SwimAcceleration * Time.deltaTime); // eases off, never drops to 0 in one frame
             movedThisFrame = false;
             bodyTimer.Restart();
             PlaceBody();
@@ -1567,7 +1593,7 @@ namespace SignalLost.Enemies.Desert
             StopFight();
             CorewormHud.ShowBoss(null);
             if (arena != null) arena.Settle();
-            StartCoroutine(Death());
+            StartCoroutine(Inline(Death()));
         }
 
         private IEnumerator Death()
