@@ -48,7 +48,7 @@ The mini-boss patrols near the middle. You start at the south edge, outside its 
   - A boss health bar appears at the top of the screen, with a notch where phase 2 starts.
   - Its fodder spawner starts sending waves at the arena's edge, preferring spots behind you, with a cap on how many are alive at once.
 - **Phase 2 at half health:** the stolen part breaks. A banner says so, the boss pauses for a moment, and then it fights differently.
-- **Leash and reset:** leave the arena for 5 s, or die, and it resets: full health, phase 1, back home, fodder cleared.
+- **Leash and reset:** get more than twice the arena radius from home, or die, and it resets: full health, phase 1, back home, fodder cleared (the shared [fighting-radius rule](enemy-rules.md)).
 - **Defeat:**
   - Spawning stops; fodder already out keeps fighting.
   - The stolen part drops as a glowing, spinning pickup. Walk up to it: **RECOVERED: … (n/3)**.

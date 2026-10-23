@@ -14,7 +14,7 @@ namespace SignalLost.Enemies
     /// is stunned. All numbers are placeholders to tune.
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent), typeof(Health), typeof(MortarFrogRig))]
-    public sealed class MortarFrog : MonoBehaviour
+    public sealed class MortarFrog : MonoBehaviour, IStunnable, ITerritorial
     {
         private enum State { Idle, Engage, Load, Stunned, Dead }
 
@@ -23,10 +23,9 @@ namespace SignalLost.Enemies
         [SerializeField] private Transform target;
         [SerializeField] private LayerMask sightMask = ~0;
 
-        [Header("Senses")]
-        [SerializeField, Min(1f)] private float detectRange = 18f;
-        [SerializeField, Min(1f)] private float loseRange = 26f;
-        [SerializeField, Min(0f)] private float forgetTime = 4f;
+        [Header("Fighting radius")]
+        [Tooltip("Attacks inside this radius; chases until the player is twice as far, then goes home and heals.")]
+        [SerializeField] private Territory territory = new Territory(18f);
 
         [Header("Hopping")]
         [Tooltip("Hops away when the player is closer than this.")]
@@ -84,7 +83,8 @@ namespace SignalLost.Enemies
         private float stateTime, lastSeen = float.NegativeInfinity, nextAttack, nextSideHop;
         private Vector3 home;
         private Quaternion homeRotation;
-        private bool started;
+        private bool started, returningHome;
+        private float currentStun;
         private int lastBodyHitFrame = -1;
         private float pendingCanDamage;
         private GameObject pendingCanSource;
@@ -96,6 +96,9 @@ namespace SignalLost.Enemies
 
         public bool IsDead => state == State.Dead;
         public bool IsLoading => state == State.Load;
+        public bool IsStunned => state == State.Stunned;
+        public bool IsReturningHome => returningHome;
+        public Territory Territory => territory;
 
         private void Awake()
         {
@@ -143,6 +146,7 @@ namespace SignalLost.Enemies
             {
                 Debug.LogWarning("Mortar frog is not near a NavMesh; it will stay put. Is there a NavMeshBaker in the scene?", this);
             }
+            territory.SetHome(home);
             started = true;
             Enter(State.Idle);
         }
@@ -183,20 +187,21 @@ namespace SignalLost.Enemies
 
         private void UpdateIdle()
         {
-            // Someone right next to it is noticed even without line of sight (standing on it, behind it).
-            if (TargetAlive && FlatDistance(target.position) < retreatDistance)
+            // It fights anyone inside its fight radius, seen or not.
+            if (TargetAlive && territory.Contains(target.position))
             {
-                lastSeen = Time.time;
-                nextAttack = Time.time + 0.6f;
-                Enter(State.Engage);
-                nextHop = 0f; // get away now
-                return;
-            }
-            if (TargetAlive && CanSee(detectRange))
-            {
+                returningHome = false;
                 lastSeen = Time.time;
                 nextAttack = Time.time + 0.6f; // a beat before the first shot
                 Enter(State.Engage);
+                if (FlatDistance(target.position) < retreatDistance) nextHop = 0f; // too close: get away now
+                return;
+            }
+            if (returningHome)
+            {
+                // Gave up a chase: hop home along the NavMesh, then heal to full.
+                if (FlatDistance(home) <= 2f) { returningHome = false; health.Restore(); }
+                else if (!hopping && Time.time >= nextHop) TryHop(PathDirection(home) * hopDistance, false);
                 return;
             }
             // Idle: an occasional lazy hop near home.
@@ -212,10 +217,11 @@ namespace SignalLost.Enemies
                 return;
             }
             float distance = FlatDistance(target.position);
-            bool seen = distance < retreatDistance || CanSee(loseRange); // up close it can always sense you
+            bool seen = distance < retreatDistance || CanSee(territory.LeashRadius); // up close it can always sense you
             if (seen) lastSeen = Time.time;
-            if (distance > loseRange || Time.time - lastSeen > forgetTime)
+            if (territory.Escaped(target.position))
             {
+                returningHome = true;
                 Enter(State.Idle);
                 return;
             }
@@ -282,7 +288,7 @@ namespace SignalLost.Enemies
 
         private void UpdateStunned()
         {
-            if (stateTime < stunTime) return;
+            if (stateTime < currentStun) return;
             nextAttack = Time.time + attackCooldown * 0.5f;
             nextHop = Time.time + 0.4f; // let it finish scrambling to its feet before hopping
             Enter(TargetAlive ? State.Engage : State.Idle);
@@ -407,6 +413,7 @@ namespace SignalLost.Enemies
                 return;
             }
             rig.Backfire();
+            currentStun = stunTime;
             Enter(State.Stunned);
             health.TakeDamage(backfireDamage, source);
         }
@@ -431,7 +438,7 @@ namespace SignalLost.Enemies
             rig.Flinch(away);
             if (source != null && !hopping && agent.isOnNavMesh && away.sqrMagnitude > 0.001f)
                 agent.Move(away.normalized * knockback * Mathf.Clamp01(amount / 20f));
-            if (state == State.Idle) { lastSeen = Time.time; Enter(State.Engage); }
+            if (state == State.Idle) { lastSeen = Time.time; returningHome = false; Enter(State.Engage); }
             // Hit up close: get out of there soon.
             if (state == State.Engage) nextHop = Mathf.Min(nextHop, Time.time + 0.15f);
         }
@@ -445,8 +452,17 @@ namespace SignalLost.Enemies
             agent.enabled = false;
         }
 
+        /// <summary>IStunnable: the laser's combo finisher dazes it for this long (it drops any shot it was loading).</summary>
+        public void Stun(float seconds)
+        {
+            if (!started || seconds <= 0f || state == State.Dead || health.IsDead) return;
+            currentStun = seconds; // a hop already in the air still lands (UpdateHop runs in every state)
+            Enter(State.Stunned);
+        }
+
         private void Respawn()
         {
+            returningHome = false;
             health.Restore();
             if (canHealth != null) canHealth.Restore();
             foreach (Collider item in colliders) if (item != null) item.enabled = true;
@@ -495,5 +511,7 @@ namespace SignalLost.Enemies
             if (direction.sqrMagnitude < 0.001f) return;
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), maxDegrees);
         }
+
+        private void OnDrawGizmosSelected() => territory.DrawGizmos(transform.position);
     }
 }

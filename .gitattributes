@@ -28,6 +28,8 @@
 "signal-lost/Assets/Prefabs/Enviornment objects/TutorialCrashSite/Terrain/ImpactCrater.asset" filter=lfs diff=lfs merge=lfs -text
 "signal-lost/Assets/New Terrain.asset" filter=lfs diff=lfs merge=lfs -text
 "signal-lost/Assets/New Terrain 1.asset" filter=lfs diff=lfs merge=lfs -text
+# Baked NavMeshData is also native binary.
+"signal-lost/Assets/Scenes/Tutorial/TutorialNavMesh.asset" filter=lfs diff=lfs merge=lfs -text
 
 # Binary source assets use Git LFS; match lower/upper-case extensions.
 *.[fF][bB][xX] filter=lfs diff=lfs merge=lfs -text

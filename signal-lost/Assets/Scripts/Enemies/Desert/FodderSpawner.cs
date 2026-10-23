@@ -140,9 +140,27 @@ namespace SignalLost.Enemies.Desert
                 Quaternion facing = toPlayer.sqrMagnitude > 0.01f ? Quaternion.LookRotation(toPlayer) : Quaternion.identity;
                 GameObject spawned = Instantiate(entry.prefab, point, facing, transform);
                 spawned.name = entry.prefab.name;
+                // Waves defend the spawner's whole area, not just the spot they appeared on.
+                foreach (ITerritorial enemy in spawned.GetComponentsInChildren<ITerritorial>()) enemy.Territory.Zone = Zone;
                 alive.Add(spawned);
                 var health = spawned.GetComponent<Health>();
                 if (health != null) health.Died += OnEnemyDied;
+            }
+        }
+
+        private CombatZone zone;
+
+        /// <summary>The area its waves defend: its own CombatZone, or one made from the activation range.</summary>
+        private CombatZone Zone
+        {
+            get
+            {
+                if (zone != null) return zone;
+                zone = GetComponent<CombatZone>();
+                if (zone != null) return zone;
+                zone = gameObject.AddComponent<CombatZone>();
+                zone.Radius = activationRange > 0f ? activationRange : spawnRadiusMax + 6f;
+                return zone;
             }
         }
 

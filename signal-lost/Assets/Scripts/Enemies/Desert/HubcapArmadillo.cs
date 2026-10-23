@@ -112,7 +112,7 @@ namespace SignalLost.Enemies.Desert
             float distance = FlatDistance(Target.position);
             bool seen = CanSee(maxRollRange + 2f);
             if (seen || Alerted) LastSeen = Time.time;
-            if (distance > loseRange || Time.time - LastSeen > 5f) { Enter(State.Idle); return; }
+            if (GaveUp()) { Enter(State.Idle); return; }
 
             if (seen && distance >= minRollRange && distance <= maxRollRange && Time.time >= nextRoll)
             {

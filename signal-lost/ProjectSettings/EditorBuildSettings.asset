@@ -6,7 +6,19 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Prototype.unity
+    path: Assets/Scenes/MainMenu.unity
+    guid: a91251fdeec2d49cdb6ef3fd99b6d8a4
+  - enabled: 1
+    path: Assets/Scenes/Tutorial/Tutorial.unity
+    guid: 3ea33caaaa9104cec9706b1b39d86e54
+  - enabled: 1
+    path: Assets/Scenes/Tutorial Testing.unity
+    guid: 3b33c1c4a9d1c7b48a82b946ffca6ffb
+  - enabled: 1
+    path: Assets/Scenes/Large Areas/DesertDunes.unity
+    guid: aeab396908daa834cbb997d1d71fc8ad
+  - enabled: 1
+    path: Assets/Scenes/Initial Test Scenes/Prototype.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}

@@ -23,6 +23,9 @@ namespace SignalLost.Player
         private float verticalSpeed, pitch;
         private bool captured;
 
+        /// <summary>Look-speed multiplier from the settings menu (GameSettings.LookSensitivity).</summary>
+        public static float SensitivityScale { get; set; } = 1f;
+
         public float Impairment { get; set; }
         public float MovementScale => 1f - (0.55f * 2f / 3f) * Mathf.Clamp01(Impairment);
 
@@ -107,8 +110,8 @@ namespace SignalLost.Player
             {
                 Vector2 delta = look.ReadValue<Vector2>();
                 // Mouse delta is already measured per frame; sticks are angular rates.
-                float sensitivity = look.activeControl?.device is Mouse
-                    ? mouseSensitivity : stickSensitivity * Time.deltaTime;
+                float sensitivity = (look.activeControl?.device is Mouse
+                    ? mouseSensitivity : stickSensitivity * Time.deltaTime) * SensitivityScale;
                 transform.Rotate(0f, delta.x * sensitivity, 0f);
                 pitch = Mathf.Clamp(pitch - delta.y * sensitivity, -pitchLimit, pitchLimit);
                 cameraPivot.localRotation = Quaternion.Euler(pitch, 0f, 0f);

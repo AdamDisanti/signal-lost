@@ -1,5 +1,7 @@
 # Tutorial impact site
 
+> **Superseded (10-22-26):** this lunar site is now the Tutorial Testing sandbox. The tutorial is a new golden-hour meadow scene; see [tutorial](tutorial.md).
+
 > **Partly superseded (10-20-26):** a stripped shipwreck with a much denser debris field replaces the Enhanced Crashed Rocket, which is switched off with its assets kept. See [tutorial core loop](tutorial-core-loop.md) for the current behaviour.
 
 The current tutorial is a **480 x 480-meter, moon-inspired crash site**: rolling regolith, overlapping bowl-shaped craters, low rounded hills and scattered grey stones. It follows Lawson's supplied lunar reference, not the earlier mine-like mesa/catwalk direction. Width/length remain 1.5x the old 320-meter map; the player, ship and props are not rescaled.
