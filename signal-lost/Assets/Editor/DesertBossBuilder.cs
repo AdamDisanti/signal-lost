@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SignalLost.Combat;
 using SignalLost.Enemies;
 using SignalLost.Enemies.Desert;
+using SignalLost.Inventory;
 using SignalLost.Player;
 using SignalLost.Scanner;
 using SignalLost.UI;
@@ -34,7 +35,6 @@ namespace SignalLost.Editor
         public const string WormPath = Folder + "/Coreworm.prefab";
         public const string ScenePath = "Assets/Scenes/Bosses/CorewormTest.unity";
 
-        private const string FlaskPath = "Assets/Prefabs/Enviornment objects/GrayboxProps/AlcoholFlask.prefab";
         private static readonly Vector3 ArenaCentre = new Vector3(300f, 0f, 0f);
         private const float ArenaRadius = 34f;
         private const int SegmentCount = 16;
@@ -44,13 +44,6 @@ namespace SignalLost.Editor
         [MenuItem("Signal Lost/Desert Boss/Create Test Scene")]
         public static void CreateTestScene()
         {
-            var playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
-            var input = AssetDatabase.LoadAssetAtPath<InputActionAsset>(InputPath);
-            var beam = AssetDatabase.LoadAssetAtPath<Material>(BeamMaterialPath);
-            var scannerRig = AssetDatabase.LoadAssetAtPath<GameObject>(DesertFodderBuilder.ScannerRigPath);
-            var hudPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(DesertFodderBuilder.HudPrefabPath);
-            if (playerPrefab == null || input == null || beam == null || scannerRig == null || hudPrefab == null)
-                throw new InvalidOperationException("Player, input actions, laser beam, ScannerRig or PlayerHUD prefab missing. Is your branch up to date with main?");
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null)
             {
                 Debug.Log(ScenePath + " already exists; skipped (edit it in Unity, or delete it to rebuild).");
@@ -84,13 +77,9 @@ namespace SignalLost.Editor
             exitData.FindProperty("eruptPoint").objectReferenceValue = eruptPoint;
             exitData.FindProperty("returnPoint").objectReferenceValue = returnPoint;
             exitData.FindProperty("assumePartsCollected").boolValue = true; // test scene: go straight to the ambush
-            exitData.FindProperty("flaskModel").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(FlaskPath);
             exitData.ApplyModifiedPropertiesWithoutUndo();
 
-            DesertFodderBuilder.BuildTestPlayer(playerPrefab, input, beam, scannerRig, hudPrefab);
-            GameObject player = Object.FindAnyObjectByType<MiningLaser>().gameObject;
-            player.transform.SetPositionAndRotation(new Vector3(0f, 0.1f, -30f), Quaternion.identity);
-            DesertFodderBuilder.SetObjective("Walk to the ship beacon at the end of the canyon to leave the desert");
+            UseCorePlayer(scene);
             new GameObject("Mini-Boss HUD").AddComponent<MiniBossHud>();
             new GameObject("Fodder Status Overlay").AddComponent<FodderStatusOverlay>();
             DesertFodderBuilder.BuildDesertLighting();
@@ -98,6 +87,38 @@ namespace SignalLost.Editor
             AssetDatabase.SaveAssets();
             Validate();
             Debug.Log("DESERT_BOSS_TEST_SCENE_CREATED_AND_VALIDATED");
+        }
+
+        /// <summary>
+        /// Moves the existing test scene onto the shared Player and GameSystems prefabs (keeping everything else in it),
+        /// for scenes made before the core player existed.
+        /// </summary>
+        [MenuItem("Signal Lost/Desert Boss/Upgrade Test Scene to Core Player")]
+        public static void UpgradeTestScene()
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null)
+            {
+                CreateTestScene();
+                return;
+            }
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            UseCorePlayer(scene);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Validate();
+            Debug.Log("DESERT_BOSS_TEST_SCENE_UPGRADED");
+        }
+
+        // The shared Player (laser and scanner; the flask comes with the fight) at the canyon start, with GameSystems
+        // and its spawn point, in place of any old test player and HUD.
+        private static void UseCorePlayer(Scene scene)
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(CorePrefabBuilder.PlayerPath) == null) CorePrefabBuilder.Build();
+            GameObject player = CoreSceneSetup.UpgradeToCorePlayer(scene, new[] { PlayerItem.MiningLaser, PlayerItem.Scanner }, null);
+            Vector3 start = new Vector3(0f, 0.1f, -30f);
+            player.transform.SetPositionAndRotation(start, Quaternion.identity);
+            foreach (PlayerSpawnPoint spawn in All<PlayerSpawnPoint>()) spawn.transform.SetPositionAndRotation(start, Quaternion.identity);
         }
 
         [MenuItem("Signal Lost/Desert Boss/Regenerate Prefab")]
@@ -180,7 +201,9 @@ namespace SignalLost.Editor
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null)
             {
                 EditorSceneManager.OpenScene(ScenePath);
-                Require(Count<FirstPersonController>() == 1 && Count<MiningLaser>() == 1, ScenePath + ": expected one player with a laser.");
+                Require(Count<FirstPersonController>() == 1 && Count<PlayerGear>() == 1 && Count<MiningLaser>() == 1,
+                    ScenePath + ": expected one shared Player (Signal Lost > Desert Boss > Upgrade Test Scene to Core Player).");
+                Require(Count<SignalLost.Core.GameSystems>() == 1 && Count<PlayerSpawnPoint>() >= 1, ScenePath + ": expected GameSystems and a spawn point.");
                 Require(Count<Camera>() == 1 && Count<AudioListener>() == 1, ScenePath + ": expected one camera and listener.");
                 Require(Count<Coreworm>() == 1 && Count<CorewormArena>() == 1 && Count<DesertStageExit>() == 1, ScenePath + ": expected the worm, its arena and the stage exit.");
                 Require(Count<NavMeshSurface>() == 1 && Count<NavMeshBaker>() == 1, ScenePath + ": expected one NavMeshSurface with a NavMeshBaker.");

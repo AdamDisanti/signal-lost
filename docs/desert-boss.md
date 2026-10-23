@@ -21,7 +21,7 @@ The body mesh only exists in Play mode (it is built at runtime), so outside Play
 1. **Leaving the stage:** with the three mini-bosses' ship parts, walk to the stage exit (a ship beacon) to take them back to the ship.
 2. **The ambush (cutscene):** the ground rumbles and the Core Worm rockets out of the sand right in front of the exit. It roars, lunges and swallows you. Then: *"Dragged beneath the dunes..."*.
 3. **Its arena:** you land at the edge of a sunken bowl. It bursts out in the middle, the name card shows, and the fight begins.
-   - **The Scotch flask:** you have it for the fight. Press **F** (or d-pad up) to drink. The rules are the tutorial's: each sip heals 35, halved for every drunk stack, and a stack wears off every 15 s. Drinking makes you stagger, and the sip after 5 stacks is a blackout, which counts as going down. The laser is put away while you drink. This is `CombatFlask`, the tutorial flask's rules for scenes outside the tutorial. It adds itself to the player and is granted when the fight starts.
+   - **The Scotch flask:** you have it for the fight. Press **F** (or d-pad up) to drink. The rules are the tutorial's: each sip heals 35, halved for every drunk stack, and a stack wears off every 15 s. Drinking makes you stagger, and the sip after 5 stacks is a blackout, which counts as going down. The laser is put away while you drink. This is the shared player's `PlayerFlask` ([core player](core-player.md)): the exit gives you the flask (`PlayerGear`) when the fight starts if you don't already have it.
 4. **If you die,** you respawn at the stage start, the arena resets, and the worm waits under the exit again.
 5. **Defeat:** its core overloads and blows apart, the body crashes down and sinks, and the **Engine Core** drops as a floating, glowing pickup.
 6. **Pick it up:** it is recorded as a main ship part, the desert is marked cleared, and the next stage is unlocked. You are faded back to the exit, which now leaves the stage. The next stage doesn't exist yet: until **Next Stage Scene** is set on the exit (and the scene is in Build Settings), a banner says the stage is unlocked but not built.
@@ -37,6 +37,8 @@ It creates:
 - `Assets/Scenes/Bosses/CorewormTest.unity`, which has two areas:
   - an 80 m stretch of desert canyon. You start at the south end, and the exit beacon is at the north end.
   - far away, the worm's round arena: 68 m across with a floor of 5 m tiles (these collapse), a ring of dune walls, six rock pillars and three hull slabs for cover, a NavMesh and a fodder spawner.
+
+The test scene uses the shared `Player` and `GameSystems` prefabs ([core player](core-player.md)), starting with the laser and scanner. A test scene made before the core player existed can be moved onto it with **Signal Lost > Desert Boss > Upgrade Test Scene to Core Player**, which keeps everything else in the scene. During the cutscenes the exit switches off movement, the flask and interaction, and holsters your tools.
 
 In the test scene, **Assume Parts Collected** is ticked on the exit, so you can walk straight up and get ambushed. **Regenerate Prefab** rebuilds the worm (same GUID), then re-links the test scene's worm to its arena, exit and fodder spawner if needed. **Validate** re-runs the checks. Commit the generated files with their `.meta` files.
 
@@ -116,6 +118,7 @@ Clear, open dunes. A sand ridge racing under the surface shows where it is betwe
   - `EngineCorePickup`
 - `Scripts/Progression/StageProgress.cs`
 - `Scripts/Effects/CameraShake.cs`
+- `Scripts/Enemies/Common/EnemyAllegiance.cs` (no friendly fire between enemies, next to the shared `Territory` rules)
 - `Editor/DesertBossBuilder.cs`
 
 It reuses the fire effect and particle bursts, `FireZone`, `FuelShell.Blast` (the line-of-sight blast), `ScrapBomb`, `GroundMarker`, `ExpandingRing`, `MiniBossHud` banners and the desert fodder.

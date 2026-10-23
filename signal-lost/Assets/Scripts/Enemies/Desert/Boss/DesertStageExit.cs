@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using SignalLost.Combat;
 using SignalLost.Effects;
+using SignalLost.Inventory;
 using SignalLost.Player;
 using SignalLost.Progression;
 using UnityEngine;
@@ -18,7 +19,8 @@ namespace SignalLost.Enemies.Desert
     /// 3. If you die, you respawn at the stage start and the worm waits under the exit again.
     /// 4. Beat it and pick up the Engine Core: you are brought back to the exit, which now leaves the stage and
     ///    unlocks the next one. The next stage doesn't exist yet: set Next Stage Scene once it does.
-    /// The player has the Scotch flask (<see cref="CombatFlask"/>, F to drink) from the start of the fight.
+    /// The player is given the Scotch flask (<see cref="PlayerGear"/>, F to drink via <see cref="PlayerFlask"/>) when the
+    /// fight starts, if they don't have it yet. During the cutscenes their movement is off and their tools holstered.
     /// </summary>
     public sealed class DesertStageExit : MonoBehaviour
     {
@@ -38,8 +40,6 @@ namespace SignalLost.Enemies.Desert
         [Tooltip("Scene loaded when leaving after the boss. Empty, or not in Build Settings: a placeholder message instead.")]
         [SerializeField] private string nextStageScene = "";
         [SerializeField] private string nextStageName = "NextStage";
-        [Tooltip("The flask model the player drinks from during the fight (the AlcoholFlask prop).")]
-        [SerializeField] private GameObject flaskModel;
 
         private Stage stage = Stage.Waiting;
         private Transform player;
@@ -50,7 +50,7 @@ namespace SignalLost.Enemies.Desert
         private readonly List<Behaviour> controls = new List<Behaviour>();
         private Camera cutsceneCamera;
         private float nextNag;
-        private CombatFlask flask;
+        private PlayerGear gear;
 
         private void Start()
         {
@@ -61,17 +61,14 @@ namespace SignalLost.Enemies.Desert
                 playerBody = controller.GetComponent<CharacterController>();
                 playerHealth = controller.GetComponent<Health>();
                 playerCamera = controller.GetComponentInChildren<Camera>();
+                gear = controller.GetComponent<PlayerGear>();
                 controls.Add(controller);
-                foreach (Behaviour item in new Behaviour[] { controller.GetComponent<MiningLaser>(), controller.GetComponent<ScannerLaserSwap>() })
-                    if (item != null) controls.Add(item);
+                controls.Add(controller.GetComponent<PlayerFlask>());
+                controls.Add(controller.GetComponent<PlayerInteractor>());
+                if (gear == null) // an old test player: switch its tools off directly
+                    foreach (Behaviour item in new Behaviour[] { controller.GetComponent<MiningLaser>(), controller.GetComponent<ScannerLaserSwap>() })
+                        controls.Add(item);
                 if (playerHealth != null) playerHealth.Died += OnPlayerDied;
-                // The Scotch flask, for healing during the fight (granted when the ambush starts).
-                flask = controller.GetComponent<CombatFlask>();
-                if (flask == null && controller.GetComponent<TutorialPlayer>() == null)
-                {
-                    flask = controller.gameObject.AddComponent<CombatFlask>();
-                    flask.UseModel(flaskModel);
-                }
             }
             if (worm != null)
             {
@@ -177,11 +174,8 @@ namespace SignalLost.Enemies.Desert
             SetControls(true);
             controller.ResetMotion();
             stage = Stage.Fighting;
-            if (flask != null && !flask.Available)
-            {
-                flask.Grant();
+            if (gear != null && gear.Collect(PlayerItem.Flask))
                 CorewormHud.Subtitle("You've still got the Scotch flask: press F to drink and heal.", 3.5f);
-            }
             worm.BeginFight();
         }
 
@@ -236,6 +230,9 @@ namespace SignalLost.Enemies.Desert
         private void SetControls(bool on)
         {
             foreach (Behaviour item in controls) if (item != null) item.enabled = on;
+            if (gear == null) return;
+            if (on) gear.Unholster(this);
+            else gear.Holster(this);
         }
 
         private void Teleport(Vector3 position, Vector3 lookAt)
