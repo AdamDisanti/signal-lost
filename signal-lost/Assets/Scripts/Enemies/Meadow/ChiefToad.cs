@@ -163,6 +163,10 @@ namespace SignalLost.Enemies.Meadow
         /// <summary>1, 2 or 3.</summary>
         public int Stage => overflow ? 3 : Phase;
         public string StateName => state.ToString();
+
+        /// <summary>Moments worth a sound (or other feedback), for ToadAudio.</summary>
+        public enum Cue { BeamCharge, BeamFire, Blades, Jump, Land, ScreamCharge, Scream, SpinCharge, Overflow, CoolantCrack }
+        public event System.Action<Cue> Cued;
         protected override string PartStage => StageProgress.Tutorial;
 
         // Faster windups and shorter cooldowns each phase.
@@ -205,6 +209,7 @@ namespace SignalLost.Enemies.Meadow
             ParticleBurst.Spawn(ParticleBurst.Kind.Water, back, Vector3.up, 40, 0.22f, 7f, 50f);
             ParticleBurst.Spawn(ParticleBurst.Kind.Mist, back, Vector3.up, 14, 1.4f, 3f, 60f);
             CameraShake.Add(0.4f);
+            Cued?.Invoke(Cue.CoolantCrack);
         }
 
         protected override void UpdatePhaseShift(float dt)
@@ -345,12 +350,14 @@ namespace SignalLost.Enemies.Meadow
                 Halt();
                 Enter(State.SpinCharge);
                 marker = GroundMarker.Spawn(warningMaterial, null, GroundBelow(transform.position), spinRange * 0.6f);
+                Cued?.Invoke(Cue.SpinCharge);
                 return true;
             }
             if (now >= nextScream && distance <= screamRange * 0.85f && seen)
             {
                 Halt();
                 Enter(State.ScreamWindup);
+                Cued?.Invoke(Cue.ScreamCharge);
                 marker = GroundMarker.Spawn(warningMaterial, null, GroundBelow(transform.position), screamRange);
                 if (!screamWarned)
                 {
@@ -369,6 +376,7 @@ namespace SignalLost.Enemies.Meadow
             {
                 Halt();
                 Enter(State.BeamCharge);
+                Cued?.Invoke(Cue.BeamCharge);
                 aimLine.enabled = true;
                 return true;
             }
@@ -440,6 +448,7 @@ namespace SignalLost.Enemies.Meadow
             ParticleBurst.Spawn(ParticleBurst.Kind.Water, origin, beamFlat, 24, 0.25f, 9f, 25f);
             ParticleBurst.Spawn(ParticleBurst.Kind.Mist, origin, beamFlat, 8, 1.2f, 4f, 30f);
             CameraShake.Add(0.25f);
+            Cued?.Invoke(Cue.BeamFire);
             Enter(State.Beam);
         }
 
@@ -543,6 +552,7 @@ namespace SignalLost.Enemies.Meadow
 
         private void FireVolley()
         {
+            Cued?.Invoke(Cue.Blades);
             int count = Stage == 1 ? bladesPerVolley : laterBladesPerVolley;
             float spread = Stage == 1 ? bladeSpread : bladeSpread * 1.5f;
             float offset = volleysFired % 2 == 1 && count > 1 ? spread / (count - 1) * 0.5f : 0f; // alternate volleys fill the gaps
@@ -593,6 +603,7 @@ namespace SignalLost.Enemies.Meadow
             if (stateTime < CrouchTime) return;
             jumpFrom = transform.position;
             if (Agent != null) Agent.enabled = false; // flying: moved by hand until it lands
+            Cued?.Invoke(Cue.Jump);
             ParticleBurst.Spawn(ParticleBurst.Kind.Water, transform.position, Vector3.up, 20, 0.2f, 6f, 60f);
             ParticleBurst.Spawn(ParticleBurst.Kind.Mist, transform.position, Vector3.up, 6, 1.2f, 2f, 70f);
             Enter(State.SlamAir);
@@ -621,6 +632,7 @@ namespace SignalLost.Enemies.Meadow
             }
             ClearMarker();
             landSquash = 1f;
+            Cued?.Invoke(Cue.Land);
 
             // The impact: hurts up close and shoves you away.
             if (TargetAlive)
@@ -691,6 +703,7 @@ namespace SignalLost.Enemies.Meadow
                 PlayerStun.Apply(Target, stunTime);
                 HurtPlayer(screamDamage);
             }
+            Cued?.Invoke(Cue.Scream);
             Enter(State.Scream);
         }
 
@@ -754,6 +767,7 @@ namespace SignalLost.Enemies.Meadow
             Halt();
             Enter(State.Overflow);
             MiniBossHud.Message("CHIEF TOAD: COOLANT OVERFLOW!", new Color(0.55f, 0.85f, 1f));
+            Cued?.Invoke(Cue.Overflow);
             CameraShake.Add(0.5f);
         }
 

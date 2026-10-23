@@ -54,6 +54,7 @@ All numbers are first-pass placeholders for play-testing.
   - `ChiefToad` (the boss; built on `DesertMiniBoss`)
   - `WaterBlade` (the crescents)
   - `SplashWave` (the landing wave)
+- `Scripts/Audio/ToadAudio.cs`: his sounds, added by `SoundDirector` (see [sound effects](sound-effects.md)).
 - `Scripts/Player/PlayerStun.cs`: the player stun, with a screen effect. `FirstPersonController.Stun` stops walking and jumping.
 - `Scripts/Effects/ParticleBurst.cs`: new **Water** (droplets) and **Mist** (spray) kinds.
 - `ShipPartDrop` and `StageProgress`: parts are now counted per stage (`StageProgress.Tutorial` for the cooling system).
@@ -65,7 +66,7 @@ These are open questions:
 - **Where he waits:** the tutorial pond is at (-60, 62), about 50 × 34 m, larger than the test pond. His 26 m arena radius may need to grow to match.
 - **Story:** how he fits the tutorial, for example whether the cooling system is required before leaving.
 - **Balance:** he is far tougher than anything else in the tutorial.
-- **Missing pieces:** sound, and a proper rig (he is animated in code from separate parts).
+- **Missing pieces:** his own recorded sounds (`ToadAudio` reuses the placeholder set, pitched down), and a proper rig (he is animated in code from separate parts).
 
 ## Validation
 

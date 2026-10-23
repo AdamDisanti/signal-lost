@@ -19,6 +19,12 @@ namespace SignalLost.Enemies.Meadow
 
         private static Mesh crescent;
 
+        /// <summary>Raised when a blade bursts (where, and whether it hit the player), for its splash sound.</summary>
+        public static event System.Action<Vector3, bool> Splashed;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Splashed = null;
+
         private Vector3 velocity;
         private float damage, age, nextSpray;
         private GameObject owner;
@@ -89,7 +95,7 @@ namespace SignalLost.Enemies.Meadow
                         push.y = 0f;
                         if (body != null && body.enabled && push.sqrMagnitude > 0.01f) body.Move(push.normalized * 0.7f);
                         CameraShake.Add(0.2f);
-                        Burst(hit.point == Vector3.zero ? transform.position : hit.point, 22);
+                        Burst(hit.point == Vector3.zero ? transform.position : hit.point, 22, true);
                         return;
                     }
                     if (hit.collider.GetComponentInParent<Health>() != null) continue; // props with health (dummies) don't stop it
@@ -110,8 +116,9 @@ namespace SignalLost.Enemies.Meadow
                 ParticleBurst.Spawn(ParticleBurst.Kind.Mist, below.point, Vector3.up, 1, 0.8f, 1.5f, 40f);
         }
 
-        private void Burst(Vector3 at, int droplets)
+        private void Burst(Vector3 at, int droplets, bool hitPlayer = false)
         {
+            Splashed?.Invoke(at, hitPlayer);
             ParticleBurst.Spawn(ParticleBurst.Kind.Water, at, Vector3.up - velocity.normalized * 0.6f, droplets, 0.18f, 6f, 65f);
             ParticleBurst.Spawn(ParticleBurst.Kind.Mist, at, Vector3.up, 4, 1f, 1.8f, 50f);
             Destroy(gameObject);

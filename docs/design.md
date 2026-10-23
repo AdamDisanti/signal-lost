@@ -137,7 +137,7 @@ Lawson's request: a chief toad boss for the tutorial pond, built in its own test
   - his placement and arena radius on the tutorial map;
   - whether the cooling system gates tutorial progress;
   - balance against the rest of the tutorial;
-  - audio.
+  - his own sounds (placeholders reused for now; see [sound effects](sound-effects.md)).
 
 ## Cavendish and merchant tutorial integration
 
