@@ -155,9 +155,7 @@ public static class ScannerPlayModeSmoke
         Check(slider.handleRect == null && slider.targetGraphic == null && slider.transform.Find("Handle Slide Area") == null,
             "Unused handle objects and references are removed.");
         Check(background.Find("Scanner_SliderTrack") == null && !slider.interactable, "Legacy mesh track is removed and proximity display is read-only.");
-        Transform arrow = visual.transform.Find("Canvas/ScannerHUD/Arrow");
-        Check(arrow.GetComponent<Image>() == null && arrow.GetComponent<CanvasRenderer>() == null
-            && arrow.Find("Scanner_FancyArrow").GetComponent<MeshRenderer>() != null, "Only the working compass mesh remains.");
+        Check(visual.transform.Find("Canvas/ScannerHUD/Arrow") == null, "Removed directional arrow is absent from the scanner display.");
         Check(visual.GetComponentInChildren<GraphicRaycaster>() == null && visual.GetComponentsInChildren<Image>(true).Length == 2,
             "Only background/fill UI graphics remain; no unused pointer raycaster.");
         float previous = slider.value;
