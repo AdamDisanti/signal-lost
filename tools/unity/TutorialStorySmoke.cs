@@ -50,7 +50,8 @@ public static class TutorialStorySmoke
         string project = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
         if (!Application.isBatchMode || !(project.StartsWith(Path.GetFullPath(Path.GetTempPath())) || project.StartsWith("/private/tmp/")))
             throw new InvalidOperationException("Run in a disposable batch-mode project under the system temporary directory.");
-        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial/Tutorial.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Tutorial/Tutorial Demo.unity");
+        SignalLost.Progression.CampSave.Clear(); // start (and finish) with an empty camp
         SessionState.SetBool(Key, true);
         SessionState.SetFloat(Key + "Time", (float)EditorApplication.timeSinceStartup);
         EditorApplication.EnterPlaymode();
@@ -88,13 +89,16 @@ public static class TutorialStorySmoke
         var gear = life.GetComponent<PlayerGear>();
         var interactor = life.GetComponent<PlayerInteractor>();
         var inventory = life.GetComponent<PlayerInventory>();
+        Check(!SignalLost.Audio.PlayerAudio.FootstepsEnabled, "Player footsteps are switched off for now.");
+        Check(life.GetComponentInChildren<ScannerController>(true).Range >= 200f, "The tutorial scanner uses its 200 m level range (Amanda's rework).");
         view = life.GetComponentInChildren<Camera>();
         NpcActor cavendish = UnityEngine.Object.FindObjectsByType<NpcActor>().First(n => n.Kind == NpcActor.Role.Cavendish);
-        MerchantCrab merchant = UnityEngine.Object.FindAnyObjectByType<MerchantCrab>();
+        MerchantCrab merchant = UnityEngine.Object.FindAnyObjectByType<MerchantCrab>(FindObjectsInactive.Include);
         DialogueUi ui = DialogueUi.Instance;
 
         // ---------- Opening ----------
         Check(story.Current == TutorialStory.Stage.Opening, "The tutorial opens with the crash cutscene.");
+        Check(!merchant.gameObject.activeSelf && merchant.Cousins.All(c => !c.gameObject.activeSelf), "The hollow is empty until Cavendish's big-crab quest.");
         Check(!gear.Has(PlayerItem.MiningLaser) && !gear.Has(PlayerItem.Scanner) && !gear.Has(PlayerItem.Flask), "The mechanic starts empty-handed.");
         Transform cockpit = GameObject.Find("Opening - Cockpit View").transform;
         yield return 3f;
@@ -125,12 +129,14 @@ public static class TutorialStorySmoke
         yield return null;
         Check(glint.enabled, "...and shows up close.");
         yield return Capture("ScannerFound");
-        Check(interactor.TryInteract() && gear.Has(PlayerItem.Scanner), "The scanner can be picked up from under its panel by the interaction ray.");
+        Aim(life, scanner); // captures take a few frames, in which the player can settle off the spot
+        Check(ReadCardsThen(interactor).TryInteract() && gear.Has(PlayerItem.Scanner), "The scanner can be picked up from under its panel by the interaction ray.");
         Check(QuestSignalSource.Nearest(life.transform.position) == laser.GetComponent<QuestSignalSource>(), "With the scanner back, it points at the laser.");
         Aim(life, laser);
         yield return null;
         yield return Capture("LaserFound");
-        Check(interactor.TryInteract() && gear.Has(PlayerItem.MiningLaser), "The laser can be picked up in the reactor bay by the interaction ray.");
+        Aim(life, laser);
+        Check(ReadCardsThen(interactor).TryInteract() && gear.Has(PlayerItem.MiningLaser), "The laser can be picked up in the reactor bay by the interaction ray.");
         Check(QuestSignalSource.Nearest(life.transform.position) == cavendish.GetComponent<QuestSignalSource>(), "With both found, the scanner points back to Cavendish.");
 
         // ---------- The big crab ----------
@@ -138,7 +144,9 @@ public static class TutorialStorySmoke
         yield return 0.3f;
         Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("You found them both"), "Cavendish tells of the big crab.");
         yield return ReadToEnd(ui);
-        Check(story.Current == TutorialStory.Stage.Fight && !merchant.GetComponent<Health>().Invulnerable, "The crab hunt is on.");
+        yield return null;
+        Check(story.Current == TutorialStory.Stage.Fight && merchant.gameObject.activeSelf && !merchant.GetComponent<Health>().Invulnerable,
+            "The crab hunt is on: the crab and its cousins are now in the hollow.");
         Check(QuestSignalSource.Nearest(life.transform.position) == merchant.GetComponent<QuestSignalSource>(), "The scanner points at the crab.");
         CrabCousin[] cousins = merchant.Cousins.ToArray();
         Check(cousins.Length == 10 && cousins.Select(c => c.name).Distinct().Count() == 10, "Ten cousins with distinct names: " + string.Join(", ", cousins.Select(c => c.name)));
@@ -189,7 +197,117 @@ public static class TutorialStorySmoke
         Check(story.Current == TutorialStory.Stage.MerchantIntro && ui.PopupOpen && ui.Owner == merchant.transform, "It introduces itself right away.");
         yield return Capture("MerchantIntro");
         yield return ReadToEnd(ui);
-        Check(story.Current == TutorialStory.Stage.Done, "The tutorial stops after the introduction.");
+        Check(story.Current == TutorialStory.Stage.FirstUpgrade && MerchantMenuUi.Current != null && MerchantMenuUi.Current.IsOpen,
+            "After the introduction Eugene's shop opens for a first upgrade.");
+        yield return Capture("FirstShop");
+        MerchantMenuUi.Current.Close();
+        yield return null;
+
+        // ---------- First upgrade, then the pond frogs ----------
+        Check(ReadCardsThen(interactor) != null && cavendish.Interact(interactor) && cavendish.Dialogue.CurrentLine.Contains("kitted out"),
+            "Cavendish holds his next job until an upgrade is bought.");
+        cavendish.Dialogue.AdvanceManual();
+        Upgrade first = UpgradeCatalog.All.First(u => u.OneOff && inventory.WhyNot(u) == null);
+        Check(inventory.Buy(first) && story.Current == TutorialStory.Stage.ShowCavendish, "Buying " + first.Name + " sends the player back to Cavendish.");
+        Check(QuestSignalSource.Nearest(life.transform.position) == cavendish.GetComponent<QuestSignalSource>(), "The scanner points at Cavendish.");
+        ReadCardsThen(interactor);
+        Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("shiny"), "Cavendish admires the upgrade and asks about the pond frogs.");
+        yield return ReadToEnd(ui);
+        FrogWaves frogs = UnityEngine.Object.FindAnyObjectByType<FrogWaves>();
+        Check(story.Current == TutorialStory.Stage.Frogs && frogs.Started && frogs.Total == 20 && frogs.WaveCount == 3, "The frog quest begins: 20 frogs in three waves.");
+        yield return 1f;
+        Check(frogs.Alive.Count == 5, "Wave 1: five frogs at the pond.");
+        Check(QuestSignalSource.Nearest(life.transform.position).GetComponent<MortarFrog>() != null, "The scanner points at the nearest frog.");
+        Teleport(life, frogs.transform.position + Vector3.forward * 20f);
+        view.transform.LookAt(frogs.Alive[0].transform.position);
+        yield return 1.5f;
+        yield return Capture("PondFrogs");
+        int[] expected = { 5, 7, 8 };
+        for (int w = 0; w < 3; w++)
+        {
+            Check(frogs.Wave == w + 1 && frogs.Alive.Count == expected[w], $"Wave {w + 1}: {expected[w]} frogs.");
+            foreach (MortarFrog frog in frogs.Alive.ToArray()) frog.GetComponent<Health>().TakeDamage(10000f, life.gameObject);
+            yield return w < 2 ? 4f : 1f;
+        }
+        Check(frogs.Finished && frogs.Defeated == 20 && story.Current == TutorialStory.Stage.FrogsDone, "All 20 frogs cleared; report back to Cavendish.");
+        Teleport(life, PlayerSpawnPoint.Current.transform.position);
+        yield return 0.3f;
+        ReadCardsThen(interactor);
+        Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("Twenty frogs"), "Cavendish warns of the Chief Toad.");
+        yield return ReadToEnd(ui);
+        ChiefToadEncounter encounter = UnityEngine.Object.FindAnyObjectByType<ChiefToadEncounter>();
+        Check(story.Current == TutorialStory.Stage.ChiefToad && encounter.Current == ChiefToadEncounter.State.Armed && !encounter.Toad.gameObject.activeSelf,
+            "Cavendish gives the Chief Toad quest; the toad is not there until the player reaches the pond.");
+        yield return Capture("ChiefToad");
+
+        // ---------- The Chief Toad ----------
+        Teleport(life, frogs.transform.position + Vector3.back * 30f);
+        yield return WaitFor(() => encounter.Current == ChiefToadEncounter.State.Cutscene, 3f, "Reaching the pond starts the cutscene.");
+        yield return 2.5f;
+        Check(encounter.Toad.gameObject.activeSelf && !encounter.Toad.enabled && Camera.main != view, "The toad rises from the middle of the pond, seen from the bank.");
+        var shot = UnityEngine.Object.FindObjectsByType<Camera>().FirstOrDefault(c => c.name.Contains("Cutscene"));
+        if (shot != null) { Camera player = view; view = shot; yield return Capture("ToadRise"); view = player; }
+        yield return WaitFor(() => encounter.Current == ChiefToadEncounter.State.Fighting, 8f, "Control returns for the fight.");
+        Check(encounter.Toad.enabled && view.enabled && life.GetComponent<FirstPersonController>().enabled, "The player can move again.");
+        yield return 1.5f;
+        Check(encounter.Toad.Engaged, "The Chief Toad engages (his boss bar is up).");
+        Check(encounter.Toad.PhaseThreeAt > 0f && encounter.Toad.PhaseThreeAt < encounter.Toad.PhaseTwoAt, "His boss bar marks where phases 2 and 3 start.");
+        yield return 4f;
+        Check(frogs.Sustaining && frogs.Alive.Count >= 3 && frogs.Alive.Count <= 5, $"3-5 frogs keep him company ({frogs.Alive.Count} out).");
+        yield return Capture("ToadFight");
+        life.Health.Invulnerable = true;
+        var toadHealth = encounter.Toad.GetComponent<Health>();
+        int topPhase = 1;
+        for (int i = 0; i < 200 && encounter.Current != ChiefToadEncounter.State.Defeated; i++)
+        {
+            topPhase = Mathf.Max(topPhase, encounter.Toad.DisplayPhase);
+            toadHealth.TakeDamage(120f, life.gameObject);
+            yield return 0.2f;
+        }
+        Check(encounter.Current == ChiefToadEncounter.State.Defeated && story.Current == TutorialStory.Stage.ToadBeaten, "The Chief Toad is beaten.");
+        Check(topPhase == 3, "His bar went through all three phases.");
+        yield return 0.5f;
+        Check(!frogs.Sustaining && frogs.Alive.Count == 0, "His frogs leave with him.");
+        Check(encounter.Trophy != null && UnityEngine.Object.FindObjectsByType<ScrapPickup>().Length > 0, "He leaves a loot pile: scrap, the cooling system and his crown.");
+        yield return 1f;
+        yield return Capture("ToadLoot");
+        Check(encounter.Trophy.Interact(interactor) && inventory.HasKeyItem("chief_toad_crown"), "The crown goes into the pockets.");
+        ReadCardsThen(interactor);
+        var part = UnityEngine.Object.FindAnyObjectByType<SignalLost.Enemies.Desert.ShipPartDrop>();
+        Check(part != null, "The cooling system lies in the loot.");
+        Teleport(life, part.transform.position);
+        yield return WaitFor(() => SignalLost.Enemies.Desert.ShipPartDrop.CountFor(SignalLost.Progression.StageProgress.Tutorial) > 0, 5f, "Walking over the cooling system picks it up.");
+
+        // ---------- The trophy at camp, and the end ----------
+        Teleport(life, PlayerSpawnPoint.Current.transform.position);
+        yield return 0.3f;
+        var stand = UnityEngine.Object.FindObjectsByType<SignalLost.Progression.TrophyStand>().OrderBy(t => t.Index).First();
+        Check(stand.Prompt.Contains("Crown") && stand.Interact(interactor) && stand.TrophyId == "chief_toad_crown", "The crown goes on a trophy stand at camp.");
+        yield return null;
+        Check(stand.GetComponentsInChildren<Transform>().Any(t => t.name == "Chief Toad's Crown") && File.Exists(SignalLost.Progression.CampSave.FilePath) &&
+              File.ReadAllText(SignalLost.Progression.CampSave.FilePath).Contains("chief_toad_crown"), "It is shown on the stand and saved to disk.");
+        Check(story.Current == TutorialStory.Stage.ToadBeaten, "With the crown placed, the cooling system still has to go to Cavendish.");
+        Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("cooling system"), "Cavendish takes the cooling system...");
+        yield return ReadToEnd(ui);
+        Check(story.Current == TutorialStory.Stage.TrophyPlaced, "...for 'safe keeping'. Then: talk to Cavendish.");
+        view.transform.LookAt(stand.transform.position + Vector3.up);
+        yield return Capture("Trophy");
+        string timesPath = TutorialRunTimer.FilePath;
+        string timesBefore = File.Exists(timesPath) ? File.ReadAllText(timesPath) : null; // put back afterwards
+        Check(story.Timer.Running && story.Timer.Elapsed > 0f, $"The tutorial clock is running ({TutorialRunTimer.Format(story.Timer.Elapsed)}).");
+        Check(cavendish.Interact(interactor) && ui.PopupOpen && ui.CurrentLine.Contains("You did it"), "Cavendish wraps up the demo.");
+        yield return ReadToEnd(ui);
+        Check(story.Current == TutorialStory.Stage.DemoComplete && DemoEndCard.Current != null && DemoEndCard.Current.IsOpen, "The 'Thanks for playing' card appears.");
+        string[] times = File.Exists(timesPath) ? File.ReadAllLines(timesPath) : new string[0];
+        Check(!story.Timer.Running && times.Length >= 2 && times[0].StartsWith("finished_utc") && times[times.Length - 1].Contains(TutorialRunTimer.Format(story.Timer.Elapsed)),
+            $"The completion time stops and is saved for playtesting: {times.LastOrDefault()}");
+        Check(DemoEndCard.Current.GetComponentsInChildren<TMPro.TMP_Text>().Any(t => t.text.Contains("Completion time") && t.text.Contains(TutorialRunTimer.Format(story.Timer.Elapsed))),
+            "The end card shows the completion time.");
+        if (timesBefore != null) File.WriteAllText(timesPath, timesBefore); else File.Delete(timesPath);
+        yield return Capture("EndCard");
+        DemoEndCard.Current.KeepExploring();
+        Check(!DemoEndCard.Current.IsOpen && !UiMenus.AnyOpen, "Keep Exploring returns the player to the meadow.");
+        SignalLost.Progression.CampSave.Clear();
 
         // ---------- Angry merchant ----------
         for (int hit = 0; hit < 6; hit++) merchant.GetComponent<Health>().TakeDamage(10f, life.gameObject);
@@ -200,9 +318,19 @@ public static class TutorialStorySmoke
         Check(cousins.All(c => Vector3.Distance(c.transform.position, merchant.transform.position) < 10f && c.Crab.Territory.Zone == null), "...defending the spot they were called to.");
         yield return 1.5f;
         yield return Capture("Ambush");
+        int scrapBefore = UnityEngine.Object.FindObjectsByType<ScrapPickup>().Length;
         foreach (CrabCousin cousin in cousins) cousin.GetComponent<Health>().TakeDamage(10000f, life.gameObject);
-        yield return 3.5f;
+        yield return 0.5f;
+        Check(UnityEngine.Object.FindObjectsByType<ScrapPickup>().Length == scrapBefore, "Called-back cousins drop no scrap (no farming the angry merchant).");
+        yield return 3f;
         Check(!merchant.AmbushActive && cousins.All(c => !c.gameObject.activeSelf), "Beating them ends the ambush and they despawn again.");
+    }
+
+    // Item cards wait for the player (E dismisses them first), so read any open ones before interacting.
+    private static PlayerInteractor ReadCardsThen(PlayerInteractor interactor)
+    {
+        while (GameplayOverlay.Current != null && GameplayOverlay.Current.CardOpen) GameplayOverlay.Current.DismissCard();
+        return interactor;
     }
 
     private static IEnumerator ReadToEnd(DialogueUi ui)

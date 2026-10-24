@@ -82,7 +82,7 @@ namespace SignalLost.Enemies.Meadow
         [SerializeField, Min(0.2f)] private float beamCharge = 1.1f;
         [SerializeField, Min(0.2f)] private float beamTime = 1.8f;
         [SerializeField, Min(5f)] private float beamRange = 28f;
-        [SerializeField, Min(0.2f)] private float beamHitRadius = 0.9f;
+        [SerializeField, Min(0.2f)] private float beamHitRadius = 1.5f;
         [SerializeField, Min(0f)] private float beamDamagePerTick = 7f;
         [SerializeField, Min(0.05f)] private float beamTick = 0.15f;
         [Tooltip("How far each tick pushes you along the beam.")]
@@ -162,6 +162,8 @@ namespace SignalLost.Enemies.Meadow
 
         /// <summary>1, 2 or 3.</summary>
         public int Stage => overflow ? 3 : Phase;
+        public override int DisplayPhase => Stage;
+        public override float PhaseThreeAt => phaseThreeAt;
         public string StateName => state.ToString();
 
         /// <summary>Moments worth a sound (or other feedback), for ToadAudio.</summary>
@@ -463,7 +465,6 @@ namespace SignalLost.Enemies.Meadow
                 want.y = 0f;
                 if (want.sqrMagnitude > 0.01f)
                     beamFlat = Vector3.RotateTowards(beamFlat, want.normalized, beamTracking * Mathf.Deg2Rad * dt, 0f);
-                beamTargetY = Mathf.Lerp(beamTargetY, Target.position.y + 1f, dt * 2f);
             }
             else
             {
@@ -471,10 +472,16 @@ namespace SignalLost.Enemies.Meadow
                 float yaw = beamBaseYaw + Mathf.Lerp(-beamSweep, beamSweep, t) * beamDirection;
                 beamFlat = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
             }
+            // In every phase the jet tilts up or down after the player (on slopes, banks, mid-jump).
+            beamTargetY = Mathf.Lerp(beamTargetY, Target.position.y + 1f, dt * 3f);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(beamFlat), 400f * dt);
 
             Vector3 origin = MouthPosition;
-            Vector3 aim = new Vector3(origin.x, beamTargetY, origin.z) + beamFlat * 20f;
+            // Aim at the player's real distance, so the tilt is right up close as well as far away.
+            Vector3 toTarget = Target.position - origin;
+            toTarget.y = 0f;
+            float reach = Mathf.Clamp(toTarget.magnitude, 3f, beamRange);
+            Vector3 aim = new Vector3(origin.x, beamTargetY, origin.z) + beamFlat * reach;
             Vector3 end = BeamEnd(origin, aim - origin, beamRange);
             DrawWaterBeam(origin, end, 1f);
             BeamHits(origin, end);
@@ -499,9 +506,9 @@ namespace SignalLost.Enemies.Meadow
 
         private void DrawWaterBeam(Vector3 origin, Vector3 end, float scale)
         {
-            DrawLine(beamHalo, origin, end, 1.7f * scale, 0.12f);
-            DrawLine(beamMain, origin, end, 0.8f * scale, 0.08f);
-            DrawLine(beamCore, origin, end, 0.28f * scale, 0.03f);
+            DrawLine(beamHalo, origin, end, 2.5f * scale, 0.12f);
+            DrawLine(beamMain, origin, end, 1.2f * scale, 0.08f);
+            DrawLine(beamCore, origin, end, 0.42f * scale, 0.03f);
             float flicker = 0.85f + 0.3f * Mathf.PerlinNoise(Time.time * 20f, 0.4f);
             if (mouthLight != null)
             {
@@ -850,7 +857,7 @@ namespace SignalLost.Enemies.Meadow
             if (distance < 0f || distance > length) return false;
             if ((relative - along * distance).magnitude > beamHitRadius) return false;
             float beamY = Mathf.Lerp(origin.y, end.y, distance / length);
-            return beamY >= feetY - 0.25f && beamY <= feetY + 1.9f;
+            return beamY >= feetY - 0.6f && beamY <= feetY + 2.3f; // a thick jet: forgiving top and bottom
         }
 
         private void ClearMarker()

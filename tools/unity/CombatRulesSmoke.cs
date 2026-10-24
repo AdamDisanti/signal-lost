@@ -137,11 +137,11 @@ public static class CombatRulesSmoke
         UnityEngine.Object.Destroy(merchant.gameObject);
 
         // ---------- Bolt cooldown scales with charge ----------
-        Set(laser, "shotCooldown", 8f);
-        Set(laser, "tapShotCooldown", 4f);
-        Check(Mathf.Approximately(laser.CooldownFor(0.1f), 4f) && Mathf.Approximately(laser.CooldownFor(1f), 8f) &&
-              Mathf.Approximately(laser.CooldownFor(0.55f), 6f) && Mathf.Approximately(laser.CooldownFor(0f), 4f),
-            "Bolt cooldown: 4 s at 10% charge or less, 6 s at 55%, 8 s at full.");
+        Set(laser, "shotCooldown", 6f);
+        Set(laser, "tapShotCooldown", 1f);
+        Check(Mathf.Approximately(laser.CooldownFor(0.1f), 1f) && Mathf.Approximately(laser.CooldownFor(1f), 6f) &&
+              Mathf.Abs(laser.CooldownFor(0.55f) - 2.77f) < 0.01f && Mathf.Approximately(laser.CooldownFor(0f), 1f),
+            "Bolt cooldown: 1 s at 10% charge or less, about 2.8 s at 55% (eased), 6 s at full.");
 
         // ---------- Full-charge blast ----------
         foreach (var e in new Component[] { frog, armadillo }) UnityEngine.Object.Destroy(e.gameObject);

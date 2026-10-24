@@ -14,7 +14,7 @@ using UnityEngine.SceneManagement;
 namespace SignalLost.Editor
 {
     /// <summary>
-    /// Builds the tutorial level (Scenes/Tutorial/Tutorial.unity, meeting notes 10-22): a green meadow at golden late
+    /// Builds the tutorial level (Scenes/Tutorial/Tutorial Demo.unity, meeting notes 10-22): a green meadow at golden late
     /// afternoon ringed by rocky mountains, with a dense forest belt and inner hills so the player never sees end to
     /// end. The stripped shipwreck lies nose-first in a dirt berm at the end of a gouged trench, burning and smoking
     /// (the ground is dug out under the hull so it never pokes through); Cavendish's campsite sits in a pine-ringed
@@ -28,7 +28,7 @@ namespace SignalLost.Editor
     /// </summary>
     internal static class TutorialLevelBuilder
     {
-        public const string ScenePath = "Assets/Scenes/Tutorial/Tutorial.unity";
+        public const string ScenePath = "Assets/Scenes/Tutorial/Tutorial Demo.unity";
         private const string TerrainFolder = MeadowAssetBuilder.Folder + "/Terrain";
 
         private const float MapSize = 320f;
@@ -42,7 +42,7 @@ namespace SignalLost.Editor
         public static readonly Vector2 ShipForward = new Vector2(0.91f, 0.41f).normalized; // the nose points north-east
         public static readonly Vector2 Hollow = new Vector2(66f, 58f);
         public static readonly Vector2 Pond = new Vector2(-60f, 62f);
-        private static readonly Vector2 PondRadii = new Vector2(25f, 17f); // half-widths along x and z (longest east-west)
+        public static readonly Vector2 PondRadii = new Vector2(25f, 17f); // half-widths along x and z (longest east-west)
         private const float PondBank = 1.45f;  // where the bank meets the meadow, in pond radii
         private const float PondDepth = 1.1f;  // shallow enough to wade
 
@@ -66,7 +66,7 @@ namespace SignalLost.Editor
         public static void BuildFromMenu()
         {
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null &&
-                !EditorUtility.DisplayDialog("Rebuild tutorial level?", "This replaces Scenes/Tutorial/Tutorial.unity, including any hand edits.", "Rebuild", "Cancel"))
+                !EditorUtility.DisplayDialog("Rebuild tutorial level?", "This replaces Scenes/Tutorial/Tutorial Demo.unity, including any hand edits.", "Rebuild", "Cancel"))
                 return;
             Build();
         }
@@ -77,6 +77,7 @@ namespace SignalLost.Editor
             MeadowAssetBuilder.Build();
             CorePrefabBuilder.Build();
             CrabCousinBuilder.Build();
+            BaseCampBuilder.Build();
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var random = new System.Random(20261022);
 
@@ -404,16 +405,9 @@ namespace SignalLost.Editor
 
         private static Transform BuildCamp(Transform level, List<Vector3> clear)
         {
-            var camp = new GameObject("Campsite").transform;
-            camp.SetParent(level, false);
-            camp.position = Ground(Camp);
-            Place(MeadowAssetBuilder.PrefabPath("FirePit"), camp, Ground(Camp), Quaternion.identity, 1f, false).name = "Fire Pit";
-            Effect("Campfire", camp, Ground(Camp) + Vector3.up * 0.05f, 1f, "Campfire");
-            Place(MeadowAssetBuilder.PrefabPath("Tent"), camp, Ground(Camp + new Vector2(-4f, 6f)), Quaternion.Euler(0f, 160f, 0f), 1f, false);
-            Place(MeadowAssetBuilder.PrefabPath("LogSeat"), camp, Ground(Camp + new Vector2(3f, 0.6f)), Quaternion.Euler(0f, 90f, 0f), 1f, false).name = "Cavendish's Log";
-            Place(MeadowAssetBuilder.PrefabPath("LogSeat"), camp, Ground(Camp + new Vector2(0.3f, -3.4f)), Quaternion.Euler(0f, 10f, 0f), 1f, false);
-            Place(CrashSiteWreckBuilder.DebrisPath("Crate"), camp, Ground(Camp + new Vector2(-2.5f, 4.6f)), Quaternion.Euler(0f, 25f, 0f), 0.8f, false).name = "Cavendish's Supplies";
-            Place(CrashSiteWreckBuilder.DebrisPath("Barrel"), camp, Ground(Camp + new Vector2(-1.2f, 5.2f)), Quaternion.identity, 0.8f, false);
+            // The base camp is one prefab, the same in every level (BaseCampBuilder); its trophy stands remember trophies.
+            Transform camp = Place(BaseCampBuilder.PrefabPath, level, Ground(Camp), Quaternion.identity, 1f, false).transform;
+            camp.name = "Campsite";
             clear.Add(new Vector3(Camp.x, Camp.y, 12f));
             return camp;
         }
@@ -788,6 +782,10 @@ namespace SignalLost.Editor
             var player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CorePrefabBuilder.PlayerPath));
             player.transform.SetPositionAndRotation(spawnAt + Vector3.up * 0.05f, spawnFacing);
             player.GetComponentInChildren<Camera>(true).clearFlags = CameraClearFlags.Skybox; // the shared player clears to a flat colour
+            // Amanda's scanner rework: the tutorial's scene-wide scanner range (signal strength and creature pickup).
+            var scanner = new SerializedObject(player.GetComponentInChildren<SignalLost.Scanner.ScannerController>(true));
+            scanner.FindProperty("levelRangeOverride").floatValue = 200f;
+            scanner.ApplyModifiedPropertiesWithoutUndo();
             PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CorePrefabBuilder.SystemsPath));
             return gameplay;
         }

@@ -1,8 +1,8 @@
 # Tutorial
 
-The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework"). It replaces the lunar crash-site tutorial; that scene is now **Testing Sandbox**, a free-play sandbox. New Game on the title screen loads it.
+The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework"), finished by the 10-23-26 notes ("Final tutorial tweaking"). It replaces the lunar crash-site tutorial; that scene is now **Testing Sandbox**, a free-play sandbox. New Game on the title screen loads it.
 
-- Scene: `signal-lost/Assets/Scenes/Tutorial/Tutorial.unity`
+- Scene: `signal-lost/Assets/Scenes/Tutorial/Tutorial Demo.unity`
 - Build order: MainMenu, Tutorial, Testing Sandbox, Desert Dunes, Prototype
 
 ## How it plays
@@ -13,16 +13,42 @@ The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework").
    - the **mining laser** is wedged under a rib in the open reactor bay;
    - the **scanner** is under a fallen hull panel by the tail, on the port side of the trench.
 
-   Once the scanner is found, it points at the laser. Coming back to Cavendish early gets a "keep looking" line. The quest tracker ticks both items off.
-4. **The Big Crab.** With both items found, Cavendish describes a big crab that scuttled off with a massive bottle. The scanner now points at it. It waits in a hollow north-east of camp, ringed by boulders, bushes and pines. The trail from the crash fades out before the hollow, and the only gap in the ring faces away from the crash site.
+   Once the scanner is found, the laser becomes its selected quest signal. The in-hand display has a proximity bar and audio feedback but no directional arrow, so it does not indicate the laser's bearing. Coming back to Cavendish early gets a "keep looking" line. The quest tracker ticks both items off.
+4. **The Big Crab.** With both items found, Cavendish describes a big crab that scuttled off with a massive bottle. The crab becomes the selected quest signal. It waits in a hollow north-east of camp, ringed by boulders, bushes and pines. The trail from the crash fades out before the hollow, and the only gap in the ring faces away from the crash site.
 5. **The fight.**
    - The merchant crab and its ten cousins, the **Bucket Brothers**, share one fighting radius (14 m).
    - Defeated cousins despawn.
    - If the crab gives up first, it drops the bottle (the Scotch flask, glowing amber like the hidden gear, visible from any distance) and waits for the brawl to end.
    - Once the whole family is down, it leads the mechanic back to camp.
-6. **Bucket & Barter.** At camp the crab introduces itself as **Eugine** and shows off its shop. (Eugine is also its name in dialogue, the HUD target readout and the "Talk to" prompt.) The fight leaves enough scrap for a first upgrade, usually well over the Overclocked Coil's 10 metal and 4 wiring. **The tutorial stops here.** Upgrades and the skill tree come next.
+6. **Bucket & Barter.** At camp the crab introduces itself as **Eugene** and its shop opens. The fight leaves enough scrap for a first upgrade (each cousin drops a guaranteed wire). See [upgrades](upgrades.md).
+7. **Kitted Out.** Cavendish won't give his next job until an upgrade is bought; then the scanner locks back onto him.
+8. **Pond Life.** Cavendish sends the mechanic to the pond due north of camp. **20 mortar frogs** come in three growing waves (5, then 7, then 8), each hopping in from the bank once the last is beaten. The scanner locks onto the nearest frog (its beeps quicken as you close in); the tracker counts them. Frogs drop scrap metal and fuel cells, about two more upgrades' worth.
+9. **The Chief Toad.** Back at camp, Cavendish hears a deep croak: the frogs have annoyed the Chief Toad (Lawson's boss, see [chief toad](chief-toad.md)). He is not in the world until this quest is given.
+10. **The fight.** Coming within his arena of the pond (40 m, widened for our pond) cuts to a short scene from the bank: the toad rises out of the middle of the pond in a burst of water and his boss bar appears, notched where phases 2 and 3 start; it turns red-orange and then red, labelled "enraged" and then "furious" (Space skips). Then the fight, with 3-5 frogs always hopping in (they drop no scrap).
+11. **The trophy and the part.** Beaten, he leaves a loot pile: his cooling system, scrap, and **his crown**. Set the crown on one of the camp's **trophy stands** by the tent, and give the cooling system to Cavendish, who keeps the ship's parts "for... safe keeping" (every boss's main part will go to him). He says it once and moves on: he is the story's final villain, so this is a light hint, not a tell. It is saved to disk, so it stays in the camp in later sessions and later levels (New Game clears it).
+12. **The end.** Cavendish wraps up the demo, and a "Thanks for playing" card offers Keep Exploring or Main Menu.
 
-After that the merchant is an ordinary friendly shop. Its sixth hit within the anger window brings back **the same ten cousins** around it (the angry-merchant ambush).
+## Completion time (playtest metric)
+
+The tutorial is timed for our testing requirements (`TutorialRunTimer`). The clock starts when the opening begins and stops when Cavendish finishes his wrap-up. It counts game time, so time in the pause menu doesn't count; cutscenes, dialogue and death screens do. The end card shows the time and the number of knockouts (deaths and blackouts).
+
+Each finished run adds a row to `tutorial-times.csv` in the game's data folder (`Application.persistentDataPath`). The end card shows the exact path. It is usually:
+
+- **Mac:** `~/Library/Application Support/Signal Lost/Signal Lost/`
+- **Windows:** `%USERPROFILE%\AppData\LocalLow\Signal Lost\Signal Lost\`
+
+The columns are:
+
+- `finished_utc`, `version`;
+- `total_seconds` and `total` (m:ss);
+- `deaths`;
+- one `<Stage>_at` column per story stage: seconds into the run when that stage began (blank if skipped).
+
+The splits show where testers spend their time: for example, `Fight_at` minus `SearchGear_at` is the gear hunt. The time is also logged as `TUTORIAL_COMPLETE` in the Console and in `Player.log`.
+
+If the stage list ever changes, the old file is renamed with a timestamp so columns never mix.
+
+After that Eugene is an ordinary friendly shop. Its sixth hit within the anger window brings back **the same ten cousins** around it (the angry-merchant ambush); called-back cousins drop no scrap, so the ambush cannot be farmed.
 
 ## The Bucket Brothers
 
@@ -64,6 +90,8 @@ Landmarks:
 
 The NavMesh is baked when the level is built and saved as `Scenes/Tutorial/TutorialNavMesh.asset`. It is baked before any creature is placed.
 
+The Tutorial scene's `ScannerRig` has a 200 m level-range override. Quest signals remain selected at any distance, but the proximity bar's strength is calculated against this effective range and can be zero for a more distant quest.
+
 ## Building and editing
 
 Run **Signal Lost > Tutorial > Rebuild Tutorial Level**. It rebuilds the shipwreck, meadow assets, core prefabs and cousins, then **replaces** the scene. Do hand edits in the builders, not in the scene.
@@ -89,19 +117,22 @@ Runtime code:
 1. Press Play in the Tutorial scene. The cockpit, Cavendish pulling you out through the side window, two drag glimpses and the campfire wake play, and Space skips them.
 2. Cavendish greets you across the fire. Walk off and come back: he says to keep looking.
 3. Find the wreck by its smoke (there is no trail from camp). Neither item glints until you are close. The wreck, its debris and the rocks around it are solid.
-   - Find the scanner under the panel; it points at the laser.
+   - Find the scanner under the panel; the laser becomes its selected quest signal. The bar and beeps indicate signal strength, but the scanner has no directional arrow.
    - Find the laser in the reactor bay.
-4. Return to Cavendish for the big-crab quest. Q raises the scanner, and it points north-east.
+4. Return to Cavendish for the big-crab quest. Q raises the scanner and selects the crab as the quest signal. The scanner does not show its north-east bearing; use the level landmarks and quest text to navigate. The Tutorial's 200 m override controls enemy acquisition and signal strength; a quest remains selected beyond that range, but its bar strength is zero.
 5. Enter the hollow: the whole family attacks.
    - Run more than 28 m from its centre: they walk home and heal.
    - Beat the crab and all ten cousins; cousins vanish when beaten.
    - Pick up the flask and the scrap.
-6. Follow the crab to camp and hear its introduction.
-7. Hit the friendly crab six times: the same ten cousins return around it.
+6. Follow the crab to camp and hear its introduction; the shop opens. Buy an upgrade and check it in the pockets (Tab, Gear).
+7. Cavendish sends you to the pond: clear three waves of frogs (5, 7, 8) with the scanner's help, then report back for the Chief Toad quest.
+8. Take the Chief Toad quest, walk to the pond: the toad rises (cutscene), his bar appears, 3-5 frogs keep coming. Beat him, take the crown from the loot, set it on a trophy stand at camp, talk to Cavendish: the end card appears.
+9. Quit to the title screen and start a New Game: the trophy stands are empty again.
+10. Hit the friendly crab six times: the same ten cousins return around it, and drop nothing when beaten.
 
 ## Verification
 
-> **Re-verified 10-23 (smoke only):** after the camp move, trail removal, pond, cockpit rebuild, window pull-out, collision and livery fixes and the Eugine rename, the level was rebuilt in Unity 6000.6.2f1 and TutorialStorySmoke passed again on a disposable copy, opening included. It does not look at the pull-out's framing, the pond's appearance or collisions on foot; those still need a play-test.
+> **Re-verified 10-23 (smoke only):** after the camp move, trail removal, pond, cockpit rebuild, window pull-out, collision and livery fixes and the Eugene rename, the level was rebuilt in Unity 6000.6.2f1 and TutorialStorySmoke passed again on a disposable copy, opening included. It does not look at the pull-out's framing, the pond's appearance or collisions on foot; those still need a play-test.
 
 [TutorialStorySmoke.cs](../tools/unity/TutorialStorySmoke.cs) passed in a batch-mode Play Mode run of the generated scene. It covers:
 
@@ -114,7 +145,8 @@ Runtime code:
 - the ten distinct names and shells;
 - surrender, waiting, despawning, the flask and enough scrap;
 - the path to camp, the walk home and the introduction;
-- the ambush bringing the same ten back.
+- the ambush bringing the same ten back, with no scrap;
+- (10-23) the shop opening after the introduction, the first-upgrade gate, the three frog waves (5, 7, 8) and the Chief Toad hand-off.
 
 It does not cover physical input, timing feel or a full on-foot playthrough.
 
@@ -123,4 +155,4 @@ It does not cover physical input, timing feel or a full on-foot playthrough.
 These are recorded in [design](design.md#tutorial-overhaul-meeting-notes-10-22-26):
 
 - The opening is first-person only. Cavendish slides and bobs because he has no rig.
-- No audio yet.
+- Balance of the Chief Toad in the tutorial (750 HP plus frogs) needs play-testing.

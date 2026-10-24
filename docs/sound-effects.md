@@ -9,7 +9,7 @@ There's nothing to set up in a scene. `SoundDirector` (in `Assets/Scripts/Audio/
 | What it finds | What it adds |
 | --- | --- |
 | The player | `PlayerAudio`: laser, footsteps, hurt, flask, scanner, items, scrap, death and wake-up sounds |
-| Every hermit crab (the basic crab, the Bucket Brothers, Eugine) | `CreatureAudio`: skittering, hits, blocks, death squeak, Eugine's surrender whimper |
+| Every hermit crab (the basic crab, the Bucket Brothers, Eugene) | `CreatureAudio`: skittering, hits, blocks, death squeak, Eugene's surrender whimper |
 | The Chief Toad | `ToadAudio`: hop thuds, hits, death, and a sound for each attack (it listens to `ChiefToad.Cued`) |
 | Particle effects named "…Fire…", "Campfire", "…Sparks…", and any `FireEffect` | Crackling fire loop; electrical fires and sparks also fizz |
 | "Pond Water" | Lapping water loop |
@@ -18,7 +18,7 @@ There's nothing to set up in a scene. `SoundDirector` (in `Assets/Scripts/Audio/
 
 The other sounds react to things that already happen in the game:
 - **Menus** play a pop when one opens or closes.
-- **The merchant** plays a cha-ching when its shop opens, and a bell when Eugine arrives back at camp.
+- **The merchant** plays a cha-ching when its shop opens, and a bell when Eugene arrives back at camp.
 - **The tutorial** plays a chime at each new stage.
 - **A recovered main ship part** gets a fanfare.
 
@@ -38,7 +38,9 @@ All clips are in `Assets/Audio/Resources/SignalLostAudio/` and are played by fil
 | --- | --- |
 | Laser | `laser_swing_1/2`, `laser_slam` (combo finisher), `laser_charge` (rising hum), `laser_charge_full` (ding), `laser_charge_hold` (loop at full charge), `laser_shot_weak/strong`, `bolt_impact`, `laser_blast` (full-charge explosion), `laser_fizzle` (clicking during cooldown), `hit_marker` |
 | Player | `footstep_grass/sand/dirt_1–4` (grass in the tutorial, sand in the desert, dirt elsewhere), `player_jump`, `player_land`, `player_hurt_1–3`, `death_sting` ("SIGNAL LOST"), `blackout_whoosh`, `wake_ringing` (hangover ringing during the eyelid wake-ups) |
-| Flask | `flask_uncork`, `flask_glug`, then `flask_ahh` when sober, `flask_hiccup` when tipsy and `flask_burp` when drunk. A tipsy mechanic also hiccups now and then |
+| Flask | `flask_uncork`, `flask_glug`, then `flask_ahh` when sober, `flask_hiccup` when tipsy and `flask_burp` from the third sip on. A tipsy mechanic also hiccups now and then |
+| Low health | `low_health_heartbeat` (loop, added 10-23 by `make_sfx.py`): plays under everything at 30 health or less, louder the lower it goes |
+| Music | `Signal lost main menu music` (Adam's track, not synthesized): the title screen, looped seamlessly; follows the **Music** slider |
 | Gear and scrap | `scanner_raise/lower`, `scanner_ping`, `item_pickup`, `scrap_vacuum`, `scrap_clink_1–3` |
 | Crabs | `crab_skitter` (loop, louder the faster it walks), `crab_snip` (claw hits you), `crab_hit_1/2` (bucket clang), `crab_block`, `crab_death`, `crab_whimper` |
 | Chief Toad (reused, pitched down) | `footstep_grass_1-4` (hop thuds), `crab_hit_1/2` (hit), `crab_death` + `laser_blast` (death), `laser_charge` (beam and spin charge), `laser_blast` (beam fires), `water_lap` sped up (jet loop while the beam or spin runs; a shorter rush for the splash wave), `laser_swing_1/2` (blade volley), `bolt_impact` (blade splash), `player_jump` and `laser_slam` + `player_land` (slam), `laser_charge_hold` (scream charge), `crab_whimper` + `laser_blast` (the scream), `wake_ringing` (your ears while stunned), `laser_fizzle` and an `electric_sizzle` loop (coolant cracking and overflowing) |
@@ -60,7 +62,7 @@ All clips are in `Assets/Audio/Resources/SignalLostAudio/` and are played by fil
 2. Start the Tutorial:
    - The wake-up has a ringing tone.
    - The campfire crackles louder as you approach, the wreck's fires crackle and fizz, and the pond laps.
-3. Walk, sprint and jump on grass: you hear footsteps, the jump and the landing.
+3. Walk, sprint and jump on grass: you hear the jump and the landing. Footsteps are switched off for now (`PlayerAudio.FootstepsEnabled`); the clips stay for later.
 4. With the laser:
    - Swing twice, then slam.
    - Hold right-click: a rising hum, a ding at full charge, then a steady crackle.
@@ -71,7 +73,7 @@ All clips are in `Assets/Audio/Resources/SignalLostAudio/` and are played by fil
    - Crabs skitter as they move and clang when hit.
    - They squeak when they go down.
    - Their claws snip when they hit you, and you grunt.
-   - Eugine whimpers when it gives up.
+   - Eugene whimpers when it gives up.
 7. Pick up scrap (slurp and clink) and the flask (item jingle). Drink: uncork, glug, "ahh". Keep drinking for hiccups and a burp, then a woozy whoosh on blackout.
 8. Open the merchant's shop: cha-ching. Open and close the inventory and pause menu: pops. Turn the Sound effects and Music sliders down: sounds and ambience get quieter.
 9. Die: "SIGNAL LOST" sting.

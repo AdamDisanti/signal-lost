@@ -187,9 +187,9 @@ namespace SignalLost.Combat
         /// <summary>Seconds until melee swings are possible again after a full combo; 0 when ready.</summary>
         public float ComboCooldownRemaining => Mathf.Max(0f, comboCooldownUntil - Time.time);
         /// <summary>Cooldown after a full-charge shot (the longest).</summary>
-        public float ShotCooldown => shotCooldown;
+        public float ShotCooldown => shotCooldown * BoltCooldownMultiplier;
         /// <summary>Cooldown after a weak tap shot (the shortest).</summary>
-        public float TapShotCooldown => tapShotCooldown < 0f ? shotCooldown : tapShotCooldown;
+        public float TapShotCooldown => (tapShotCooldown < 0f ? shotCooldown : tapShotCooldown) * BoltCooldownMultiplier;
         /// <summary>Length of the cooldown currently running (it depends on how charged the last shot was).</summary>
         public float CurrentCooldownLength => cooldownLength;
         public float FullChargeBlastRadius => fullChargeBlastRadius;
@@ -197,11 +197,21 @@ namespace SignalLost.Combat
         public Transform HeldTool => toolPivot;
 
         /// <summary>Cooldown for a shot at this charge: 10% or less uses the tap cooldown, scaling up to full charge.</summary>
-        public float CooldownFor(float charge) => Mathf.Lerp(TapShotCooldown, shotCooldown, Mathf.InverseLerp(0.1f, 1f, charge));
+        // Eased so part charges stay quick and only near-full shots pay the long cooldown (10-23 tuning: 1 s to 6 s).
+        public float CooldownFor(float charge) =>
+            Mathf.Lerp(tapShotCooldown < 0f ? shotCooldown : tapShotCooldown, shotCooldown, Mathf.Pow(Mathf.InverseLerp(0.1f, 1f, charge), 1.5f)) * BoltCooldownMultiplier;
         public float ComboCooldown => comboCooldown;
-        public float FinisherStun => finisherStun;
-        public float MinShotDamage => minShotDamage;
-        public float MaxShotDamage => maxShotDamage;
+        public float FinisherStun => finisherStun + FinisherStunBonus;
+        /// <summary>The laser's model prefab (the pockets menu shows a copy).</summary>
+        public GameObject HeldModel => heldModel;
+        public float MinShotDamage => minShotDamage * BoltDamageMultiplier;
+        public float MaxShotDamage => maxShotDamage * BoltDamageMultiplier;
+
+        // Upgrades (PlayerUpgrades) adjust these; the serialized numbers stay the base tuning.
+        public float BoltDamageMultiplier { get; set; } = 1f;
+        public float BoltCooldownMultiplier { get; set; } = 1f;
+        public float FinisherDamageMultiplier { get; set; } = 1f;
+        public float FinisherStunBonus { get; set; }
         public float ShotRange => shotRange;
         /// <summary>Damage of each swing of the combo, in order.</summary>
         public IReadOnlyList<float> ComboDamage => comboDamage;
@@ -351,7 +361,7 @@ namespace SignalLost.Combat
             if (!hitApplied && t >= strike.HitAt)
             {
                 hitApplied = true;
-                bool connected = MeleeHit(comboDamage[comboStep], IsFinisher ? finisherStun : 0f);
+                bool connected = MeleeHit(comboDamage[comboStep] * (IsFinisher ? FinisherDamageMultiplier : 1f), IsFinisher ? FinisherStun : 0f);
                 if (connected) hitStopUntil = Time.time + hitStop;
                 AddKick(strike.Kick * (connected ? 1f : 0.5f));
             }
@@ -450,7 +460,7 @@ namespace SignalLost.Combat
 
             LaserBolt bolt = LaserBolt.Spawn(
                 energyMaterial, tip, direction, origin,
-                Mathf.Lerp(minShotDamage, maxShotDamage, charge),
+                Mathf.Lerp(minShotDamage, maxShotDamage, charge) * BoltDamageMultiplier,
                 Mathf.Lerp(minShotSpeed, maxShotSpeed, charge),
                 Mathf.Lerp(minShotRadius, maxShotRadius, charge),
                 shotRange, hitMask, transform, OnBoltHit);

@@ -5,7 +5,7 @@ namespace SignalLost.Enemies.Desert
 {
     /// <summary>
     /// PLACEHOLDER mini-boss UI, drawn with IMGUI so the shared PlayerHUD prefab is untouched:
-    /// - a boss health bar at the top while a mini-boss is engaged (name, health, a notch where phase 2 starts);
+    /// - a boss health bar at the top while a mini-boss is engaged (name, health, a notch where phase 2 starts and one where phase 3 starts, if it has one);
     /// - short centre-screen messages (part damaged, defeated, part recovered);
     /// - the sand-blind overlay from Old Buzzard's wing gust.
     /// Created automatically when needed; one per scene. Replace with real HUD elements during the UI pass.
@@ -104,12 +104,16 @@ namespace SignalLost.Enemies.Desert
             {
                 const float width = 460f, height = 14f;
                 var bar = new Rect(cx - width * 0.5f, y0 + 26f, width, height);
-                Label(new Rect(cx - 300f, y0, 600f, 26f), boss.Phase == 2 ? boss.DisplayName + "  (enraged)" : boss.DisplayName, title, Color.white);
+                int phase = boss.DisplayPhase;
+                string name = phase == 3 ? boss.DisplayName + "  (furious)" : phase == 2 ? boss.DisplayName + "  (enraged)" : boss.DisplayName;
+                Label(new Rect(cx - 300f, y0, 600f, 26f), name, title, Color.white);
                 Fill(new Rect(bar.x - 2f, bar.y - 2f, bar.width + 4f, bar.height + 4f), new Color(0f, 0f, 0f, 0.7f));
-                Color fill = boss.Phase == 2 ? new Color(1f, 0.35f, 0.15f) : new Color(0.9f, 0.6f, 0.15f);
+                Color fill = phase == 3 ? new Color(0.9f, 0.12f, 0.12f) : phase == 2 ? new Color(1f, 0.35f, 0.15f) : new Color(0.9f, 0.6f, 0.15f);
                 if (boss.InPhaseShift && Mathf.Sin(Time.time * 30f) > 0f) fill = Color.white;
                 Fill(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(boss.HealthFraction), bar.height), fill);
                 Fill(new Rect(bar.x + bar.width * boss.PhaseTwoAt - 1f, bar.y - 3f, 2f, bar.height + 6f), new Color(1f, 1f, 1f, 0.8f));
+                if (boss.PhaseThreeAt > 0f)
+                    Fill(new Rect(bar.x + bar.width * boss.PhaseThreeAt - 1f, bar.y - 3f, 2f, bar.height + 6f), new Color(1f, 1f, 1f, 0.8f));
                 y0 += 52f;
             }
 

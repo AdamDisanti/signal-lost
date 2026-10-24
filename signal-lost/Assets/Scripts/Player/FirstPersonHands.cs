@@ -28,6 +28,8 @@ namespace SignalLost.Player
         private static readonly Vector3 LeftRest = new Vector3(-0.27f, -0.23f, 0.45f);
         private static readonly Vector3 LeftRestAngles = new Vector3(-18f, 18f, -12f);
         private static readonly Vector3 LeftDrink = new Vector3(-0.07f, -0.15f, 0.3f);
+        private static readonly Vector3 LeftHip = new Vector3(-0.32f, -0.62f, 0.3f); // below the bottom of the screen
+        private static readonly Vector3 LeftHipAngles = new Vector3(20f, 25f, -20f);
         private static readonly Vector3 LeftDrinkAngles = new Vector3(-70f, 10f, -15f);
         // Where the right hand sits on each tool (relative to the laser's grip / the scanner's visual root).
         // The laser's real grip sits below the screen edge, so the hand holds the body further forward, on its inner
@@ -44,6 +46,8 @@ namespace SignalLost.Player
         private Material glove, sleeve, cuff;
 
         public Transform RightHand => rightHand;
+        /// <summary>The flask model prefab (the pockets menu shows a copy).</summary>
+        public GameObject FlaskModel => flaskModel;
         public Transform LeftHand => leftHand;
 
         private void Awake()
@@ -107,13 +111,53 @@ namespace SignalLost.Player
             rightHand.localPosition = position;
             rightHand.localRotation = Quaternion.Euler(angles);
 
-            // Left hand: a quick sip. Reach for the flask, tip it back, put it away.
+            // Left hand (meeting notes 10-23): reach down to the hip for the flask, snap it up to the mouth, tip it
+            // back for a swig (the heal lands here), then drop it back down out of view and come back up empty.
             float t = flask != null ? flask.DrinkProgress : 0f;
-            float raise = t <= 0f ? 0f : t < 0.3f ? Mathf.SmoothStep(0f, 1f, t / 0.3f) : t < 0.75f ? 1f : Mathf.SmoothStep(1f, 0f, (t - 0.75f) / 0.25f);
-            float tip = t < 0.3f || t > 0.75f ? 0f : Mathf.Sin((t - 0.3f) / 0.45f * Mathf.PI);
-            leftHand.localPosition = Vector3.Lerp(LeftRest, LeftDrink, raise);
-            leftHand.localRotation = Quaternion.Euler(Vector3.Lerp(LeftRestAngles, LeftDrinkAngles, raise)) * Quaternion.Euler(-35f * tip, 0f, 0f);
-            if (heldFlask != null) heldFlask.gameObject.SetActive(t > 0.06f && t < 0.97f);
+            Vector3 leftPosition = LeftRest, leftAngles = LeftRestAngles;
+            float tip = 0f;
+            if (t > 0f && t < 0.25f) // reach down
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t / 0.25f);
+                leftPosition = Vector3.Lerp(LeftRest, LeftHip, k);
+                leftAngles = Vector3.Lerp(LeftRestAngles, LeftHipAngles, k);
+            }
+            else if (t >= 0.25f && t < 0.4f) // aggressive snap up, overshooting a little
+            {
+                float k = OvershootOut((t - 0.25f) / 0.15f);
+                leftPosition = Vector3.LerpUnclamped(LeftHip, LeftDrink, k);
+                leftAngles = Vector3.LerpUnclamped(LeftHipAngles, LeftDrinkAngles, k);
+            }
+            else if (t >= 0.4f && t < 0.75f) // swig
+            {
+                leftPosition = LeftDrink;
+                leftAngles = LeftDrinkAngles;
+                tip = Mathf.Sin((t - 0.4f) / 0.35f * Mathf.PI);
+            }
+            else if (t >= 0.75f && t < 0.9f) // stow it back at the hip
+            {
+                float k = Mathf.SmoothStep(0f, 1f, (t - 0.75f) / 0.15f);
+                leftPosition = Vector3.Lerp(LeftDrink, LeftHip, k);
+                leftAngles = Vector3.Lerp(LeftDrinkAngles, LeftHipAngles, k);
+            }
+            else if (t >= 0.9f) // empty hand back up
+            {
+                float k = Mathf.SmoothStep(0f, 1f, (t - 0.9f) / 0.1f);
+                leftPosition = Vector3.Lerp(LeftHip, LeftRest, k);
+                leftAngles = Vector3.Lerp(LeftHipAngles, LeftRestAngles, k);
+            }
+            leftHand.localPosition = leftPosition;
+            leftHand.localRotation = Quaternion.Euler(leftAngles) * Quaternion.Euler(-40f * tip, 0f, 0f);
+            // The flask is picked up and put away while the hand is down out of view.
+            if (heldFlask != null) heldFlask.gameObject.SetActive(t > 0.2f && t < 0.88f);
+        }
+
+        // Eases out past 1 and settles back: a quick, forceful motion.
+        private static float OvershootOut(float x)
+        {
+            x = Mathf.Clamp01(x) - 1f;
+            const float s = 1.6f;
+            return 1f + x * x * ((s + 1f) * x + s);
         }
 
         // ---------- The hand model ----------

@@ -9,6 +9,7 @@ namespace SignalLost.Scanner
         [SerializeField] private ScannerConfig config;
         [SerializeField] private Transform scanOrigin;
         [SerializeField, Min(0f)] private float targetReachedDistance = 2.5f;
+        [SerializeField, Min(0f)] private float levelRangeOverride;
 
         [Header("Runtime")]
         [SerializeField] private TrackableTarget currentTarget;
@@ -22,7 +23,10 @@ namespace SignalLost.Scanner
         public float SignalStrength01 => signalStrength01;
         public Vector3 DirectionToTarget => directionToTarget;
         /// <summary>How far away creatures are detected (quest objectives are tracked at any distance).</summary>
-        public float Range => config != null ? config.MaxRange : 0f;
+        public float Range => config != null ? (levelRangeOverride > 0f ? levelRangeOverride * config.RangeUpgradeMultiplier : config.MaxRange) + RangeBonus : 0f;
+
+        /// <summary>Extra critter range from upgrades (Long-Nose Antenna).</summary>
+        public float RangeBonus { get; set; }
 
         public event Action<TrackableTarget> OnTargetReached;
 
@@ -65,7 +69,7 @@ namespace SignalLost.Scanner
             }
 
             EnemySignalSource bestTarget = null;
-            float maxRange = config.MaxRange;
+            float maxRange = Range;
             float nearestDistanceSquared = maxRange * maxRange;
 
             foreach (EnemySignalSource candidate in FindObjectsByType<EnemySignalSource>())
@@ -99,9 +103,9 @@ namespace SignalLost.Scanner
 
             Vector3 offset = currentTarget.transform.position - scanOrigin.position;
             float distance = offset.magnitude;
-            float MaxRange = config.MaxRange;
+            float maxRange = Range;
 
-            if (distance > MaxRange && !(currentTarget is QuestSignalSource))
+            if (distance > maxRange && !(currentTarget is QuestSignalSource))
             {
                 SetCurrentTarget(null);
                 signalStrength01 = 0f;
@@ -119,7 +123,7 @@ namespace SignalLost.Scanner
                 directionToTarget = Vector3.zero;
             }
 
-            signalStrength01 = Mathf.Clamp01(1f - (distance / MaxRange) * currentTarget.SignalStrengthMultiplier * config.StrengthUpgradeMultiplier);
+            signalStrength01 = Mathf.Clamp01(1f - (distance / maxRange) * currentTarget.SignalStrengthMultiplier * config.StrengthUpgradeMultiplier);
 
             if (distance <= targetReachedDistance && !reachedCurrentTarget)
             {

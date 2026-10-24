@@ -27,25 +27,45 @@ namespace SignalLost.Inventory
         /// <summary>Spawns one chunk at <paramref name="position"/>, thrown with <paramref name="launch"/>.</summary>
         public static ScrapPickup Spawn(ScrapType type, Vector3 position, Vector3 launch)
         {
-            PrimitiveType shape = type == ScrapType.Wiring ? PrimitiveType.Cylinder :
-                type == ScrapType.FuelCells ? PrimitiveType.Capsule : PrimitiveType.Cube;
-            GameObject chunk = GameObject.CreatePrimitive(shape);
-            chunk.name = ScrapInfo.Name(type) + " Scrap";
-            Destroy(chunk.GetComponent<Collider>()); // walked through, never blocks or catches bolts
+            GameObject chunk;
+            GameObject model = ScrapCatalog.Model(type);
+            if (model != null)
+            {
+                // The scrap model (ScrapCatalog), centred on the pickup so it tumbles and spins about its middle.
+                chunk = new GameObject(ScrapInfo.Name(type) + " Scrap");
+                GameObject visual = Instantiate(model, chunk.transform);
+                visual.transform.localPosition = -VisualCentre(visual);
+                foreach (Collider part in visual.GetComponentsInChildren<Collider>()) Destroy(part);
+            }
+            else
+            {
+                PrimitiveType shape = type == ScrapType.Wiring ? PrimitiveType.Cylinder :
+                    type == ScrapType.FuelCells ? PrimitiveType.Capsule : PrimitiveType.Cube;
+                chunk = GameObject.CreatePrimitive(shape);
+                chunk.name = ScrapInfo.Name(type) + " Scrap";
+                Destroy(chunk.GetComponent<Collider>()); // walked through, never blocks or catches bolts
+                chunk.transform.localScale = 1.4f * (type == ScrapType.Wiring ? new Vector3(0.08f, 0.22f, 0.08f) :
+                    type == ScrapType.FuelCells ? new Vector3(0.16f, 0.14f, 0.16f) :
+                    type == ScrapType.CircuitBoards ? new Vector3(0.3f, 0.04f, 0.22f) : new Vector3(0.3f, 0.07f, 0.26f));
+                var renderer = chunk.GetComponent<Renderer>();
+                renderer.sharedMaterial = MaterialFor(type);
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
             chunk.transform.position = position;
             chunk.transform.rotation = Random.rotation;
-            chunk.transform.localScale = 1.4f * (type == ScrapType.Wiring ? new Vector3(0.08f, 0.22f, 0.08f) :
-                type == ScrapType.FuelCells ? new Vector3(0.16f, 0.14f, 0.16f) :
-                type == ScrapType.CircuitBoards ? new Vector3(0.3f, 0.04f, 0.22f) : new Vector3(0.3f, 0.07f, 0.26f));
-            var renderer = chunk.GetComponent<Renderer>();
-            renderer.sharedMaterial = MaterialFor(type);
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var pickup = chunk.AddComponent<ScrapPickup>();
             pickup.type = type;
             pickup.velocity = launch;
             pickup.born = Time.time;
             pickup.spin = Random.Range(90f, 200f) * (Random.value < 0.5f ? -1f : 1f);
             return pickup;
+        }
+
+        private static Vector3 VisualCentre(GameObject visual)
+        {
+            var bounds = new Bounds(visual.transform.position, Vector3.zero);
+            foreach (Renderer part in visual.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(part.bounds);
+            return bounds.center - visual.transform.position;
         }
 
         private static Material MaterialFor(ScrapType type)
@@ -93,7 +113,7 @@ namespace SignalLost.Inventory
                         0.25f - step.y, ~0, QueryTriggerInteraction.Ignore) && !ground.collider.GetComponentInParent<PlayerInventory>())
                 {
                     landed = true;
-                    restY = ground.point.y + 0.2f;
+                    restY = ground.point.y + 0.3f;
                 }
                 else transform.position += step;
                 transform.Rotate(velocity.magnitude * 40f * Time.deltaTime, spin * Time.deltaTime, 0f, Space.World);
@@ -104,7 +124,9 @@ namespace SignalLost.Inventory
             Vector3 position = transform.position;
             position.y = Mathf.Lerp(position.y, restY + Mathf.Sin((Time.time + born) * 3f) * 0.06f, 8f * Time.deltaTime);
             transform.position = position;
-            transform.Rotate(0f, spin * Time.deltaTime, 0f, Space.World);
+            // Settle upright, then turn slowly so the model reads.
+            Quaternion upright = Quaternion.Euler(0f, transform.eulerAngles.y + Mathf.Sign(spin) * 70f * Time.deltaTime, 0f);
+            transform.rotation = Quaternion.Slerp(transform.rotation, upright, 6f * Time.deltaTime);
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

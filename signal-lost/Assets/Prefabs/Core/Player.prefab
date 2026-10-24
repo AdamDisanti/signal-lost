@@ -296,6 +296,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1830789744065790307, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8790822869774380037}
+    - targetCorrespondingSourceObject: {fileID: 1830789744065790307, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6537882059932758304}
   m_SourcePrefab: {fileID: 100100000, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}
 --- !u!4 &302204182830585941 stripped
 Transform:
@@ -366,7 +369,7 @@ MonoBehaviour:
   - 45
   comboWindow: 0.4
   hitStop: 0.06
-  comboCooldown: 3
+  comboCooldown: 2
   finisherStun: 1
   energyColor: {r: 0.4, g: 0.9, b: 1, a: 1}
   viewKick: 0.9
@@ -380,8 +383,8 @@ MonoBehaviour:
   minShotRadius: 0.06
   maxShotRadius: 0.2
   shotRange: 30
-  shotCooldown: 8
-  tapShotCooldown: 4
+  shotCooldown: 6
+  tapShotCooldown: 1
   fullChargeBlastRadius: 4
   blastEdgeDamage: 0.5
   blastKnockback: 1.2
@@ -427,9 +430,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Player.PlayerFlask
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   drunkVolume: {fileID: 6153774300539712530}
-  healAmount: 35
+  healPerSip:
+  - 35
+  - 28
+  - 22
+  - 17
+  - 13
+  - 10
   blackoutAfterStacks: 5
-  drinkSeconds: 0.75
+  drinkSeconds: 1
   drinkCooldown: 1
   secondsPerStack: 15
 --- !u!114 &116424125715236192
@@ -495,6 +504,18 @@ MonoBehaviour:
   introLines:
   - Ugh... what hit me?
   - ...oh. The ground. The ground hit me.
+--- !u!114 &6537882059932758304
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3601008994689655576}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7aab44b361e4848b7badceac6249831a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Player.PlayerUpgrades
 --- !u!4 &3668463611530702005 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1907308799458610894, guid: f1e724a5dfa1c4f9abab95a37b51af5c, type: 3}

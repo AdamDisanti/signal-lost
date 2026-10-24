@@ -58,6 +58,7 @@ namespace SignalLost.UI
             UiTheme.EnsureEventSystem();
             root.SetActive(true);
             settings.gameObject.SetActive(false);
+            panel.gameObject.SetActive(true);
             shownAt = Time.unscaledTime;
             openedFrame = Time.frameCount;
             Time.timeScale = 0f;
@@ -83,7 +84,7 @@ namespace SignalLost.UI
                 toast.alpha = Mathf.Clamp01((toastUntil - Time.unscaledTime) / 0.3f);
                 if (pausePressed && openedFrame != Time.frameCount)
                 {
-                    if (settings.gameObject.activeSelf) settings.gameObject.SetActive(false);
+                    if (settings.gameObject.activeSelf) { settings.gameObject.SetActive(false); panel.gameObject.SetActive(true); }
                     else Resume();
                 }
                 return;
@@ -91,9 +92,11 @@ namespace SignalLost.UI
             if (pausePressed && !UiMenus.AnyOpen && !UiMenus.ChangedThisFrame) Open();
         }
 
+        // Settings and Controls take the pause panel's place in the middle of the screen; Esc goes back.
         private void ShowSettings(SettingsPanel.Page page)
         {
             settings.gameObject.SetActive(true);
+            panel.gameObject.SetActive(false);
             settings.Show(page);
         }
 
@@ -117,7 +120,7 @@ namespace SignalLost.UI
             dim.raycastTarget = true;
 
             Image background = UiTheme.Panel("Panel", root.transform, UiTheme.PanelColor, UiTheme.Edge, 1.4f);
-            panel = UiTheme.Place(background.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(120f, 0f), new Vector2(460f, 640f));
+            panel = UiTheme.Place(background.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(460f, 640f));
             TextMeshProUGUI title = UiTheme.Label("Title", panel, 58f, UiTheme.Accent, TextAlignmentOptions.Top, FontStyles.Bold);
             UiTheme.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -34f), new Vector2(420f, 70f));
             title.text = "PAUSED";
@@ -139,7 +142,10 @@ namespace SignalLost.UI
             }
 
             settings = SettingsPanel.Create(root.transform, new Vector2(900f, 640f));
-            UiTheme.Place((RectTransform)settings.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(620f, 0f), new Vector2(900f, 640f));
+            UiTheme.Place((RectTransform)settings.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 640f));
+            Button back = UiTheme.Button("Back", settings.transform, "Back", 26f);
+            UiTheme.Place((RectTransform)back.transform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(0f, -16f), new Vector2(180f, 58f));
+            back.onClick.AddListener(() => { settings.gameObject.SetActive(false); panel.gameObject.SetActive(true); });
 
             toast = UiTheme.Label("Toast", root.transform, 26f, UiTheme.Text, TextAlignmentOptions.Center, FontStyles.Bold);
             UiTheme.Place(toast.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(1200f, 40f));

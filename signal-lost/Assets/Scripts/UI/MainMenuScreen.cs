@@ -91,7 +91,12 @@ namespace SignalLost.UI
 
         // ---------- Actions ----------
 
-        private void NewGame() => SceneManager.LoadScene(SceneNames.FirstLevel);
+        // A new game starts with an empty camp: placed trophies are the only thing saved so far.
+        private void NewGame()
+        {
+            SignalLost.Progression.CampSave.Clear();
+            SceneManager.LoadScene(SceneNames.FirstLevel);
+        }
 
         private void OpenSettings()
         {

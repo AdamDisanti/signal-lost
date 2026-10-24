@@ -71,6 +71,10 @@ namespace SignalLost.Enemies.Desert
         public string DisplayName => displayName;
         public string PartName => partName;
         public float PhaseTwoAt => phaseTwoAt;
+        /// <summary>Health fraction where a third phase starts, or 0 when the boss has only two (the boss bar's second notch).</summary>
+        public virtual float PhaseThreeAt => 0f;
+        /// <summary>The phase the boss bar shows: <see cref="Phase"/>, or 3 for bosses with a third phase.</summary>
+        public virtual int DisplayPhase => Phase;
         public float HealthFraction => Health.Normalized;
         public int Phase { get; private set; } = 1;
         public bool Engaged { get; private set; }

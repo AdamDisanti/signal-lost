@@ -1,6 +1,6 @@
 # Tutorial NPCs and first quest
 
-> **Superseded (10-22-26):** the tutorial is now a new scene, `Scenes/Tutorial/Tutorial.unity`; see [tutorial](tutorial.md). Testing Sandbox is a free-play sandbox on the [shared player](core-player.md). The tutorial-only player, quest flow and installers named below (`TutorialPlayer`, `TutorialQuestFlow`, `TutorialGameplayBuilder`, `TutorialCoreLoopInstaller`) and their smoke harnesses were removed. Their behaviour lives on in the shared components.
+> **Superseded (10-22-26):** the tutorial is now a new scene, `Scenes/Tutorial/Tutorial Demo.unity`; see [tutorial](tutorial.md). Testing Sandbox is a free-play sandbox on the [shared player](core-player.md). The tutorial-only player, quest flow and installers named below (`TutorialPlayer`, `TutorialQuestFlow`, `TutorialGameplayBuilder`, `TutorialCoreLoopInstaller`) and their smoke harnesses were removed. Their behaviour lives on in the shared components.
 
 > **Partly superseded (10-20-26):** quests now run Gear Up, then Hair of the Crab. Dialogue uses subtitles, speech bubbles and code-built popups instead of the TutorialNpcWindows prefab (removed). The friendly crab leads the player home and opens the Bucket & Barter menu, and it calls an ambush if hit. See [tutorial core loop](tutorial-core-loop.md) for the current behaviour.
 

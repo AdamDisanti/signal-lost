@@ -7,9 +7,9 @@ using UnityEngine.AI;
 namespace SignalLost.Audio
 {
     /// <summary>
-    /// Sounds for a hermit crab (the basic crab, the Bucket Brothers and Eugine), added automatically by
+    /// Sounds for a hermit crab (the basic crab, the Bucket Brothers and Eugene), added automatically by
     /// <see cref="SoundDirector"/>: leg skittering while it moves, a hollow bucket clang when hit, a hard clang when it
-    /// blocks, a squeak when it goes down, and Eugine's whimper when it surrenders. Bigger crabs sound lower.
+    /// blocks, a squeak when it goes down, and Eugene's whimper when it surrenders. Bigger crabs sound lower.
     /// The claw snip when a crab hits the player is played by <see cref="PlayerAudio"/>.
     /// </summary>
     [DisallowMultipleComponent]

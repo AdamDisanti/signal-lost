@@ -148,7 +148,7 @@ namespace SignalLost.Editor
         /// <summary>Title screen first, then the playable scenes (New Game loads "Tutorial").</summary>
         public static void SetBuildScenes()
         {
-            var paths = new List<string> { MainMenuPath, "Assets/Scenes/Tutorial/Tutorial.unity", SandboxPath, DesertPath, "Assets/Scenes/Initial Test Scenes/Prototype.unity" };
+            var paths = new List<string> { MainMenuPath, "Assets/Scenes/Tutorial/Tutorial Demo.unity", SandboxPath, DesertPath, "Assets/Scenes/Initial Test Scenes/Prototype.unity" };
             EditorBuildSettings.scenes = paths.Where(p => AssetDatabase.LoadAssetAtPath<SceneAsset>(p) != null)
                 .Select(p => new EditorBuildSettingsScene(p, true)).ToArray();
         }

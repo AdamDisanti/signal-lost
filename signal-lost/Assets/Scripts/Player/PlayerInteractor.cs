@@ -27,7 +27,10 @@ namespace SignalLost.Player
         /// <summary>The thing under the crosshair that can be used right now, or null.</summary>
         public IInteractable Target { get; private set; }
         /// <summary>"E  Talk to Cavendish", or empty.</summary>
-        public string Prompt => Target != null && !string.IsNullOrEmpty(Target.Prompt) && !UiMenus.AnyOpen ? "E  " + Target.Prompt : "";
+        public string Prompt => Target != null && !string.IsNullOrEmpty(Target.Prompt) && !UiMenus.AnyOpen && !CardWaiting ? "E  " + Target.Prompt : "";
+
+        // E dismisses an open item card first, so no interaction prompt while one is up.
+        private static bool CardWaiting => GameplayOverlay.Current != null && GameplayOverlay.Current.CardOpen;
 
         private void Awake()
         {
@@ -64,12 +67,15 @@ namespace SignalLost.Player
 
         private bool Busy => (life != null && (life.IsRespawning || life.IsDead));
 
-        /// <summary>Advances an open popup, or uses what is under the crosshair. Returns true if something happened.</summary>
+        /// <summary>Advances an open popup, dismisses an item card, or uses what is under the crosshair. Returns true if something happened.</summary>
         public bool TryInteract()
         {
             if (Busy) return false;
             DialogueUi dialogue = DialogueUi.Instance;
             if (dialogue != null && dialogue.PopupOpen) return dialogue.Advance();
+            // A new-gear card waiting to be read takes the next E.
+            GameplayOverlay overlay = GameplayOverlay.Current;
+            if (overlay != null && overlay.CardOpen) return overlay.DismissCard();
             IInteractable target = FindTarget();
             return target != null && target.Interact(this);
         }

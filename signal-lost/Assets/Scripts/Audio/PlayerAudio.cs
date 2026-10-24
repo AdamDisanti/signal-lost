@@ -21,6 +21,9 @@ namespace SignalLost.Audio
     [DefaultExecutionOrder(1000)] // after the laser's LateUpdate, so a shot and its cooldown show up the same frame
     public sealed class PlayerAudio : MonoBehaviour
     {
+        /// <summary>Footsteps are switched off for now (lead's request, 10-23); the clips and stride timing stay for later.</summary>
+        public static bool FootstepsEnabled = false;
+
         private MiningLaser laser;
         private PlayerGear gear;
         private PlayerFlask flask;
@@ -31,7 +34,7 @@ namespace SignalLost.Audio
         private CharacterController body;
         private WakeUpSequence wakeUp;
 
-        private SfxLoop chargeLoop;
+        private SfxLoop chargeLoop, heartbeat;
         private AudioSource ringing;
         private string surface = "dirt";
 
@@ -65,6 +68,8 @@ namespace SignalLost.Audio
                 chargeLoop.Source.loop = false;
                 chargeLoop.Source.Stop();
             }
+            heartbeat = Sfx.AddLoop(gameObject, "low_health_heartbeat", 0.7f, false, childName: "Low Health Heartbeat");
+            if (heartbeat != null) heartbeat.Level = 0f;
             nextHiccup = Time.time + 8f;
             if (laser != null) lastHitSeen = laser.LastHitTime;
         }
@@ -97,6 +102,16 @@ namespace SignalLost.Audio
             UpdateScanner();
             UpdateFlask();
             UpdateWakeUp();
+            UpdateHeartbeat();
+        }
+
+        // A heartbeat under everything while health is at or below the low-health line (the HUD pulses with it).
+        private void UpdateHeartbeat()
+        {
+            if (heartbeat == null || health == null) return;
+            bool low = !health.IsDead && health.Current <= SignalLost.UI.GameHud.LowHealth;
+            float target = low ? Mathf.Lerp(1f, 0.55f, health.Current / SignalLost.UI.GameHud.LowHealth) : 0f;
+            heartbeat.Level = Mathf.MoveTowards(heartbeat.Level, target, Time.unscaledDeltaTime * 1.5f);
         }
 
         // ---------- Mining laser ----------
@@ -215,10 +230,10 @@ namespace SignalLost.Audio
             {
                 stride += speed * Time.deltaTime;
                 float strideLength = speed > 5.5f ? 2.4f : 1.9f;
-                if (stride >= strideLength)
+                if (stride >= strideLength && FootstepsEnabled)
                 {
                     stride = 0f;
-                    Sfx.Play(Sfx.Pick("footstep_" + surface, 4), speed > 5.5f ? 0.38f : 0.28f, Random.Range(0.9f, 1.1f));
+                    Sfx.Play(Sfx.Pick("footstep_" + surface, 4), speed > 5.5f ? 0.3f : 0.22f, Random.Range(0.95f, 1.05f));
                 }
             }
             else if (grounded) stride = 1.5f; // first step comes quickly after starting to move
@@ -297,7 +312,8 @@ namespace SignalLost.Audio
         private void AfterSip()
         {
             float drunk = flask != null ? flask.Drunkenness : 0f;
-            if (drunk >= 0.6f) Sfx.Play("flask_burp", 0.6f, Random.Range(0.9f, 1.05f));
+            // Every sip from the third on ends in a burp (meeting notes 10-23).
+            if (flask != null && flask.DrunkStacks >= 3) Sfx.Play("flask_burp", 0.6f, Random.Range(0.9f, 1.05f));
             else if (drunk >= 0.35f) Sfx.Play("flask_hiccup", 0.5f);
             else Sfx.Play("flask_ahh", 0.5f, Random.Range(0.97f, 1.03f));
         }

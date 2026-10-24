@@ -2492,6 +2492,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 356930776089990611, guid: 1e7521a3051194bcbb2bf5d71fc9c175, type: 3}
+      propertyPath: levelRangeOverride
+      value: 300
+      objectReference: {fileID: 0}
     - target: {fileID: 3601008994689655576, guid: 1e7521a3051194bcbb2bf5d71fc9c175, type: 3}
       propertyPath: m_Name
       value: Player
@@ -4474,7 +4478,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6860099280184028994, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       propertyPath: m_Name
-      value: Eugine
+      value: Eugene
       objectReference: {fileID: 0}
     - target: {fileID: 7899117747059539393, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       propertyPath: flaskDrop
@@ -4536,6 +4540,10 @@ PrefabInstance:
       propertyPath: 'cousins.Array.data[9]'
       value: 
       objectReference: {fileID: 651661439}
+    - target: {fileID: 7983126383743592789, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -20531,7 +20539,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -27382,9 +27390,57 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 817348882}
     m_Modifications:
+    - target: {fileID: 35014531613126502, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_fontSize
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 35014531613126502, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4280557345
+      objectReference: {fileID: 0}
+    - target: {fileID: 35014531613126502, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 1386376562272374739, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_fontSize
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1386376562272374739, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4280557345
+      objectReference: {fileID: 0}
+    - target: {fileID: 1386376562272374739, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 2272460888112329686, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
       propertyPath: m_Name
       value: StrippedShipwreck
+      objectReference: {fileID: 0}
+    - target: {fileID: 5400786584028704856, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_fontSize
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5400786584028704856, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4280557345
+      objectReference: {fileID: 0}
+    - target: {fileID: 5400786584028704856, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 6364222720080407321, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_fontSize
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6364222720080407321, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4283226623
+      objectReference: {fileID: 0}
+    - target: {fileID: 6364222720080407321, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 8605079374208254876, guid: c5499ef68c77640d1b7eac9ca0e410e3, type: 3}
       propertyPath: m_LocalPosition.x

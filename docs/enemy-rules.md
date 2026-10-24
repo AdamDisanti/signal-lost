@@ -30,8 +30,8 @@ Gizmos: the selected enemy or zone draws its fight radius and a fainter ring at 
 
 ## Mining laser
 
-- **Combo:** three hits, then a 3 s recharge.
-- **Charged bolt:** 10-70 damage. The cooldown scales with the charge, from 4 s at 10% to 8 s at 100%, linearly in between.
+- **Combo:** three hits, then a 2 s recharge. The HUD's three combo pips drain right to left as its timer.
+- **Charged bolt:** 10-70 damage. The cooldown scales with the charge, from 1 s for a tap (10% or less) to 6 s at full charge, eased so part charges stay quick (about 2.8 s at half charge). Tuned 10-23.
 - **Full-charge burst:** a full charge bursts on impact (`AreaBlast`). It hits everything within 4 m, at full damage in the centre and half at the edge, with a small shove. It is meant for groups. A shot reflected off a crab's shell loses the burst.
 
 These values are set on the shared Player prefab (`Prefabs/Core/Player.prefab`, built by `CorePrefabBuilder`).
@@ -42,7 +42,6 @@ These values are set on the shared Player prefab (`Prefabs/Core/Player.prefab`, 
   - the radius, the leash and the heal on return;
   - the stun rule;
   - the mini-boss arena and reset;
+  - the bolt cooldown curve;
   - the burst (pack damage, half at the edge, never the player).
-
-  The 4-8 s cooldown scaling is not covered.
 - [TutorialStorySmoke.cs](../tools/unity/TutorialStorySmoke.cs) covers the shared-zone engagement.

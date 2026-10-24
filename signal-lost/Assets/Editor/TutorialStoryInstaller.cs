@@ -1,5 +1,6 @@
 using System.Linq;
 using SignalLost.Enemies;
+using SignalLost.Enemies.Meadow;
 using SignalLost.Inventory;
 using SignalLost.NPC;
 using SignalLost.Player;
@@ -24,6 +25,8 @@ namespace SignalLost.Editor
         private const string LaserPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Upgrades/MiningLaser.prefab";
         private const string ScannerRigPath = "Assets/Prefabs/Player/Scanner/ScannerRig.prefab";
         private const string MerchantPath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
+        private const string FrogPath = "Assets/Prefabs/Enemies/MortarFrog.prefab";
+        private const string ChiefToadPath = "Assets/Prefabs/Enemies/Meadow/ChiefToad.prefab";
         private static readonly Color LaserGlow = new Color(1f, 0.7f, 0.3f);
         private static readonly Color ScannerGlow = new Color(0.42f, 0.9f, 0.86f);
         private static readonly Color FlaskGlow = new Color(1f, 0.62f, 0.2f); // warm Scotch amber
@@ -58,6 +61,8 @@ namespace SignalLost.Editor
             ItemPickup laser = BuildLaser(crash);
             ItemPickup scanner = BuildScanner(crash);
             MerchantCrab merchant = BuildMerchant(story, hollow, camp);
+            FrogWaves frogs = BuildPondFrogs(story);
+            ChiefToadEncounter toad = BuildChiefToad(story, frogs);
 
             var flow = new SerializedObject(story.gameObject.AddComponent<TutorialStory>());
             flow.FindProperty("cavendish").objectReferenceValue = cavendish;
@@ -70,6 +75,9 @@ namespace SignalLost.Editor
             for (int i = 0; i < glimpses.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = glimpses[i];
             flow.FindProperty("laserPickup").objectReferenceValue = laser;
             flow.FindProperty("scannerPickup").objectReferenceValue = scanner;
+            flow.FindProperty("frogs").objectReferenceValue = frogs;
+            flow.FindProperty("cavendishSitDrop").floatValue = SitDrop;
+            flow.FindProperty("toad").objectReferenceValue = toad;
             flow.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -79,7 +87,12 @@ namespace SignalLost.Editor
         {
             GameObject cavendish = Instance(CavendishPath, story);
             cavendish.name = "Cavendish";
-            cavendish.transform.SetPositionAndRotation(TutorialLevelBuilder.Ground(camp + CavendishSpot), Facing(camp + CavendishSpot, camp));
+            // Sitting on his log across the fire: the log top is his seat, and his (unrigged) model sinks onto it.
+            Transform log = CampLog(story.root, "Cavendish's Log");
+            Vector3 seat = log != null ? LogTop(log) : TutorialLevelBuilder.Ground(camp + CavendishSpot);
+            cavendish.transform.SetPositionAndRotation(seat, Facing(new Vector2(seat.x, seat.z), camp));
+            Transform visual = cavendish.transform.Find("Visual");
+            if (log != null && visual != null) visual.localPosition += Vector3.down * SitDrop;
             var actor = cavendish.AddComponent<NpcActor>();
             cavendish.AddComponent<QuestSignalSource>();
             var voice = new GameObject("Cavendish Dialogue");
@@ -91,6 +104,62 @@ namespace SignalLost.Editor
             return actor;
         }
 
+        // The pond's frog colony: nothing until Cavendish's quest, then 20 frogs in three waves from around the bank.
+        private static FrogWaves BuildPondFrogs(Transform story)
+        {
+            Vector2 pond = TutorialLevelBuilder.Pond, radii = TutorialLevelBuilder.PondRadii;
+            var colony = new GameObject("Pond Frogs").transform;
+            colony.SetParent(story, false);
+            colony.position = TutorialLevelBuilder.Ground(pond);
+            var zone = colony.gameObject.AddComponent<CombatZone>();
+            zone.Radius = Mathf.Max(radii.x, radii.y) + 12f;
+            var points = new Transform[12];
+            for (int i = 0; i < points.Length; i++)
+            {
+                float angle = i * Mathf.PI * 2f / points.Length;
+                Vector2 at = pond + new Vector2(Mathf.Cos(angle) * radii.x, Mathf.Sin(angle) * radii.y) * 1.35f;
+                points[i] = new GameObject("Bank " + (i + 1)).transform;
+                points[i].SetParent(colony, false);
+                points[i].position = TutorialLevelBuilder.Ground(at);
+            }
+            var waves = new SerializedObject(colony.gameObject.AddComponent<FrogWaves>());
+            waves.FindProperty("frogPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<MortarFrog>(FrogPath);
+            SerializedProperty list = waves.FindProperty("spawnPoints");
+            list.arraySize = points.Length;
+            for (int i = 0; i < points.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = points[i];
+            waves.ApplyModifiedPropertiesWithoutUndo();
+            return colony.GetComponent<FrogWaves>();
+        }
+
+        // The Chief Toad, switched off in the middle of the pond until Cavendish's last quest arms the encounter. His
+        // arena is widened to cover our pond (50 x 34 m; his test pond is much smaller).
+        private static ChiefToadEncounter BuildChiefToad(Transform story, FrogWaves frogs)
+        {
+            Vector2 pond = TutorialLevelBuilder.Pond, radii = TutorialLevelBuilder.PondRadii;
+            var encounter = new GameObject("Chief Toad Encounter").transform;
+            encounter.SetParent(story, false);
+            var centre = new GameObject("Pond Centre").transform;
+            centre.SetParent(encounter, false);
+            centre.position = new Vector3(pond.x, TutorialLevelBuilder.PondWater, pond.y);
+            centre.gameObject.AddComponent<QuestSignalSource>().enabled = false;
+
+            GameObject toad = Instance(ChiefToadPath, encounter);
+            toad.name = "Chief Toad";
+            toad.transform.position = centre.position;
+            var boss = new SerializedObject(toad.GetComponent<ChiefToad>());
+            boss.FindProperty("arenaRadius").floatValue = Mathf.Max(radii.x, radii.y) + 15f;
+            boss.ApplyModifiedPropertiesWithoutUndo();
+            toad.SetActive(false);
+
+            var data = new SerializedObject(encounter.gameObject.AddComponent<ChiefToadEncounter>());
+            data.FindProperty("toad").objectReferenceValue = toad.GetComponent<ChiefToad>();
+            data.FindProperty("frogs").objectReferenceValue = frogs;
+            data.FindProperty("pondCentre").objectReferenceValue = centre;
+            data.FindProperty("triggerRadius").floatValue = Mathf.Max(radii.x, radii.y) + 15f;
+            data.ApplyModifiedPropertiesWithoutUndo();
+            return encounter.GetComponent<ChiefToadEncounter>();
+        }
+
         private static MerchantCrab BuildMerchant(Transform story, Transform hollow, Vector2 camp)
         {
             CombatZone zone = hollow.GetComponent<CombatZone>();
@@ -100,6 +169,12 @@ namespace SignalLost.Editor
             var spot = new GameObject("Merchant Spot At Camp").transform;
             spot.SetParent(story, false);
             spot.SetPositionAndRotation(TutorialLevelBuilder.Ground(camp + MerchantSpot), Facing(camp + MerchantSpot, camp));
+            // Once home it hops up onto the other log by the fire.
+            var seat = new GameObject("Merchant Seat").transform;
+            seat.SetParent(story, false);
+            Transform otherLog = CampLog(story.root, "LogSeat");
+            Vector3 top = otherLog != null ? LogTop(otherLog) : spot.position;
+            seat.SetPositionAndRotation(top, Facing(new Vector2(top.x, top.z), camp));
             GameObject flask = Instance(FlaskPath, story);
             flask.name = "Scotch Flask";
             SetEnum(flask.AddComponent<ItemPickup>(), "item", (int)ItemPickup.Item.Flask);
@@ -108,7 +183,7 @@ namespace SignalLost.Editor
             flask.SetActive(false);
 
             GameObject merchant = Instance(MerchantPath, hollow);
-            merchant.name = "Eugine"; // also its name in the HUD target readout
+            merchant.name = "Eugene"; // also its name in the HUD target readout
             merchant.transform.SetPositionAndRotation(TutorialLevelBuilder.Ground(centre + new Vector2(1.5f, 1.5f)), Facing(centre + new Vector2(1.5f, 1.5f), centre + new Vector2(10f, -3f)));
             if (merchant.GetComponent<QuestSignalSource>() == null) merchant.AddComponent<QuestSignalSource>();
             SetZone(merchant.GetComponent<HermitCrab>(), zone);
@@ -128,12 +203,16 @@ namespace SignalLost.Editor
 
             var data = new SerializedObject(merchant.GetComponent<MerchantCrab>());
             data.FindProperty("returnPoint").objectReferenceValue = spot;
+            data.FindProperty("seat").objectReferenceValue = seat;
             data.FindProperty("flaskDrop").objectReferenceValue = flask.GetComponent<ItemPickup>();
             data.FindProperty("startFriendly").boolValue = false;
             SerializedProperty list = data.FindProperty("cousins");
             list.arraySize = cousins.Length;
             for (int c = 0; c < cousins.Length; c++) list.GetArrayElementAtIndex(c).objectReferenceValue = cousins[c];
             data.ApplyModifiedPropertiesWithoutUndo();
+            // Nobody is in the hollow until Cavendish's big-crab quest (TutorialStory switches them on).
+            merchant.SetActive(false);
+            foreach (CrabCousin cousin in cousins) cousin.gameObject.SetActive(false);
             return merchant.GetComponent<MerchantCrab>();
         }
 
@@ -258,6 +337,23 @@ namespace SignalLost.Editor
         }
 
         // ---------- Helpers ----------
+
+        // How far Cavendish's model sinks so he looks seated on his log.
+        private const float SitDrop = 0.55f;
+
+        private static Transform CampLog(Transform root, string name)
+        {
+            var camp = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include).FirstOrDefault(t => t.name == "Campsite");
+            return camp == null ? null : camp.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == name);
+        }
+
+        // The middle of a log's top surface.
+        private static Vector3 LogTop(Transform log)
+        {
+            var bounds = new Bounds(log.position, Vector3.zero);
+            foreach (Renderer part in log.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(part.bounds);
+            return new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+        }
 
         private static Transform Hull(Transform crash) => crash.GetComponentsInChildren<Transform>(true).First(t => t.name == "Hull");
 

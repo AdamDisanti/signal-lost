@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa202b57a8c584b13be42c5c2daca481, type: 3}
+  m_Name: ScrapCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Inventory.ScrapCatalog
+  entries:
+  - type: 0
+    model: {fileID: 6354400242196885521, guid: afd94b46089ca488bb731f90328b990b, type: 3}
+    icon: {fileID: -2195040084631497593, guid: 0b320fa03632a4819b2c070ededd6e0e, type: 3}
+  - type: 1
+    model: {fileID: 3619966230259868767, guid: fe6762efa56b7430da999796a3fbd88e, type: 3}
+    icon: {fileID: -4513058952993846689, guid: db1bc0b1a9ecc4e24bf9f640400acbf2, type: 3}
+  - type: 2
+    model: {fileID: 7370735544257698316, guid: ee855e90c2fdc439ab7fea9c52844667, type: 3}
+    icon: {fileID: 3409093096942655724, guid: ff8039f2273f945b899b305b17d3e5f9, type: 3}
+  - type: 3
+    model: {fileID: 672261315447352561, guid: 7a7a55a0e7a5a4b3db73954c77854d39, type: 3}
+    icon: {fileID: -4748827056534669558, guid: 79dbc09148a8c45e0a6454c1b0aba56f, type: 3}

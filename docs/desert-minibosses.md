@@ -205,7 +205,7 @@ For each scene: press Play. No Console errors (a short pause while the NavMesh b
   - Should the boss become scannable after all three are beaten?
   - `Defeated`, `DefeatedCount` and `ShipPartDrop.Recovered` are ready for this, but nothing is wired up.
 - **Placing them in the Desert Dunes level:** Nicole owns that scene. Putting each mini-boss and its spawner at its encounter site is a separate, coordinated change.
-- **Scanner:** each mini-boss has an `EnemySignalSource`, but the scanner picks the nearest source, so a Snorkel Eel near Sludge can pull the arrow away from it. Giving bosses priority means changing Amanda's `ScannerController`.
+- **Scanner:** each mini-boss has an `EnemySignalSource`, but the scanner picks the nearest eligible enemy source, so a Snorkel Eel near Sludge can become the selected signal instead and affect the proximity strength and audio. The in-hand scanner has no directional arrow. Giving bosses priority means changing Amanda's `ScannerController`.
 - **Death and reset rules:** the mini-bosses reset when you die or leave. Whether progress such as a recovered part survives a death isn't decided.
 - **Frogs:** Burnout's arena reuses Christian's mortar frog prefab unchanged, so the tin-can damage note above applies there.
 

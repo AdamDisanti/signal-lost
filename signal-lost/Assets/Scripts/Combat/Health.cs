@@ -29,6 +29,16 @@ namespace SignalLost.Combat
         // Runtime protection for friendly NPCs; normal actors remain damageable by default.
         public bool Invulnerable { get; set; }
         public float Max => maxHealth;
+
+        /// <summary>Changes the maximum (upgrades), keeping the same fraction of health.</summary>
+        public void SetMax(float max)
+        {
+            max = Mathf.Max(1f, max);
+            float fraction = maxHealth > 0f ? current / maxHealth : 1f;
+            maxHealth = max;
+            current = IsDead ? 0f : Mathf.Clamp(fraction * max, 1f, max);
+            Changed?.Invoke(this);
+        }
         public float Current => current;
         public float Normalized => current / maxHealth;
         public bool IsDead => current <= 0f;

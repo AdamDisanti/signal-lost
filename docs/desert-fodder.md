@@ -96,14 +96,14 @@ A meerkat wearing a tiny radar dish. It never attacks.
 
 - **Shriek:** it pops out of a burrow, watches you for 0.8 s, stands tall with the dish whirring for 0.8 s (your warning), then shrieks.
 - **Spotted:** for 6 s, every desert fodder enemy within 40 m knows where you are (walls don't matter) and moves 25% faster. A red **SPOTTED!** banner with a timer and red screen edges shows it.
-- **Jamming:** while it is popped up and you are within 12 m, its radar jams your scanner. The arrow disappears, the meter flickers, static plays instead of beeps, and **SCANNER JAMMED** shows.
+- **Jamming:** while it is popped up and you are within 12 m, its radar jams your scanner. The proximity bar flickers, static plays instead of the normal beeps, and **SCANNER JAMMED** shows. The in-hand scanner has no directional arrow.
 - **Counterplay:** it is fragile (20 HP) and can only be hit while popped up. When hit, it ducks down, then pops up from a different hole nearby. Killing meerkats first makes a fight easier and frees your scanner.
 
 ## Shared systems
 
 - **`FodderSpawner`:** put it at the centre of an area with a NavMesh and list the prefabs to spawn, with a weight and a group size for each. While the player is within its activation range, it spawns a wave every few seconds at the edge of its area, preferring spots behind the player, up to a cap on how many are alive at once. Assign **Stop When Dead** (for example a mini-boss's `Health`) to stop spawning when that dies; the fodder already out keeps fighting. It also exposes `Killed` and an `EnemyKilled` event for encounter or objective counting later.
 - **`SpotterAlert`:** the meerkat's "spotted" state, as a static flag any script can read (`SpotterAlert.IsMarked`). The mini-bosses can use it later. Dying clears it.
-- **`ScannerJamReceiver`:** jams Amanda's scanner from the outside. While a jammer is in range, it switches `ScannerController` off (so the arrow and beeps stop), adds meter noise and static, and switches it back on afterwards. It adds itself to the scene's scanner automatically the first time a meerkat appears, so no prefab or scene change is needed. Any script can be a jammer by implementing `IScannerJammer`.
+- **`ScannerJamReceiver`:** jams Amanda's scanner from the outside. While a jammer is in range, it switches `ScannerController` off (so target updates and normal beeps stop), adds noise to the proximity bar and plays static, then switches it back on afterwards. It adds itself to the scene's scanner automatically the first time a meerkat appears, so no prefab or scene change is needed. Any script can be a jammer by implementing `IScannerJammer`.
 - **`FodderExplosion` and `IIgnitable`:** a blast that damages every `Health` in range once, with falloff, and ignites anything `IIgnitable`. The future fuel scorpion's oil fires can call `Ignite` on beetles.
 - **`FodderStatusOverlay`:** **PLACEHOLDER** on-screen text (SPOTTED, SCANNER JAMMED, ticks latched on), drawn without touching the shared HUD prefab. It is created automatically when needed. Replace it during the UI pass.
 - **`DesertFodder`:** the base class: finding the player, line of sight, the spotted alert, hit flash, knockback and the default death. Like the crab and frog, each enemy's NavMeshAgent starts disabled and is switched on in `Start` once the NavMesh is built.
@@ -125,7 +125,7 @@ The builder is `Assets/Editor/DesertFodderBuilder.cs`. It reuses the public help
    - Let one leap on you: it clings on screen, the HUD flashes red every half second, and the hint shows.
    - Swing: up to two pop off. Jump: the rest fall off and sit dazed for a moment.
    - Sidestep a leap: it lands dazed.
-3. **Eels (east):** raise the scanner (**Q**): it points at a buried eel. Lower it.
+3. **Eels (east):** raise the scanner (**Q**). The scanner does not acquire a buried eel; use the pipe and sand movement to locate it until it emerges. Once exposed, the proximity bar and beeps can help find it. Lower the scanner.
    - Watch a pipe and sand mound slide toward you. When the sand bulges, step away: the burst misses.
    - Stand still: you are bitten for 14.
    - Shoot the pipe while it is buried: the eel pops out stunned. Hit it while it is exposed.
@@ -139,7 +139,7 @@ The builder is `Assets/Editor/DesertFodderBuilder.cs`. It reuses the public help
    - Slam it (third combo hit) while it is dizzy or rolling: it flips onto its back.
    - Watch it bounce off rocks.
 6. **Meerkats (west):** one pops up, watches, stands tall, and shrieks with a red ring. **SPOTTED!** appears with a timer, and the ticks there rush you from further away, faster.
-   - Raise the scanner near a popped-up meerkat: **SCANNER JAMMED**, no arrow, flickering meter, static. Walk away or kill it: the scanner works again.
+   - Raise the scanner near a popped-up meerkat: **SCANNER JAMMED**, flickering proximity bar, static instead of normal beeps. Walk away or kill it: the scanner works again.
    - Hit a meerkat without killing it: it ducks, then pops up somewhere else nearby.
 7. Walk away from a station: it stops spawning. No station ever has more than its cap alive.
 8. Die: you respawn at the start, the SPOTTED state is cleared, and no ticks are left clinging to you.

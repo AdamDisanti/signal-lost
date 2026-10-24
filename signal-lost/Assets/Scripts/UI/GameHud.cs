@@ -30,7 +30,12 @@ namespace SignalLost.UI
         private PlayerFlask flask;
         private PlayerInteractor interactor;
         private Health health;
-        private float trail = 1f, hurtFlash, nextFind, shownHealth = -1f;
+        private float trail = 1f, hurtFlash, nextFind, shownHealth = -1f, lowHealthLevel;
+        private Image lowHealthImage;
+        private TextMeshProUGUI lowHealthText;
+
+        /// <summary>At or below this much health the screen edges pulse red with a heartbeat: time to drink.</summary>
+        public const float LowHealth = 30f;
 
         private CanvasGroup barGroup, centreGroup;
         private TextMeshProUGUI healthValue, flaskTitle, flaskInfo, handTitle, handInfo, prompt, targetName, chargeText, centreMessage, centreSub;
@@ -38,6 +43,9 @@ namespace SignalLost.UI
         private RectTransform crosshair, chargeGroup, targetGroup;
         private readonly List<Image> drunkPips = new List<Image>();
         private readonly List<Image> comboPips = new List<Image>();
+        private readonly List<Image> drunkFills = new List<Image>();
+        private readonly List<Image> comboFills = new List<Image>();
+        private static readonly Color PipTrack = new Color(1f, 1f, 1f, 0.12f);
         private readonly TextMeshProUGUI[] scrapCounts = new TextMeshProUGUI[4];
         private TextMeshProUGUI scrapToast;
         private readonly Dictionary<ScrapType, int> recentScrap = new Dictionary<ScrapType, int>();
@@ -128,7 +136,7 @@ namespace SignalLost.UI
             var text = new StringBuilder();
             foreach (ScrapType kind in ScrapInfo.All)
                 if (recentScrap.TryGetValue(kind, out int count))
-                    text.Append($"<color={UiTheme.Hex(ScrapInfo.Color(kind))}>+{count} {ScrapInfo.Name(kind)}</color>  ");
+                    text.Append($"<color={UiTheme.Hex(ScrapInfo.Color(kind))}>+{count}</color> {ScrapInfo.Inline(kind)}   ");
             scrapToast.text = text.ToString();
             toastUntil = Time.unscaledTime + 2.2f;
         }
@@ -144,6 +152,7 @@ namespace SignalLost.UI
             centreGroup.alpha = hasPlayer && !UiMenus.AnyOpen && Cursor.lockState == CursorLockMode.Locked ? 1f : 0f;
             hurtFlash = Mathf.MoveTowards(hurtFlash, 0f, Time.unscaledDeltaTime / 0.35f);
             hurtImage.color = new Color(0.75f, 0f, 0f, 0.32f * hurtFlash);
+            UpdateLowHealth(hasPlayer);
             fade.color = new Color(0f, 0f, 0f, Mathf.MoveTowards(fade.color.a, fadeTarget, Time.unscaledDeltaTime / 0.45f));
             centreMessage.text = respawnMessage ?? "";
             centreSub.text = respawnMessage != null ? "Coming round..." : "";
@@ -178,15 +187,21 @@ namespace SignalLost.UI
             {
                 flaskInfo.text = $"<color={UiTheme.Hex(UiTheme.Muted)}>No flask</color>";
                 foreach (Image pip in drunkPips) pip.color = new Color(1f, 1f, 1f, 0.08f);
+                foreach (Image fill in drunkFills) SetFill(fill, 0f, false);
                 return;
             }
             flaskInfo.text = flask.DrunkStacks == 0 ? $"Sober  <color={UiTheme.Hex(UiTheme.Good)}>next sip +{flask.NextSipHeal:0} HP</color>" :
                 $"Drunk {flask.DrunkStacks}/{flask.BlackoutAfterStacks}  next sip +{flask.NextSipHeal:0.#} HP";
+            // Lit pips are drinks in you; the last one drains right to left as it wears off (a visual timer for the next
+            // sip, the same style as the combo pips), then the one before it, and so on.
+            bool danger = flask.DrunkStacks >= flask.BlackoutAfterStacks;
+            Color drunkColor = danger ? UiTheme.Warning : new Color(1f, 0.72f, 0.3f);
             for (int i = 0; i < drunkPips.Count; i++)
             {
-                bool lit = i < flask.DrunkStacks;
-                bool danger = flask.DrunkStacks >= flask.BlackoutAfterStacks;
-                drunkPips[i].color = lit ? (danger ? UiTheme.Warning : new Color(1f, 0.72f, 0.3f)) : new Color(1f, 1f, 1f, 0.12f);
+                drunkPips[i].color = i < flask.BlackoutAfterStacks ? PipTrack : new Color(1f, 1f, 1f, 0.04f);
+                float fill = i < flask.DrunkStacks - 1 ? 1f : i == flask.DrunkStacks - 1 ? flask.StackWearing : 0f;
+                drunkFills[i].color = drunkColor;
+                SetFill(drunkFills[i], fill, false);
             }
         }
 
@@ -200,9 +215,10 @@ namespace SignalLost.UI
 
             if (laser == null || !gear.Has(PlayerItem.MiningLaser))
             {
-                handInfo.text = gear != null && gear.Has(PlayerItem.Scanner) ? "Follow the arrow on the scanner" : "Find your gear in the wreck";
+                handInfo.text = gear != null && gear.Has(PlayerItem.Scanner) ? "Faster beeps: getting closer" : "Find your gear in the wreck";
                 cooldownFill.rectTransform.anchorMax = new Vector2(0f, 1f);
                 foreach (Image pip in comboPips) pip.color = new Color(1f, 1f, 1f, 0.08f);
+                foreach (Image fill in comboFills) SetFill(fill, 0f, false);
                 return;
             }
             float cooldown = laser.CurrentCooldownLength > 0f ? 1f - laser.ShotCooldownRemaining / laser.CurrentCooldownLength : 1f;
@@ -210,18 +226,75 @@ namespace SignalLost.UI
             cooldownFill.color = laser.IsCoolingDown ? new Color(0.45f, 0.55f, 0.7f) : new Color(0.4f, 0.9f, 1f);
             handInfo.text = laser.IsCoolingDown ? $"Bolt cooling  {laser.ShotCooldownRemaining:0.0}s" :
                 laser.ComboCooldownRemaining > 0f ? $"Bolt ready   Combo recharging {laser.ComboCooldownRemaining:0.0}s" : "Bolt ready   Combo ready";
+            // Pips count the combo; after the stunning third hit all three drain right to left as its recharge timer.
+            bool recharging = laser.ComboCooldownRemaining > 0f;
+            float left = recharging && laser.ComboCooldown > 0f ? laser.ComboCooldownRemaining / laser.ComboCooldown : 0f;
             for (int i = 0; i < comboPips.Count; i++)
             {
-                bool recharging = laser.ComboCooldownRemaining > 0f;
-                comboPips[i].color = recharging ? new Color(1f, 1f, 1f, 0.1f) : i < laser.ComboStep ? UiTheme.Accent : new Color(1f, 1f, 1f, 0.3f);
+                comboPips[i].color = recharging ? PipTrack : new Color(1f, 1f, 1f, 0.3f);
+                comboFills[i].color = recharging ? new Color(1f, 0.55f, 0.25f) : UiTheme.Accent;
+                SetFill(comboFills[i], recharging ? Mathf.Clamp01(left * comboPips.Count - i) : i < laser.ComboStep ? 1f : 0f, false);
             }
+        }
+
+        // Red screen edges that beat like a heart (lub-dub every 0.86 s, matching the heartbeat sound), stronger the
+        // lower health goes, plus a reminder to drink.
+        private void UpdateLowHealth(bool hasPlayer)
+        {
+            Health health = hasPlayer ? life.Health : null;
+            bool low = health != null && !health.IsDead && !life.IsRespawning && health.Current <= LowHealth;
+            float depth = low ? 1f - Mathf.Clamp01(health.Current / LowHealth) : 0f;
+            lowHealthLevel = Mathf.MoveTowards(lowHealthLevel, low ? 0.55f + 0.45f * depth : 0f, Time.unscaledDeltaTime * 2f);
+            float t = Mathf.Repeat(Time.unscaledTime, 0.86f);
+            float beat = Mathf.Exp(-t * 14f) + 0.7f * Mathf.Exp(-Mathf.Max(0f, t - 0.27f) * 14f) * (t > 0.27f ? 1f : 0f);
+            lowHealthImage.color = new Color(0.8f, 0.02f, 0.02f, lowHealthLevel * (0.45f + 0.35f * beat));
+            bool hasFlask = gear != null && gear.Has(PlayerItem.Flask);
+            lowHealthText.text = hasFlask ? "LOW HEALTH  -  drink  <b>[F]</b>" : "LOW HEALTH";
+            lowHealthText.alpha = UiMenus.AnyOpen ? 0f : Mathf.Clamp01(lowHealthLevel * 1.6f) * (0.75f + 0.25f * beat);
+        }
+
+        private static Sprite vignette;
+
+        // Clear in the middle, solid at the edges.
+        private static Sprite Vignette()
+        {
+            if (vignette != null) return vignette;
+            const int size = 128;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "Low Health Vignette" };
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
+                float d = Mathf.Sqrt(dx * dx * 0.8f + dy * dy);
+                float a = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.55f, 1.25f, d));
+                texture.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+            texture.Apply();
+            return vignette = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+        }
+
+        // A coloured bar inside a pip; SetFill grows it upward (vertical) or rightward.
+        private static Image Fill(Image pip)
+        {
+            Image fill = UiTheme.Panel("Fill", pip.transform, Color.white, null, 0.35f);
+            fill.rectTransform.anchorMin = Vector2.zero;
+            fill.rectTransform.anchorMax = Vector2.one;
+            fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
+            return fill;
+        }
+
+        private static void SetFill(Image fill, float amount, bool vertical)
+        {
+            amount = Mathf.Clamp01(amount);
+            fill.enabled = amount > 0.01f;
+            fill.rectTransform.anchorMax = vertical ? new Vector2(1f, amount) : new Vector2(amount, 1f);
         }
 
         private void UpdateScrap()
         {
             PlayerInventory inventory = gear != null ? gear.Inventory : null;
             for (int i = 0; i < scrapCounts.Length; i++) scrapCounts[i].text = inventory != null ? inventory.Scrap(ScrapInfo.All[i]).ToString() : "0";
-            scrapToast.alpha = Mathf.Clamp01((toastUntil - Time.unscaledTime) / 0.4f);
+            scrapToast.alpha = UiMenus.FullScreenOpen ? 0f : Mathf.Clamp01((toastUntil - Time.unscaledTime) / 0.4f);
         }
 
         private void UpdateCrosshair()
@@ -260,6 +333,12 @@ namespace SignalLost.UI
 
             hurtImage = UiTheme.Block("Hurt Flash", root, Color.clear);
             UiTheme.Stretch(hurtImage.rectTransform);
+            lowHealthImage = UiTheme.Block("Low Health", root, Color.clear);
+            lowHealthImage.sprite = Vignette();
+            UiTheme.Stretch(lowHealthImage.rectTransform);
+            lowHealthText = UiTheme.Label("Low Health Hint", root, 30f, UiTheme.Warning, TextAlignmentOptions.Center, FontStyles.Bold);
+            UiTheme.Place(lowHealthText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, BottomReserved + 70f), new Vector2(900f, 40f));
+            lowHealthText.alpha = 0f;
 
             // Crosshair, charge meter, target readout and prompt.
             RectTransform centre = UiTheme.Stretch(UiTheme.Rect("Centre", root));
@@ -302,14 +381,16 @@ namespace SignalLost.UI
 
             RectTransform flaskBlock = Block(barRect, "Flask", 404f, 270f, "SCOTCH");
             flaskTitle = flaskBlock.Find("Title").GetComponent<TextMeshProUGUI>();
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 6; i++) // five drinks, a sixth with the Cast-Iron Liver upgrade
             {
                 Image pip = UiTheme.Panel("Drunk Pip", flaskBlock, Color.white, null, 0.35f);
                 UiTheme.Place(pip.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(i * 34f, -40f), new Vector2(26f, 34f));
                 drunkPips.Add(pip);
+                drunkFills.Add(Fill(pip));
             }
             flaskInfo = UiTheme.Label("Info", flaskBlock, 21f, UiTheme.Text, TextAlignmentOptions.BottomLeft);
             UiTheme.Place(flaskInfo.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 10f), new Vector2(280f, 30f));
+            OneLine(flaskInfo);
 
             portrait = MechanicPortrait.Create(barRect, 116f);
             UiTheme.Place((RectTransform)portrait.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(116f, 116f));
@@ -321,10 +402,12 @@ namespace SignalLost.UI
                 Image pip = UiTheme.Panel("Combo Pip", handBlock, Color.white, null, 0.35f);
                 UiTheme.Place(pip.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(i * 30f, -40f), new Vector2(22f, 22f));
                 comboPips.Add(pip);
+                comboFills.Add(Fill(pip));
             }
             cooldownFill = Meter(handBlock, new Vector2(110f, -46f), new Vector2(210f, 12f), new Vector2(0f, 1f));
             handInfo = UiTheme.Label("Info", handBlock, 21f, UiTheme.Text, TextAlignmentOptions.BottomLeft);
             UiTheme.Place(handInfo.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 10f), new Vector2(340f, 30f));
+            OneLine(handInfo);
 
             RectTransform scrapBlock = Block(barRect, "Scrap", 1196f, 300f, "SCRAP  <size=80%>[Tab]</size>");
             for (int i = 0; i < ScrapInfo.All.Length; i++)
@@ -332,8 +415,10 @@ namespace SignalLost.UI
                 ScrapType type = ScrapInfo.All[i];
                 RectTransform chip = UiTheme.Place(UiTheme.Rect(ScrapInfo.Name(type), scrapBlock), new Vector2(0f, 1f), new Vector2(0f, 1f),
                     new Vector2((i % 2) * 150f, -38f - (i / 2) * 38f), new Vector2(140f, 32f));
-                Image dot = UiTheme.Panel("Dot", chip, ScrapInfo.Color(type), null, 0.3f);
-                UiTheme.Place(dot.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(20f, 20f));
+                Sprite icon = ScrapCatalog.Icon(type);
+                Image dot = icon != null ? UiTheme.Icon("Icon", chip, icon) : UiTheme.Panel("Dot", chip, ScrapInfo.Color(type), null, 0.3f);
+                UiTheme.Place(dot.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), icon != null ? new Vector2(-8f, 0f) : Vector2.zero,
+                    icon != null ? new Vector2(40f, 40f) : new Vector2(20f, 20f));
                 scrapCounts[i] = UiTheme.Label("Count", chip, 26f, UiTheme.Text, TextAlignmentOptions.Left, FontStyles.Bold);
                 UiTheme.Place(scrapCounts[i].rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(30f, 0f), new Vector2(110f, 32f));
             }
@@ -376,6 +461,15 @@ namespace SignalLost.UI
             RectTransform meter = UiTheme.Place(UiTheme.Rect("Meter", parent), a, new Vector2(a.x, 1f), position, size);
             UiTheme.Stretch(UiTheme.Panel("Back", meter, new Color(0f, 0f, 0f, 0.55f), null, 0.4f).rectTransform);
             return FillBar(meter, new Color(0.4f, 0.9f, 1f));
+        }
+
+        // Status lines shrink to fit rather than wrap up into the title above them.
+        private static void OneLine(TextMeshProUGUI text)
+        {
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 15f;
+            text.fontSizeMax = text.fontSize;
         }
     }
 }

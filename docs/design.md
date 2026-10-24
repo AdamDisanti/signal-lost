@@ -8,6 +8,8 @@ A low-poly first-person action-adventure shooter with exploration, goofy alien c
 
 The flask heals without a fixed use limit; excessive drinking affects visibility and can cause blackout and checkpoint respawn. Cavendish the capybara gives optional quests; the hermit crab becomes a merchant. Per-biome progression includes three mini encounters before the boss becomes scannable; the document allows an early boss fight at much higher difficulty. Previous ship parts gate later biomes.
 
+**Current scanner prototype:** the active in-hand scanner no longer has a directional arrow. It retains its proximity bar and audio feedback. This is an implementation change; the supplied design document's directional-scanner intent above remains unchanged.
+
 | Area | Planned boss / reward |
 | --- | --- |
 | Crash site tutorial | Recover laser/flask; learn movement, scanner, combat, resources, and healing |
@@ -160,7 +162,7 @@ Adam and Lawson's meeting notes asked for a complete tutorial before the demo. T
 - **Quest order:** wake up beside Cavendish, then "Gear Up" (find the laser in the basin and the scanner in the wreckage), return, "Hair of the Crab" (beat the flask crab, collect the flask), follow the crab home, hear its scrap and shop rundown, then report back. This supersedes the earlier single "Recover Your Flask" quest.
 - **Dialogue:** subtitles at the bottom middle plus speech bubbles for chatter. Quest information goes in a rounded, transparent popup that advances with a click or E. Earlier rules still hold: walking stays active and cancelling does not accept.
 - **Items:** Q swaps between scanner and laser, and F drinks. The scanner is found in the tutorial. The two-handed, both-items-at-once idea from the UI notes was not built.
-- **Scanner:** it points at the current quest objective, or at the NPC with a quest waiting, at any distance. Quest objectives outrank creatures. This resolves the mini-boss doc's open question for quest targets only; boss priority is still undecided.
+- **Scanner:** quest signals (the current objective or an NPC with a quest waiting) remain selected at any distance and outrank creature signals. In the current implementation, the in-hand display has no directional arrow: its bar strength is calculated using the active scene's range, so a distant quest can remain selected while showing zero strength. This resolves the mini-boss doc's open question for quest targets only; boss priority is still undecided.
 - **Healing (supersedes 35 HP flat, blackout above 8):** each sip heals half as much per drunk stack and returns to full once sober. Blackout comes on the sip after 5 stacks.
 - **Laser (the lead wants the starting weapon to feel weak):**
   - a 10 s cooldown on the charged shot only;
@@ -218,3 +220,38 @@ The "Major tutorial rework" prompt, with the project lead's answers. See [tutori
   - Space skips the opening.
   - Cousins drop one guaranteed wiring each, so the fight pays for a first upgrade.
 - **Open:** audio; a real save; upgrades and the skill tree; whether bosses should share the 2× leash or keep their own reset rules (they now use the 2× rule on their arena radius).
+
+## Final tutorial tweaking (meeting notes 10-23-26)
+
+Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutorial.md), [upgrades](upgrades.md) and [shared player](core-player.md).
+
+- **Movement:** tap C to crouch or stand; hold C while sprinting to slide; jumping out of a slide keeps its speed (slide cancel), so slide-jump chains are the fast way around.
+- **Pop-ups:** tutorial and item cards are dismissed by the player (E or Enter), never on a timer. **This applies to every pop-up from now on.**
+- **Angry merchant:** called-back cousins drop no scrap (no farming).
+- **Laser:** combo recharge 2 s, shown by the three combo pips draining; bolt cooldown 1 s (tap) to 6 s (full charge), eased between (about 2.8 s at half charge).
+- **Flask:** heals 35 / 28 / 22 / 17 / 13 (gentler than halving); the top drunk pip drains as a drink wears off; the sip is 30% slower and reaches down for the flask before snapping it up; burps from the 3rd sip; overdrinking reads "SIGNAL LOST - BLACKOUT".
+- **Merchant:** renamed **Eugene** (from Eugine).
+- **Scrap and upgrades:** four scrap models from Adam's references; seven tutorial upgrades, two supplies and three trades, all fixed recipes (no crafting); key-item recipes supported for mini-boss drops.
+- **Pockets:** four tabs (the notes said three but listed four): Materials, Gear (3D mechanic wearing upgrades, tool close-ups, supplies), Upgrades, Stats.
+- **Tutorial ending:** buy a first upgrade (required before Cavendish's next job), clear 20 pond frogs in three growing waves (5, 7, 8), then take the Chief Toad quest; the tutorial stops there until the mini-boss is merged.
+- **Open:** the Chief Toad itself and its reward (ideas in [upgrades](upgrades.md#ideas-for-the-chief-toad-reward-not-built)); costs and frog drop rates need a play-test; crouch and slide feel can only be judged by playing.
+
+## Demo round (meeting notes 10-23-26, second list)
+
+- **Music:** the title screen plays "Signal lost main menu music" on a seamless loop (imported uncompressed so the loop has no gap); the Music slider controls it.
+- **Low health:** at 30 health or less, a pulsing red vignette, a heartbeat and a "drink [F]" reminder.
+- **Chief Toad in the tutorial:** spawned only after Cavendish's quest; a short rise-from-the-pond cutscene with his boss bar; 3-5 frogs kept alive during the fight (no scrap from them); beaten, he drops a loot pile including his crown.
+- **Base camp and trophies:** the camp is one prefab (`Prefabs/Core/BaseCamp.prefab`) with three trophy stands, to be placed in every later level. Boss trophies are picked up from the loot and set on a stand; placed trophies are saved to disk (`CampSave`), and New Game clears them. This is the game's first real save data.
+- **Demo:** the tutorial scene is now **Tutorial Demo**; the demo build is the title screen plus that scene. Adam asked for a Mac build now and Windows-ready setup for teammates (the Windows module is not installed on his Mac). See [demo build](demo-build.md).
+- **End of the demo:** Cavendish's wrap-up, then a "Thanks for playing" card (Keep Exploring / Main Menu).
+
+## Demo polish (10-23-26, third list)
+
+- NPCs sit on the camp logs when home: Cavendish on his log (his unrigged model sinks onto it), Eugene hops onto the other log after walking home (now 50% faster).
+- The flask pips drain right to left like the combo pips; the dropped flask floats and spins.
+- Footsteps are a soft low bass note.
+- Lore: bosses' main ship parts go to Cavendish "for safe keeping"; the tutorial asks for the cooling system to be handed over.
+- The Chief Toad's beam tilts to the player's real height and distance, and both the jet and its hitbox are wider.
+- Pause menu centred.
+- Shop: type filters, a Purchased filter, scrap amounts as icons, and a preview-then-confirm purchase. The pockets' Upgrades tab shows only what is installed.
+- The merchant crab and its cousins only appear once Cavendish gives the big-crab quest.

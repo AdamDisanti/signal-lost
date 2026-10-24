@@ -12102,7 +12102,7 @@ MonoBehaviour:
   beamCharge: 1.1
   beamTime: 1.8
   beamRange: 28
-  beamHitRadius: 0.9
+  beamHitRadius: 1.5
   beamDamagePerTick: 7
   beamTick: 0.15
   beamPush: 0.35

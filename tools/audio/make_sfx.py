@@ -357,25 +357,14 @@ def _():
 
 
 def step(kind):
-    if kind == 'grass':
-        dur = 0.2
-        x = np.zeros(int(SR * dur))
-        for _ in range(rng.integers(4, 8)):
-            burst = hp(noise(0.03), 1800) * env_ad(0.03, 0.001, 0.008)
-            x += at(burst * rng.uniform(0.3, 1.0), rng.uniform(0, 0.09), dur)
-        x += lp(noise(dur), 300) * env_ad(dur, 0.002, 0.03) * 0.6
-        return x
-    if kind == 'sand':
-        dur = 0.25
-        x = bp(noise(dur), 350, 2500) * env_bell(dur, 0.25, 1.5)
-        x += lp(noise(dur), 200) * env_ad(dur, 0.003, 0.04) * 0.5
-        return x
-    dur = 0.18
-    x = osc(glide(110, 60, dur), None) * env_ad(dur, 0.002, 0.03) * 0.8
-    x += bp(noise(dur), 800, 4000) * env_ad(dur, 0.001, 0.025) * 0.6
-    for _ in range(3):
-        x += at(hp(noise(0.01), 3000) * env_ad(0.01, 0.0005, 0.003) * 0.4, rng.uniform(0.01, 0.06), dur)
-    return x
+    """A soft, low bass note per footstep (10-23: the old crunchy steps were too harsh). Each surface sits on its own
+    pitch; a hint of texture on top keeps grass, sand and dirt apart without getting noisy."""
+    base = {'grass': 72, 'sand': 62, 'dirt': 82}[kind] * rng.uniform(0.94, 1.06)
+    dur = 0.22
+    body = osc(glide(base * 1.25, base, dur), None) * env_ad(dur, 0.006, 0.055)
+    body += osc(glide(base * 2.5, base * 2, dur), None) * env_ad(dur, 0.004, 0.025) * 0.18  # a little definition
+    texture = lp(noise(dur), {'grass': 500, 'sand': 700, 'dirt': 400}[kind]) * env_ad(dur, 0.003, 0.02) * 0.08
+    return lp(body + texture, 400)
 
 
 for kind in ('grass', 'sand', 'dirt'):
@@ -765,6 +754,19 @@ def _():
             time += rng.exponential(0.4)
         return x
     return seamless(gen, 10.0, 2.0)
+
+
+# ---------------------------------------------------------------- low health (added 10-23; last, so earlier sounds keep their random draws)
+
+@sound('low_health_heartbeat', loop=True)
+def _():
+    """A slow, muffled lub-dub (about 70 bpm) that loops while the player is badly hurt."""
+    beat = 0.86
+    def thump(dur, f0, f1, amp):
+        body = osc(glide(f0, f1, dur), None) * env_ad(dur, 0.004, dur * 0.28)
+        return lp(body + lp(noise(dur), 160) * env_ad(dur, 0.002, 0.03) * 0.35, 220) * amp
+    x = at(thump(0.22, 72, 44, 1.0), 0.0, beat) + at(thump(0.2, 64, 40, 0.7), 0.27, beat)
+    return x
 
 
 # ---------------------------------------------------------------- write

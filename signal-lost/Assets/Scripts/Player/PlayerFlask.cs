@@ -25,12 +25,13 @@ namespace SignalLost.Player
         [SerializeField] private Volume drunkVolume;
 
         [Header("Tuning (placeholders)")]
-        [Tooltip("Health from a sip while sober. Each drunk stack halves it.")]
-        [SerializeField, Min(1f)] private float healAmount = 35f;
+        [Tooltip("Health from each sip, by how many drinks are already in you (10-23 curve: gentler than halving). " +
+                 "The last value repeats for any further sips.")]
+        [SerializeField] private float[] healPerSip = { 35f, 28f, 22f, 17f, 13f, 10f };
         [Tooltip("Drunk stacks allowed; the next sip after this many causes a blackout.")]
         [SerializeField, Min(1)] private int blackoutAfterStacks = 5;
         [Tooltip("Length of the sip animation. Healing lands halfway through.")]
-        [SerializeField, Min(0.1f)] private float drinkSeconds = 0.75f;
+        [SerializeField, Min(0.1f)] private float drinkSeconds = 1f;
         [Tooltip("Seconds after a sip before the next one.")]
         [SerializeField, Min(0f)] private float drinkCooldown = 1f;
         [Tooltip("Seconds for one drink to wear off (after the last sip).")]
@@ -48,15 +49,29 @@ namespace SignalLost.Player
         private bool sipApplied;
 
         public int DrunkStacks { get; private set; }
-        public int BlackoutAfterStacks => blackoutAfterStacks;
-        public float HealWhenSober => healAmount;
+        public int BlackoutAfterStacks => BlackoutLimit;
+        public float HealWhenSober => HealFor(0);
         /// <summary>Health the next sip restores: full while sober, halved for every drunk stack.</summary>
-        public float NextSipHeal => healAmount * Mathf.Pow(0.5f, DrunkStacks);
+        public float NextSipHeal => HealFor(DrunkStacks);
+
+        /// <summary>
+        /// How far the current drink has worn off: 1 just after a sip, falling to 0 as the next stack wears off.
+        /// The HUD drains the top drunk pip with it so the player can see when it is safe to drink again.
+        /// </summary>
+        public float StackWearing => DrunkStacks > 0 ? Mathf.Clamp01((nextSober - Time.time) / secondsPerStack) : 0f;
+
+        /// <summary>Upgrades (Cast-Iron Liver) raise how many drinks fit before a blackout.</summary>
+        public int BlackoutBonus { get; set; }
+
+        private int BlackoutLimit => blackoutAfterStacks + BlackoutBonus;
+
+        private float HealFor(int stacks) =>
+            healPerSip == null || healPerSip.Length == 0 ? 35f : healPerSip[Mathf.Clamp(stacks, 0, healPerSip.Length - 1)];
         public bool IsDrinking { get; private set; }
         /// <summary>0 to 1 through the sip animation; 0 when not drinking.</summary>
         public float DrinkProgress => IsDrinking ? Mathf.Clamp01((Time.time - drinkStarted) / drinkSeconds) : 0f;
         /// <summary>0 (sober) to 1 (one sip from blacking out).</summary>
-        public float Drunkenness => Mathf.Clamp01(DrunkStacks / (float)blackoutAfterStacks);
+        public float Drunkenness => Mathf.Clamp01(DrunkStacks / (float)BlackoutLimit);
         /// <summary>Extra blur (0 to 1) from cutscenes such as waking up; visual only, never slows movement.</summary>
         public float ExtraDaze { get; set; }
 
@@ -121,7 +136,7 @@ namespace SignalLost.Player
 
             if (IsDrinking)
             {
-                if (!sipApplied && DrinkProgress >= 0.5f)
+                if (!sipApplied && DrinkProgress >= 0.6f) // as the flask reaches the mouth
                 {
                     sipApplied = true;
                     float healed = NextSipHeal;
@@ -129,7 +144,7 @@ namespace SignalLost.Player
                     DrunkStacks++;
                     nextSober = Time.time + secondsPerStack;
                     Sipped?.Invoke(healed);
-                    if (DrunkStacks > blackoutAfterStacks && life != null) life.Blackout("BLACKOUT - too much Scotch");
+                    if (DrunkStacks > BlackoutLimit && life != null) life.Blackout(PlayerLife.BlackoutMessage);
                 }
                 if (DrinkProgress >= 1f) IsDrinking = false;
             }
@@ -140,6 +155,13 @@ namespace SignalLost.Player
                 nextSober = Time.time + secondsPerStack;
             }
             ApplyIntoxication();
+        }
+
+        /// <summary>Wears off some drinks at once (Hangover Pills).</summary>
+        public void SoberBy(int drinks)
+        {
+            DrunkStacks = Mathf.Max(0, DrunkStacks - drinks);
+            nextSober = Time.time + secondsPerStack;
         }
 
         private void SoberUp()
