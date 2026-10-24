@@ -157,6 +157,54 @@ namespace SignalLost.NPC
             foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.Despawn();
         }
 
+        /// <summary>
+        /// Loading a save from after the fight: the crab is already home on its log by the fire, friendly, with the
+        /// flask handed over and its cousins gone. <paramref name="greeted"/>: it has introduced its shop already.
+        /// </summary>
+        public void RestoreFriendly(bool greeted)
+        {
+            gameObject.SetActive(true); // it waits switched off until the quest; Awake runs here if it has not yet
+            StopDamageDialogue();
+            questStarted = true;
+            IsDefeated = IsHome = true;
+            returning = waitingForPlayer = false;
+            encounterGreetingShown = true;
+            friendlyGreetingShown = greeted;
+            nextHealthDialogue = HealthDialogueThresholds.Length;
+            brain.enabled = false;
+            health.Invulnerable = true;
+            health.Restore();
+            if (carriedFlask != null) carriedFlask.SetActive(false);
+            if (flaskDrop != null) flaskDrop.gameObject.SetActive(false);
+            foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.Despawn();
+            agent.enabled = false;
+            Transform spot = seat != null ? seat : returnPoint;
+            if (spot != null) transform.SetPositionAndRotation(spot.position, spot.rotation);
+            rig.ResetPose();
+            rig.MoveSpeed = 0f;
+        }
+
+        /// <summary>
+        /// Loading a save from the big-crab fight after the crab gave up but before its cousins were all down: it is
+        /// back in the hollow, beaten, and leads the player home once the brawl is over. The flask lies beside it
+        /// unless the player had already picked it up.
+        /// </summary>
+        public void RestoreSurrendered(bool flaskTaken)
+        {
+            gameObject.SetActive(true);
+            BeginQuest();
+            if (IsDefeated) return;
+            IsDefeated = true;
+            StopDamageDialogue();
+            nextHealthDialogue = HealthDialogueThresholds.Length;
+            encounterGreetingShown = true;
+            health.Invulnerable = true;
+            brain.enabled = false;
+            if (carriedFlask != null) carriedFlask.SetActive(false);
+            if (!flaskTaken) DropFlask();
+            StartCoroutine(Recover());
+        }
+
         /// <summary>The story has already introduced the crab, so the first visit opens the shop straight away.</summary>
         public void MarkGreeted() => friendlyGreetingShown = true;
 
@@ -188,6 +236,20 @@ namespace SignalLost.NPC
             health.Invulnerable = true;
             brain.enabled = false;
             carriedFlask.SetActive(false);
+            DropFlask();
+            if (CousinsDown)
+                dialogue.Speak("All right! Claws down!",
+                    "Trading is my business. Brawling is clearly yours.",
+                    "Let's call that an aggressive negotiation.");
+            else
+                dialogue.Speak("All right! Claws down!", "But I can't call the cousins off once they get going!");
+            StartCoroutine(Recover());
+        }
+
+        // The flask the crab was hugging lands on the ground beside it, floating and turning so it is easy to spot.
+        private void DropFlask()
+        {
+            if (flaskDrop == null) return;
             Vector3 drop = transform.position + transform.right * 2f;
             // Put the reward on the actual ground, never inside the defeated crab.
             if (Physics.Raycast(drop + Vector3.up * 8, Vector3.down, out RaycastHit hit, 20, ~0, QueryTriggerInteraction.Ignore))
@@ -201,13 +263,6 @@ namespace SignalLost.NPC
                 bottle.localPosition += Vector3.up * 0.45f;
                 flaskDrop.gameObject.AddComponent<SignalLost.Progression.PickupSpin>().Model = bottle;
             }
-            if (CousinsDown)
-                dialogue.Speak("All right! Claws down!",
-                    "Trading is my business. Brawling is clearly yours.",
-                    "Let's call that an aggressive negotiation.");
-            else
-                dialogue.Speak("All right! Claws down!", "But I can't call the cousins off once they get going!");
-            StartCoroutine(Recover());
         }
 
         private IEnumerator Recover()

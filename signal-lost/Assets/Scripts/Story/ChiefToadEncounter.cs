@@ -60,6 +60,15 @@ namespace SignalLost.Story
             Signal(true);
         }
 
+        /// <summary>Loading a save from after the fight: he is already beaten and stays gone.</summary>
+        public void RestoreDefeated()
+        {
+            StopAllCoroutines();
+            Current = State.Defeated;
+            Signal(false);
+            if (toad != null) toad.gameObject.SetActive(false);
+        }
+
         private void Update()
         {
             if (Current != State.Armed || player == null || player.IsRespawning) return;

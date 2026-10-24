@@ -78,15 +78,15 @@ All UI is drawn in code on singleton canvases (`Scripts/UI/`), so there are no U
 - **Pause menu (Esc):**
   - Continue, Save Game, Controls, Settings, Exit to Main Menu;
   - time and audio stop while it is open;
-  - Save is a placeholder.
+  - Save Game opens the three save slots (see [save and load](save-load.md)).
 - **Settings:**
   - pages: Controls, Sound, Video;
   - stored in PlayerPrefs (`GameSettings`);
   - partly placeholder.
 - **Title screen** (`Scenes/MainMenu.unity`, `MainMenuScreen`):
   - a Terraria-style title over a code-drawn golden-hour scene;
-  - New Game loads the Tutorial (`SceneNames.FirstLevel`);
-  - Continue is a placeholder; Settings and Exit work.
+  - New Game picks a save slot, then loads the Tutorial (`SceneNames.FirstLevel`);
+  - Continue loads the most recent save and Load Game picks a slot (see [save and load](save-load.md)); Settings and Exit work.
 - **Item cards** ("NEW GEAR"): stay up until the player presses **E** or Enter; several queue up. **Rule for all future tutorial pop-ups: never on a timer.**
 - **Low health:** at 30 health or less the screen edges pulse red with a heartbeat (sound too) and "LOW HEALTH - drink [F]" appears; stronger the lower you go (`GameHud.LowHealth`).
 - **Pause menu:** centred; Settings and Controls replace it in the middle (Back or Esc returns).

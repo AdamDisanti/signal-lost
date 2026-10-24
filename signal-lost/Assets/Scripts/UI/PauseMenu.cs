@@ -1,4 +1,5 @@
 using SignalLost.Core;
+using SignalLost.Progression;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -9,8 +10,8 @@ namespace SignalLost.UI
 {
     /// <summary>
     /// Esc (gamepad Menu) pauses the game (meeting notes 10-22): Continue, Save, Controls, Settings and Exit to Main
-    /// Menu. Time and audio stop while it is open. Saving is a placeholder for now. Esc closes other menus and
-    /// popups first; only with nothing else open does it pause.
+    /// Menu. Time and audio stop while it is open. Save Game opens the three save slots (<see cref="SaveSlotPanel"/>,
+    /// 10-24). Esc closes other menus and popups first; only with nothing else open does it pause.
     /// </summary>
     public sealed class PauseMenu : MonoBehaviour
     {
@@ -19,6 +20,7 @@ namespace SignalLost.UI
         private GameObject root;
         private RectTransform panel;
         private SettingsPanel settings;
+        private SaveSlotPanel slots;
         private TextMeshProUGUI toast;
         private float toastUntil, shownAt;
         private int openedFrame = -1;
@@ -58,6 +60,7 @@ namespace SignalLost.UI
             UiTheme.EnsureEventSystem();
             root.SetActive(true);
             settings.gameObject.SetActive(false);
+            slots.Hide();
             panel.gameObject.SetActive(true);
             shownAt = Time.unscaledTime;
             openedFrame = Time.frameCount;
@@ -69,6 +72,7 @@ namespace SignalLost.UI
         public void Resume()
         {
             if (!IsOpen) return;
+            slots.Hide();
             root.SetActive(false);
             Time.timeScale = 1f;
             AudioListener.pause = false;
@@ -85,6 +89,7 @@ namespace SignalLost.UI
                 if (pausePressed && openedFrame != Time.frameCount)
                 {
                     if (settings.gameObject.activeSelf) { settings.gameObject.SetActive(false); panel.gameObject.SetActive(true); }
+                    else if (slots.IsOpen) slots.Hide();
                     else Resume();
                 }
                 return;
@@ -100,9 +105,23 @@ namespace SignalLost.UI
             settings.Show(page);
         }
 
+        // The slots take the pause panel's place; picking one saves there and comes back with a message.
         private void Save()
         {
-            toast.text = "Saving is coming in a later update. Your progress lasts until you quit.";
+            if (!SaveGame.CanSaveNow(out string reason))
+            {
+                Toast(reason);
+                return;
+            }
+            panel.gameObject.SetActive(false);
+            slots.Show(SaveSlotPanel.Mode.Save, slot =>
+                Toast(SaveGame.SaveTo(slot) ? $"Saved to slot {slot}." : "Couldn't save. Check the Console for details."),
+                () => { if (IsOpen) panel.gameObject.SetActive(true); });
+        }
+
+        private void Toast(string message)
+        {
+            toast.text = message;
             toastUntil = Time.unscaledTime + 3f;
         }
 
@@ -146,6 +165,7 @@ namespace SignalLost.UI
             Button back = UiTheme.Button("Back", settings.transform, "Back", 26f);
             UiTheme.Place((RectTransform)back.transform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(0f, -16f), new Vector2(180f, 58f));
             back.onClick.AddListener(() => { settings.gameObject.SetActive(false); panel.gameObject.SetActive(true); });
+            slots = SaveSlotPanel.Create(root.transform);
 
             toast = UiTheme.Label("Toast", root.transform, 26f, UiTheme.Text, TextAlignmentOptions.Center, FontStyles.Bold);
             UiTheme.Place(toast.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(1200f, 40f));

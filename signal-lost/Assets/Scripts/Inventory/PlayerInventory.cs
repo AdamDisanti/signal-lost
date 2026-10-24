@@ -10,7 +10,7 @@ namespace SignalLost.Inventory
     /// <summary>
     /// What the player carries: gear, scrap sorted by type, upgrades bought (by Id, see <see cref="UpgradeCatalog"/>),
     /// supplies and key items (mini-boss drops). Lives on the player root so it survives deaths and blackouts within a
-    /// Play session. There is no save/load yet.
+    /// Play session; <see cref="SignalLost.Progression.SaveGame"/> saves it and puts it back with <see cref="Restore"/>.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class PlayerInventory : MonoBehaviour
@@ -32,6 +32,10 @@ namespace SignalLost.Inventory
         /// <summary>Ids of upgrades bought so far, in order.</summary>
         public IReadOnlyList<string> Upgrades => upgrades;
         public IEnumerable<string> KeyItems => keyItems;
+        /// <summary>The gear owned (laser, scanner, flask).</summary>
+        public IEnumerable<PlayerItem> Items => items;
+        /// <summary>Supplies by Id, with how many are in the pockets.</summary>
+        public IReadOnlyDictionary<string, int> Supplies => supplies;
         /// <summary>Raised after anything is bought (upgrade, supply or trade).</summary>
         public event Action<Upgrade> Purchased;
         /// <summary>Raised when upgrades, supplies or key items change.</summary>
@@ -117,6 +121,32 @@ namespace SignalLost.Inventory
             supplies[id] = count - 1;
             Changed?.Invoke();
             return true;
+        }
+
+        /// <summary>
+        /// Loading a save: replaces everything in the pockets at once, quietly (no pickup cards, sounds or scrap
+        /// popups). <paramref name="scrapCounts"/> follows the order of <see cref="ScrapInfo.All"/>. Starting items the
+        /// scene gave are kept. Afterwards the gear in hand and the upgrades need refreshing (the level does that).
+        /// </summary>
+        public void Restore(IEnumerable<PlayerItem> owned, IList<int> scrapCounts, IEnumerable<string> bought,
+            IDictionary<string, int> supplyCounts, IEnumerable<string> keys)
+        {
+            if (owned != null) foreach (PlayerItem item in owned) items.Add(item);
+            Array.Clear(scrap, 0, scrap.Length);
+            if (scrapCounts != null)
+                for (int i = 0; i < scrapCounts.Count && i < ScrapInfo.All.Length; i++)
+                    scrap[(int)ScrapInfo.All[i]] = Mathf.Max(0, scrapCounts[i]);
+            upgrades.Clear();
+            if (bought != null)
+                foreach (string id in bought)
+                    if (!string.IsNullOrEmpty(id) && !upgrades.Contains(id)) upgrades.Add(id);
+            supplies.Clear();
+            if (supplyCounts != null)
+                foreach (KeyValuePair<string, int> supply in supplyCounts)
+                    if (supply.Value > 0) supplies[supply.Key] = supply.Value;
+            keyItems.Clear();
+            if (keys != null) foreach (string id in keys) if (!string.IsNullOrEmpty(id)) keyItems.Add(id);
+            Changed?.Invoke();
         }
 
         public bool Has(PlayerItem item) => items.Contains(item);

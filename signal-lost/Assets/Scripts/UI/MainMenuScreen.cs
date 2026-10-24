@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SignalLost.Core;
+using SignalLost.Progression;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -12,7 +13,8 @@ namespace SignalLost.UI
     /// <summary>
     /// The title screen (MainMenu scene, meeting notes 10-22), in the spirit of Terraria's: the title in the middle
     /// over a golden-hour low-poly scene (mountains, hills, pines, the smoking wreck and Cavendish by his campfire),
-    /// with New Game, Continue, Settings and Exit. Continue and parts of Settings are placeholders until saving lands.
+    /// with New Game, Continue, Load Game, Settings and Exit. New Game and Load Game open the three save slots
+    /// (<see cref="SaveSlotPanel"/>, 10-24); Continue loads the most recent save.
     /// Everything is drawn in code, so there are no art assets; tweak colours and shapes here.
     /// </summary>
     public sealed class MainMenuScreen : MonoBehaviour
@@ -23,6 +25,9 @@ namespace SignalLost.UI
         private TextMeshProUGUI title;
         private SettingsPanel settings;
         private GameObject settingsRoot;
+        private GameObject slotsRoot;
+        private SaveSlotPanel slots;
+        private Button firstButton;
         private readonly List<(Image image, float phase)> stars = new List<(Image, float)>();
         private readonly List<(RectTransform rect, Image image, float offset, Vector2 origin, float drift)> smoke = new List<(RectTransform, Image, float, Vector2, float)>();
         private readonly List<(RectTransform rect, float phase)> buttons = new List<(RectTransform, float)>();
@@ -67,6 +72,7 @@ namespace SignalLost.UI
                 rect.localRotation = Quaternion.Euler(0f, 0f, selected ? Mathf.Sin(now * 5f + buttons[i].phase) * 2f : 0f);
             }
             if (settingsRoot.activeSelf && Keyboard.current?.escapeKey.wasPressedThisFrame == true) settingsRoot.SetActive(false);
+            if (slots.IsOpen && Keyboard.current?.escapeKey.wasPressedThisFrame == true) slots.Hide();
         }
 
         // Letters bob in a gentle wave.
@@ -91,11 +97,25 @@ namespace SignalLost.UI
 
         // ---------- Actions ----------
 
-        // A new game starts with an empty camp: placed trophies are the only thing saved so far.
-        private void NewGame()
+        // A new game picks a slot to autosave into, then starts with an empty camp and empty pockets.
+        private void NewGame() => ShowSlots(SaveSlotPanel.Mode.NewGame, slot => SaveGame.StartNew(slot, SceneNames.FirstLevel));
+
+        private void ContinueGame()
         {
-            SignalLost.Progression.CampSave.Clear();
-            SceneManager.LoadScene(SceneNames.FirstLevel);
+            int slot = SaveGame.MostRecentSlot;
+            if (slot > 0) SaveGame.Load(slot);
+        }
+
+        private void LoadGame() => ShowSlots(SaveSlotPanel.Mode.Load, slot => SaveGame.Load(slot));
+
+        private void ShowSlots(SaveSlotPanel.Mode mode, System.Action<int> chosen)
+        {
+            slotsRoot.SetActive(true);
+            slots.Show(mode, chosen, () =>
+            {
+                slotsRoot.SetActive(false);
+                if (EventSystem.current != null && firstButton != null) EventSystem.current.SetSelectedGameObject(firstButton.gameObject);
+            });
         }
 
         private void OpenSettings()
@@ -190,9 +210,11 @@ namespace SignalLost.UI
             tagline.text = "a stranded space mechanic's misadventure";
 
             // Menu: big text buttons stacked in the middle.
+            int recent = SaveGame.MostRecentSlot;
             (string label, UnityEngine.Events.UnityAction action, bool enabled)[] entries =
             {
-                ("New Game", NewGame, true), ("Continue", null, false), ("Settings", OpenSettings, true), ("Exit", Quit, true)
+                ("New Game", NewGame, true), ("Continue", ContinueGame, recent > 0), ("Load Game", LoadGame, recent > 0),
+                ("Settings", OpenSettings, true), ("Exit", Quit, true)
             };
             Button first = null;
             for (int i = 0; i < entries.Length; i++)
@@ -205,8 +227,9 @@ namespace SignalLost.UI
             }
             TextMeshProUGUI noSave = UiTheme.Label("No Save", root, 22f, UiTheme.Muted, TextAlignmentOptions.Left, FontStyles.Italic);
             UiTheme.Place(noSave.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 0.5f), new Vector2(150f, -26f), new Vector2(300f, 30f));
-            noSave.text = "(no save yet)";
+            noSave.text = recent > 0 ? $"({SaveGame.Peek(recent).label})" : "(no save yet)";
             noSave.color = new Color(1f, 0.95f, 0.85f, 0.85f);
+            firstButton = first;
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(first.gameObject);
 
             TextMeshProUGUI footer = UiTheme.Label("Footer", root, 20f, new Color(1f, 1f, 1f, 0.7f), TextAlignmentOptions.BottomLeft);
@@ -226,6 +249,13 @@ namespace SignalLost.UI
             UiTheme.Place((RectTransform)close.transform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-28f, -26f), new Vector2(140f, 52f));
             close.onClick.AddListener(() => settingsRoot.SetActive(false));
             settingsRoot.SetActive(false);
+
+            slotsRoot = UiTheme.Stretch(UiTheme.Rect("Slots Overlay", root)).gameObject;
+            Image slotsDim = UiTheme.Block("Dim", slotsRoot.transform, new Color(0f, 0f, 0f, 0.55f));
+            UiTheme.Stretch(slotsDim.rectTransform);
+            slotsDim.raycastTarget = true;
+            slots = SaveSlotPanel.Create(slotsRoot.transform);
+            slotsRoot.SetActive(false);
         }
 
         private static Vector2 V(float x, float y) => new Vector2(x, y);

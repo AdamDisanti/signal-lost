@@ -7,8 +7,8 @@ namespace SignalLost.Progression
 {
     /// <summary>
     /// PLACEHOLDER progression for the current Play session: which stages are cleared and unlocked, and the
-    /// main ship parts recovered. There is no save system yet, so this resets when Play stops; the design for saving
-    /// and death persistence is still open (see docs/design.md).
+    /// main ship parts recovered. It resets when Play stops; save slots keep a copy (<see cref="SaveGame"/>, through
+    /// <see cref="Capture"/> and <see cref="Restore"/>). Death persistence is still open (see docs/design.md).
     ///
     /// Mini-boss parts are tracked by <see cref="ShipPartDrop"/>, per stage (the desert's three; the tutorial's cooling
     /// system from the Chief Toad); the Engine Core, one of the main parts needed to finish the game, is recorded here
@@ -52,6 +52,25 @@ namespace SignalLost.Progression
             if (MainParts.Contains(part)) return;
             MainParts.Add(part);
             MainPartRecovered?.Invoke(part);
+        }
+
+        /// <summary>Copies the progress into a save slot's lists.</summary>
+        public static void Capture(List<string> cleared, List<string> unlocked, List<string> mainParts)
+        {
+            cleared.AddRange(Cleared);
+            unlocked.AddRange(Unlocked);
+            mainParts.AddRange(MainParts);
+        }
+
+        /// <summary>Loading a save slot (or New Game, with nulls): replaces the progress quietly, without events.</summary>
+        public static void Restore(IEnumerable<string> cleared, IEnumerable<string> unlocked, IEnumerable<string> mainParts)
+        {
+            Cleared.Clear();
+            Unlocked.Clear();
+            MainParts.Clear();
+            if (cleared != null) Cleared.UnionWith(cleared);
+            if (unlocked != null) Unlocked.UnionWith(unlocked);
+            if (mainParts != null) foreach (string part in mainParts) if (!MainParts.Contains(part)) MainParts.Add(part);
         }
 
         /// <summary>Marks a stage cleared and unlocks the one after it (which may not exist yet).</summary>

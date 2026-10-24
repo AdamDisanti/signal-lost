@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using SignalLost.Combat;
 using SignalLost.Enemies;
 using SignalLost.Inventory;
 using SignalLost.NPC;
@@ -31,8 +32,11 @@ namespace SignalLost.Story
     /// </list>
     /// NPCs ask this story what to say (<see cref="INpcStory"/>); quest signals steer the scanner and the tracker
     /// shows the current objective. Space skips the opening.
+    /// Saving (<see cref="SaveGame"/>): it autosaves at every stage, purchase and pickup, and the pause menu saves
+    /// anywhere outside combat. A loaded save puts the mechanic back where they stood, in the saved stage, with the
+    /// enemies already beaten in it still beaten (<see cref="Restore"/>).
     /// </summary>
-    public sealed class TutorialStory : MonoBehaviour, INpcStory
+    public sealed class TutorialStory : MonoBehaviour, INpcStory, ISaveableLevel
     {
         public enum Stage { Opening, Greeting, SearchGear, Fight, MerchantComing, MerchantIntro, FirstUpgrade, ShowCavendish, Frogs, FrogsDone, ChiefToad,
             ToadFight, ToadBeaten, TrophyPlaced, DemoComplete }
@@ -130,6 +134,7 @@ namespace SignalLost.Story
         private WakeUpSequence wake;
         private FirstPersonController movement;
         private CharacterController body;
+        private Health playerHealth;
         private FirstPersonHands hands;
         private Transform view;
         private float eyes;
@@ -151,6 +156,7 @@ namespace SignalLost.Story
             body = player.GetComponent<CharacterController>();
             hands = player.GetComponent<FirstPersonHands>();
             view = player.GetComponentInChildren<Camera>(true).transform;
+            playerHealth = player.GetComponent<Health>();
         }
 
         private void OnEnable()
@@ -163,6 +169,8 @@ namespace SignalLost.Story
             gear.Collected += OnCollected;
             player.Respawned += OnRespawned;
             merchant.ArrivedHome += OnMerchantHome;
+            if (playerHealth != null) playerHealth.Damaged += OnPlayerHurt;
+            SaveGame.Register(this);
         }
 
         private void OnDisable()
@@ -175,6 +183,8 @@ namespace SignalLost.Story
             gear.Collected -= OnCollected;
             player.Respawned -= OnRespawned;
             merchant.ArrivedHome -= OnMerchantHome;
+            if (playerHealth != null) playerHealth.Damaged -= OnPlayerHurt;
+            SaveGame.Unregister(this);
         }
 
         private void Start()
@@ -183,12 +193,18 @@ namespace SignalLost.Story
             Signal(merchant, false);
             Signal(laserPickup, false);
             Timer.Begin();
+            SaveData save = SaveGame.TakePending();
+            if (save != null) { StartCoroutine(Restore(save)); return; }
             if (playOpening) StartCoroutine(Opening());
             else BeginGreeting();
         }
 
         private void Update()
         {
+            // CharacterController.isGrounded only holds while the player moves into the ground, so it reads false
+            // whenever the game is paused (time stops, the move is zero). Remember the last real touch instead.
+            if (Time.deltaTime > 0f && body != null && body.isGrounded) groundedAt = Time.time;
+            SaveGame.Tick(); // an autosave that fell during a fight happens once it is over
             if (stage == Stage.Fight)
             {
                 if (merchant.IsDefeated && merchant.CousinsDown) EnterMerchantComing();
@@ -296,6 +312,7 @@ namespace SignalLost.Story
             stage = next;
             Timer.Mark(next);
             StageChanged?.Invoke(next);
+            if (!restoring && next != Stage.Opening) SaveGame.Autosave();
         }
 
         private void BeginGreeting()
@@ -318,6 +335,7 @@ namespace SignalLost.Story
         private void OnCollected(PlayerItem item)
         {
             if (stage == Stage.SearchGear) UpdateSearchObjective();
+            if (!restoring && stage != Stage.Opening) SaveGame.Autosave();
         }
 
         private void UpdateSearchObjective()
@@ -392,6 +410,7 @@ namespace SignalLost.Story
         private void OnPurchased(Upgrade upgrade)
         {
             if (stage == Stage.FirstUpgrade && upgrade.OneOff) EnterShowCavendish();
+            else if (!restoring) SaveGame.Autosave(); // keep what was just bought
         }
 
         private void EnterShowCavendish()
@@ -402,11 +421,18 @@ namespace SignalLost.Story
             GameplayOverlay.Instance.SetQuest(GearUpTitle, "Show Cavendish your new gear.");
         }
 
-        private void EnterFrogs()
+        private void EnterFrogs() => StartFrogs(0);
+
+        // alreadyBeaten: a loaded save carries on the waves from that many frogs.
+        private void StartFrogs(int alreadyBeaten)
         {
             SetStage(Stage.Frogs);
             Signal(cavendish, false);
-            if (frogs != null) frogs.Begin();
+            if (frogs != null)
+            {
+                if (alreadyBeaten > 0) frogs.Resume(alreadyBeaten);
+                else frogs.Begin();
+            }
             UpdateFrogObjective();
         }
 
@@ -444,6 +470,7 @@ namespace SignalLost.Story
         // After the fight two jobs remain: the crown on a trophy stand, and the cooling system (the boss's ship part) to
         // Cavendish, who keeps the ship parts "for safe keeping". When both are done, his wrap-up ends the demo.
         private bool partGiven, crownPlaced, partSeen;
+        private const string CrownId = "chief_toad_crown";
 
         private bool CarryingPart => !partGiven && ShipPartDrop.CountFor(StageProgress.Tutorial) > 0;
 
@@ -484,7 +511,12 @@ namespace SignalLost.Story
 
         private void FinishLootOrUpdate()
         {
-            if (!crownPlaced || !partGiven) { UpdateLootObjective(); return; }
+            if (!crownPlaced || !partGiven)
+            {
+                UpdateLootObjective();
+                if (!restoring) SaveGame.Autosave();
+                return;
+            }
             SetStage(Stage.TrophyPlaced);
             foreach (var stand in FindObjectsByType<SignalLost.Progression.TrophyStand>()) Signal(stand, false);
             Signal(cavendish, true);
@@ -509,6 +541,197 @@ namespace SignalLost.Story
         private static void Signal(Component owner, bool on)
         {
             if (owner != null && owner.TryGetComponent(out QuestSignalSource signal)) signal.enabled = on;
+        }
+
+        // ---------- Saving and loading (ISaveableLevel) ----------
+
+        private static readonly string[] LoadMumble = { "Mmh... must've dozed off.", "...right. Where was I?" };
+        private const string PartGivenFlag = "partGiven";
+        private const string CrabGaveUpFlag = "crabGaveUp";
+        // Being hit this recently counts as being in a fight, even with nothing inside its fight radius (a frog's goo).
+        private const float HurtCombatSeconds = 6f;
+        private bool restoring;
+        private float lastHurt = float.NegativeInfinity;
+        private float groundedAt = float.NegativeInfinity;
+
+        private void OnPlayerHurt(Health _, float amount, GameObject source) => lastHurt = Time.time;
+
+        public bool CanSave(out string reason)
+        {
+            reason = null;
+            if (restoring || stage == Stage.Opening) reason = "You can save once you're up and about.";
+            else if (player == null || player.IsRespawning || player.IsDead) reason = "You can't save while you're knocked out.";
+            else if (toad != null && toad.Current == ChiefToadEncounter.State.Cutscene) reason = "You can't save during a cutscene.";
+            else if (DialogueUi.Instance.PopupOpen) reason = "Finish the conversation first.";
+            else if (body != null && Time.time - groundedAt > 0.25f) reason = "Land first, then save.";
+            else if (Time.time - lastHurt < HurtCombatSeconds || merchant.AmbushActive || CombatCheck.EnemyEngaging(player.transform.position))
+                reason = "You can't save with enemies nearby. Get clear of the fight first.";
+            return reason == null;
+        }
+
+        public void Capture(SaveData data)
+        {
+            data.scene = gameObject.scene.name;
+            data.stage = stage.ToString();
+            data.label = QuestLabel(stage);
+            data.SetFlag(PartGivenFlag, partGiven);
+            data.playSeconds = Timer.Elapsed;
+            data.deaths = Timer.Deaths;
+            data.hasPosition = true;
+            data.position = player.transform.position;
+            data.yaw = player.transform.eulerAngles.y;
+            // Progress inside the step, so a load never brings back (and re-drops) what was already beaten.
+            if (stage == Stage.Fight)
+            {
+                foreach (var cousin in merchant.Cousins) if (cousin != null && cousin.IsDown) data.downed.Add(cousin.name);
+                data.SetFlag(CrabGaveUpFlag, merchant.IsDefeated);
+            }
+            if (stage == Stage.Frogs && frogs != null) data.count = frogs.Defeated;
+        }
+
+        private static string QuestLabel(Stage at)
+        {
+            switch (at)
+            {
+                case Stage.Opening:
+                case Stage.Greeting: return "A Rude Awakening";
+                case Stage.SearchGear: return SearchTitle;
+                case Stage.Fight:
+                case Stage.MerchantComing:
+                case Stage.MerchantIntro: return CrabTitle;
+                case Stage.FirstUpgrade:
+                case Stage.ShowCavendish: return GearUpTitle;
+                case Stage.Frogs:
+                case Stage.FrogsDone: return PondTitle;
+                case Stage.DemoComplete: return "Demo complete";
+                default: return ToadTitle;
+            }
+        }
+
+        // Steps that can't be picked up halfway: the crab's walk home ends with it already home, and the Chief Toad
+        // (who resets when the player leaves) waits under the pond again.
+        private static Stage ResumeStage(Stage saved)
+        {
+            switch (saved)
+            {
+                case Stage.Opening: return Stage.Greeting;
+                case Stage.MerchantComing: return Stage.MerchantIntro;
+                case Stage.ToadFight: return Stage.ChiefToad;
+                default: return saved;
+            }
+        }
+
+        /// <summary>
+        /// Puts a loaded save back: the pockets, the run timer, the world for the saved quest step (the crab friendly
+        /// at camp, the toad beaten, and so on) with the enemies already beaten in it still beaten, and the mechanic
+        /// where they stood, with the health and drinks they had. Scrap left lying is back where it lay. Enemies still
+        /// standing are back home at full health (saving needs the player clear of them, so they would be anyway).
+        /// The crown and cooling system, if never picked up, come back in the pockets.
+        /// </summary>
+        private IEnumerator Restore(SaveData save)
+        {
+            restoring = true;
+            if (!Enum.TryParse(save.stage, out Stage saved)) saved = Stage.Greeting;
+            Stage resume = ResumeStage(saved);
+
+            // Pockets first, so upgrades, health and the gear in hand match the save.
+            SaveGame.RestorePockets(save, pockets);
+            if (resume >= Stage.MerchantIntro) pockets.Add(PlayerItem.Flask); // the crab hands it over before the shop
+            gear.Sync();
+            if (player.TryGetComponent(out PlayerUpgrades upgrades)) upgrades.Apply();
+            player.Health.Restore();
+            SaveGame.RestorePlayerState(save, pockets); // health and drinks as they were
+            SaveGame.RestoreDroppedScrap(save);
+            Timer.Resume(save.playSeconds, save.deaths);
+            partGiven = save.HasFlag(PartGivenFlag);
+            crownPlaced = CampSave.IsPlaced(CrownId);
+
+            // The tools already found are gone from the wreck.
+            if (laserPickup != null && gear.Has(PlayerItem.MiningLaser)) laserPickup.gameObject.SetActive(false);
+            if (scannerPickup != null && gear.Has(PlayerItem.Scanner)) scannerPickup.gameObject.SetActive(false);
+
+            // The world for that step.
+            if (resume >= Stage.MerchantIntro) merchant.RestoreFriendly(resume > Stage.MerchantIntro);
+            if (resume >= Stage.ToadBeaten && toad != null) toad.RestoreDefeated();
+
+            // Back where the game was saved (old saves without a position: by the campfire).
+            Transform spawn = PlayerSpawnPoint.Current != null ? PlayerSpawnPoint.Current.transform : null;
+            if (save.hasPosition || spawn != null)
+            {
+                body.enabled = false;
+                if (save.hasPosition) player.transform.SetPositionAndRotation(save.position, Quaternion.Euler(0f, save.yaw, 0f));
+                else player.transform.SetPositionAndRotation(spawn.position, Quaternion.Euler(0f, spawn.eulerAngles.y, 0f));
+                body.enabled = true;
+            }
+            view.localRotation = Quaternion.identity;
+            movement.ResetMotion();
+            // The full wake-up from the tutorial's opening (eyes opening, lying back, sitting up), with its own mumble.
+            if (wake != null)
+            {
+                wake.Play(true, LoadMumble);
+                yield return new WaitUntil(() => !wake.Playing);
+            }
+
+            switch (resume)
+            {
+                case Stage.Greeting:
+                    BeginGreeting();
+                    break;
+                case Stage.SearchGear:
+                    EnterSearch();
+                    break;
+                case Stage.Fight:
+                    EnterFight();
+                    // Cousins already beaten stay gone; a crab that already gave up waits for the rest of the brawl.
+                    foreach (var cousin in merchant.Cousins)
+                        if (cousin != null && save.downed.Contains(cousin.name)) cousin.Despawn();
+                    if (save.HasFlag(CrabGaveUpFlag)) merchant.RestoreSurrendered(gear.Has(PlayerItem.Flask));
+                    UpdateFightObjective();
+                    break;
+                case Stage.MerchantIntro:
+                    SetStage(Stage.MerchantIntro);
+                    Signal(merchant, true);
+                    GameplayOverlay.Instance.SetQuest(CrabTitle, "Talk to the crab (Eugene) at camp.");
+                    break;
+                case Stage.FirstUpgrade when pockets.Upgrades.Count > 0:
+                case Stage.ShowCavendish:
+                    EnterShowCavendish();
+                    break;
+                case Stage.FirstUpgrade:
+                    SetStage(Stage.FirstUpgrade);
+                    Signal(merchant, true);
+                    GameplayOverlay.Instance.SetQuest(GearUpTitle, "Buy your first upgrade from Eugene at Bucket & Barter.");
+                    break;
+                case Stage.Frogs:
+                    StartFrogs(saved == Stage.Frogs ? save.count : 0);
+                    break;
+                case Stage.FrogsDone:
+                    SetStage(Stage.FrogsDone);
+                    Signal(cavendish, true);
+                    GameplayOverlay.Instance.SetQuest(PondTitle, $"All {(frogs != null ? frogs.Total : 20)} frogs cleared. Report back to Cavendish.");
+                    break;
+                case Stage.ChiefToad:
+                    EnterChiefToad();
+                    break;
+                case Stage.ToadBeaten:
+                case Stage.TrophyPlaced:
+                    if (!crownPlaced && !pockets.HasKeyItem(CrownId)) pockets.AddKeyItem(CrownId);
+                    if (!partGiven && ShipPartDrop.CountFor(StageProgress.Tutorial) == 0)
+                        ShipPartDrop.RecordRecovered(toad != null && toad.Toad != null ? toad.Toad.PartName : "Cooling system", StageProgress.Tutorial);
+                    partSeen = ShipPartDrop.CountFor(StageProgress.Tutorial) > 0;
+                    SetStage(Stage.ToadBeaten);
+                    FinishLootOrUpdate(); // moves on to TrophyPlaced when both jobs were done
+                    break;
+                case Stage.DemoComplete:
+                    SetStage(Stage.DemoComplete);
+                    Signal(cavendish, false);
+                    GameplayOverlay.Instance.SetQuest(ToadTitle, "Chief Toad defeated. Thanks for playing the demo!", true);
+                    break;
+                default:
+                    BeginGreeting();
+                    break;
+            }
+            restoring = false;
         }
 
         // ---------- Opening ----------

@@ -255,3 +255,14 @@ Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutoria
 - Pause menu centred.
 - Shop: type filters, a Purchased filter, scrap amounts as icons, and a preview-then-confirm purchase. The pockets' Upgrades tab shows only what is installed.
 - The merchant crab and its cousins only appear once Cavendish gives the big-crab quest.
+
+## Save and load (10-24-26)
+
+Christian built saving, with these choices (see [save and load](save-load.md)):
+
+- **When:** autosaves at every quest milestone, purchase and gear pickup, plus Save Game in the pause menu anywhere outside combat. An autosave during a fight waits until it is over.
+- **Slots:** three. New Game and Load Game pick a slot; Continue loads the most recent save.
+- **Where you pick up:** a load gives back the game as saved: where you stood (for autosaves too), health, drinks, the pockets and scrap on the ground. Enemies already beaten in the current step stay beaten (so loot can't be farmed by reloading); the rest are back home at full health, as they would be once you've left them.
+- **In combat** means an enemy has the player inside its fight radius, a boss is engaged, or the player was hit in the last 6 seconds.
+- **Per slot:** the camp's trophies, recovered parts and stage progress, as well as the pockets.
+- **Not decided, so not invented:** what death and blackout should keep or lose, and saving in the desert scenes (the hook, `ISaveableLevel`, is ready for them).

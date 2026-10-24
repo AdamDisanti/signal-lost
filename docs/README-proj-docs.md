@@ -15,6 +15,7 @@
 - [Demo build](demo-build.md): building the Mac and Windows demo (title screen + Tutorial Demo), what testers get, and the Windows module and Mac universal-build notes.
 - [Scrap, upgrades and the shop](upgrades.md): the four scrap models, the tutorial upgrades and supplies, Bucket & Barter, the four-tab pockets with the 3D mechanic, and how to add upgrades.
 - [Shared player, HUD and menus](core-player.md): the Player/GameSystems prefabs, hands, status-bar HUD, pause menu, settings and title screen, and how to move a scene onto them.
+- [Save and load](save-load.md): three save slots, autosaves, saving anywhere outside combat, Continue and Load Game on the title screen, and what a load brings back.
 - [Sound effects](sound-effects.md): the 66 placeholder sounds, the self-starting audio system, how to swap or regenerate a sound, and test checklist.
 - [Enemy and combat rules](enemy-rules.md): the fighting radius and leash every enemy follows, the stun rule, laser cooldowns and the full-charge burst.
 - [Tutorial core loop](tutorial-core-loop.md) (superseded by the 10-22 tutorial; now the sandbox): wake-up, two quests, dialogue UI, scanner guidance, scrap, inventory, merchant menu and the stripped shipwreck.

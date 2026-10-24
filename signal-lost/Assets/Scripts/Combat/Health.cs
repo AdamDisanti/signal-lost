@@ -81,6 +81,16 @@ namespace SignalLost.Combat
             return true;
         }
 
+        /// <summary>
+        /// Sets health directly, between 1 and the maximum (loading a save). Raises <see cref="Changed"/> but not
+        /// <see cref="Damaged"/>, so nothing reacts as if it were a hit.
+        /// </summary>
+        public void SetCurrent(float value)
+        {
+            current = Mathf.Clamp(value, 1f, maxHealth);
+            Changed?.Invoke(this);
+        }
+
         /// <summary>Resets to full health, including after death (respawn, checkpoint, dummy reset).</summary>
         public void Restore()
         {
