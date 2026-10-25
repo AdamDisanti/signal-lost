@@ -10,6 +10,8 @@ The flask heals without a fixed use limit; excessive drinking affects visibility
 
 **Current scanner prototype:** the active in-hand scanner no longer has a directional arrow. It retains its proximity bar and audio feedback. This is an implementation change; the supplied design document's directional-scanner intent above remains unchanged.
 
+**Buried-enemy prototype:** the scanner can track an underground `EnemySignalSource`; the current burrow/emergence test is limited to one Hermit Crab scene instance. The scanner also excludes defeated enemy sources with `Health` and advances to another eligible target. See [burrow and emerge](burrow-emerge.md) and the [scanner prototype](scanner-prototype.md).
+
 | Area | Planned boss / reward |
 | --- | --- |
 | Crash site tutorial | Recover laser/flask; learn movement, scanner, combat, resources, and healing |
