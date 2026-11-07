@@ -33,6 +33,8 @@ Player components:
 
 Tuning is on `FirstPersonController` ("Crouch and slide"). Upgrades can lengthen slides (`SlideDistanceScale`).
 
+- **Jump smash (C in mid-air, laser out):** raises the laser and dives straight down. The landing shockwave does 15 to 60 damage depending on how high you dived from (0.8 m to 8 m; capped above that). Its radius is 2.5 to 5.5 m and it shoves things back. It takes over the airborne C press, so you don't crouch. `MiningLaser` adds the `JumpSmash` component to the player at runtime; its tuning is there.
+
 ## Moving a scene to the shared player
 
 Use **Signal Lost > Scenes**, or `CoreSceneSetup.UpgradeToCorePlayer(scene, startingItems, stageGroup)`. It does the following:

@@ -53,6 +53,21 @@ namespace SignalLost.Player
         public float SlideDistanceScale { get; set; } = 1f;
         public bool IsCrouched => crouched;
         public bool IsSliding => sliding;
+        public bool IsGrounded => controller != null && controller.isGrounded;
+        public float VerticalSpeed => verticalSpeed;
+
+        /// <summary>
+        /// Asked when C is pressed in mid-air (the jump smash, <see cref="SignalLost.Combat.JumpSmash"/>). Returning true
+        /// uses the press, so the player does not also crouch.
+        /// </summary>
+        public System.Func<bool> AirCrouchPressed { get; set; }
+
+        /// <summary>Drives the player straight down at <paramref name="speed"/>, keeping a little sideways drift.</summary>
+        public void Dive(float speed)
+        {
+            verticalSpeed = Mathf.Min(verticalSpeed, -speed);
+            momentum *= 0.25f;
+        }
 
         /// <summary>Look-speed multiplier from the settings menu (GameSettings.LookSensitivity).</summary>
         public static float SensitivityScale { get; set; } = 1f;
@@ -178,7 +193,9 @@ namespace SignalLost.Player
             bool crouchHeld = canMove && crouch.IsPressed();
             if (canMove && crouch.WasPressedThisFrame())
             {
-                if (grounded && (sprinting || momentum.magnitude > sprintSpeed)) StartSlide(wish);
+                bool usedInAir = !grounded && AirCrouchPressed != null && AirCrouchPressed(); // the jump smash took it
+                if (usedInAir) { }
+                else if (grounded && (sprinting || momentum.magnitude > sprintSpeed)) StartSlide(wish);
                 else if (crouched) TryStand();
                 else Crouch(true);
             }

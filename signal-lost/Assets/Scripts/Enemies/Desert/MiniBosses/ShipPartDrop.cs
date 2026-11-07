@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SignalLost.Combat;
+using SignalLost.Inventory;
 using SignalLost.Player;
 using SignalLost.Progression;
 using UnityEngine;
@@ -7,8 +8,8 @@ using UnityEngine;
 namespace SignalLost.Enemies.Desert
 {
     /// <summary>
-    /// The stolen ship part a defeated mini-boss drops: it falls to the ground, then floats, spins and glows until the
-    /// player walks up to it. Recovering it shows a message and adds it to <see cref="Recovered"/>, under the stage it
+    /// The stolen ship part a defeated mini-boss drops: it arcs to the ground, then floats, spins and glows at the size
+    /// every collectable shares (<see cref="GroundItem"/>) until the player walks up to it. Recovering it shows a message and adds it to <see cref="Recovered"/>, under the stage it
     /// belongs to (the desert's three, or another stage's, such as the tutorial's cooling system).
     ///
     /// PLACEHOLDER reward: there is no inventory or ship-repair system yet, so recovering a part only records its
@@ -27,6 +28,7 @@ namespace SignalLost.Enemies.Desert
 
         private Transform player;
         private Health playerHealth;
+        private Transform display; // the part, centred and scaled to the shared collectable size (GroundItem)
         private Vector3 from, rest;
         private Quaternion fromRotation;
         private float born;
@@ -62,9 +64,12 @@ namespace SignalLost.Enemies.Desert
         private void Start()
         {
             born = Time.time;
-            from = transform.position;
             fromRotation = transform.rotation;
-            rest = FindGround(transform.position) + Vector3.up * 1f;
+            display = GroundItem.Wrap(transform, null, partName);
+            from = display.position;
+            display.rotation = fromRotation;
+            Vector3 ground = FindGround(from);
+            rest = ground + Vector3.up * GroundItem.HoverHeight(ground, display);
             var controller = FindAnyObjectByType<FirstPersonController>();
             if (controller != null)
             {
@@ -73,7 +78,7 @@ namespace SignalLost.Enemies.Desert
             }
 
             var lightObject = new GameObject("Part Glow");
-            lightObject.transform.SetParent(transform, false);
+            lightObject.transform.SetParent(display, false);
             glow = lightObject.AddComponent<Light>();
             glow.type = LightType.Point;
             glow.color = new Color(1f, 0.75f, 0.35f);
@@ -89,16 +94,15 @@ namespace SignalLost.Enemies.Desert
                 float k = t / 0.7f;
                 Vector3 p = Vector3.Lerp(from, rest, k);
                 p.y += Mathf.Sin(k * Mathf.PI) * 1.2f;
-                transform.position = p;
-                transform.rotation = Quaternion.Slerp(fromRotation, Quaternion.identity, k);
+                display.position = p;
+                display.rotation = Quaternion.Slerp(fromRotation, Quaternion.Euler(0f, (Time.time + born) * GroundItem.SpinSpeed, 0f), k);
                 return;
             }
-            transform.position = rest + Vector3.up * (Mathf.Sin(t * 2f) * 0.15f);
-            transform.rotation = Quaternion.Euler(0f, t * 60f, 0f);
+            GroundItem.Animate(display, rest, born);
             if (glow != null) glow.intensity = 2f + Mathf.Sin(t * 4f) * 0.8f;
 
             if (player == null || (playerHealth != null && playerHealth.IsDead)) return;
-            Vector3 offset = player.position - transform.position;
+            Vector3 offset = player.position - display.position;
             offset.y = 0f;
             if (offset.magnitude > pickupRadius) return;
 
@@ -106,7 +110,7 @@ namespace SignalLost.Enemies.Desert
             RecoveredStages.Add(stage);
             string tally = stage == StageProgress.Desert ? $"  ({CountFor(stage)}/{DesertMiniBoss.MiniBossesPerBiome})" : "";
             MiniBossHud.Message($"RECOVERED: {partName.ToUpperInvariant()}{tally}", new Color(0.55f, 1f, 0.6f));
-            Destroy(gameObject);
+            Destroy(display.gameObject);
         }
 
         private static Vector3 FindGround(Vector3 point)

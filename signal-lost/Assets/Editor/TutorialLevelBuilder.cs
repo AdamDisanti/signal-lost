@@ -97,6 +97,7 @@ namespace SignalLost.Editor
                 foreach (Vector2 glimpse in DragPoints) clear.Add(new Vector3(glimpse.x, glimpse.y, 7f));
                 Physics.SyncTransforms();
                 ScatterNature(level, clear, random);
+                ClearTrench(level);
                 BakeNavigation(level);
                 BuildFoliage(level, ground, clear);
                 BuildLighting();
@@ -381,26 +382,54 @@ namespace SignalLost.Editor
             clear.Add(new Vector3(Ship.x, Ship.y, 15f));
             for (float along = 14f; along <= 40f; along += 6f) clear.Add(new Vector3(Ship.x + back.x * along, Ship.y + back.y * along, 6f));
 
-            // Junk thrown along the trench and around the ship, and clods of dirt on the berm.
-            string[] junk = { "HullPanel", "HullPanelSmall", "HullPanelSmall", "Crate", "Barrel", "Pipe", "Rib", "Seat", "Gear", "Gear", "CableBundle", "Strut", "HullChunk", "ScorchMark", "ScorchMark" };
+            // The old random junk scatter drew from the shared generator; replay its draws so the hollow, pond and forest
+            // that come after keep exactly the same layout.
+            SkipLegacyJunkDraws(random);
             var pieces = new GameObject("Wreckage").transform;
             pieces.SetParent(site, false);
-            for (int n = 0, tries = 0; n < 140 && tries < 2000; tries++)
-            {
-                float along = Range(random, -46f, 22f), across = Range(random, -16f, 16f) * (along < -14f ? 0.6f : 1f);
-                if (Mathf.Abs(along) < 14f && Mathf.Abs(across) < 6f) continue; // not inside the hull
-                string name = junk[random.Next(junk.Length)];
-                Vector2 p = Ship + ShipForward * along + side * across;
-                Place(CrashSiteWreckBuilder.DebrisPath(name), pieces, Ground(p), Quaternion.Euler(Range(random, -8f, 8f), Range(random, 0f, 360f), Range(random, -8f, 8f)), Range(random, 0.8f, 1.25f), true);
-                n++;
-            }
+            var wreckage = new CrashDebrisLayout(pieces, Ship, ShipForward, Ground, Place);
             for (int n = 0; n < 28; n++)
             {
                 float angle = Range(random, -1.4f, 1.4f);
                 Vector2 p = Ship + ShipForward * (13f + Mathf.Cos(angle) * Range(random, 4f, 8f)) + side * Mathf.Sin(angle) * Range(random, 5f, 9f);
-                Place(MeadowAssetBuilder.PrefabPath(n % 3 == 0 ? "RockB" : "RockC"), pieces, Ground(p) + Vector3.down * 0.2f, Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.8f, 1.6f), true);
+                Quaternion turn = Quaternion.Euler(0f, Range(random, 0f, 360f), 0f); // draw order as before: turn, then scale
+                float scale = Range(random, 0.8f, 1.6f);
+                Place(MeadowAssetBuilder.PrefabPath(n % 3 == 0 ? "RockB" : "RockC"), pieces, Ground(p) + Vector3.down * 0.2f, turn, scale, true);
+                wreckage.Reserve(p, 0.9f * scale); // the berm the nose ploughed up
             }
+            wreckage.Build();
             return site;
+        }
+
+        // The draws the pre-11-07 scatter loop made (140 pieces, up to 2000 tries), without placing anything.
+        private static void SkipLegacyJunkDraws(System.Random random)
+        {
+            for (int n = 0, tries = 0; n < 140 && tries < 2000; tries++)
+            {
+                float along = Range(random, -46f, 22f), across = Range(random, -16f, 16f) * (along < -14f ? 0.6f : 1f);
+                if (Mathf.Abs(along) < 14f && Mathf.Abs(across) < 6f) continue;
+                random.Next(15);
+                for (int i = 0; i < 4; i++) random.NextDouble(); // three rotation angles and the scale
+                n++;
+            }
+        }
+
+        // Trees and bushes that grew where the ship ploughed its trench go; nothing else in the forest moves.
+        private static void ClearTrench(Transform level)
+        {
+            Vector2 side = new Vector2(ShipForward.y, -ShipForward.x);
+            foreach (string group in new[] { "Forest", "Bushes", "Rocks" })
+            {
+                Transform parent = level.Find(group);
+                if (parent == null) continue;
+                for (int i = parent.childCount - 1; i >= 0; i--)
+                {
+                    Vector3 at = parent.GetChild(i).position;
+                    Vector2 local = new Vector2(at.x, at.z) - Ship;
+                    float u = Vector2.Dot(local, ShipForward), v = Vector2.Dot(local, side);
+                    if (u > -52f && u < -10f && Mathf.Abs(v) < 8f) UnityEngine.Object.DestroyImmediate(parent.GetChild(i).gameObject);
+                }
+            }
         }
 
         private static Transform BuildCamp(Transform level, List<Vector3> clear)

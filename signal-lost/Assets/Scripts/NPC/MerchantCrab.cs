@@ -26,6 +26,9 @@ namespace SignalLost.NPC
         [SerializeField] private bool startFriendly;
         [Tooltip("After surrendering, the crab leads the player home; it waits while the player is this far behind.")]
         [SerializeField, Min(2f)] private float leadWaitDistance = 12f;
+        [Tooltip("The crab and its cousins stay out of the world until the quest that sends the player after it is given " +
+                 "(SpawnForQuest; in the tutorial, Cavendish's big-crab quest). Off: it is there from the start.")]
+        [SerializeField] private bool spawnAfterQuest;
 
         [Header("Cousins (the Bucket Brothers)")]
         [Tooltip("The same ten cousins fight beside the crab in its quest and answer when the angry merchant calls. " +
@@ -91,8 +94,27 @@ namespace SignalLost.NPC
             }
         }
 
+        /// <summary>True while the crab waits, out of the world, for its quest (see Spawn After Quest).</summary>
+        public bool AwaitingQuest => spawnAfterQuest && !spawned;
+        private bool spawned;
+
+        /// <summary>The quest that introduces the crab was given: it and its cousins appear.</summary>
+        public void SpawnForQuest()
+        {
+            spawned = true;
+            gameObject.SetActive(true);
+            foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.gameObject.SetActive(true);
+        }
+
         private void Awake()
         {
+            if (AwaitingQuest)
+            {
+                // Not yet: hide the crab and the cousins until SpawnForQuest. The setup below still runs now, so the
+                // crab is ready the moment it appears.
+                foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.gameObject.SetActive(false);
+                gameObject.SetActive(false);
+            }
             player = FindAnyObjectByType<PlayerLife>();
             playerGear = player != null ? player.GetComponent<PlayerGear>() : null;
             brain = GetComponent<HermitCrab>();
@@ -193,14 +215,7 @@ namespace SignalLost.NPC
             if (Physics.Raycast(drop + Vector3.up * 8, Vector3.down, out RaycastHit hit, 20, ~0, QueryTriggerInteraction.Ignore))
                 drop = hit.point + Vector3.up * 0.03f;
             flaskDrop.transform.position = drop;
-            flaskDrop.gameObject.SetActive(true);
-            // It floats and turns above the grass so it is easy to spot.
-            Transform bottle = flaskDrop.transform.Find("Visual");
-            if (bottle != null && flaskDrop.GetComponent<SignalLost.Progression.PickupSpin>() == null)
-            {
-                bottle.localPosition += Vector3.up * 0.45f;
-                flaskDrop.gameObject.AddComponent<SignalLost.Progression.PickupSpin>().Model = bottle;
-            }
+            flaskDrop.gameObject.SetActive(true); // it floats and turns above the grass like every collectable (FloatingPickup)
             if (CousinsDown)
                 dialogue.Speak("All right! Claws down!",
                     "Trading is my business. Brawling is clearly yours.",

@@ -343,9 +343,8 @@ namespace SignalLost.Story
             SetStage(Stage.Fight);
             Signal(cavendish, false);
             Signal(merchant, true);
-            // The crab and its cousins only turn up in the hollow now (meeting notes 10-23).
-            merchant.gameObject.SetActive(true);
-            foreach (var cousin in merchant.Cousins) if (cousin != null) cousin.gameObject.SetActive(true);
+            // The crab and its cousins only turn up in the hollow now (meeting notes 10-23; its Spawn After Quest flag).
+            merchant.SpawnForQuest();
             merchant.BeginQuest();
             UpdateFightObjective();
         }

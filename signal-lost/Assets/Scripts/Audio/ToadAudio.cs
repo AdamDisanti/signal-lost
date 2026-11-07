@@ -111,6 +111,25 @@ namespace SignalLost.Audio
                 case ChiefToad.Cue.BeamFire:
                     Sfx.PlayAt("laser_blast", Mouth, 0.8f, 0.75f, Reach);
                     break;
+                // Tracking jet: a rising charge with lock-on pings that speed up, then a sharp tone as it locks on.
+                case ChiefToad.Cue.TrackCharge:
+                    Sfx.PlayAt("laser_charge", Mouth, 0.9f, 0.7f, Reach);
+                    break;
+                case ChiefToad.Cue.TrackPing:
+                    Sfx.PlayAt("scanner_ping", Mouth, 0.75f, 1.35f, Reach + 10f);
+                    break;
+                case ChiefToad.Cue.TrackLock:
+                    Sfx.PlayAt("laser_charge_full", Mouth, 1f, 0.8f, Reach + 10f);
+                    break;
+                // Torrent sweep: a deep, long breath in, then a heavier blast.
+                case ChiefToad.Cue.SweepCharge:
+                    Sfx.PlayAt("laser_charge_hold", Mouth, 1f, 0.38f, Reach + 10f);
+                    Sfx.PlayAt("water_lap", Mouth, 1f, 0.6f, Reach);
+                    break;
+                case ChiefToad.Cue.SweepFire:
+                    Sfx.PlayAt("laser_shot_strong", Mouth, 1f, 0.45f, Reach + 10f);
+                    Sfx.PlayAt("laser_blast", Mouth, 0.9f, 0.5f, Reach + 10f);
+                    break;
                 case ChiefToad.Cue.SpinCharge:
                     Sfx.PlayAt("laser_charge", Mouth, 1f, 0.5f, Reach);
                     break;

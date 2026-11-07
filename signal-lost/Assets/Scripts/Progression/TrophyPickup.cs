@@ -29,11 +29,10 @@ namespace SignalLost.Progression
             GameObject model = trophy != null ? trophy.LoadModel() : null;
             Transform visual = model != null ? Instantiate(model, root.transform).transform : GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
             visual.SetParent(root.transform, false);
-            visual.localPosition = new Vector3(0f, 0.35f, 0f);
             foreach (Collider part in visual.GetComponentsInChildren<Collider>()) Destroy(part);
-            var box = root.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, 0.4f, 0f);
-            box.size = new Vector3(1f, 0.9f, 1f);
+            // Floats and spins at the shared collectable size; its floating box is what the crosshair finds.
+            var floating = root.AddComponent<FloatingPickup>();
+            floating.SetModel(visual);
             var glow = new GameObject("Glint").AddComponent<Light>();
             glow.transform.SetParent(root.transform, false);
             glow.transform.localPosition = new Vector3(0f, 1f, 0f);
@@ -43,7 +42,6 @@ namespace SignalLost.Progression
             glow.intensity = 3f;
             var pickup = root.AddComponent<TrophyPickup>();
             pickup.trophyId = trophyId;
-            root.AddComponent<PickupSpin>().Model = visual;
             return pickup;
         }
 
@@ -64,21 +62,5 @@ namespace SignalLost.Progression
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => PickedUp = null;
-    }
-
-    /// <summary>Turns and bobs a pickup's model so it catches the eye.</summary>
-    public sealed class PickupSpin : MonoBehaviour
-    {
-        public Transform Model;
-        private Vector3 rest;
-
-        private void Start() { if (Model != null) rest = Model.localPosition; }
-
-        private void Update()
-        {
-            if (Model == null) return;
-            Model.localPosition = rest + Vector3.up * (0.08f * Mathf.Sin(Time.time * 2f));
-            Model.Rotate(0f, 40f * Time.deltaTime, 0f, Space.World);
-        }
     }
 }
