@@ -18,7 +18,7 @@ namespace SignalLost.Player
     /// <see cref="DrinkProgress"/>.
     /// </summary>
     [RequireComponent(typeof(Health), typeof(PlayerGear))]
-    public sealed class PlayerFlask : MonoBehaviour
+    public sealed partial class PlayerFlask : MonoBehaviour
     {
         [SerializeField] private InputActionAsset inputActions;
         [Tooltip("Post-processing volume with Lens Distortion and Chromatic Aberration for the drunk blur.")]
@@ -59,9 +59,6 @@ namespace SignalLost.Player
         /// The HUD drains the top drunk pip with it so the player can see when it is safe to drink again.
         /// </summary>
         public float StackWearing => DrunkStacks > 0 ? Mathf.Clamp01((nextSober - Time.time) / secondsPerStack) : 0f;
-
-        /// <summary>Seconds until the current drink wears off; 0 when sober.</summary>
-        public float StackSecondsLeft => DrunkStacks > 0 ? Mathf.Max(0f, nextSober - Time.time) : 0f;
 
         /// <summary>Upgrades (Cast-Iron Liver) raise how many drinks fit before a blackout.</summary>
         public int BlackoutBonus { get; set; }
@@ -158,18 +155,6 @@ namespace SignalLost.Player
                 nextSober = Time.time + secondsPerStack;
             }
             ApplyIntoxication();
-        }
-
-        /// <summary>
-        /// Loading a save: this many drinks in the system, the current one wearing off in
-        /// <paramref name="secondsLeft"/>. Apply upgrades first, since they change how many drinks fit.
-        /// </summary>
-        public void RestoreStacks(int stacks, float secondsLeft)
-        {
-            DrunkStacks = Mathf.Clamp(stacks, 0, BlackoutLimit);
-            IsDrinking = false;
-            nextDrink = Time.time;
-            nextSober = Time.time + Mathf.Clamp(secondsLeft, 0.1f, secondsPerStack);
         }
 
         /// <summary>Wears off some drinks at once (Hangover Pills).</summary>

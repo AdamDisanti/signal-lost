@@ -21,7 +21,6 @@ namespace SignalLost.Core
             _ = DialogueUi.Instance;
             _ = GameplayOverlay.Instance;
             _ = PauseMenu.Instance;
-            _ = SaveIndicator.Instance;
         }
 
         private void Start()

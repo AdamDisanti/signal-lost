@@ -6,7 +6,8 @@ namespace SignalLost.UI
 {
     /// <summary>
     /// A small "Autosaved" note in the bottom-right corner that fades after each autosave (10-24). Manual saves show
-    /// their own message in the pause menu. Created by <see cref="SignalLost.Core.GameSystems"/> in every playable scene.
+    /// their own message in the pause menu. It creates itself on the first autosave in a scene, so no scene or other
+    /// script needs to set it up.
     /// </summary>
     public sealed class SaveIndicator : MonoBehaviour
     {
@@ -36,8 +37,18 @@ namespace SignalLost.UI
             label.alpha = 0f;
         }
 
-        private void OnEnable() => SaveGame.Saved += OnSaved;
-        private void OnDisable() => SaveGame.Saved -= OnSaved;
+        // SaveGame clears its listeners when Play starts (SubsystemRegistration), so listen again after that.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Listen()
+        {
+            SaveGame.Saved -= ShowAutosave;
+            SaveGame.Saved += ShowAutosave;
+        }
+
+        private static void ShowAutosave(int slot, bool autosave)
+        {
+            if (autosave && Instance != null) Instance.OnSaved(slot, autosave);
+        }
 
         private void OnDestroy()
         {

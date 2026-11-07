@@ -14,7 +14,7 @@ namespace SignalLost.Enemies.Desert
     /// PLACEHOLDER reward: there is no inventory or ship-repair system yet, so recovering a part only records its
     /// name. Whether these parts are progression items is an open design question.
     /// </summary>
-    public sealed class ShipPartDrop : MonoBehaviour
+    public sealed partial class ShipPartDrop : MonoBehaviour
     {
         /// <summary>Names of the parts recovered since Play started.</summary>
         public static readonly List<string> Recovered = new List<string>();
@@ -45,29 +45,6 @@ namespace SignalLost.Enemies.Desert
             int count = 0;
             foreach (string item in RecoveredStages) if (item == stage) count++;
             return count;
-        }
-
-        /// <summary>Copies the recovered parts (and the stage each belongs to) into a save slot's lists.</summary>
-        public static void CaptureRecovered(List<string> names, List<string> stages)
-        {
-            names.AddRange(Recovered);
-            stages.AddRange(RecoveredStages);
-        }
-
-        /// <summary>Loading a save slot (or New Game, with nulls): replaces the recovered parts quietly.</summary>
-        public static void RestoreRecovered(IList<string> names, IList<string> stages)
-        {
-            Recovered.Clear();
-            RecoveredStages.Clear();
-            if (names == null || stages == null) return;
-            for (int i = 0; i < names.Count && i < stages.Count; i++) RecordRecovered(names[i], stages[i]);
-        }
-
-        /// <summary>Counts a part as recovered without a pickup (a loaded save whose loot was never picked up).</summary>
-        public static void RecordRecovered(string name, string stage)
-        {
-            Recovered.Add(name);
-            RecoveredStages.Add(stage);
         }
 
         /// <summary>Detaches <paramref name="part"/> from its owner and turns it into a pickup near <paramref name="near"/>.</summary>

@@ -31,9 +31,9 @@ namespace SignalLost.Progression
     /// <summary>
     /// What the base camp remembers between play sessions: which trophy sits on which stand. The camp is the same in
     /// every level, so every level's camp shows them. Saved as a small JSON file in the player's data folder; New Game
-    /// clears it. Each save slot keeps its own copy (<see cref="SaveGame"/>): loading a slot puts that copy back.
+    /// clears it. This is the first thing that is really saved; the rest of the game's save is still to come.
     /// </summary>
-    public static class CampSave
+    public static partial class CampSave
     {
         [Serializable]
         private sealed class Data
@@ -91,30 +91,6 @@ namespace SignalLost.Progression
             data = new Data();
             try { if (File.Exists(FilePath)) File.Delete(FilePath); }
             catch (Exception exception) { Debug.LogWarning("Could not clear the camp save. " + exception.Message); }
-            Changed?.Invoke();
-        }
-
-        /// <summary>Copies the placed trophies into a save slot's lists.</summary>
-        public static void Capture(List<string> trophies, List<int> stands)
-        {
-            trophies.AddRange(Current.trophies);
-            stands.AddRange(Current.stands);
-        }
-
-        /// <summary>Loading a save slot: the camp shows exactly that slot's trophies.</summary>
-        public static void Restore(List<string> trophies, List<int> stands)
-        {
-            data = new Data();
-            if (trophies != null && stands != null)
-            {
-                for (int i = 0; i < trophies.Count && i < stands.Count; i++)
-                {
-                    if (string.IsNullOrEmpty(trophies[i]) || data.trophies.Contains(trophies[i]) || data.stands.Contains(stands[i])) continue;
-                    data.trophies.Add(trophies[i]);
-                    data.stands.Add(stands[i]);
-                }
-            }
-            Write();
             Changed?.Invoke();
         }
 

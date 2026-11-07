@@ -15,7 +15,7 @@ namespace SignalLost.Enemies
     /// frogs drop no scrap, so a boss fight cannot be farmed.
     /// </summary>
     [RequireComponent(typeof(CombatZone))]
-    public sealed class FrogWaves : MonoBehaviour
+    public sealed partial class FrogWaves : MonoBehaviour
     {
         [SerializeField] private MortarFrog frogPrefab;
         [Tooltip("Frogs in each wave.")]
@@ -58,27 +58,6 @@ namespace SignalLost.Enemies
         {
             if (Started || frogPrefab == null) return;
             Spawn(0);
-        }
-
-        /// <summary>
-        /// Loading a save: carries on as if <paramref name="defeated"/> frogs were already beaten, in the wave they
-        /// reached, with only that wave's remaining frogs hopping in (once, instead of <see cref="Begin"/>).
-        /// </summary>
-        public void Resume(int defeated)
-        {
-            if (Started || frogPrefab == null) return;
-            defeated = Mathf.Clamp(defeated, 0, Total);
-            int before = 0, index = 0;
-            while (index < waves.Length && before + waves[index] <= defeated) before += waves[index++];
-            Defeated = defeated;
-            if (index >= waves.Length)
-            {
-                wave = waves.Length - 1;
-                Finished = true;
-                Cleared?.Invoke();
-                return;
-            }
-            Spawn(index, waves[index] - (defeated - before));
         }
 
         /// <summary>Keeps between <paramref name="min"/> and <paramref name="max"/> frogs alive until <see cref="StopSustain"/>.</summary>
@@ -143,11 +122,11 @@ namespace SignalLost.Enemies
             spawned.name = "Toad's Frog";
         }
 
-        private void Spawn(int index, int count = -1)
+        private void Spawn(int index)
         {
             wave = index;
             nextWave = -1f;
-            if (count < 0) count = waves[index];
+            int count = waves[index];
             int offset = UnityEngine.Random.Range(0, Mathf.Max(1, spawnPoints.Length));
             for (int i = 0; i < count; i++)
             {

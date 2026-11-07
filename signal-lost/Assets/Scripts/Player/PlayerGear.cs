@@ -15,7 +15,7 @@ namespace SignalLost.Player
     /// Items not owned yet stay unusable; collecting one shows its "new gear" card.
     /// </summary>
     [RequireComponent(typeof(PlayerInventory))]
-    public sealed class PlayerGear : MonoBehaviour
+    public sealed partial class PlayerGear : MonoBehaviour
     {
         public enum Held { Nothing, Laser, Scanner }
 
@@ -63,12 +63,6 @@ namespace SignalLost.Player
             Collected?.Invoke(item);
             return true;
         }
-
-        /// <summary>
-        /// Brings the hands up to date with the pockets after items were put there directly (loading a save), without
-        /// the "new gear" cards.
-        /// </summary>
-        public void Sync() => Refresh();
 
         /// <summary>Puts both tools away until <see cref="Unholster"/> is called with the same key.</summary>
         public void Holster(object key)

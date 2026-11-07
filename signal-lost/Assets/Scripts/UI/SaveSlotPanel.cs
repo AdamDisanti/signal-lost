@@ -4,6 +4,7 @@ using SignalLost.Story;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace SignalLost.UI
@@ -11,8 +12,10 @@ namespace SignalLost.UI
     /// <summary>
     /// The three save slots (10-24), shared by the pause menu's Save Game and the title screen's New Game and Load
     /// Game. Each slot shows its quest, time played and when it was saved. Overwriting a different save, or starting a
-    /// new game over one, needs a second click on the same slot. The owner closes it on Esc (<see cref="Hide"/>).
+    /// new game over one, needs a second click on the same slot. Esc (gamepad B or Start) closes it; it runs before the
+    /// menus' own Update, so the owner can tell that Esc was already used (its close callback runs first).
     /// </summary>
+    [DefaultExecutionOrder(-100)]
     public sealed class SaveSlotPanel : MonoBehaviour
     {
         public enum Mode { Save, Load, NewGame }
@@ -25,6 +28,7 @@ namespace SignalLost.UI
         private Action<int> chosen;
         private Action closed;
         private int confirming;
+        private bool hiding, stale;
 
         public bool IsOpen => gameObject.activeSelf;
 
@@ -50,6 +54,7 @@ namespace SignalLost.UI
             chosen = onChosen;
             closed = onClosed;
             confirming = 0;
+            stale = false;
             UiTheme.EnsureEventSystem();
             gameObject.SetActive(true);
             Refresh();
@@ -64,11 +69,29 @@ namespace SignalLost.UI
         public void Hide()
         {
             if (!IsOpen) return;
+            stale = false;
+            hiding = true;
             gameObject.SetActive(false);
+            hiding = false;
             Action done = closed;
             closed = null;
             chosen = null;
             done?.Invoke();
+        }
+
+        // The menu behind it closed while the slots were showing (the pause menu's root switched off): close the slots
+        // properly the next time they would show, instead of popping up over the menu.
+        private void OnDisable()
+        {
+            if (!hiding) stale = true;
+        }
+
+        private void Update()
+        {
+            if (stale) { Hide(); return; }
+            bool back = Keyboard.current?.escapeKey.wasPressedThisFrame == true || Gamepad.current?.buttonEast.wasPressedThisFrame == true ||
+                        Gamepad.current?.startButton.wasPressedThisFrame == true;
+            if (back) Hide();
         }
 
         private void Pick(int slot)

@@ -22,7 +22,7 @@ namespace SignalLost.Story
     /// Beating him leaves a pile of loot: his cooling system (the stage part), scrap, and his crown, the camp trophy.
     /// Space skips the cutscene.
     /// </summary>
-    public sealed class ChiefToadEncounter : MonoBehaviour
+    public sealed partial class ChiefToadEncounter : MonoBehaviour
     {
         [SerializeField] private ChiefToad toad;
         [SerializeField] private FrogWaves frogs;
@@ -58,15 +58,6 @@ namespace SignalLost.Story
             if (Current != State.Waiting) return;
             Current = State.Armed;
             Signal(true);
-        }
-
-        /// <summary>Loading a save from after the fight: he is already beaten and stays gone.</summary>
-        public void RestoreDefeated()
-        {
-            StopAllCoroutines();
-            Current = State.Defeated;
-            Signal(false);
-            if (toad != null) toad.gameObject.SetActive(false);
         }
 
         private void Update()
