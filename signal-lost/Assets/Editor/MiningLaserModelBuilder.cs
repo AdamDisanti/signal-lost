@@ -243,7 +243,11 @@ namespace SignalLost.Editor
                 Vector3 centre = Vector3.zero;
                 foreach (Vector3 p in points) centre += p;
                 centre /= points.Length;
-                Vector3 normal = Vector3.Cross(points[1] - points[0], points[2] - points[0]).normalized;
+                // Not Vector3.normalized: it returns zero below a length of 1e-5, which the millimetre chamfers on
+                // the small parts fall under. A zero normal turns into NaN in the lit shader, and bloom spreads the
+                // NaN pixels into a white blowout over the held gun.
+                Vector3 cross = Vector3.Cross(points[1] - points[0], points[2] - points[0]);
+                Vector3 normal = cross / Mathf.Max(cross.magnitude, 1e-12f);
                 if (Vector3.Dot(normal, centre) < 0f)
                 {
                     System.Array.Reverse(points);
@@ -386,6 +390,9 @@ namespace SignalLost.Editor
 
         private static Mesh Finish(string name, List<Vector3> vertices, List<Vector3> normals, List<int> triangles)
         {
+            foreach (Vector3 normal in normals)
+                if (!(Mathf.Abs(normal.sqrMagnitude - 1f) < 0.01f))
+                    throw new System.InvalidOperationException($"Mesh '{name}' has a bad normal {normal}; it would render as NaN.");
             var mesh = new Mesh { name = name };
             mesh.SetVertices(vertices);
             mesh.SetNormals(normals);
