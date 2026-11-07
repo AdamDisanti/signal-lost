@@ -170,20 +170,10 @@ namespace SignalLost.Editor
             // A cable from the power pack along the keel to the emitter.
             Cylinder(visual, "Feed Cable", new Vector3(0.07f, 0.212f, mid - 0.02f), Quaternion.identity, 0.011f, length + 0.17f, rubber, 10);
 
-            // The light that glows out through the glass.
-            var lightObject = new GameObject("Chamber Light");
-            lightObject.transform.SetParent(visual, false);
-            lightObject.transform.localPosition = new Vector3(0f, Axis, mid);
-            var chamberLight = lightObject.AddComponent<Light>();
-            chamberLight.type = LightType.Point;
-            chamberLight.range = 0.55f;
-            chamberLight.intensity = 0.5f;
-            chamberLight.color = new Color(0.3f, 0.95f, 1f);
-            chamberLight.shadows = LightShadows.None;
-            chamberLight.renderMode = LightRenderMode.ForcePixel;
-
+            // No point light inside the chamber: a few centimetres from the coils and walls its inverse-square
+            // falloff blew the whole held gun out to white. The emissive parts carry the glow on their own.
             var chargeVisual = root.AddComponent<LaserChargeVisual>();
-            chargeVisual.Setup(core, coils, lens, indicators, chamberLight);
+            chargeVisual.Setup(core, coils, lens, indicators);
         }
 
         // ---------- Parts ----------
