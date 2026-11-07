@@ -96,6 +96,12 @@ namespace SignalLost.UI
             button.colors = colors;
             TextMeshProUGUI text = Label("Label", background.transform, fontSize, Text, TextAlignmentOptions.Center, FontStyles.Bold);
             Stretch(text.rectTransform, 6f);
+            // One line that shrinks to fit, so long labels never spill out of narrow buttons (the shop's filter tabs).
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Ellipsis;
+            text.enableAutoSizing = true;
+            text.fontSizeMax = fontSize;
+            text.fontSizeMin = Mathf.Max(10f, fontSize * 0.55f);
             text.text = label;
             return button;
         }

@@ -139,6 +139,7 @@ namespace SignalLost.Combat
         private readonly RaycastHit[] hits = new RaycastHit[16];
         private readonly Collider[] overlaps = new Collider[32];
         private readonly List<Health> struckThisSwing = new List<Health>();
+        private readonly List<Vector3> struckPoints = new List<Vector3>();
 
         private InputActionAsset runtimeActions;
         private InputActionMap playerMap;
@@ -169,6 +170,7 @@ namespace SignalLost.Combat
         private Transform toolPivot, muzzlePoint;
         private Vector3 restPosition;
         private ChargeEffect chargeEffect;
+        private LaserChargeVisual chargeVisual; // the glowing chamber inside the held model, if it has one
         private Material toolMaterial, energyMaterial, energyFullMaterial, energyCoreMaterial;
         private bool fullChargeReached;
         private float fullChargePop; // 1 the moment full charge is reached, decays to 0
@@ -394,6 +396,7 @@ namespace SignalLost.Combat
             Vector3 probe = origin + forward * (meleeRange * 0.5f);
             float halfArc = StrikeArc(comboStep) * 0.5f;
             struckThisSwing.Clear();
+            struckPoints.Clear();
 
             int count = Physics.OverlapSphereNonAlloc(origin, meleeRange, overlaps, hitMask, QueryTriggerInteraction.Ignore);
             for (int i = 0; i < count; i++)
@@ -412,17 +415,29 @@ namespace SignalLost.Combat
                 if (distance > 0.1f && IsBlocked(origin, toPoint / distance, distance, target)) continue;
 
                 struckThisSwing.Add(target);
-                ImpactFlash.Spawn(beam.sharedMaterial, point, 0.3f);
+                struckPoints.Add(point);
             }
 
             bool connected = false;
-            foreach (Health target in struckThisSwing)
+            bool heavy = IsFinisher;
+            for (int i = 0; i < struckThisSwing.Count; i++)
             {
-                if (!target.TakeDamage(damage, gameObject)) continue;
+                Health target = struckThisSwing[i];
+                Vector3 point = struckPoints[i];
+                Vector3 back = origin - point;
+                Vector3 normal = back.sqrMagnitude > 0.0001f ? back.normalized : -forward;
+                // Every strike that lands gets the same effect and sound, whether or not it does damage.
+                bool damaged = target.TakeDamage(damage, gameObject);
+                HitFeedback.Melee(point, normal, damaged ? HitFeedback.Result.Damaged : HitFeedback.Result.NoDamage, heavy, energyColor);
+                if (!damaged) continue;
                 LastHitTime = Time.time;
                 connected = true;
                 if (stunSeconds > 0f && !target.IsDead) target.GetComponentInParent<IStunnable>()?.Stun(stunSeconds);
             }
+
+            // Swung into a wall, rock or the ground with nothing to hurt: a knock and some dust where it struck.
+            if (struckThisSwing.Count == 0 && TryNearestHit(origin, forward, meleeRange * 0.9f, out RaycastHit surface))
+                HitFeedback.Melee(surface.point, surface.normal, HitFeedback.Result.Surface, heavy, energyColor);
             return connected;
         }
 
@@ -469,6 +484,7 @@ namespace SignalLost.Combat
             cooldownLength = CooldownFor(charge);
             cooldownUntil = Time.time + cooldownLength;
             recoil = 1f;
+            if (chargeVisual != null) chargeVisual.Fired();
             AddKick(new Vector3(-1f - 1.5f * charge, 0f, 0f));
         }
 
@@ -516,6 +532,8 @@ namespace SignalLost.Combat
 
             GameObject model = Instantiate(heldModel, toolPivot, false);
             model.name = heldModel.name + " (held)";
+            chargeVisual = model.GetComponentInChildren<LaserChargeVisual>();
+            if (chargeVisual != null) chargeVisual.SetEnergyColor(energyColor);
             Transform body = model.transform;
             body.localRotation = Quaternion.Euler(heldModelRotation);
             body.localScale = Vector3.one * heldModelScale;
@@ -661,6 +679,8 @@ namespace SignalLost.Combat
             kick = Vector3.Lerp(kick, Vector3.zero, 1f - Mathf.Exp(-14f * Time.deltaTime));
 
             chargeEffect.Show(IsCharging, Charge01);
+            if (chargeVisual != null)
+                chargeVisual.Drive(IsCharging, Charge01, cooldownLength > 0f ? ShotCooldownRemaining / cooldownLength : 0f);
         }
 
         /// <summary>

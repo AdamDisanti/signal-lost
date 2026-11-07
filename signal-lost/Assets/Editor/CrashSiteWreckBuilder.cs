@@ -274,8 +274,6 @@ namespace SignalLost.Editor
                 kit.Box(at, new Vector3(0.9f, 0.2f, 0.3f), clamp, Mat.Yellow);
             }
             WarningFrame(kit, new Vector3(0.4f, floorY + 0.09f, -2f), 3.6f, 3.6f);
-            FaultLamp(kit, new Vector3(-2.1f, floorY + 0.9f, -4.8f));
-            FaultLamp(kit, new Vector3(2.4f, floorY + 0.6f, 0.9f));
             Cables(kit, new Vector3(-1.2f, 4.6f, -1f), 4, 2.6f, 11);
             AddPart(hull, "Reactor Bay (empty)", SaveMesh("WreckReactorBay", kit.Build("WreckReactorBay")), true);
         }
@@ -297,7 +295,6 @@ namespace SignalLost.Editor
             }
             WarningFrameVertical(kit, new Vector3(0f, 2.3f, -11.45f), 3.8f, 3.2f);
             Cables(kit, new Vector3(0f, 3.6f, -11.2f), 6, 3.2f, 21);
-            FaultLamp(kit, new Vector3(1.6f, 3.5f, -11.3f));
             AddPart(hull, "Engine Bay (empty)", SaveMesh("WreckEngineBay", kit.Build("WreckEngineBay")), false);
         }
 
@@ -343,12 +340,11 @@ namespace SignalLost.Editor
             {
                 kit.Box(new Vector3(1.35f * side, 2.75f, 7.6f), new Vector3(0.6f, 1f, 2.2f), Quaternion.Euler(0f, 0f, -8f * side), Mat.Black);
                 for (int i = 0; i < 3; i++)
-                    kit.Box(new Vector3(1.3f * side, 3.28f, 6.9f + i * 0.55f), new Vector3(0.12f, 0.05f, 0.12f), Quaternion.identity, i == 1 && side > 0f ? Mat.Fault : Mat.NavGreen);
+                    kit.Box(new Vector3(1.3f * side, 3.28f, 6.9f + i * 0.55f), new Vector3(0.12f, 0.05f, 0.12f), Quaternion.identity, Mat.NavGreen);
             }
             kit.Box(ConsoleCentre, ConsoleSize, ConsoleTilt, Mat.Black);
             kit.Box(ConsoleCentre + ConsoleTilt * new Vector3(0f, 0.25f, -0.05f), new Vector3(0.9f, 0.35f, 0.5f), ConsoleTilt, Mat.Interior);
             Cables(kit, new Vector3(0f, 4.15f, 8.4f), 3, 0.7f, 33);
-            FaultLamp(kit, new Vector3(0.75f, 4.05f, 8.35f));
             AddPart(hull, "Cockpit (navigation slot empty)", SaveMesh("WreckCockpit", kit.Build("WreckCockpit")), true);
 
             // The glass, with the smashed side window open apart from a few shards left in its frame.
@@ -387,7 +383,6 @@ namespace SignalLost.Editor
             kit.Box(socket + new Vector3(-1.45f, 0.5f, 0f), new Vector3(0.12f, 1.4f, 1.5f), Quaternion.Euler(0f, 0f, 25f), Mat.Hull);
             kit.Box(socket + new Vector3(-1.4f, 0.55f, 0f), new Vector3(0.14f, 0.3f, 1.52f), Quaternion.Euler(0f, 0f, 25f), Mat.Stripe);
             Cables(kit, socket + Vector3.up * 0.05f, 3, 0.5f, 47);
-            FaultLamp(kit, socket + new Vector3(0.7f, 0.12f, 0.6f));
             AddPart(hull, "Dorsal Hatch (flight controls missing)", SaveMesh("WreckDorsalHatch", kit.Build("WreckDorsalHatch")), false);
         }
 
@@ -432,7 +427,6 @@ namespace SignalLost.Editor
             kit.Add(LowPolyMesh.Lathe("Dish", new[] { new Vector2(0.02f, 0f), new Vector2(0.35f, 0.12f), new Vector2(0.38f, 0.16f), new Vector2(0.02f, 0.06f) }, 8),
                 Matrix4x4.TRS(new Vector3(-1.15f, 6.35f, -6.3f), Quaternion.Euler(30f, 0f, 60f), Vector3.one), Mat.Hull);
             kit.Box(new Vector3(-10.4f, 1.15f, -4f), new Vector3(0.18f, 0.18f, 0.3f), Quaternion.identity, Mat.NavGreen);
-            kit.Box(new Vector3(-0.9f, 5.0f, 4.6f), new Vector3(0.12f, 0.12f, 0.12f), Quaternion.Euler(45f, 45f, 0f), Mat.Fault);
             AddPart(hull, "Hull Details", SaveMesh("WreckDetails", kit.Build("WreckDetails")), false);
         }
 
@@ -721,9 +715,6 @@ namespace SignalLost.Editor
                 kit.Add(LowPolyMesh.Tube("Cable", path, 0.045f + 0.02f * Mathf.Abs(n.y), 4), Matrix4x4.identity, i % 3 == 2 ? Mat.Yellow : Mat.Cable);
             }
         }
-
-        private static void FaultLamp(FlatMeshKit<Mat> kit, Vector3 at) =>
-            kit.Box(at, new Vector3(0.16f, 0.16f, 0.16f), Quaternion.Euler(45f, 45f, 0f), Mat.Fault);
 
         // Deterministic pseudo-random vector in [-1, 1] per component, so rebuilding gives the same wreck.
         private static Vector3 Noise(int seed)

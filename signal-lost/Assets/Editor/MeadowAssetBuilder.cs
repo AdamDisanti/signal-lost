@@ -350,11 +350,23 @@ namespace SignalLost.Editor
 
         // ---------- Effects ----------
 
+        /// <summary>Rebuilds only the fire and smoke effect prefabs (and their textures and materials).</summary>
+        [MenuItem("Signal Lost/Tutorial/Rebuild Meadow Effects")]
+        public static void BuildEffectsOnly()
+        {
+            EnsureFolder(Folder + "/Effects");
+            BuildEffects();
+            AssetDatabase.SaveAssets();
+            Debug.Log("MEADOW_EFFECTS_BUILT");
+        }
+
         private static void BuildEffects()
         {
-            Material fire = ParticleMaterial("ParticleFire", true, new Color(1f, 0.75f, 0.35f));
-            Material smoke = ParticleMaterial("ParticleSmoke", false, new Color(1f, 1f, 1f));
-            Material spark = ParticleMaterial("ParticleSpark", true, new Color(0.8f, 0.95f, 1f));
+            EnsureFolder(Folder + "/Effects/Textures");
+            Material fire = ParticleMaterial("ParticleFire", true, new Color(1f, 0.75f, 0.35f), ParticleTexture("FlameTongue", FlameAlpha));
+            Material smoke = ParticleMaterial("ParticleSmoke", false, new Color(1f, 1f, 1f), ParticleTexture("SmokePuff", SmokeAlpha));
+            Material spark = ParticleMaterial("ParticleSpark", true, new Color(0.8f, 0.95f, 1f), ParticleTexture("SparkStreak", SparkAlpha));
+            Material glow = ParticleMaterial("ParticleGlow", true, Color.white, ParticleTexture("SoftGlow", GlowAlpha));
 
             Effect("Campfire", root =>
             {
@@ -363,17 +375,25 @@ namespace SignalLost.Editor
                 Smoke(root, smoke, "Wisps", 3f, 0.4f, 2.4f, 5f, new Color(0.45f, 0.43f, 0.42f, 0.35f), 0.8f);
                 Glow(root, new Color(1f, 0.62f, 0.3f), 3.2f, 9f, false);
             });
+            // A burning, shorting-out machine: licking flames over a hot glow, blue-white arcs that crackle at random,
+            // irregular showers of sparks that bounce off whatever is below, embers and dark smoke, lit warm and blue.
             Effect("ElectricalFire", root =>
             {
-                Flames(root, fire, 0.4f, 22f, 0.45f, new Color(0.75f, 0.9f, 1f), new Color(1f, 0.45f, 0.1f));
+                HeatGlow(root, glow, new Color(1f, 0.45f, 0.12f, 0.35f));
+                ParticleSystem body = Flames(root, fire, 0.45f, 20f, 1f, new Color(1f, 0.6f, 0.2f), new Color(0.75f, 0.12f, 0.03f), 0.6f);
+                body.name = "Flame Body";
+                Flames(root, fire, 0.3f, 40f, 0.6f, new Color(1f, 0.93f, 0.7f), new Color(1f, 0.4f, 0.08f));
+                Arcs(root, glow);
                 Sparks(root, spark);
-                Smoke(root, smoke, "Smoke", 4f, 0.8f, 4f, 7f, new Color(0.2f, 0.19f, 0.19f, 0.5f), 1.6f);
-                Glow(root, new Color(0.6f, 0.85f, 1f), 2.5f, 7f, true);
+                Embers(root, fire);
+                Smoke(root, smoke, "Smoke", 5f, 0.8f, 4f, 7f, new Color(0.13f, 0.12f, 0.12f, 0.55f), 1.4f);
+                Glow(root, new Color(1f, 0.55f, 0.22f), 1.6f, 6f, false);
+                Glow(root, new Color(0.6f, 0.85f, 1f), 1.2f, 6f, true).name = "Arc Glow";
             });
             Effect("SmokePlume", root => Smoke(root, smoke, "Plume", 7f, 1.6f, 9f, 11f, new Color(0.16f, 0.15f, 0.15f, 0.55f), 2.4f));
         }
 
-        private static Material ParticleMaterial(string name, bool additive, Color tint)
+        private static Material ParticleMaterial(string name, bool additive, Color tint, Texture2D texture)
         {
             string path = Folder + "/Effects/" + name + ".mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -382,7 +402,7 @@ namespace SignalLost.Editor
                 material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
                 AssetDatabase.CreateAsset(material, path);
             }
-            material.SetTexture("_BaseMap", AssetDatabase.GetBuiltinExtraResource<Texture2D>("Default-Particle.psd"));
+            material.SetTexture("_BaseMap", texture != null ? texture : AssetDatabase.GetBuiltinExtraResource<Texture2D>("Default-Particle.psd"));
             material.SetColor("_BaseColor", tint);
             material.SetFloat("_Surface", 1f);
             material.SetFloat("_Blend", additive ? 2f : 0f);
@@ -393,6 +413,77 @@ namespace SignalLost.Editor
             material.renderQueue = (int)RenderQueue.Transparent;
             EditorUtility.SetDirty(material);
             return material;
+        }
+
+        // ---------- Particle textures (white, the shape in the alpha), saved as PNGs ----------
+
+        private static Texture2D ParticleTexture(string name, Func<float, float, float> alpha)
+        {
+            const int size = 128;
+            string path = Folder + "/Effects/Textures/" + name + ".png";
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var pixels = new Color32[size * size];
+            for (int j = 0; j < size; j++)
+                for (int i = 0; i < size; i++)
+                {
+                    float x = (i + 0.5f) / size * 2f - 1f, y = (j + 0.5f) / size * 2f - 1f;
+                    byte a = (byte)Mathf.RoundToInt(Mathf.Clamp01(alpha(x, y)) * 255f);
+                    pixels[j * size + i] = new Color32(255, 255, 255, a);
+                }
+            texture.SetPixels32(pixels);
+            File.WriteAllBytes(path, texture.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Default;
+            importer.alphaSource = TextureImporterAlphaSource.FromInput;
+            importer.alphaIsTransparency = true;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.mipmapEnabled = true;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        // A tongue of flame: round at the base, drawn up into a wavering point.
+        private static float FlameAlpha(float x, float y)
+        {
+            float v = (y + 1f) * 0.5f;
+            float sway = 0.12f * Mathf.Sin(v * 5f) * v;
+            float width = 0.62f * Mathf.Pow(1f - v, 0.6f) * Mathf.Clamp01(v * 3.2f + 0.25f);
+            if (width <= 0.001f) return 0f;
+            float dx = (x - sway) / width;
+            float dy = v < 0.28f ? (0.28f - v) / 0.3f : 0f;
+            float body = Mathf.Clamp01(1f - (dx * dx + dy * dy));
+            float licks = 0.75f + 0.25f * Mathf.PerlinNoise(x * 4f + 3.1f, v * 6f + 1.7f);
+            return body * body * licks * Mathf.Clamp01((1f - v) * 4f);
+        }
+
+        // A spark: a bright point with a short soft streak (stretched further along its flight by the renderer).
+        private static float SparkAlpha(float x, float y)
+        {
+            float d = Mathf.Sqrt(x * x * 3.5f + y * y);
+            float core = Mathf.Clamp01(1f - d * 2.2f);
+            float halo = Mathf.Clamp01(1f - d);
+            return Mathf.Clamp01(core * core * 1.5f + halo * halo * halo * 0.5f);
+        }
+
+        // A lumpy, layered puff of smoke.
+        private static float SmokeAlpha(float x, float y)
+        {
+            float d = Mathf.Sqrt(x * x + y * y);
+            float lumps = 0.7f + 0.25f * Mathf.PerlinNoise(x * 2.3f + 7.1f, y * 2.3f + 3.4f)
+                               + 0.15f * Mathf.PerlinNoise(x * 5.1f + 1.3f, y * 5.1f + 9.2f)
+                               + 0.08f * Mathf.PerlinNoise(x * 11f + 4.4f, y * 11f + 2.2f);
+            float k = Mathf.Clamp01(1f - d / Mathf.Max(0.3f, lumps * 0.95f));
+            float wisps = 0.8f + 0.2f * Mathf.PerlinNoise(x * 7f + 9.9f, y * 7f + 5.5f);
+            return k * k * 0.9f * wisps;
+        }
+
+        // A soft round glow, bright in the middle.
+        private static float GlowAlpha(float x, float y)
+        {
+            float k = 1f - Mathf.Clamp01(Mathf.Sqrt(x * x + y * y));
+            return k * k * (0.6f + 0.4f * k);
         }
 
         private static void Effect(string name, Action<Transform> build)
@@ -422,24 +513,84 @@ namespace SignalLost.Editor
             return system;
         }
 
-        private static void Flames(Transform root, Material material, float radius, float rate, float size, Color hot, Color cool)
+        private static ParticleSystem Flames(Transform root, Material material, float radius, float rate, float size, Color hot, Color cool, float alpha = 0.9f)
         {
             ParticleSystem flames = Emitter(root, "Flames", material);
             var main = flames.main;
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.45f, 0.9f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.7f, 1.5f);
             main.startSize = new ParticleSystem.MinMaxCurve(size * 0.6f, size);
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(-0.2f, 0.2f); // tongues stay upright, leaning a little
             var emission = flames.emission;
             emission.rateOverTime = rate;
             var shape = flames.shape;
             shape.shapeType = ParticleSystemShapeType.Cone;
             shape.angle = 8f;
             shape.radius = radius;
-            Fade(flames, hot, cool, 0.9f);
+            Fade(flames, hot, cool, alpha);
             var size01 = flames.sizeOverLifetime;
             size01.enabled = true;
             size01.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.2f));
+            // Wavering tongues that speed up as they rise.
+            var noise = flames.noise;
+            noise.enabled = true;
+            noise.strength = 0.35f;
+            noise.frequency = 1.6f;
+            noise.scrollSpeed = 1.2f;
+            var rise = flames.velocityOverLifetime;
+            rise.enabled = true;
+            rise.space = ParticleSystemSimulationSpace.World;
+            rise.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+            rise.y = new ParticleSystem.MinMaxCurve(0.2f, 0.9f);
+            rise.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+            return flames;
+        }
+
+        // A soft, flickering glow at the base of a fire.
+        private static void HeatGlow(Transform root, Material material, Color color)
+        {
+            ParticleSystem heat = Emitter(root, "Heat Glow", material);
+            heat.transform.localPosition = Vector3.up * 0.25f;
+            var main = heat.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.5f);
+            main.startSpeed = 0f;
+            main.startSize = new ParticleSystem.MinMaxCurve(1.4f, 2.1f);
+            main.maxParticles = 20;
+            var emission = heat.emission;
+            emission.rateOverTime = 9f;
+            var shape = heat.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.15f;
+            Fade(heat, color, new Color(color.r, color.g * 0.6f, color.b * 0.5f), color.a);
+        }
+
+        // Blue-white flecks of electricity that crackle around the fire at random moments.
+        private static void Arcs(Transform root, Material material)
+        {
+            ParticleSystem arcs = Emitter(root, "Arcs", material);
+            arcs.transform.localPosition = Vector3.up * 0.35f;
+            var main = arcs.main;
+            main.duration = 3f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.04f, 0.12f);
+            main.startSpeed = 0f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.12f, 0.45f);
+            main.maxParticles = 40;
+            var emission = arcs.emission;
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[]
+            {
+                new ParticleSystem.Burst(0f, new ParticleSystem.MinMaxCurve(1f, 3f), 0, 0.06f) { probability = 0.3f },
+                new ParticleSystem.Burst(1.1f, new ParticleSystem.MinMaxCurve(4f, 8f), 0, 1.7f) { probability = 0.7f },
+            });
+            var shape = arcs.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.4f;
+            var color = arcs.colorOverLifetime;
+            color.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] { new GradientColorKey(new Color(0.9f, 0.97f, 1f), 0f), new GradientColorKey(new Color(0.45f, 0.75f, 1f), 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.8f, 0.5f), new GradientAlphaKey(0f, 1f) });
+            color.color = gradient;
         }
 
         private static void Embers(Transform root, Material material)
@@ -463,26 +614,55 @@ namespace SignalLost.Editor
             Fade(embers, new Color(1f, 0.8f, 0.35f), new Color(1f, 0.3f, 0.05f), 1f);
         }
 
+        // Irregular showers of sparks: small sputters every so often and the odd big burst, flying out, falling and
+        // bouncing off the ground and the wreck.
         private static void Sparks(Transform root, Material material)
         {
             ParticleSystem sparks = Emitter(root, "Sparks", material);
+            sparks.transform.localPosition = Vector3.up * 0.3f;
             var main = sparks.main;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.6f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(3f, 6.5f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.07f);
-            main.gravityModifier = 1.2f;
+            main.duration = 4f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.45f, 1.2f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 7f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.055f);
+            main.gravityModifier = 1.1f;
             var emission = sparks.emission;
-            emission.rateOverTime = 2f;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 12, 26, 0, 0.9f) });
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[]
+            {
+                new ParticleSystem.Burst(0f, new ParticleSystem.MinMaxCurve(3f, 9f), 0, 0.22f) { probability = 0.2f },
+                new ParticleSystem.Burst(0.7f, new ParticleSystem.MinMaxCurve(16f, 34f), 0, 2.6f) { probability = 0.55f },
+            });
             var shape = sparks.shape;
             shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 55f;
-            shape.radius = 0.1f;
+            shape.angle = 60f;
+            shape.radius = 0.15f;
+            var collision = sparks.collision;
+            collision.enabled = true;
+            collision.type = ParticleSystemCollisionType.World;
+            collision.mode = ParticleSystemCollisionMode.Collision3D;
+            collision.quality = ParticleSystemCollisionQuality.Medium;
+            collision.bounce = new ParticleSystem.MinMaxCurve(0.25f, 0.5f);
+            collision.dampen = new ParticleSystem.MinMaxCurve(0.3f, 0.5f);
+            collision.lifetimeLoss = 0.2f;
+            collision.radiusScale = 0.5f;
             var renderer = sparks.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Stretch;
-            renderer.velocityScale = 0.06f;
-            renderer.lengthScale = 1.5f;
-            Fade(sparks, new Color(0.85f, 0.97f, 1f), new Color(1f, 0.55f, 0.15f), 1f);
+            renderer.velocityScale = 0.045f;
+            renderer.lengthScale = 1.2f;
+            var color = sparks.colorOverLifetime;
+            color.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[]
+                {
+                    new GradientColorKey(new Color(1f, 0.98f, 0.9f), 0f), new GradientColorKey(new Color(1f, 0.75f, 0.3f), 0.35f),
+                    new GradientColorKey(new Color(1f, 0.35f, 0.08f), 1f),
+                },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.6f), new GradientAlphaKey(0f, 1f) });
+            color.color = gradient;
+            var size01 = sparks.sizeOverLifetime;
+            size01.enabled = true;
+            size01.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.4f));
         }
 
         private static void Smoke(Transform root, Material material, string name, float rate, float startSize, float endSize, float lifetime, Color color, float radius)
@@ -526,7 +706,7 @@ namespace SignalLost.Editor
             color.color = gradient;
         }
 
-        private static void Glow(Transform root, Color color, float intensity, float range, bool electrical)
+        private static GameObject Glow(Transform root, Color color, float intensity, float range, bool electrical)
         {
             var go = new GameObject("Glow");
             go.transform.SetParent(root, false);
@@ -541,6 +721,7 @@ namespace SignalLost.Editor
             var data = new SerializedObject(flicker);
             data.FindProperty("electrical").boolValue = electrical;
             data.ApplyModifiedPropertiesWithoutUndo();
+            return go;
         }
 
         // ---------- Assets ----------

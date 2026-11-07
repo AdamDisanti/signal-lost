@@ -72,7 +72,6 @@ MeshRenderer:
   - {fileID: 2100000, guid: 1cca1a51046484584975ea61cd1371eb, type: 2}
   - {fileID: 2100000, guid: 4cb1fbb450c14495ea651dc303b07713, type: 2}
   - {fileID: 2100000, guid: 3bd4e8eb12b3a415bb5a94efed8fef8a, type: 2}
-  - {fileID: 2100000, guid: f4df6b6301f974171b60b22e031269aa, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -464,7 +463,6 @@ MeshRenderer:
   - {fileID: 2100000, guid: b0da4a9f173aa429ab2e2adc9e272a3e, type: 2}
   - {fileID: 2100000, guid: e4c7f1744044741d684263a606c7f0ef, type: 2}
   - {fileID: 2100000, guid: 3bd4e8eb12b3a415bb5a94efed8fef8a, type: 2}
-  - {fileID: 2100000, guid: f4df6b6301f974171b60b22e031269aa, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1319,7 +1317,6 @@ MeshRenderer:
   - {fileID: 2100000, guid: 694e0602a48f2497ebd0d44bc6c98269, type: 2}
   - {fileID: 2100000, guid: 1cca1a51046484584975ea61cd1371eb, type: 2}
   - {fileID: 2100000, guid: 5c90cfc20517b4a639fbdd53a0f29fe3, type: 2}
-  - {fileID: 2100000, guid: f4df6b6301f974171b60b22e031269aa, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1710,7 +1707,6 @@ MeshRenderer:
   - {fileID: 2100000, guid: 694e0602a48f2497ebd0d44bc6c98269, type: 2}
   - {fileID: 2100000, guid: b0da4a9f173aa429ab2e2adc9e272a3e, type: 2}
   - {fileID: 2100000, guid: e4c7f1744044741d684263a606c7f0ef, type: 2}
-  - {fileID: 2100000, guid: f4df6b6301f974171b60b22e031269aa, type: 2}
   - {fileID: 2100000, guid: 3bd4e8eb12b3a415bb5a94efed8fef8a, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -1865,7 +1861,6 @@ MeshRenderer:
   - {fileID: 2100000, guid: 0bc0d340da4054e48a236ad9ab66d4f3, type: 2}
   - {fileID: 2100000, guid: e4c7f1744044741d684263a606c7f0ef, type: 2}
   - {fileID: 2100000, guid: 5c90cfc20517b4a639fbdd53a0f29fe3, type: 2}
-  - {fileID: 2100000, guid: f4df6b6301f974171b60b22e031269aa, type: 2}
   - {fileID: 2100000, guid: 3bd4e8eb12b3a415bb5a94efed8fef8a, type: 2}
   - {fileID: 2100000, guid: b0da4a9f173aa429ab2e2adc9e272a3e, type: 2}
   m_StaticBatchInfo:
