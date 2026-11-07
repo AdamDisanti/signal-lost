@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using SignalLost.Combat;
+using SignalLost.Effects;
 using SignalLost.Inventory;
 using SignalLost.Player;
 using TMPro;
@@ -33,6 +34,7 @@ namespace SignalLost.UI
         private float trail = 1f, hurtFlash, nextFind, shownHealth = -1f, lowHealthLevel;
         private Image lowHealthImage;
         private TextMeshProUGUI lowHealthText;
+        private LowHealthPostFx lowHealthFx;
 
         /// <summary>At or below this much health the screen edges pulse red with a heartbeat: time to drink.</summary>
         public const float LowHealth = 30f;
@@ -238,7 +240,8 @@ namespace SignalLost.UI
         }
 
         // Red screen edges that beat like a heart (lub-dub every 0.86 s, matching the heartbeat sound), stronger the
-        // lower health goes, plus a reminder to drink.
+        // lower health goes, plus a reminder to drink. The camera drains of colour and pulses with each beat too
+        // (LowHealthPostFx).
         private void UpdateLowHealth(bool hasPlayer)
         {
             Health health = hasPlayer ? life.Health : null;
@@ -248,6 +251,7 @@ namespace SignalLost.UI
             float t = Mathf.Repeat(Time.unscaledTime, 0.86f);
             float beat = Mathf.Exp(-t * 14f) + 0.7f * Mathf.Exp(-Mathf.Max(0f, t - 0.27f) * 14f) * (t > 0.27f ? 1f : 0f);
             lowHealthImage.color = new Color(0.8f, 0.02f, 0.02f, lowHealthLevel * (0.45f + 0.35f * beat));
+            if (lowHealthFx != null) lowHealthFx.Set(lowHealthLevel, beat);
             bool hasFlask = gear != null && gear.Has(PlayerItem.Flask);
             lowHealthText.text = hasFlask ? "LOW HEALTH  -  drink  <b>[F]</b>" : "LOW HEALTH";
             lowHealthText.alpha = UiMenus.AnyOpen ? 0f : Mathf.Clamp01(lowHealthLevel * 1.6f) * (0.75f + 0.25f * beat);
@@ -339,6 +343,7 @@ namespace SignalLost.UI
             lowHealthText = UiTheme.Label("Low Health Hint", root, 30f, UiTheme.Warning, TextAlignmentOptions.Center, FontStyles.Bold);
             UiTheme.Place(lowHealthText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, BottomReserved + 70f), new Vector2(900f, 40f));
             lowHealthText.alpha = 0f;
+            lowHealthFx = LowHealthPostFx.Create(transform);
 
             // Crosshair, charge meter, target readout and prompt.
             RectTransform centre = UiTheme.Stretch(UiTheme.Rect("Centre", root));

@@ -36,6 +36,7 @@ namespace SignalLost.Audio
 
         private SfxLoop chargeLoop, heartbeat;
         private AudioSource ringing;
+        private bool wokenBefore;
         private string surface = "dirt";
 
         // Previous-frame state, to spot changes.
@@ -348,7 +349,10 @@ namespace SignalLost.Audio
             if (waking && !wasWaking)
             {
                 if (ringing != null) ringing.Stop();
-                ringing = Sfx.Play("wake_ringing", 0.55f);
+                // The first wake-up after the crash rings softly (it played too loud at the very start of the game);
+                // waking up again after dying keeps the full ringing.
+                ringing = Sfx.Play("wake_ringing", wokenBefore ? 0.55f : 0.2f);
+                wokenBefore = true;
             }
             else if (!waking && wasWaking && ringing != null && ringing.clip != null && ringing.clip.name == "wake_ringing")
             {

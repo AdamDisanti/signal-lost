@@ -36,8 +36,8 @@ All clips are in `Assets/Audio/Resources/SignalLostAudio/` and are played by fil
 
 | Group | Files |
 | --- | --- |
-| Laser | `laser_swing_1/2`, `laser_slam` (combo finisher), `laser_charge` (rising hum), `laser_charge_full` (ding), `laser_charge_hold` (loop at full charge), `laser_shot_weak/strong`, `bolt_impact`, `laser_blast` (full-charge explosion), `laser_fizzle` (clicking during cooldown), `hit_marker` |
-| Player | `footstep_grass/sand/dirt_1–4` (grass in the tutorial, sand in the desert, dirt elsewhere), `player_jump`, `player_land`, `player_hurt_1–3`, `death_sting` ("SIGNAL LOST"), `blackout_whoosh`, `wake_ringing` (hangover ringing during the eyelid wake-ups) |
+| Laser | `laser_swing_1/2`, `laser_slam` (combo finisher), `laser_charge` (rising hum), `laser_charge_full` (ding), `laser_charge_hold` (loop at full charge), `laser_shot_weak/strong`, `bolt_impact`, `laser_blast` (full-charge explosion), `laser_fizzle` (clicking during cooldown), `hit_marker`. Melee strikes use one shared impact for every enemy (`HitFeedback`): `bolt_impact` pitched down when a hit does damage, `crab_block` pitched up when it does none (blocked or armoured), a quiet low `bolt_impact` when you hit a wall or the ground |
+| Player | `footstep_grass/sand/dirt_1–4` (grass in the tutorial, sand in the desert, dirt elsewhere), `player_jump`, `player_land`, `player_hurt_1–3`, `death_sting` ("SIGNAL LOST"), `blackout_whoosh`, `wake_ringing` (hangover ringing during the eyelid wake-ups; softer on the first wake-up after the crash) |
 | Flask | `flask_uncork`, `flask_glug`, then `flask_ahh` when sober, `flask_hiccup` when tipsy and `flask_burp` from the third sip on. A tipsy mechanic also hiccups now and then |
 | Low health | `low_health_heartbeat` (loop, added 10-23 by `make_sfx.py`): plays under everything at 30 health or less, louder the lower it goes |
 | Music | `Signal lost main menu music` (Adam's track, not synthesized): the title screen, looped seamlessly; follows the **Music** slider |
