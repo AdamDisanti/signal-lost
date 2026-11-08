@@ -1,6 +1,6 @@
 # Shared player, HUD and menus
 
-The game-wide player and UI from the 10-22-26 meeting notes. Every playable scene uses them: Tutorial, Testing Sandbox and Desert Dunes. They supersede the old [Player HUD](hud.md) and the tutorial-only player.
+The game-wide player and UI from the 10-22-26 meeting notes. Every playable scene uses them: Tutorial, Testing Sandbox, Desert Dunes and [Crystal Caves](crystal-caves.md). They supersede the old [Player HUD](hud.md) and the tutorial-only player.
 
 ## Prefabs
 
@@ -11,6 +11,9 @@ All prefabs are in `signal-lost/Assets/Prefabs/Core/` and are built by `Editor/C
 | `Player` | The first-person player with the tuned mining laser, scanner rig and drunk-vision volume. It carries single-purpose components (below). |
 | `GameSystems` | Brings up the HUD, dialogue, overlay, pause menu and EventSystem, and applies saved settings. Put one in every playable scene. |
 | `PlayerSpawnPoint` | Where the player respawns. The active one is `PlayerSpawnPoint.Current`. |
+| `BaseCamp` | Cavendish's campsite with three trophy stands, the same in every level (built by `Editor/BaseCampBuilder.cs`). |
+| `Dock` | A deck hanging off a cliff, a railed stairway and a jetty at the waterline. Put its origin on a cliff edge 10 m above the sea, facing out to sea (built by `Editor/DockBoatBuilder.cs`, **Signal Lost > Core > Build Dock and Boat**). See [reusing the dock and boat](crystal-caves.md#dock-and-boat). |
+| `Boat` | The small motor boat moored at the dock (scenery for now; travel between levels isn't built). Same builder. |
 
 Player components:
 
@@ -23,6 +26,8 @@ Player components:
 | `PlayerInteractor` | E on whatever is under the crosshair (`IInteractable`) |
 | `FirstPersonHands` | On-screen gloves |
 | `WakeUpSequence` | Eyelid wake-ups (tutorial intro, respawns) |
+
+`FallRespawn` is a scene object, not on the player. Add one to any level with water or drops the player can't climb out of: falling below its **Kill Height** (default −3 m) respawns them with the normal death fade. Keep the kill height below every walkable surface.
 
 ## Movement
 

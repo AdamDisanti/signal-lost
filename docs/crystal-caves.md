@@ -67,9 +67,69 @@ The glowing crystals are the only lights in the cave:
 - **Player and UI:** the shared **Player** (laser, scanner, flask; all three from the start) and **GameSystems** (status-bar HUD, dialogue, pause and settings menus) from `Prefabs/Core`. They are the same as in every level.
 - **Scanner:** level range 200 m, like the tutorial.
 - **Camp and NPCs:** **BaseCamp**, Cavendish (the capybara prefab, seated as in the tutorial, small talk only) and Eugene (the merchant crab, already friendly, with his ten cousins waiting despawned for the angry-merchant ambush).
-- **Dock and boat (new, shared):** `Prefabs/Core/Dock.prefab` and `Boat.prefab`, built by `Editor/DockBoatBuilder.cs` from the meadow and shipwreck materials. To use them in another level, put the dock's origin on a cliff edge 10 m above the sea, facing out to sea, and the boat at `DockBoatBuilder.BoatMooring`. They are scenery: boat travel isn't built yet.
+- **Dock and boat (new, shared):** `Prefabs/Core/Dock.prefab` and `Boat.prefab`, built by `Editor/DockBoatBuilder.cs` from the meadow and shipwreck materials; see [Dock and boat](#dock-and-boat). They are scenery: boat travel isn't built yet.
 - **FallRespawn (new, reusable):** falling below y = −3 (off a sea cliff or the jetty) brings you back to the dock with the normal death fade.
 - **Build list:** the scene is in the build list (MainMenu, Tutorial, Sandbox, Desert, **Crystal Caves**, Prototype). Nothing loads it yet.
+
+## Reusing the pieces in other levels
+
+### Inspector settings
+
+**CrystalBatch** (`Scripts/Effects/CrystalBatch.cs`, on each crystal batch)
+
+| Field | What it does |
+| --- | --- |
+| Crystal Material | One of the six `Crystal*.mat`. Changing it recolours every crystal under the batch and sets the glow light to the matching colour. |
+| Glow | The batch's point light. Its own Range and Intensity set how far and how bright it shines. |
+
+**CaveLighting** (`Scripts/Effects/CaveLighting.cs`, on *Cave Lighting* in the environment prefab)
+
+| Field | What it does |
+| --- | --- |
+| Roof | The cave roof collider. The camera counts as inside the cave whenever this collider is directly above it. |
+| Entrance | The cave mouth. The outdoor light fades out over Blend Distance from here. |
+| Blend Distance | How far into the cave (in metres) the fade takes. |
+| Sun | Leave empty to use the scene's sun from the Lighting settings. |
+| Crystals | Parent of the crystal batches whose lights it switches. |
+| Always Lit Radius | Crystal lights within this distance of the entrance stay on outside, so the mouth glows from the dock. Lights farther in turn on only when you enter. |
+| Inside the cave: Sky / Equator / Ground Light | The faint fill light inside the cave. Raise them to make the whole cave brighter, lower them to make it darker. |
+| Inside the cave: Fog Colour / Start / End | The fog inside the cave. |
+
+The outdoor look is whatever the scene's Lighting settings are; CaveLighting reads them when the scene starts.
+
+**FallRespawn** (`Scripts/Player/FallRespawn.cs`, under *Gameplay*): **Kill Height**. A player who falls below it respawns at the active `PlayerSpawnPoint`.
+
+### Dock and boat
+
+- **Dock:** drag `Prefabs/Core/Dock.prefab` in. Its origin is the top of the deck at the landward end, and the deck is **10 m** above the water (`DockBoatBuilder.DeckHeight`). Place it on a cliff edge that high, facing out to sea (+Z).
+- **Boat:** place `Prefabs/Core/Boat.prefab` at the dock's local point **(4.4, −10, 29)** (`DockBoatBuilder.BoatMooring`), with the same rotation as the dock, so it sits on the water beside the jetty.
+- **Rebuilding:** both are generated. To change their look, edit `Editor/DockBoatBuilder.cs` and run **Signal Lost > Core > Build Dock and Boat**. That updates the prefabs in every level that uses them.
+
+### A cave in another level
+
+1. Give the level a roof collider over the cave, a mouth Transform and a parent for its crystals.
+2. Add a **CaveLighting** component and point Roof, Entrance and Crystals at them.
+3. Fill the cave with `CrystalBatch.prefab` copies in a mix of colours.
+
+### Starting a new level from this one
+
+`CrystalCavesBuilder.Create` is the template. The steps that every level needs are:
+1. instance the shared **Player**, **GameSystems** and a **PlayerSpawnPoint** (and a **FallRespawn** if there is water);
+2. place **BaseCamp**, with Cavendish on his log and a friendly Eugene (`startFriendly`, plus `CoreSceneSetup.AddCousins` for the ambush);
+3. add a **Dock** and **Boat** on the coast;
+4. bake a **NavMeshSurface** (with **NavMeshBaker**) and store its data with Git LFS;
+5. add the scene to `CoreSceneSetup.SetBuildScenes`.
+
+## Editing tips
+
+- **Always edit in the scene.** Hand edits there (enemies, quests, moved camp props) are kept.
+- **Don't edit the environment prefab by hand.** **Rebuild Crystal Caves Environment** overwrites the prefab, so change `CrystalCavesTerrain.cs` or `CrystalCavesBuilder.cs` instead.
+  - After a rebuild, re-bake the NavMesh: select *Navigation* and press **Bake**.
+  - Objects inside the prefab may also get new IDs, so re-check any scene references to them.
+- **Starting over:** delete `CrystalCaves.unity` and run **Create Crystal Caves Level** again.
+- **Validation:** **Create** ends by validating the scene. It reports what's missing, and it fails if any fight zone or ramp can't be reached on foot from the dock.
+- **Batch builds:** run `SignalLost.Editor.CrystalCavesBuilder.CreateBatch` with Unity's `-executeMethod`.
+- **The NavMesh file:** `CrystalCavesNavMesh.asset` is stored in Git LFS. Run `git lfs install` before you pull.
 
 ## Files
 
