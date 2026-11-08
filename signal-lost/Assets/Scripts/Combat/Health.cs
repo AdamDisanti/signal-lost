@@ -49,6 +49,10 @@ namespace SignalLost.Combat
         public bool TakeDamage(float amount, GameObject source = null)
         {
             if (amount <= 0f || IsDead) return false;
+            // Testing cheat: the player's hits are lethal (never their hits on themselves).
+            if (SignalLost.Core.CheatMode.Enabled && source != null && source.GetComponentInParent<SignalLost.Player.PlayerLife>() != null &&
+                GetComponentInParent<SignalLost.Player.PlayerLife>() == null)
+                amount = SignalLost.Core.CheatMode.Damage;
             if (Invulnerable)
             {
                 Blocked?.Invoke(this, amount, source);

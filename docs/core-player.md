@@ -35,6 +35,18 @@ Tuning is on `FirstPersonController` ("Crouch and slide"). Upgrades can lengthen
 
 - **Jump smash (C in mid-air, laser out):** raises the laser and dives straight down. The landing shockwave does 15 to 60 damage depending on how high you dived from (0.8 m to 8 m; capped above that). Its radius is 2.5 to 5.5 m and it shoves things back. It takes over the airborne C press, so you don't crouch. `MiningLaser` adds the `JumpSmash` component to the player at runtime; its tuning is there.
 
+## Testing cheat (End)
+
+Lawson, 11-08: press **End** to switch cheat mode on or off. A banner says which, and "CHEAT MODE" shows in the top-left corner while it is on. It is rebindable on the Controls page, as "Cheat mode (testing)".
+
+- **9999 damage:** every hit the player lands (bolts, the laser combo, the jump smash, anything else sourced from the player) does 9999. This is applied in `Health.TakeDamage`. Other sources, and the player's own hits on themselves, are unchanged. Friendly characters such as Eugene still can't be hurt.
+- **Flying:** no gravity and no collisions.
+  - WASD moves where you look; Space rises; C sinks; Shift goes fast (40 m/s instead of 12).
+  - The deep-water rescue is off while flying.
+  - Turning it off drops you from wherever you are.
+- It lasts for the play session (across scene loads) and is never saved. It is not god mode: you still take damage.
+- Code: `Core/CheatMode.cs`, the flight in `FirstPersonController.Fly`.
+
 ## Moving a scene to the shared player
 
 Use **Signal Lost > Scenes**, or `CoreSceneSetup.UpgradeToCorePlayer(scene, startingItems, stageGroup)`. It does the following:

@@ -489,57 +489,83 @@ namespace SignalLost.Player
         /// short arms and a big head with no neck to speak of. <paramref name="paint"/> turns a colour into a material.
         /// Arms hang from the shoulders at the given angles; the hands close to <paramref name="gripR"/>/<paramref name="gripL"/>.
         /// </summary>
+        /// <param name="look">What the mechanic wears (<see cref="SignalLost.World.Outfits.Mechanic"/>, 11-08: each island has
+        /// its own outfit). Omitted: the usual orange suit and cap.</param>
         public static Figure BuildFigure(Transform body, System.Func<Color, Material> paint, Vector3 armAnglesR, Vector3 armAnglesL,
-            float gripR = 0.75f, float gripL = 0.75f)
+            float gripR = 0.75f, float gripL = 0.75f, SignalLost.World.MechanicLook? look = null)
         {
+            SignalLost.World.MechanicLook wear = look ?? SignalLost.World.Outfits.Mechanic(SignalLost.World.IslandLook.Meadow);
             var figure = new Figure { Body = body };
-            Material suit = paint(Suit), cream = paint(Cream);
+            Material suit = paint(wear.Suit), cream = paint(wear.Trim);
 
             for (int s = -1; s <= 1; s += 2)
-                Part(body, "Boot " + (s < 0 ? "L" : "R"), paint(Boot), new Shape(0.7f, 0.8f), new Vector3(0.135f * s, 0.065f, 0.04f), new Vector3(0.23f, 0.14f, 0.31f));
+                Part(body, "Boot " + (s < 0 ? "L" : "R"), paint(wear.Boot), new Shape(0.7f, 0.8f), new Vector3(0.135f * s, 0.065f, 0.04f), new Vector3(0.23f, 0.14f, 0.31f));
             figure.KneeL = Joint(body, "Knee L", new Vector3(-0.135f, 0.23f, 0f));
             figure.KneeR = Joint(body, "Knee R", new Vector3(0.135f, 0.23f, 0f));
 
             // Legs, belly and chest as one seamless suit: an egg, widest at the belly, with sloping shoulders.
             Static(body, "Suit", suit, SuitMesh());
-            Ring(body, "Belt", paint(Belt), 0.44f, 0.065f);
+            Ring(body, "Belt", paint(wear.Belt), 0.44f, 0.065f);
             Ring(body, "Stripe", cream, 0.51f, 0.045f);
             figure.Torso = Joint(body, "Torso", new Vector3(0f, 0.62f, 0.11f)); // padding sits 0.17 in front of this
             figure.Hip = Joint(body, "Hip", new Vector3(0.33f, 0.44f, 0.04f));
 
             // The Maintenance Corps patch, turned to lie on the curve of the chest.
-            Transform patch = OnSurface(body, "Patch", paint(Teal), Soft, ChestShape, ChestAt, ChestSize, -0.12f, 1.01f, new Vector3(0.1f, 0.1f, 0.02f));
+            Transform patch = OnSurface(body, "Patch", paint(wear.Patch), Soft, ChestShape, ChestAt, ChestSize, -0.12f, 1.01f, new Vector3(0.1f, 0.1f, 0.02f));
             Part(patch, "Patch Gear", cream, Soft, new Vector3(0f, 0f, 0.6f), new Vector3(0.5f, 0.5f, 0.4f));
 
-            figure.Head = BuildHead(body, paint);
+            figure.Head = BuildHead(body, paint, wear);
+            if (wear.Neckerchief)
+            {
+                // Tied round where the head meets the chest, its point hanging down the front.
+                Part(body, "Neckerchief", paint(wear.Scarf), Band, new Vector3(0f, 1.15f, 0.02f), new Vector3(0.42f, 0.07f, 0.38f));
+                Part(body, "Neckerchief Point", paint(wear.Scarf), Soft, new Vector3(0f, 1.08f, 0.2f), new Vector3(0.15f, 0.15f, 0.03f), new Vector3(-15f, 0f, 45f));
+            }
 
-            figure.ArmR = Arm(body, "Arm R", 1f, armAnglesR, suit, cream, paint(Glove), gripR, out figure.HandR);
-            figure.ArmL = Arm(body, "Arm L", -1f, armAnglesL, suit, cream, paint(Glove), gripL, out figure.HandL);
+            figure.ArmR = Arm(body, "Arm R", 1f, armAnglesR, suit, cream, paint(wear.Glove), gripR, out figure.HandR);
+            figure.ArmL = Arm(body, "Arm L", -1f, armAnglesL, suit, cream, paint(wear.Glove), gripL, out figure.HandL);
             return figure;
         }
 
-        // The face is the base game's: dark eyes, a nose and stubble, under the orange cap with its cream badge.
-        private static Transform BuildHead(Transform body, System.Func<Color, Material> paint)
+        // The face is the base game's: dark eyes, a nose and stubble, under the orange cap with its cream badge (or, on
+        // islands where the outfit has one, a bush hat with goggles on the band).
+        private static Transform BuildHead(Transform body, System.Func<Color, Material> paint, SignalLost.World.MechanicLook wear)
         {
-            Transform head = Part(body, "Head", paint(Skin), HeadShape, HeadAt, HeadSize);
+            Transform head = Part(body, "Head", paint(wear.Skin), HeadShape, HeadAt, HeadSize);
             Material eyes = paint(Eyes);
             Part(head, "Eye L", eyes, Soft, new Vector3(-0.18f, -0.03f, FaceZ(-0.18f, -0.03f) - 0.006f), new Vector3(0.11f, 0.1f, 0.04f));
             Part(head, "Eye R", eyes, Soft, new Vector3(0.18f, -0.03f, FaceZ(0.18f, -0.03f) - 0.006f), new Vector3(0.11f, 0.1f, 0.04f));
-            Part(head, "Nose", paint(Skin * 0.92f), Ball, new Vector3(0f, -0.15f, FaceZ(0f, -0.15f) + 0.02f), new Vector3(0.11f, 0.13f, 0.1f));
+            Part(head, "Nose", paint(wear.Skin * 0.92f), Ball, new Vector3(0f, -0.15f, FaceZ(0f, -0.15f) + 0.02f), new Vector3(0.11f, 0.13f, 0.1f));
             // A flat mouth and a light scatter of stubble on the chin and jaw, as on the HUD portrait.
             OnFace(head, "Mouth", paint(Eyes), new Shape(0.4f, 0.5f), 0f, -0.255f, new Vector3(0.17f, 0.03f, 0.03f), 0.004f);
             Material stubble = paint(StubbleDots);
             for (int i = 0; i < StubbleSpots.Length; i++)
                 OnFace(head, "Stubble", stubble, Ball, StubbleSpots[i].x, StubbleSpots[i].y, new Vector3(0.019f, 0.019f, 0.01f), 0.003f);
 
-            Material cap = paint(Suit);
+            if (wear.BushHat)
+            {
+                // A wide-brimmed bush hat (head units), its band in the trim colour, goggles pushed up on the front.
+                Part(head, "Brim", paint(wear.Hat), new Shape(0.25f, 0.95f), new Vector3(0f, 0.36f, 0.01f), new Vector3(1.55f, 0.07f, 1.5f), new Vector3(-6f, 0f, 0f));
+                Part(head, "Crown", paint(wear.Hat), new Shape(0.7f, 0.9f), new Vector3(0f, 0.55f, -0.01f), new Vector3(0.9f, 0.42f, 0.86f));
+                Part(head, "Crown Dent", paint(wear.Hat * 0.88f), new Shape(0.4f, 0.9f), new Vector3(0f, 0.75f, -0.01f), new Vector3(0.6f, 0.06f, 0.5f));
+                Part(head, "Hat Band", paint(wear.HatBand), Band, new Vector3(0f, 0.42f, -0.01f), new Vector3(0.93f, 0.1f, 0.89f));
+                for (int s = -1; s <= 1; s += 2)
+                {
+                    Transform rim = Part(head, "Goggle " + (s < 0 ? "L" : "R"), paint(new Color(0.82f, 0.63f, 0.28f)), Ball,
+                        new Vector3(0.17f * s, 0.45f, 0.44f), new Vector3(0.24f, 0.18f, 0.08f), new Vector3(-20f, 0f, 0f));
+                    Part(rim, "Lens", paint(wear.Lens), Ball, new Vector3(0f, 0f, 0.3f), new Vector3(0.75f, 0.7f, 0.6f));
+                }
+                return head;
+            }
+
+            Material cap = paint(wear.Hat);
             Vector3 capAt = new Vector3(0f, 0.25f, -0.01f), capSize = new Vector3(1.06f, 0.64f, 1.06f);
             Part(head, "Cap", cap, CapShape, capAt, capSize);
-            Part(head, "Peak", paint(Suit * 0.85f), new Shape(0.35f, 0.7f), new Vector3(0f, 0.08f, FaceZ(0f, 0.08f) + 0.11f),
+            Part(head, "Peak", paint(wear.Hat * 0.85f), new Shape(0.35f, 0.7f), new Vector3(0f, 0.08f, FaceZ(0f, 0.08f) + 0.11f),
                 new Vector3(0.88f, 0.07f, 0.36f), new Vector3(10f, 0f, 0f));
             float badgeY = 0.27f;
             float badgeZ = capAt.z + capSize.z * 0.5f * CapShape.Front(0f, (badgeY - capAt.y) / (capSize.y * 0.5f));
-            Part(head, "Badge", paint(Cream), Soft, new Vector3(0f, badgeY, badgeZ - 0.005f), new Vector3(0.2f, 0.15f, 0.04f), new Vector3(-12f, 0f, 0f));
+            Part(head, "Badge", paint(wear.Trim), Soft, new Vector3(0f, badgeY, badgeZ - 0.005f), new Vector3(0.2f, 0.15f, 0.04f), new Vector3(-12f, 0f, 0f));
             return head;
         }
 

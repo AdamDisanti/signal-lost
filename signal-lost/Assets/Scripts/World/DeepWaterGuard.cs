@@ -55,6 +55,7 @@ namespace SignalLost.World
         {
             Ocean ocean = Ocean.Current;
             if (ocean == null || Rescuing || !movement.enabled || (life != null && life.IsRespawning) || (health != null && health.IsDead)) return;
+            if (SignalLost.Core.CheatMode.Enabled) return; // flying for testing: anywhere goes
             Vector3 feet = Feet();
             if (ocean.IsTooDeep(feet))
             {

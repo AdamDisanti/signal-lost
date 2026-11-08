@@ -17,6 +17,11 @@ namespace SignalLost.World
         [SerializeField, Min(0f)] private float rollDegrees = 2.2f;
         [Tooltip("The wake trail at the stern: it only draws while sailing.")]
         [SerializeField] private TrailRenderer wake;
+        [Header("Passengers (the voyage seats them here)")]
+        [Tooltip("Where the mechanic stands, at the tiller.")]
+        [SerializeField] private Transform helm;
+        [SerializeField] private Transform cavendishSeat;
+        [SerializeField] private Transform merchantSeat;
 
         private Vector3 restPosition;
         private Quaternion restRotation;
@@ -27,6 +32,9 @@ namespace SignalLost.World
 
         public IslandDock Dock => dock;
         public TrailRenderer Wake => wake;
+        public Transform Helm => helm != null ? helm : transform;
+        public Transform CavendishSeat => cavendishSeat != null ? cavendishSeat : transform;
+        public Transform MerchantSeat => merchantSeat != null ? merchantSeat : transform;
 
         private void Awake()
         {

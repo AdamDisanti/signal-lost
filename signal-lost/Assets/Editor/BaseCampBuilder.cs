@@ -69,6 +69,243 @@ namespace SignalLost.Editor
             Debug.Log("BASE_CAMP_BUILT");
         }
 
+        // ---------- The desert camp (11-08) ----------
+
+        public const string DesertPrefabPath = "Assets/Prefabs/Core/DesertCamp.prefab";
+        private const string DesertFolder = "Assets/Prefabs/Core/DesertCamp";
+
+        private enum DesertPart { Driftwood, DriftwoodDark, Canvas, Indigo, Terracotta, Clay, Rope }
+
+        /// <summary>
+        /// The base camp as it is pitched on the Desert Dunes (11-08): the same fire, tent, two logs, supplies and three
+        /// trophy stands in the same places, restyled for the desert. Sandstone ring round the fire, sun-bleached
+        /// driftwood logs and stands, a terracotta and indigo tent. It adds a canvas sun shade over Cavendish's log, a
+        /// woven rug and clay water jars. Carries an <see cref="SignalLost.World.IslandCamp"/>, which packs it away when
+        /// the crew arrives by boat and puts it up again piece by piece; the scene installer links Cavendish and Eugene.
+        /// Menu: Signal Lost > Camp > Build Desert Camp.
+        /// </summary>
+        [MenuItem("Signal Lost/Camp/Build Desert Camp")]
+        public static void BuildDesert()
+        {
+            EnsureFolder(DesertFolder + "/Materials");
+            var remap = new System.Collections.Generic.Dictionary<string, Material>
+            {
+                ["MeadowStone"] = DesertMaterial("DesertCampSandstone", new Color(0.76f, 0.52f, 0.36f)),
+                ["MeadowLog"] = DesertMaterial("DesertCampDriftwood", new Color(0.8f, 0.72f, 0.6f)),
+                ["MeadowBark"] = DesertMaterial("DesertCampDriftwoodDark", new Color(0.56f, 0.46f, 0.36f)),
+                ["MeadowTentOrange"] = DesertMaterial("DesertCampTerracotta", new Color(0.7f, 0.37f, 0.23f)),
+                ["MeadowCanvas"] = DesertMaterial("DesertCampCanvas", new Color(0.91f, 0.83f, 0.67f)),
+                ["MeadowTentTeal"] = DesertMaterial("DesertCampIndigo", new Color(0.24f, 0.29f, 0.5f)),
+            };
+
+            var root = new GameObject("Desert Camp");
+            Transform Piece(string path, Vector3 at, float yaw, float scale, string name = null)
+            {
+                GameObject piece = Place(path, root.transform, at, yaw, scale);
+                if (name != null) piece.name = name;
+                Restyle(piece, remap);
+                return piece.transform;
+            }
+            Transform pit = Piece(MeadowAssetBuilder.PrefabPath("FirePit"), Vector3.zero, 0f, 1f, "Fire Pit");
+            Transform fire = Piece(MeadowAssetBuilder.EffectPath("Campfire"), Vector3.up * 0.05f, 0f, 1f, "Campfire");
+            Transform tent = Piece(MeadowAssetBuilder.PrefabPath("Tent"), new Vector3(-4f, 0f, 6f), 160f, 1f);
+            Transform cavendishLog = Piece(MeadowAssetBuilder.PrefabPath("LogSeat"), new Vector3(3f, 0f, 0.6f), 90f, 1f, "Cavendish's Log");
+            Transform otherLog = Piece(MeadowAssetBuilder.PrefabPath("LogSeat"), new Vector3(0.3f, 0f, -3.4f), 10f, 1f);
+            Transform supplies = Piece(CrashSiteWreckBuilder.DebrisPath("Crate"), new Vector3(-2.5f, 0f, 4.6f), 25f, 0.8f, "Cavendish's Supplies");
+            Transform barrel = Piece(CrashSiteWreckBuilder.DebrisPath("Barrel"), new Vector3(-1.2f, 0f, 5.2f), 0f, 0.8f);
+
+            Transform shade = DesertProp(root.transform, "Sun Shade", ShadeKit(), new Vector3(3.1f, 0f, 0.7f));
+            Transform rug = DesertProp(root.transform, "Rug", RugKit(), new Vector3(-1.7f, 0f, 2.5f));
+            rug.localRotation = Quaternion.Euler(0f, 18f, 0f);
+            Transform jars = DesertProp(root.transform, "Water Jars", JarKit(), new Vector3(-0.2f, 0f, 4.3f));
+            var jarBox = jars.gameObject.AddComponent<BoxCollider>();
+            jarBox.center = new Vector3(0.2f, 0.35f, 0f);
+            jarBox.size = new Vector3(1.1f, 0.7f, 0.6f);
+
+            Mesh stand = StandMesh(out Material[] standMaterials);
+            for (int i = 0; i < standMaterials.Length; i++)
+                if (standMaterials[i] != null && remap.TryGetValue(standMaterials[i].name, out Material desert)) standMaterials[i] = desert;
+            var shelf = new GameObject("Trophy Stands").transform;
+            shelf.SetParent(root.transform, false);
+            for (int i = 0; i < StandSpots.Length; i++)
+            {
+                var spot = new GameObject("Trophy Stand " + (i + 1));
+                spot.transform.SetParent(shelf, false);
+                spot.transform.localPosition = new Vector3(StandSpots[i].x, 0f, StandSpots[i].y);
+                spot.transform.localRotation = Quaternion.LookRotation(-new Vector3(StandSpots[i].x, 0f, StandSpots[i].y));
+                spot.AddComponent<MeshFilter>().sharedMesh = stand;
+                spot.AddComponent<MeshRenderer>().sharedMaterials = standMaterials;
+                var box = spot.AddComponent<BoxCollider>();
+                box.center = new Vector3(0f, 0.55f, 0f);
+                box.size = new Vector3(0.8f, 1.1f, 0.8f);
+                var mount = new GameObject("Mount").transform;
+                mount.SetParent(spot.transform, false);
+                mount.localPosition = new Vector3(0f, 1.02f, 0f);
+                var trophyStand = new SerializedObject(spot.AddComponent<TrophyStand>());
+                trophyStand.FindProperty("index").intValue = i;
+                trophyStand.FindProperty("mount").objectReferenceValue = mount;
+                trophyStand.ApplyModifiedPropertiesWithoutUndo();
+                spot.AddComponent<QuestSignalSource>().enabled = false;
+            }
+
+            // Where Cavendish and Eugene sit (the log tops, facing the fire) and stand while pitching camp.
+            Transform Mark(string name, Vector3 at)
+            {
+                var mark = new GameObject(name).transform;
+                mark.SetParent(root.transform, false);
+                mark.localPosition = at;
+                Vector3 toFire = -at;
+                toFire.y = 0f;
+                mark.localRotation = toFire.sqrMagnitude > 0.01f ? Quaternion.LookRotation(toFire) : Quaternion.identity;
+                return mark;
+            }
+            Transform cavendishSeat = Mark("Cavendish Seat", root.transform.InverseTransformPoint(LogTop(cavendishLog)));
+            Transform merchantSeat = Mark("Merchant Seat", root.transform.InverseTransformPoint(LogTop(otherLog)));
+            Transform cavendishStand = Mark("Cavendish Stand", new Vector3(1.9f, 0f, -1.3f));
+            Transform merchantStand = Mark("Merchant Stand", new Vector3(2.6f, 0f, -2.6f));
+
+            var camp = new SerializedObject(root.AddComponent<SignalLost.World.IslandCamp>());
+            camp.FindProperty("cavendishSeat").objectReferenceValue = cavendishSeat;
+            camp.FindProperty("merchantSeat").objectReferenceValue = merchantSeat;
+            camp.FindProperty("cavendishStand").objectReferenceValue = cavendishStand;
+            camp.FindProperty("merchantStand").objectReferenceValue = merchantStand;
+            Transform[] order = { pit, rug, cavendishLog, otherLog, tent, shade, supplies, barrel, jars, shelf, fire };
+            SerializedProperty list = camp.FindProperty("pieces");
+            list.arraySize = order.Length;
+            for (int i = 0; i < order.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = order[i];
+            camp.ApplyModifiedPropertiesWithoutUndo();
+
+            PrefabUtility.SaveAsPrefabAsset(root, DesertPrefabPath);
+            UnityEngine.Object.DestroyImmediate(root);
+            AssetDatabase.SaveAssets();
+            Debug.Log("DESERT_CAMP_BUILT");
+        }
+
+        // The middle of a log's top surface.
+        private static Vector3 LogTop(Transform log)
+        {
+            var bounds = new Bounds(log.position, Vector3.zero);
+            foreach (Renderer part in log.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(part.bounds);
+            return new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+        }
+
+        private static void Restyle(GameObject piece, System.Collections.Generic.Dictionary<string, Material> remap)
+        {
+            foreach (Renderer renderer in piece.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer is ParticleSystemRenderer) continue;
+                Material[] materials = renderer.sharedMaterials;
+                bool changed = false;
+                for (int i = 0; i < materials.Length; i++)
+                    if (materials[i] != null && remap.TryGetValue(materials[i].name, out Material desert)) { materials[i] = desert; changed = true; }
+                if (changed) renderer.sharedMaterials = materials;
+            }
+        }
+
+        // A canvas lean-to shading Cavendish's log: four driftwood poles, the cloth sloping down to the east with two
+        // indigo bands, and guy ropes to stakes in the sand. Centred on the log.
+        private static FlatMeshKit<DesertPart> ShadeKit()
+        {
+            var kit = new FlatMeshKit<DesertPart>();
+            float west = -1.1f, east = 1.1f, south = -1.6f, north = 1.6f, high = 2.9f, low = 2.4f;
+            foreach (float z in new[] { south, north })
+            {
+                kit.Add(LowPolyMesh.TaperedPrism("pole", 6, 0.85f), Matrix4x4.TRS(new Vector3(west, 0f, z), Quaternion.Euler(-90f, 0f, 0f), new Vector3(0.06f, 0.06f, high)), DesertPart.Driftwood);
+                kit.Add(LowPolyMesh.TaperedPrism("pole", 6, 0.85f), Matrix4x4.TRS(new Vector3(east, 0f, z), Quaternion.Euler(-90f, 0f, 0f), new Vector3(0.06f, 0.06f, low)), DesertPart.Driftwood);
+                kit.Add(LowPolyMesh.Tube("guy", new[] { new Vector3(east, low - 0.05f, z), new Vector3(east + 1.2f, 0.02f, z + Mathf.Sign(z) * 0.4f) }, 0.012f, 4), Matrix4x4.identity, DesertPart.Rope);
+                kit.Box(new Vector3(east + 1.2f, 0.06f, z + Mathf.Sign(z) * 0.4f), new Vector3(0.05f, 0.14f, 0.05f), Quaternion.identity, DesertPart.DriftwoodDark);
+            }
+            float slope = Mathf.Atan2(high - low, east - west) * Mathf.Rad2Deg;
+            Quaternion tilt = Quaternion.Euler(0f, 0f, -slope);
+            Vector3 middle = new Vector3(0f, (high + low) * 0.5f + 0.03f, 0f);
+            kit.Box(middle, new Vector3(east - west + 0.5f, 0.03f, north - south + 0.4f), tilt, DesertPart.Canvas);
+            foreach (float z in new[] { -0.75f, 0.75f })
+                kit.Box(middle + tilt * new Vector3(0f, 0.02f, z), new Vector3(east - west + 0.52f, 0.02f, 0.3f), tilt, DesertPart.Indigo);
+            return kit;
+        }
+
+        // A woven rug on the sand: terracotta with a cream border and indigo bands.
+        private static FlatMeshKit<DesertPart> RugKit()
+        {
+            var kit = new FlatMeshKit<DesertPart>();
+            kit.Box(new Vector3(0f, 0.01f, 0f), new Vector3(2.4f, 0.02f, 1.5f), Quaternion.identity, DesertPart.Canvas);
+            kit.Box(new Vector3(0f, 0.022f, 0f), new Vector3(2.2f, 0.02f, 1.3f), Quaternion.identity, DesertPart.Terracotta);
+            foreach (float x in new[] { -0.6f, 0f, 0.6f })
+                kit.Box(new Vector3(x, 0.034f, 0f), new Vector3(0.14f, 0.02f, 1.3f), Quaternion.identity, DesertPart.Indigo);
+            return kit;
+        }
+
+        // Two clay water jars and a smaller one, by the supplies.
+        private static FlatMeshKit<DesertPart> JarKit()
+        {
+            var kit = new FlatMeshKit<DesertPart>();
+            Vector2[] jar = { new Vector2(0f, 0f), new Vector2(0.16f, 0f), new Vector2(0.27f, 0.22f), new Vector2(0.25f, 0.42f), new Vector2(0.12f, 0.56f), new Vector2(0.13f, 0.64f), new Vector2(0f, 0.64f) };
+            // (The kit takes each mesh it is given, so every jar gets its own.)
+            kit.Add(LowPolyMesh.Lathe("jar", jar, 9), Matrix4x4.TRS(new Vector3(-0.15f, 0f, 0f), Quaternion.identity, Vector3.one), DesertPart.Clay);
+            kit.Add(LowPolyMesh.Lathe("jar", jar, 9), Matrix4x4.TRS(new Vector3(0.4f, 0f, 0.08f), Quaternion.Euler(0f, 40f, 0f), Vector3.one * 0.8f), DesertPart.Clay);
+            kit.Add(LowPolyMesh.Lathe("jar", jar, 9), Matrix4x4.TRS(new Vector3(0.62f, 0f, -0.22f), Quaternion.Euler(0f, 80f, 0f), Vector3.one * 0.55f), DesertPart.Clay);
+            kit.Add(LowPolyMesh.Lathe("band", new[] { new Vector2(0.255f, 0.3f), new Vector2(0.262f, 0.33f), new Vector2(0.255f, 0.36f) }, 9),
+                Matrix4x4.Translate(new Vector3(-0.15f, 0f, 0f)), DesertPart.Indigo);
+            return kit;
+        }
+
+        private static Transform DesertProp(Transform parent, string name, FlatMeshKit<DesertPart> kit, Vector3 at)
+        {
+            Mesh mesh = SaveMesh<DesertPart>(kit.Build("DesertCamp" + name.Replace(" ", "")), DesertFolder + "/DesertCamp" + name.Replace(" ", "") + ".asset");
+            var prop = new GameObject(name);
+            prop.transform.SetParent(parent, false);
+            prop.transform.localPosition = at;
+            prop.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var materials = new Material[mesh.subMeshCount];
+            for (int i = 0; i < materials.Length; i++)
+            {
+                switch (FlatMeshKit<DesertPart>.MaterialOf(mesh, i))
+                {
+                    case DesertPart.Driftwood: materials[i] = DesertMaterial("DesertCampDriftwood", new Color(0.8f, 0.72f, 0.6f)); break;
+                    case DesertPart.DriftwoodDark: materials[i] = DesertMaterial("DesertCampDriftwoodDark", new Color(0.56f, 0.46f, 0.36f)); break;
+                    case DesertPart.Canvas: materials[i] = DesertMaterial("DesertCampCanvas", new Color(0.91f, 0.83f, 0.67f)); break;
+                    case DesertPart.Indigo: materials[i] = DesertMaterial("DesertCampIndigo", new Color(0.24f, 0.29f, 0.5f)); break;
+                    case DesertPart.Terracotta: materials[i] = DesertMaterial("DesertCampTerracotta", new Color(0.7f, 0.37f, 0.23f)); break;
+                    case DesertPart.Clay: materials[i] = DesertMaterial("DesertCampClay", new Color(0.74f, 0.45f, 0.3f)); break;
+                    default: materials[i] = DesertMaterial("DesertCampRope", new Color(0.82f, 0.72f, 0.52f)); break;
+                }
+            }
+            prop.AddComponent<MeshRenderer>().sharedMaterials = materials;
+            return prop.transform;
+        }
+
+        private static Material DesertMaterial(string name, Color color, float smoothness = 0.08f)
+        {
+            string path = DesertFolder + "/Materials/" + name + ".mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.SetColor("_BaseColor", color);
+            material.SetColor("_Color", color);
+            material.SetFloat("_Smoothness", smoothness);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        // Saves a generated mesh, keeping the asset (and its GUID) when it already exists.
+        private static Mesh SaveMesh<T>(Mesh mesh, string path) where T : struct, Enum
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing == null)
+            {
+                AssetDatabase.CreateAsset(mesh, path);
+                return mesh;
+            }
+            string order = FlatMeshKit<T>.Order(mesh);
+            EditorUtility.CopySerialized(mesh, existing);
+            FlatMeshKit<T>.Remember(existing, order);
+            UnityEngine.Object.DestroyImmediate(mesh);
+            return existing;
+        }
+
         // ---------- Trophies ----------
 
         // The Chief Toad's feathered crown, copied (looks only) from his prefab, resting on y = 0.

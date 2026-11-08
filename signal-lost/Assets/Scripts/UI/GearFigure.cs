@@ -103,7 +103,9 @@ namespace SignalLost.UI
             Transform figure = Pivot(Shot.Figure, Vector3.zero);
             var body = new GameObject("Mechanic").transform;
             body.SetParent(figure, false);
-            MechanicModel.Figure mechanic = MechanicModel.BuildFigure(body, Paint, new Vector3(-62f, 0f, 6f), new Vector3(-25f, 0f, -10f));
+            // Dressed for the island it is on (11-08: the desert has its own outfit).
+            MechanicModel.Figure mechanic = MechanicModel.BuildFigure(body, Paint, new Vector3(-62f, 0f, 6f), new Vector3(-25f, 0f, -10f),
+                0.75f, 0.75f, SignalLost.World.Outfits.Mechanic(SignalLost.World.StageTheme.Current));
             torso = mechanic.Torso;
             kneeL = mechanic.KneeL;
             kneeR = mechanic.KneeR;

@@ -239,6 +239,8 @@ namespace SignalLost.Editor
         }
 
         private const float DeckWidth = 2.8f, EndWidth = 6.4f, EndLength = 5f;
+        /// <summary>The sailboat is modelled at 5 m and drawn at this scale (about 10 m), so it can carry the crew.</summary>
+        public const float BoatScale = 2f;
 
         /// <summary>
         /// Builds a dock running from the beach out to sea, with its boat tied up alongside the T-shaped end, and returns
@@ -366,8 +368,10 @@ namespace SignalLost.Editor
                 return marker;
             }
             // The boat lies alongside the end of the dock, bow out to sea, its waterline on the surface.
-            Transform mooring = Marker("Mooring", new Vector3(EndWidth * 0.5f + 1.45f, seaLevel - deckY, length + EndLength * 0.5f));
+            Transform mooring = Marker("Mooring", new Vector3(EndWidth * 0.5f + 1.1f * BoatScale + 0.5f, seaLevel - deckY, length + EndLength * 0.5f));
             Transform landing = Marker("Landing", new Vector3(0.6f, 0.02f, length + 0.9f));
+            // Where the crew steps between the dock and the boat: the boat-side edge of the T.
+            Transform boarding = Marker("Boarding", new Vector3(EndWidth * 0.5f - 0.45f, 0.02f, length + EndLength * 0.5f));
             var boat = (GameObject)PrefabUtility.InstantiatePrefab(BoatPrefab(), root.transform);
             boat.transform.localPosition = mooring.localPosition;
             boat.transform.localRotation = Quaternion.identity;
@@ -380,6 +384,7 @@ namespace SignalLost.Editor
             data.FindProperty("boat").objectReferenceValue = boat.transform;
             data.FindProperty("mooring").objectReferenceValue = mooring;
             data.FindProperty("landing").objectReferenceValue = landing;
+            data.FindProperty("boarding").objectReferenceValue = boarding;
             data.FindProperty("destinationScene").stringValue = spec.DestinationScene;
             data.FindProperty("destinationName").stringValue = spec.DestinationName;
             data.FindProperty("requiredStage").stringValue = spec.RequiredStage;
@@ -477,11 +482,20 @@ namespace SignalLost.Editor
             kit.Box(new Vector3(0f, -0.2f, -0.1f), new Vector3(0.9f, 0.06f, 3.6f), Quaternion.identity, BoatPart.Trim);
             kit.Box(new Vector3(0f, 0.2f, -1.3f), new Vector3(1.8f, 0.07f, 0.34f), Quaternion.identity, BoatPart.Trim);
             kit.Box(new Vector3(0f, 0.22f, 0.9f), new Vector3(1.85f, 0.07f, 0.34f), Quaternion.identity, BoatPart.Trim);
+            kit.Box(new Vector3(0f, 0.2f, -0.25f), new Vector3(2.1f, 0.07f, 0.34f), Quaternion.identity, BoatPart.Trim); // Eugene's
 
-            // Mast, boom, sails and pennant.
-            Vector3 foot = new Vector3(0f, -0.2f, 0.9f), top = new Vector3(0f, 4.6f, 0.9f);
+            // Cargo stowed in the bow, under the jib: two crates and the camp's canvas rolled up and lashed.
+            kit.Box(new Vector3(-0.28f, -0.02f, 1.45f), new Vector3(0.42f, 0.32f, 0.38f), Quaternion.Euler(0f, 8f, 0f), BoatPart.Inside);
+            kit.Box(new Vector3(-0.28f, 0.15f, 1.45f), new Vector3(0.44f, 0.03f, 0.4f), Quaternion.Euler(0f, 8f, 0f), BoatPart.Trim);
+            kit.Box(new Vector3(0.26f, -0.06f, 1.75f), new Vector3(0.34f, 0.24f, 0.32f), Quaternion.Euler(0f, -14f, 0f), BoatPart.Inside);
+            kit.Add(LowPolyMesh.Tube("bundle", new[] { new Vector3(0.3f, -0.05f, 1.2f), new Vector3(-0.32f, -0.03f, 1.18f) }, 0.12f, 7), Matrix4x4.identity, BoatPart.Sail);
+            foreach (float x in new[] { -0.15f, 0.15f })
+                kit.Add(LowPolyMesh.Tube("lashing", new[] { new Vector3(x, -0.15f, 1.07f), new Vector3(x, 0.09f, 1.19f), new Vector3(x, -0.15f, 1.31f) }, 0.018f, 4), Matrix4x4.identity, BoatPart.Rope);
+
+            // Mast, boom, sails and pennant. The boom rides high (11-08), above the heads of the crew in the cockpit.
+            Vector3 foot = new Vector3(0f, -0.2f, 0.9f), top = new Vector3(0f, 5.2f, 0.9f);
             kit.Add(LowPolyMesh.TaperedPrism("mast", 6, 0.6f), Matrix4x4.TRS(foot, Quaternion.Euler(-90f, 0f, 0f), new Vector3(0.08f, 0.08f, top.y - foot.y)), BoatPart.Mast);
-            kit.Add(LowPolyMesh.Tube("boom", new[] { new Vector3(0f, 1.05f, 0.85f), new Vector3(0.12f, 1.0f, -2.05f) }, 0.05f, 5), Matrix4x4.identity, BoatPart.Mast);
+            kit.Add(LowPolyMesh.Tube("boom", new[] { new Vector3(0f, 2.25f, 0.85f), new Vector3(0.12f, 2.2f, -2.05f) }, 0.05f, 5), Matrix4x4.identity, BoatPart.Mast);
             void Sail(Vector3 a, Vector3 b, Vector3 c, Vector3 belly)
             {
                 Vector3 m = (a + b + c) / 3f + belly;
@@ -492,34 +506,52 @@ namespace SignalLost.Editor
                     kit.Tri(c, a, m, face, BoatPart.Sail);
                 }
             }
-            Sail(new Vector3(0f, 1.12f, 0.8f), new Vector3(0f, 4.4f, 0.82f), new Vector3(0.12f, 1.08f, -2.0f), new Vector3(0.38f, 0f, 0f));
-            Sail(new Vector3(0f, 3.7f, 0.98f), new Vector3(0f, 0.95f, 2.6f), new Vector3(0.05f, 1.0f, 1.25f), new Vector3(0.26f, 0f, 0f));
+            Sail(new Vector3(0f, 2.32f, 0.8f), new Vector3(0f, 5.0f, 0.82f), new Vector3(0.12f, 2.28f, -2.0f), new Vector3(0.38f, 0f, 0f));
+            Sail(new Vector3(0f, 4.2f, 0.98f), new Vector3(0f, 0.95f, 2.6f), new Vector3(0.05f, 1.0f, 1.25f), new Vector3(0.26f, 0f, 0f));
             foreach (Vector3 face in new[] { Vector3.right, Vector3.left })
-                kit.Tri(new Vector3(0f, 4.58f, 0.92f), new Vector3(0f, 4.3f, 0.92f), new Vector3(0.05f, 4.48f, 0.3f), face, BoatPart.Flag);
+                kit.Tri(new Vector3(0f, 5.18f, 0.92f), new Vector3(0f, 4.9f, 0.92f), new Vector3(0.05f, 5.08f, 0.3f), face, BoatPart.Flag);
             // Stays from the masthead to bow and stern.
             kit.Add(LowPolyMesh.Tube("forestay", new[] { top, new Vector3(0f, 0.9f, 2.7f) }, 0.015f, 4), Matrix4x4.identity, BoatPart.Rope);
             kit.Add(LowPolyMesh.Tube("backstay", new[] { top, new Vector3(0f, 0.65f, -2.25f) }, 0.015f, 4), Matrix4x4.identity, BoatPart.Rope);
 
             Mesh mesh = SaveKitMesh<BoatPart>(kit.Build("SailBoat"));
             var root = new GameObject("Sail Boat");
-            root.AddComponent<MeshFilter>().sharedMesh = mesh;
-            var renderer = root.AddComponent<MeshRenderer>();
+            // The hull is modelled at 5 m and drawn at BoatScale (11-08: big enough for the mechanic, Cavendish and
+            // Eugene). The root stays unscaled, so people seated aboard keep their own size.
+            var model = new GameObject("Hull");
+            model.transform.SetParent(root.transform, false);
+            model.transform.localScale = Vector3.one * BoatScale;
+            model.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = model.AddComponent<MeshRenderer>();
             var materials = new Material[mesh.subMeshCount];
             for (int s = 0; s < materials.Length; s++) materials[s] = BoatMaterial(FlatMeshKit<BoatPart>.MaterialOf(mesh, s));
             renderer.sharedMaterials = materials;
-            var hull = root.AddComponent<BoxCollider>();
+            var hull = model.AddComponent<BoxCollider>();
             hull.center = new Vector3(0f, 0.2f, 0.2f);
             hull.size = new Vector3(2.2f, 1.3f, 5.1f);
-            var sail = root.AddComponent<BoxCollider>();
-            sail.center = new Vector3(0.15f, 2.6f, -0.3f);
-            sail.size = new Vector3(0.5f, 3f, 3f);
+            var sail = model.AddComponent<BoxCollider>();
+            sail.center = new Vector3(0.15f, 3.6f, -0.3f);
+            sail.size = new Vector3(0.5f, 2.8f, 3f);
             var body = root.AddComponent<Rigidbody>();
             body.isKinematic = true;
             body.useGravity = false;
 
+            // The crew's places: the mechanic stands at the tiller in the stern, Cavendish sits on the stern thwart and
+            // Eugene on the middle one in front of him (high enough to see over the side), all under the boom.
+            Transform Spot(string name, Vector3 modelled)
+            {
+                var spot = new GameObject(name).transform;
+                spot.SetParent(root.transform, false);
+                spot.localPosition = modelled * BoatScale;
+                return spot;
+            }
+            Transform helm = Spot("Helm", new Vector3(0f, -0.17f, -1.78f));
+            Transform cavendishSeat = Spot("Cavendish Seat", new Vector3(0f, 0.235f, -1.3f));
+            Transform merchantSeat = Spot("Merchant Seat", new Vector3(0f, 0.235f, -0.25f));
+
             var wakeObject = new GameObject("Wake");
             wakeObject.transform.SetParent(root.transform, false);
-            wakeObject.transform.localPosition = new Vector3(0f, 0.04f, -2.3f);
+            wakeObject.transform.localPosition = new Vector3(0f, 0.04f, -2.3f * BoatScale);
             wakeObject.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f); // lies flat on the water
             var wake = wakeObject.AddComponent<TrailRenderer>();
             wake.time = 3.5f;
@@ -538,6 +570,9 @@ namespace SignalLost.Editor
             var boat = root.AddComponent<DockBoat>();
             var data = new SerializedObject(boat);
             data.FindProperty("wake").objectReferenceValue = wake;
+            data.FindProperty("helm").objectReferenceValue = helm;
+            data.FindProperty("cavendishSeat").objectReferenceValue = cavendishSeat;
+            data.FindProperty("merchantSeat").objectReferenceValue = merchantSeat;
             data.ApplyModifiedPropertiesWithoutUndo();
 
             EnsureFolders();

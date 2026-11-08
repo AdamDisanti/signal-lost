@@ -25,6 +25,8 @@ namespace SignalLost.World
         [SerializeField] private Transform mooring;
         [Tooltip("Where the player stands on the dock after landing.")]
         [SerializeField] private Transform landing;
+        [Tooltip("The edge of the dock's end beside the boat, where people step aboard and ashore.")]
+        [SerializeField] private Transform boarding;
 
         [Header("Departure")]
         [Tooltip("Scene loaded at the end of the voyage. Must be in the build's scene list.")]
@@ -39,6 +41,18 @@ namespace SignalLost.World
         public Transform Boat => boat;
         public Transform Mooring => mooring != null ? mooring : transform;
         public Transform Landing => landing != null ? landing : transform;
+        public Transform Boarding => boarding != null ? boarding : Landing;
+
+        /// <summary>
+        /// Where to step between the dock and <paramref name="seat"/> on the boat: on the boat-side edge of the dock's
+        /// end, level with the seat (as far as the end reaches).
+        /// </summary>
+        public Vector3 StepFor(Vector3 seat)
+        {
+            Vector3 edge = Boarding.position;
+            float along = Mathf.Clamp(Vector3.Dot(seat - edge, Seaward), -2.1f, 2.1f);
+            return edge + Seaward * along;
+        }
         public string DestinationScene => destinationScene;
         public string DestinationName => destinationName;
         public string RequiredStage => requiredStage;

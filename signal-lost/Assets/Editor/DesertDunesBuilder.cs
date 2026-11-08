@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SignalLost.Combat;
 using SignalLost.Enemies;
+using SignalLost.NPC;
 using SignalLost.Player;
 using SignalLost.Scanner;
 using SignalLost.UI;
@@ -41,6 +42,7 @@ namespace SignalLost.Editor
         private const string ScannerRigPath = "Assets/Prefabs/Player/Scanner/ScannerRig.prefab";
         private const string HudPrefabPath = "Assets/Prefabs/UI/PlayerHUD.prefab";
         private const string CapybaraPath = "Assets/Prefabs/Enviornment objects/GrayboxProps/CapybaraAstronaut.prefab";
+        private const string MerchantPath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
         private const string RocketEnginePath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Upgrades/RocketEngine.prefab";
         private const string ShipPanelMeshPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Meshes/BentShipPanel.asset";
         private const string HullMaterialPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Materials/DamagedRocketHull.mat";
@@ -73,6 +75,9 @@ namespace SignalLost.Editor
             new Site("Encounter 3 - Buried Hull", -58f, 62f, 16f),
         };
         private static readonly Site BossArena = new Site("Boss Arena", 38f, 92f, 26f);
+        /// <summary>Cavendish's camp (its fire), just inland of the arrival dock, beside the biome entrance.</summary>
+        private static readonly Vector2 CampOrigin = new Vector2(9f, -116f);
+        private const string CampName = "Cavendish's Camp";
 
         // Crash streak: debris was flung from the south-west toward the boss arena.
         private static readonly Vector2 StreakStart = new Vector2(-30f, -105f);
@@ -157,12 +162,110 @@ namespace SignalLost.Editor
             }
             GameObject markers = GameObject.Find("Level Markers (placeholders)");
             if (markers != null) foreach (Transform marker in markers.transform) Snap(marker, 0f);
+            InstallCamp();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             // (Validate() predates the shared HUD and fails on today's scene, so check just what this changed.)
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<SignalLost.World.Ocean>() == 1 && EnemyTestBuilder.Count<SignalLost.World.IslandDock>() == 2,
                 "Expected the sea and two docks in the desert.");
+            ValidateCamp();
             Debug.Log("DESERT_ISLAND_CONVERTED");
+        }
+
+        /// <summary>
+        /// Rebuilds the desert camp prefab and (re)installs it in DesertDunes.unity with Cavendish and Eugene, without
+        /// regenerating the island. ConvertToIsland does this too.
+        /// </summary>
+        [MenuItem("Signal Lost/Desert/Install Cavendish's Camp")]
+        public static void InstallCampMenu()
+        {
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            BaseCampBuilder.BuildDesert();
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            InstallCamp();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            ValidateCamp();
+            Debug.Log("DESERT_CAMP_INSTALLED");
+        }
+
+        /// <summary>
+        /// Cavendish's camp beside the arrival dock (11-08): the desert camp prefab, Cavendish sitting on his log under the
+        /// sun shade and Eugene (a friendly trader from the start here) on the other log, and the scene's
+        /// <see cref="SignalLost.World.StageTheme"/>, which dresses everyone for the desert. Replaces an earlier install
+        /// and the old "Cavendish (quest giver)" and merchant-spot placeholders, which this camp stands in for.
+        /// </summary>
+        private static void InstallCamp()
+        {
+            foreach (string old in new[] { CampName, "Cavendish (quest giver)", "Merchant Spot (hermit crab merchant goes here)", "Stage Theme" })
+                for (GameObject found = GameObject.Find(old); found != null; found = GameObject.Find(old)) Object.DestroyImmediate(found);
+
+            var campAsset = AssetDatabase.LoadAssetAtPath<GameObject>(BaseCampBuilder.DesertPrefabPath);
+            if (campAsset == null)
+            {
+                BaseCampBuilder.BuildDesert();
+                campAsset = AssetDatabase.LoadAssetAtPath<GameObject>(BaseCampBuilder.DesertPrefabPath);
+            }
+            var camp = (GameObject)PrefabUtility.InstantiatePrefab(campAsset);
+            camp.name = CampName;
+            camp.transform.SetPositionAndRotation(OnGround(CampOrigin.x, CampOrigin.y), Quaternion.identity);
+            var island = camp.GetComponent<SignalLost.World.IslandCamp>();
+            var residents = new GameObject("Residents").transform;
+            residents.SetParent(camp.transform, false);
+
+            var cavendish = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CapybaraPath), residents);
+            cavendish.name = "Cavendish";
+            SignalLost.World.IslandCamp.SitCavendish(cavendish.transform, island.CavendishSeat);
+            var actor = new SerializedObject(cavendish.AddComponent<NpcActor>());
+            actor.FindProperty("role").enumValueIndex = (int)NpcActor.Role.Cavendish;
+            SerializedProperty talk = actor.FindProperty("smallTalk");
+            string[] lines =
+            {
+                "Sand. In the suit. In places a capybara should never have sand.",
+                "The Engine Core is out here somewhere. Your scanner will find it.",
+                "Eugene is selling sunscreen. I'd ask what's in it before you buy.",
+                "Lovely spot for a camp, isn't it? Hot. But lovely."
+            };
+            talk.arraySize = lines.Length;
+            for (int i = 0; i < lines.Length; i++) talk.GetArrayElementAtIndex(i).stringValue = lines[i];
+            actor.ApplyModifiedPropertiesWithoutUndo();
+            var voice = new GameObject("Cavendish Dialogue");
+            voice.transform.SetParent(cavendish.transform, false);
+            voice.transform.localPosition = new Vector3(0f, 2.45f, 0f);
+            var dialogue = new SerializedObject(voice.AddComponent<NpcDialogue>());
+            dialogue.FindProperty("speaker").stringValue = "Cavendish";
+            dialogue.ApplyModifiedPropertiesWithoutUndo();
+
+            var eugene = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(MerchantPath), residents);
+            eugene.name = "Eugene";
+            eugene.transform.SetPositionAndRotation(island.MerchantSeat.position, island.MerchantSeat.rotation);
+            var merchant = new SerializedObject(eugene.GetComponent<MerchantCrab>());
+            merchant.FindProperty("startFriendly").boolValue = true;
+            merchant.FindProperty("spawnAfterQuest").boolValue = false;
+            merchant.FindProperty("seat").objectReferenceValue = island.MerchantSeat;
+            merchant.FindProperty("returnPoint").objectReferenceValue = island.MerchantStand;
+            merchant.FindProperty("cousins").arraySize = 0;
+            merchant.ApplyModifiedPropertiesWithoutUndo();
+
+            var links = new SerializedObject(island);
+            links.FindProperty("cavendish").objectReferenceValue = cavendish.GetComponent<NpcActor>();
+            links.FindProperty("merchant").objectReferenceValue = eugene.GetComponent<NpcActor>();
+            links.ApplyModifiedPropertiesWithoutUndo();
+
+            var theme = new GameObject("Stage Theme");
+            var look = new SerializedObject(theme.AddComponent<SignalLost.World.StageTheme>());
+            look.FindProperty("look").enumValueIndex = (int)SignalLost.World.IslandLook.Desert;
+            look.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ValidateCamp()
+        {
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<SignalLost.World.IslandCamp>() == 1, "Expected one camp in the desert.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<SignalLost.World.StageTheme>() == 1, "Expected one stage theme in the desert.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<NpcActor>() == 2, "Expected Cavendish and Eugene in the desert.");
+            var camp = Object.FindAnyObjectByType<SignalLost.World.IslandCamp>();
+            EnemyTestBuilder.Require(camp.Cavendish != null && camp.Merchant != null && camp.CavendishSeat != null && camp.MerchantSeat != null,
+                "The desert camp is missing its residents or seats.");
         }
 
         private static void Snap(Transform item, float lift)
@@ -260,6 +363,10 @@ namespace SignalLost.Editor
                 float flat = DuneHeight(site.Center.x, site.Center.y);
                 h = Mathf.Lerp(h, flat, 1f - SmoothStep01(site.Radius, site.Radius + 14f, d));
             }
+
+            // Cavendish's camp, up the beach from the arrival dock (11-08): levelled to the entrance's height.
+            float pad = Vector2.Distance(new Vector2(x, z), CampOrigin + new Vector2(-0.5f, 2f));
+            h = Mathf.Lerp(h, DuneHeight(Entrance.Center.x, Entrance.Center.y), 1f - SmoothStep01(9f, 15f, pad));
 
             // Boss arena: shallow sand bowl with a raised rim.
             float boss = Vector2.Distance(new Vector2(x, z), BossArena.Center);

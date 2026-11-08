@@ -181,7 +181,16 @@ namespace SignalLost.NPC
             health.Invulnerable = true;
             if (carriedFlask != null) carriedFlask.SetActive(false);
             foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.Despawn();
+            // Already settled in: on its log by the fire (the island camps, 11-08).
+            if (seat != null)
+            {
+                agent.enabled = false;
+                transform.SetPositionAndRotation(seat.position, seat.rotation);
+            }
         }
+
+        /// <summary>Its log by the fire, if it has one.</summary>
+        public Transform Seat => seat;
 
         /// <summary>The story has already introduced the crab, so the first visit opens the shop straight away.</summary>
         public void MarkGreeted() => friendlyGreetingShown = true;

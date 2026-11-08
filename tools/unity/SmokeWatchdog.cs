@@ -25,7 +25,7 @@ public static class SmokeWatchdog
         if (exiting || type != LogType.Exception || stack == null) return;
         // Only exceptions thrown by test code itself; game code that throws doesn't stall a runner.
         if (stack.IndexOf("Editor/Smoke/", StringComparison.Ordinal) < 0 && stack.IndexOf("Editor\\Smoke\\", StringComparison.Ordinal) < 0) return;
-        Fail("unhandled exception in test code: " + message);
+        Fail("unhandled exception in test code: " + message + "\n" + stack);
     }
 
     private static void Tick()
