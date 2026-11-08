@@ -276,6 +276,38 @@ Lawson asked for an ocean-island system in place of the cliff boundaries; see [i
   - Whether the far islands should match the real next stages more closely.
   - The desert's Core Worm exit (in its test scene) and the departure dock are separate; when the boss goes into the desert scene, the worm's ambush should probably happen on the way to the dock.
 
+## The crew sails too, camps and island outfits (11-08)
+
+Lawson asked for three things (see [islands](islands.md)):
+- The player physically boards the boat.
+- Cavendish and Eugene come along, and set up camp near the arrival dock on the next island. The camp keeps the same structure with island theming.
+- The player, Cavendish and Eugene change clothes for each island.
+
+- **On the boat:** the voyage shows the mechanic's own blocky body (the pockets figure's model) walking aboard and standing at the tiller.
+  - Cavendish and Eugene come down the dock and climb in.
+  - The boat is now twice the size (about 10 m), with a raised boom and three thwarts, so the three of them fit.
+- **Who comes:** Cavendish always does. Eugene comes once he is a friendly trader, which he always is by the time the tutorial boat unlocks.
+- **Arrival:**
+  - Everyone steps ashore. A short cut shows Cavendish and Eugene at the camp site while the camp goes up piece by piece; then they sit down by the fire.
+  - The camp sits just inland of the desert's arrival dock, on the biome entrance's flat ground. It replaces the old "Cavendish (quest giver)" and merchant-spot placeholders there.
+- **Desert camp:** the same pieces in the same layout as the base camp, restyled for the desert:
+  - sandstone fire ring, driftwood logs and stands, and a terracotta-and-indigo tent;
+  - additions: a sun shade over Cavendish's log, a rug and water jars.
+  - The trophy stands show the same saved trophies.
+- **Outfits (my calls on the details):**
+  - Crash Meadow is everyone's current look.
+  - In the desert:
+    - **The mechanic:** khaki suit with rust trim, a bush hat with goggles, a neckerchief and suede gloves. This shows on the first-person sleeves too.
+    - **Cavendish:** a sand-and-terracotta suit, his helmet frame and lamp off, a straw sun hat, sunglasses and a neckerchief.
+    - **Eugene:** a beach parasol in his bucket, goggles and a bandana.
+  - Each island's look is set by a `StageTheme` in its scene.
+- **Desert residents are the desert scene's own:** the Cavendish and Eugene who step off the boat belong to the desert scene, so they are there (seated by the fire) however the desert is loaded. The tutorial's NPCs are not carried across scenes.
+- **Open:**
+  - Should the desert camp be missing anyone who didn't actually board? For example, sailing with `IgnoreRequirements` before Eugene was met. It always has both today.
+  - Cavendish has small talk in the desert but no quests there yet.
+  - Eugene's shop works, but inventory and upgrades still don't carry between scenes (see above).
+  - Nicole owns the Desert Dunes scene: the camp install removed the two placeholders and added the camp, the residents and a `StageTheme`.
+
 ## Upgrade tiers, spawn safety, key bindings and title cycle (11-07)
 
 - **Upgrade tiers.** Each upgrade is a line of small tiers (I, II, III), each dearer than the last; see [upgrades](upgrades.md). Totals at max tier match or slightly beat the old one-off upgrades: bolts +30%, health +30, two extra sips. Open: final costs need play-testing against how much scrap the tutorial actually hands out.

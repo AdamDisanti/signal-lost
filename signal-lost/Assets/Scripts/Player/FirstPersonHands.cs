@@ -1,3 +1,4 @@
+using SignalLost.World;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -92,6 +93,15 @@ namespace SignalLost.Player
             Camera camera = GetComponentInChildren<Camera>();
             view = camera != null ? camera.transform : transform;
             Shader lit = Shader.Find("Universal Render Pipeline/Lit");
+            // Other islands have their own outfit (11-08); Crash Meadow keeps the colours set here.
+            IslandLook island = StageTheme.Current;
+            if (island != IslandLook.Meadow)
+            {
+                MechanicLook outfit = Outfits.Mechanic(island);
+                gloveColor = outfit.Glove;
+                sleeveColor = outfit.Suit;
+                cuffColor = outfit.Trim;
+            }
             glove = MakeMaterial(lit, "Glove", gloveColor, 0.25f);
             sleeve = MakeMaterial(lit, "Sleeve", sleeveColor, 0.3f);
             cuff = MakeMaterial(lit, "Cuff", cuffColor, 0.35f);
