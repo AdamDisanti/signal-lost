@@ -255,3 +255,21 @@ Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutoria
 - Pause menu centred.
 - Shop: type filters, a Purchased filter, scrap amounts as icons, and a preview-then-confirm purchase. The pockets' Upgrades tab shows only what is installed.
 - The merchant crab and its cousins only appear once Cavendish gives the big-crab quest.
+
+## Combat and crash-site polish (11-07)
+
+Lawson's list, as built. Numbers are provisional, not agreed balance.
+
+- **Crash-site debris:** the random scatter of 140 pieces is replaced by a crash layout. A scorched skid trail runs down the trench, with wreckage dug in and pointing the way the ship slid. It is bunched where it struck and bounced (at the trench fires): a torn wing section on the trench lip, cargo spilled out of one side, light junk thrown past the nose, and ploughed dirt along the trench edges. About half as many pieces. Trees that grew in the trench are gone; the rest of the forest, the hollow and the pond are unchanged. See `CrashDebrisLayout`.
+- **Merchant spawn flag:** the merchant crab has a **Spawn After Quest** setting. With it on, the crab and its cousins stay out of the world until the quest that sends you after them calls `SpawnForQuest`. In the tutorial that is Cavendish's big-crab quest (this was already the rule; it is now a setting on the crab instead of only the saved scene state).
+- **Jump smash (player):** in mid-air with the laser out, press C (gamepad B) to raise the laser and dive. Landing sends a shockwave that hurts and shoves everything around you.
+  - It is the player's version of the Chief Toad's jump slam.
+  - Damage scales with the height you dived from: 15 at 0.8 m up to 60 from 8 m or higher (capped there). The radius grows from 2.5 m to 5.5 m.
+  - Heavy Slam adds to it like it does to the combo finisher.
+  - It does not stun: the 10-22 rule keeps stuns to the combo finisher. 1.2 s cooldown.
+  - No fall damage was added. **Open:** whether it should stun, its numbers, and whether C is the right button.
+- **Collectables on the ground:** gear, the flask, scrap, trophies and ship parts all show at one size (0.55 m on the longest side). They float with their middle 0.8 m above the ground (lower under a low ceiling, so hidden items stay hidden), bob, and spin. The scanner and laser now float in their hiding places instead of lying there. **Open:** whether big main ship parts should be larger than scrap.
+- **Chief Toad beam:** both variants are used in every phase and take turns.
+  - The **tracking jet** has a long windup (2.3 s, never under 1.6 s) that makes it obvious it is coming and that you need cover, without on-screen text. A water orb swells in his mouth, a sighting line locks onto you, a target ring follows you, and lock-on pings speed up into a sharp lock tone. It then turns after you faster than you can run.
+  - The **torrent sweep** paints a wedge on the ground over the arc it will cover, then sweeps a much bigger, wider torrent slowly across it, so it stays on you longer.
+  - Details in [Chief Toad](chief-toad.md).

@@ -16,8 +16,12 @@ namespace SignalLost.Enemies.Meadow
     /// hops out to fight on dry land too: every water attack makes its own water, in the pond or out of it.
     ///
     /// Attacks:
-    /// - Water beam: a charge (throat swells, a thin aiming line), then a high-pressure jet that drives you back.
-    ///   Phase 1 it turns after you; from phase 2 it sweeps across you. Cover stops it.
+    /// - Water beam, in two variants used in every phase (Lawson, 11-07), each with its own unmistakable windup:
+    ///   - Tracking jet: a long charge in which a water orb swells in his mouth, a sighting line locks onto you, a
+    ///     target ring follows you on the ground and lock-on pings speed up. Then a jet that turns after you faster
+    ///     than you can run: get behind cover.
+    ///   - Torrent sweep: he plants himself and a wedge on the ground shows the arc it will cover, from the side his
+    ///     head turns to. Then a huge, wide torrent sweeps slowly across it. Leave the wedge or take cover.
     /// - Water blades: a swipe that slings a fan of water crescents at chest height. Dodge sideways.
     /// - Jump slam: a crouch (a ring marks the landing), a leap, and a landing that hurts up close and sends a wall of
     ///   water racing outward. Jump the wave.
@@ -25,8 +29,8 @@ namespace SignalLost.Enemies.Meadow
     ///   you're inside it and in his line of sight. Back off or duck behind a rock.
     /// Three phases (the base class's two, plus a third here):
     /// - 1 (full to 66%): the four attacks.
-    /// - 2 "Coolant surge" (66% to 33%): faster; two volleys of five blades; the beam sweeps; the slam hops twice and
-    ///   each landing sprays a ring of blades.
+    /// - 2 "Coolant surge" (66% to 33%): faster; two volleys of five blades; the slam hops twice and each landing
+    ///   sprays a ring of blades.
     /// - 3 "Coolant overflow" (below 33%): faster again; adds the tidal spin, a full turn with the beam skimming low
     ///   across the ground (jump it or take cover); every slam sends two waves.
     /// The glowing coolant core on his chest is a weak spot (x1.5 damage). On defeat he drops the ship's cooling
@@ -78,20 +82,34 @@ namespace SignalLost.Enemies.Meadow
         [Tooltip("Seconds between one attack ending and the next starting.")]
         [SerializeField, Min(0f)] private float attackGap = 0.9f;
 
-        [Header("Water beam")]
-        [SerializeField, Min(0.2f)] private float beamCharge = 1.1f;
-        [SerializeField, Min(0.2f)] private float beamTime = 1.8f;
+        [Header("Water beam (both variants)")]
         [SerializeField, Min(5f)] private float beamRange = 28f;
+        [Tooltip("Half-width of the thin jet (the tracking jet and the tidal spin).")]
         [SerializeField, Min(0.2f)] private float beamHitRadius = 1.5f;
-        [SerializeField, Min(0f)] private float beamDamagePerTick = 7f;
         [SerializeField, Min(0.05f)] private float beamTick = 0.15f;
         [Tooltip("How far each tick pushes you along the beam.")]
         [SerializeField, Min(0f)] private float beamPush = 0.35f;
-        [Tooltip("Degrees per second it turns the beam after you (phase 1).")]
-        [SerializeField, Min(0f)] private float beamTracking = 40f;
-        [Tooltip("Half-width of the sweep across you (phases 2 and 3), in degrees.")]
-        [SerializeField, Range(0f, 80f)] private float beamSweep = 35f;
         [SerializeField, Min(0f)] private float beamCooldown = 8f;
+
+        [Header("Tracking jet")]
+        [Tooltip("Its windup: long, so there is time to find cover. Faster phases shorten it, never below 1.6 s.")]
+        [SerializeField, Min(0.5f)] private float trackCharge = 2.3f;
+        [SerializeField, Min(0.2f)] private float trackTime = 2.4f;
+        [Tooltip("Degrees per second it turns after you: faster than you can run round him, so hide instead.")]
+        [SerializeField, Min(0f)] private float trackTurnRate = 75f;
+        [SerializeField, Min(0f)] private float trackDamagePerTick = 6f;
+
+        [Header("Torrent sweep")]
+        [SerializeField, Min(0.2f)] private float sweepCharge = 1.5f;
+        [Tooltip("Seconds to sweep from one edge of the arc to the other: slow, so it stays on you.")]
+        [SerializeField, Min(0.2f)] private float sweepTime = 3f;
+        [Tooltip("Half-width of the arc it sweeps, in degrees.")]
+        [SerializeField, Range(10f, 80f)] private float sweepArc = 50f;
+        [Tooltip("Half-width of the torrent: much wider than the tracking jet.")]
+        [SerializeField, Min(0.5f)] private float sweepHitRadius = 3.4f;
+        [Tooltip("How much bigger the torrent looks than the jet.")]
+        [SerializeField, Min(1f)] private float sweepScale = 2.6f;
+        [SerializeField, Min(0f)] private float sweepDamagePerTick = 6f;
 
         [Header("Water blades")]
         [SerializeField, Min(0.1f)] private float bladeWindup = 0.55f;
@@ -146,6 +164,18 @@ namespace SignalLost.Enemies.Meadow
         private Vector3 beamFlat;
         private float beamBaseYaw, beamTargetY, beamDirection, nextBeamTick, nextBeamFx, nextRipple;
 
+        /// <summary>The two water beams (every phase): one locks on and follows you, one sweeps a wide arc.</summary>
+        public enum BeamVariant { Tracking, Sweep }
+        private BeamVariant beamVariant;
+        private BeamVariant? lastVariant;
+        private SectorMarker sweepMarker;
+        private Material lockRingMaterial; // the warning ring material, drawn over water (the player may stand in the pond)
+        private float nextPing;
+        private bool lockedOn;
+
+        /// <summary>The variant being charged or fired (or last used).</summary>
+        public BeamVariant CurrentBeam => beamVariant;
+
         // Blades, slam, scream, spin
         private int volleysLeft, volleysFired, hopsLeft;
         private bool jumpedOnce;
@@ -167,7 +197,8 @@ namespace SignalLost.Enemies.Meadow
         public string StateName => state.ToString();
 
         /// <summary>Moments worth a sound (or other feedback), for ToadAudio.</summary>
-        public enum Cue { BeamCharge, BeamFire, Blades, Jump, Land, ScreamCharge, Scream, SpinCharge, Overflow, CoolantCrack }
+        public enum Cue { BeamCharge, BeamFire, Blades, Jump, Land, ScreamCharge, Scream, SpinCharge, Overflow, CoolantCrack,
+            TrackCharge, TrackPing, TrackLock, SweepCharge, SweepFire }
         public event System.Action<Cue> Cued;
         protected override string PartStage => StageProgress.Tutorial;
 
@@ -377,9 +408,7 @@ namespace SignalLost.Enemies.Meadow
             if (now >= nextBeam && seen && distance >= 5f && distance <= beamRange * 0.8f)
             {
                 Halt();
-                Enter(State.BeamCharge);
-                Cued?.Invoke(Cue.BeamCharge);
-                aimLine.enabled = true;
+                BeginBeam();
                 return true;
             }
             if (now >= nextBlades && seen && distance >= 3.5f)
@@ -413,66 +442,168 @@ namespace SignalLost.Enemies.Meadow
 
         // ---------- Water beam ----------
 
+        // The two variants take turns (the first one is random), so every phase uses both.
+        private void BeginBeam()
+        {
+            beamVariant = lastVariant == null ? (Random.value < 0.5f ? BeamVariant.Tracking : BeamVariant.Sweep)
+                : lastVariant == BeamVariant.Tracking ? BeamVariant.Sweep : BeamVariant.Tracking;
+            lastVariant = beamVariant;
+            lockedOn = false;
+            nextPing = 0f;
+            Enter(State.BeamCharge);
+            if (beamVariant == BeamVariant.Tracking)
+            {
+                // A sighting line from his mouth to you, and a target ring that follows you on the ground.
+                aimLine.enabled = true;
+                marker = GroundMarker.Spawn(SectorMarker.OverWater(warningMaterial, ref lockRingMaterial), null, GroundBelow(Target.position), 1.4f);
+                Cued?.Invoke(Cue.TrackCharge);
+            }
+            else
+            {
+                // The arc is fixed now, so the wedge shows exactly where the torrent will go.
+                Vector3 flat = Level(Target.position - transform.position);
+                beamBaseYaw = flat.sqrMagnitude > 0.01f ? Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg : transform.eulerAngles.y;
+                beamDirection = Random.value < 0.5f ? -1f : 1f;
+                sweepMarker = SectorMarker.Spawn(GroundBelow(transform.position), beamBaseYaw, sweepArc, beamRange, beamDirection,
+                    new Color(1f, 0.15f, 0.08f));
+                Cued?.Invoke(Cue.SweepCharge);
+            }
+        }
+
+        // The tracking jet's windup is long on purpose (time to find cover) and never shorter than 1.6 s.
+        private float BeamChargeTime => beamVariant == BeamVariant.Tracking ? Mathf.Max(1.6f, trackCharge / Tempo) : sweepCharge / Tempo;
+
         private void UpdateBeamCharge(float dt)
         {
-            float duration = beamCharge / Tempo;
-            float k = stateTime / duration;
-            if (k < 0.85f) TurnToward(Target.position, 150f * dt);
-            // The aiming line shows where the jet will go; mist is drawn in to its mouth.
+            float duration = BeamChargeTime;
+            float k = Mathf.Clamp01(stateTime / duration);
             Vector3 origin = MouthPosition;
+            if (beamVariant == BeamVariant.Tracking) ChargeTracking(dt, k, origin, duration - stateTime);
+            else ChargeSweep(dt, k, origin);
+            if (stateTime < duration) return;
+            FireBeam(origin);
+        }
+
+        private void ChargeTracking(float dt, float k, Vector3 origin, float remaining)
+        {
+            TurnToward(Target.position, 220f * dt); // he keeps his eyes on you the whole time
+            bool locked = remaining < 0.4f;
+
+            // The sighting line: thin and pale, hotter, thicker and flickering faster as it builds; solid white once locked.
             Vector3 aim = Target.position + Vector3.up * 1f;
             Vector3 end = BeamEnd(origin, aim - origin, beamRange);
-            DrawLine(aimLine, origin, end, 0.05f + 0.05f * k, 0f);
+            float flicker = locked ? 1f : Mathf.Sin(Time.time * Mathf.Lerp(10f, 48f, k)) > -0.2f ? 1f : 0.3f;
+            Color line = locked ? Color.white : Color.Lerp(new Color(0.55f, 0.88f, 1f), new Color(1f, 0.55f, 0.45f), k);
+            aimLine.startColor = new Color(line.r, line.g, line.b, Mathf.Lerp(0.5f, 1f, k) * flicker);
+            aimLine.endColor = new Color(line.r, line.g, line.b, Mathf.Lerp(0.35f, 0.9f, k) * flicker);
+            DrawLine(aimLine, origin, end, Mathf.Lerp(0.05f, 0.14f, k) * (locked ? 1.8f : 1f), 0f);
+
+            // The target ring stays under you, pulsing faster.
+            if (marker != null)
+            {
+                marker.MoveTo(GroundBelow(Target.position));
+                marker.Progress = k;
+            }
+
+            // Lock-on pings that speed up, then one sharp tone as it locks.
+            if (!locked && Time.time >= nextPing)
+            {
+                nextPing = Time.time + Mathf.Lerp(0.5f, 0.1f, k);
+                Cued?.Invoke(Cue.TrackPing);
+            }
+            if (locked && !lockedOn)
+            {
+                lockedOn = true;
+                Cued?.Invoke(Cue.TrackLock);
+            }
+
+            // A ball of pressurised water swells in his mouth, with mist pulled in.
             if (mouthLight != null)
             {
                 mouthLight.enabled = true;
                 mouthLight.transform.position = origin;
-                mouthLight.intensity = 4f * k;
+                mouthLight.intensity = Mathf.Lerp(1f, 6f, k) * (locked ? 1.3f : 1f);
             }
             if (Time.time >= nextBeamFx)
             {
-                nextBeamFx = Time.time + 0.06f;
-                Vector3 from = origin + Random.onUnitSphere * 1.6f;
-                ParticleBurst.Spawn(ParticleBurst.Kind.Mist, from, origin - from, 1, 0.5f, 3f, 5f);
+                nextBeamFx = Time.time + 0.05f;
+                ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, origin, Vector3.zero, 1, Mathf.Lerp(0.25f, 1.1f, k), 0.15f, 90f,
+                    new Color(0.6f, 0.9f, 1f, 0.55f));
+                Vector3 from = origin + Random.onUnitSphere * 1.8f;
+                ParticleBurst.Spawn(ParticleBurst.Kind.Mist, from, origin - from, 1, 0.5f, 4f, 5f);
             }
-            if (stateTime < duration) return;
+        }
 
-            // Fire.
+        private void ChargeSweep(float dt, float k, Vector3 origin)
+        {
+            // He plants himself and swings his head to the edge the torrent starts from.
+            float startYaw = beamBaseYaw - sweepArc * beamDirection;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(0f, startYaw, 0f), 160f * dt);
+            if (sweepMarker != null) sweepMarker.Progress = k;
+            if (mouthLight != null)
+            {
+                mouthLight.enabled = true;
+                mouthLight.transform.position = origin;
+                mouthLight.intensity = 6f * k;
+            }
+            if (Time.time >= nextBeamFx)
+            {
+                // A huge breath: mist streams in from all round him, and his rig sprays.
+                nextBeamFx = Time.time + 0.04f;
+                for (int i = 0; i < 2; i++)
+                {
+                    Vector3 from = origin + Random.onUnitSphere * 3f;
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Mist, from, origin - from, 1, 0.9f, 6f, 5f);
+                }
+                if (Random.value < 0.3f) SprayFromRig(0.4f);
+            }
+        }
+
+        private void FireBeam(Vector3 origin)
+        {
             aimLine.enabled = false;
-            Vector3 flat = Target.position - transform.position;
-            flat.y = 0f;
-            beamFlat = flat.sqrMagnitude > 0.01f ? flat.normalized : transform.forward;
-            beamBaseYaw = Mathf.Atan2(beamFlat.x, beamFlat.z) * Mathf.Rad2Deg;
+            ClearMarker(false);
+            bool sweep = beamVariant == BeamVariant.Sweep;
+            if (sweep)
+            {
+                beamFlat = Quaternion.Euler(0f, beamBaseYaw - sweepArc * beamDirection, 0f) * Vector3.forward;
+                if (sweepMarker != null) sweepMarker.Fire(); // the wedge stays, fading, while the torrent crosses it
+            }
+            else
+            {
+                Vector3 flat = Level(Target.position - transform.position);
+                beamFlat = flat.sqrMagnitude > 0.01f ? flat.normalized : transform.forward;
+            }
             beamTargetY = Target.position.y + 1f;
-            beamDirection = Random.value < 0.5f ? -1f : 1f;
             nextBeamTick = 0f;
             ShowBeam(true);
-            ParticleBurst.Spawn(ParticleBurst.Kind.Water, origin, beamFlat, 24, 0.25f, 9f, 25f);
-            ParticleBurst.Spawn(ParticleBurst.Kind.Mist, origin, beamFlat, 8, 1.2f, 4f, 30f);
-            CameraShake.Add(0.25f);
-            Cued?.Invoke(Cue.BeamFire);
+            float scale = sweep ? sweepScale : 1f;
+            ParticleBurst.Spawn(ParticleBurst.Kind.Water, origin, beamFlat, Mathf.RoundToInt(24 * scale), 0.25f * scale, 9f, 25f);
+            ParticleBurst.Spawn(ParticleBurst.Kind.Mist, origin, beamFlat, Mathf.RoundToInt(8 * scale), 1.2f * scale, 4f, 30f);
+            CameraShake.Add(sweep ? 0.45f : 0.25f);
+            Cued?.Invoke(sweep ? Cue.SweepFire : Cue.BeamFire);
             Enter(State.Beam);
         }
 
         private void UpdateBeam(float dt)
         {
-            float duration = beamTime * (Stage >= 2 ? 1.15f : 1f);
+            bool sweep = beamVariant == BeamVariant.Sweep;
+            float duration = sweep ? sweepTime / Mathf.Sqrt(Tempo) : trackTime;
             float t = Mathf.Clamp01(stateTime / duration);
-            if (Stage == 1)
+            if (sweep)
             {
-                // Turns the jet after you.
-                Vector3 want = Target.position - transform.position;
-                want.y = 0f;
-                if (want.sqrMagnitude > 0.01f)
-                    beamFlat = Vector3.RotateTowards(beamFlat, want.normalized, beamTracking * Mathf.Deg2Rad * dt, 0f);
+                // Slowly across the whole wedge, easing in and out at the edges.
+                float yaw = beamBaseYaw + Mathf.Lerp(-sweepArc, sweepArc, Mathf.SmoothStep(0f, 1f, t)) * beamDirection;
+                beamFlat = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
             }
             else
             {
-                // Sweeps across where you were.
-                float yaw = beamBaseYaw + Mathf.Lerp(-beamSweep, beamSweep, t) * beamDirection;
-                beamFlat = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+                // Turns after you faster than you can run round him.
+                Vector3 want = Level(Target.position - transform.position);
+                if (want.sqrMagnitude > 0.01f)
+                    beamFlat = Vector3.RotateTowards(beamFlat, want.normalized, trackTurnRate * Mathf.Sqrt(Tempo) * Mathf.Deg2Rad * dt, 0f);
             }
-            // In every phase the jet tilts up or down after the player (on slopes, banks, mid-jump).
+            // The jet tilts up or down after the player (on slopes, banks, mid-jump).
             beamTargetY = Mathf.Lerp(beamTargetY, Target.position.y + 1f, dt * 3f);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(beamFlat), 400f * dt);
 
@@ -483,19 +614,20 @@ namespace SignalLost.Enemies.Meadow
             float reach = Mathf.Clamp(toTarget.magnitude, 3f, beamRange);
             Vector3 aim = new Vector3(origin.x, beamTargetY, origin.z) + beamFlat * reach;
             Vector3 end = BeamEnd(origin, aim - origin, beamRange);
-            DrawWaterBeam(origin, end, 1f);
-            BeamHits(origin, end);
+            DrawWaterBeam(origin, end, sweep ? sweepScale : 1f);
+            BeamHits(origin, end, sweep ? sweepHitRadius : beamHitRadius, sweep ? sweepDamagePerTick : trackDamagePerTick);
+            if (sweep && Target != null && Vector3.Distance(Target.position, end) < 12f) CameraShake.Add(0.6f * dt); // the ground shakes near the torrent
             if (stateTime < duration) return;
             nextBeam = Time.time + beamCooldown / Tempo;
-            RecoverFor(0.7f);
+            RecoverFor(sweep ? 1f : 0.7f);
         }
 
         // Damage and push while the player is in the jet.
-        private void BeamHits(Vector3 origin, Vector3 end)
+        private void BeamHits(Vector3 origin, Vector3 end, float radius, float damage)
         {
-            if (Time.time < nextBeamTick || !PlayerInBeam(origin, end)) return;
+            if (Time.time < nextBeamTick || !PlayerInBeam(origin, end, radius)) return;
             nextBeamTick = Time.time + beamTick;
-            if (HurtPlayer(beamDamagePerTick))
+            if (HurtPlayer(damage))
             {
                 Vector3 push = end - origin;
                 push.y = 0f;
@@ -506,9 +638,11 @@ namespace SignalLost.Enemies.Meadow
 
         private void DrawWaterBeam(Vector3 origin, Vector3 end, float scale)
         {
-            DrawLine(beamHalo, origin, end, 2.5f * scale, 0.12f);
-            DrawLine(beamMain, origin, end, 1.2f * scale, 0.08f);
-            DrawLine(beamCore, origin, end, 0.42f * scale, 0.03f);
+            // The torrent (scale > 1) leaves his mouth narrower than it ends, fanning out into a wall of water.
+            float mouthShare = scale > 1.5f ? 0.35f : 0.8f;
+            DrawLine(beamHalo, origin, end, 2.5f * scale, 0.12f * scale, mouthShare);
+            DrawLine(beamMain, origin, end, 1.2f * scale, 0.08f * scale, mouthShare);
+            DrawLine(beamCore, origin, end, 0.42f * scale, 0.03f * scale, mouthShare);
             float flicker = 0.85f + 0.3f * Mathf.PerlinNoise(Time.time * 20f, 0.4f);
             if (mouthLight != null)
             {
@@ -525,15 +659,17 @@ namespace SignalLost.Enemies.Meadow
                 // Spray at the mouth, droplets shed along the jet, and a fountain where it lands.
                 nextBeamFx = Time.time + 0.05f;
                 Vector3 along = end - origin;
-                ParticleBurst.Spawn(ParticleBurst.Kind.Mist, origin, along, 1, 0.8f, 3f, 20f);
-                ParticleBurst.Spawn(ParticleBurst.Kind.Water, Vector3.Lerp(origin, end, Random.value), along + Vector3.down * 2f, 2, 0.14f, 3f, 40f);
-                ParticleBurst.Spawn(ParticleBurst.Kind.Water, end, Vector3.up - along.normalized * 0.7f, 6, 0.2f, 6f, 55f);
-                if (Random.value < 0.4f) ParticleBurst.Spawn(ParticleBurst.Kind.Mist, end, Vector3.up, 2, 1.3f, 2f, 40f);
+                int more = Mathf.RoundToInt(scale);
+                ParticleBurst.Spawn(ParticleBurst.Kind.Mist, origin, along, more, 0.8f * scale, 3f, 20f);
+                for (int i = 0; i < more; i++)
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Water, Vector3.Lerp(origin, end, Random.value), along + Vector3.down * 2f, 2, 0.14f * scale, 3f, 40f);
+                ParticleBurst.Spawn(ParticleBurst.Kind.Water, end, Vector3.up - along.normalized * 0.7f, 6 * more, 0.2f * scale, 6f * Mathf.Sqrt(scale), 55f);
+                if (Random.value < 0.4f * scale) ParticleBurst.Spawn(ParticleBurst.Kind.Mist, end, Vector3.up, 2 * more, 1.3f * scale, 2f, 40f);
             }
             if (Time.time >= nextRipple && shriekMaterial != null)
             {
                 nextRipple = Time.time + 0.3f;
-                ExpandingRing.Spawn(shriekMaterial, GroundBelow(end) + Vector3.up * 0.05f, 2.2f, 0.6f, 0.12f);
+                ExpandingRing.Spawn(shriekMaterial, GroundBelow(end) + Vector3.up * 0.05f, 2.2f * scale, 0.6f, 0.12f * scale);
             }
         }
 
@@ -757,7 +893,7 @@ namespace SignalLost.Enemies.Meadow
             Vector3 aim = ground + transform.forward * spinRange + Vector3.up * spinBeamHeight;
             Vector3 end = BeamEnd(origin, aim - origin, spinRange + 2f);
             DrawWaterBeam(origin, end, 0.85f);
-            BeamHits(origin, end);
+            BeamHits(origin, end, beamHitRadius, trackDamagePerTick);
             if (Random.value < 0.2f) SprayFromRig(0.3f);
             if (t < 1f) return;
             nextSpin = Time.time + spinCooldown / Tempo;
@@ -842,7 +978,7 @@ namespace SignalLost.Enemies.Meadow
 
         // True if the jet from origin to end passes through the player (judged at their feet-to-head height, so the
         // low spinning beam can be jumped).
-        private bool PlayerInBeam(Vector3 origin, Vector3 end)
+        private bool PlayerInBeam(Vector3 origin, Vector3 end, float radius)
         {
             if (!TargetAlive) return false;
             float feetY = TargetBody != null ? TargetBody.bounds.min.y : Target.position.y;
@@ -855,16 +991,22 @@ namespace SignalLost.Enemies.Meadow
             relative.y = 0f;
             float distance = Vector3.Dot(relative, along);
             if (distance < 0f || distance > length) return false;
-            if ((relative - along * distance).magnitude > beamHitRadius) return false;
+            if ((relative - along * distance).magnitude > radius) return false;
             float beamY = Mathf.Lerp(origin.y, end.y, distance / length);
             return beamY >= feetY - 0.6f && beamY <= feetY + 2.3f; // a thick jet: forgiving top and bottom
         }
 
-        private void ClearMarker()
+        /// <param name="sweepWedge">Also remove the torrent sweep's wedge (false while the torrent is still crossing it).</param>
+        private void ClearMarker(bool sweepWedge = true)
         {
             if (marker != null) Destroy(marker.gameObject);
             marker = null;
+            if (!sweepWedge) return;
+            if (sweepMarker != null) Destroy(sweepMarker.gameObject);
+            sweepMarker = null;
         }
+
+        private static Vector3 Level(Vector3 v) => new Vector3(v.x, 0f, v.z);
 
         // ---------- Beam visuals ----------
 
@@ -926,7 +1068,8 @@ namespace SignalLost.Enemies.Meadow
         }
 
         // Lays a layer from the mouth to the end, rippling sideways (most in the middle) by up to wobble metres.
-        private static void DrawLine(LineRenderer line, Vector3 from, Vector3 to, float width, float wobble)
+        // mouthShare: its width at the mouth, as a share of width (it widens to 1.25x at the far end).
+        private static void DrawLine(LineRenderer line, Vector3 from, Vector3 to, float width, float wobble, float mouthShare = 0.8f)
         {
             if (line == null) return;
             Vector3 along = to - from;
@@ -943,7 +1086,7 @@ namespace SignalLost.Enemies.Meadow
                 line.SetPosition(i, from + along * k + offset);
             }
             float pulse = 1f + 0.12f * Mathf.Sin(Time.time * 40f);
-            line.startWidth = width * 0.8f * pulse;
+            line.startWidth = width * mouthShare * pulse;
             line.endWidth = width * 1.25f * pulse; // spreads as it goes
         }
 
@@ -974,7 +1117,14 @@ namespace SignalLost.Enemies.Meadow
             float k = StateProgress();
             switch (state)
             {
-                case State.BeamCharge: jawTarget = 0.45f; throatTarget = 1f * k; glowTarget = 1f + 1.5f * k; break;
+                // Tracking jet: he rears up and his throat balloons, coolant glowing hotter and flickering as it locks.
+                // Torrent sweep: he squats low and wide, jaw gaping, for the big one.
+                case State.BeamCharge when beamVariant == BeamVariant.Tracking:
+                    jawTarget = 0.35f + 0.25f * k; throatTarget = 1.6f * k; pitchTarget = -14f * k;
+                    glowTarget = 1f + 2.2f * k * (0.85f + 0.15f * Mathf.Sin(time * 30f)); break;
+                case State.BeamCharge:
+                    crouchTarget = 0.8f * k; jawTarget = 0.5f + 0.4f * k; throatTarget = 1.1f * k; glowTarget = 1f + 1.8f * k; break;
+                case State.Beam when beamVariant == BeamVariant.Sweep: crouchTarget = 0.7f; jawTarget = 1f; throatTarget = 0.5f; glowTarget = 2.6f; break;
                 case State.Beam: jawTarget = 0.95f; throatTarget = 0.35f; glowTarget = 2.2f; break;
                 case State.BladeWindup: glowTarget = 1.4f; throatTarget = 0.4f; break;
                 case State.Blades: jawTarget = 0.3f; break;
@@ -1055,7 +1205,7 @@ namespace SignalLost.Enemies.Meadow
             float duration;
             switch (state)
             {
-                case State.BeamCharge: duration = beamCharge / Tempo; break;
+                case State.BeamCharge: duration = BeamChargeTime; break;
                 case State.BladeWindup: duration = bladeWindup / Tempo; break;
                 case State.ScreamWindup: duration = screamWindup / Tempo; break;
                 case State.SpinCharge: duration = spinCharge / Tempo * 1.4f; break;

@@ -107,7 +107,8 @@ namespace SignalLost.Player
                     "Your trusty, slightly rusty multitool.\n" +
                     $"<b>Left click</b>  three-hit combo.{combo}\n" +
                     $"<b>Hold right click</b>  charge a bolt, release to fire ({laser.TapShotCooldown:0.#}-{laser.ShotCooldown:0.#} s cooldown). " +
-                    "A full charge bursts on impact.",
+                    "A full charge bursts on impact.\n" +
+                    "<b>C in mid-air</b>  smash down. The higher you jump from, the harder it hits.",
                     UiTheme.Accent);
             }
             else if (item == PlayerItem.Scanner)

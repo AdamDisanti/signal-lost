@@ -19,7 +19,7 @@ namespace SignalLost.UI
         private static readonly (string action, string keys)[] Controls =
         {
             ("Move", "W A S D  /  left stick"), ("Look", "Mouse  /  right stick"), ("Sprint", "Left Shift  /  stick click"),
-            ("Jump", "Space  /  A"), ("Laser combo", "Left click  /  X"), ("Charge bolt", "Hold right click  /  RT"),
+            ("Jump", "Space  /  A"), ("Laser combo", "Left click  /  X"), ("Charge bolt", "Hold right click  /  RT"), ("Jump smash", "C in mid-air  /  B"),
             ("Swap scanner / laser", "Q  /  LB"), ("Drink from the flask", "F  /  D-pad up"), ("Talk / pick up", "E  /  Y"),
             ("Inventory", "Tab  /  View"), ("Pause", "Esc  /  Menu")
         };
@@ -73,9 +73,11 @@ namespace SignalLost.UI
 
             // Controls: a readable list; rebinding comes later.
             RectTransform controls = (RectTransform)pages[Page.Controls].transform;
+            // Rows shrink to fit the page (the pause menu's panel is shorter than the title screen's).
+            float rowHeight = Mathf.Clamp((size.y - 130f) / Controls.Length - 6f, 28f, 40f);
             for (int i = 0; i < Controls.Length; i++)
             {
-                Row(controls, i, Controls[i].action, out RectTransform row, 40f);
+                Row(controls, i, Controls[i].action, out RectTransform row, rowHeight);
                 TextMeshProUGUI keys = UiTheme.Label("Keys", row, 24f, UiTheme.Accent, TextAlignmentOptions.MidlineRight, FontStyles.Bold);
                 UiTheme.Stretch(keys.rectTransform);
                 keys.text = Controls[i].keys;

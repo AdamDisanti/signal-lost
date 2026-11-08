@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SignalLost.Player;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -253,6 +254,39 @@ namespace SignalLost.Combat
             else BuildPlaceholderTool();
             basePosition = restPosition;
             toolPivot.gameObject.SetActive(isActiveAndEnabled);
+
+            // The jump smash is the laser's: every player holding one can do it (Lawson, 11-07).
+            if (GetComponent<FirstPersonController>() != null && !TryGetComponent(out JumpSmash _)) gameObject.AddComponent<JumpSmash>();
+        }
+
+        // ---------- Jump smash (JumpSmash drives these) ----------
+
+        private bool smashRaised;
+        private float smashStruckAt = float.NegativeInfinity;
+        private const float SmashStrikeTime = 0.35f;
+
+        /// <summary>The laser energy colour, for effects that match it.</summary>
+        public Color EnergyColor => energyColor;
+
+        /// <summary>True while the laser is raised overhead for a jump smash; swings and shots wait.</summary>
+        public bool SmashRaised => smashRaised;
+
+        /// <summary>Raises the laser overhead (diving) or lowers it again without striking.</summary>
+        public void SetSmashRaised(bool raised)
+        {
+            smashRaised = raised;
+            if (!raised) return;
+            IsCharging = false;
+            IsSwinging = false;
+            queuedSwing = false;
+        }
+
+        /// <summary>The smash landed: slam the laser down hard, with a kick scaled by <paramref name="power"/> (0-1).</summary>
+        public void SmashLanded(float power)
+        {
+            smashRaised = false;
+            smashStruckAt = Time.time;
+            AddKick(Slam.Kick * Mathf.Lerp(1.5f, 3f, power));
         }
 
         private void OnEnable()
@@ -307,7 +341,7 @@ namespace SignalLost.Combat
             {
                 waitForRelease = false;
             }
-            bool active = controllable && !waitForRelease;
+            bool active = controllable && !waitForRelease && !smashRaised;
 
             // Charged shot: releasing fires; holding starts a charge once no swing or cooldown is in the way.
             if (IsCharging && !chargeHeld)
@@ -657,8 +691,24 @@ namespace SignalLost.Combat
                 if (charge >= 1f) position += Random.insideUnitSphere * 0.005f; // slight shake while full
                 rotation = Quaternion.Euler(-4f, -8f, 0f); // point toward the crosshair
             }
+            else if (smashRaised)
+            {
+                // Diving: raised high overhead, trembling slightly.
+                position += Slam.WindupPosition * 1.3f + Random.insideUnitSphere * 0.003f;
+                rotation = Quaternion.Euler(Slam.WindupRotation * 1.15f);
+            }
 
-            if (IsSwinging)
+            float sinceSmash = Time.time - smashStruckAt;
+            bool smashing = sinceSmash < SmashStrikeTime;
+            if (smashing)
+            {
+                // Landed: driven down into the ground, then recovering.
+                float k = 1f - sinceSmash / SmashStrikeTime;
+                position += Slam.StrikePosition * 1.4f * k + Vector3.down * 0.06f * k;
+                rotation = Quaternion.Euler(Slam.StrikeRotation * 1.3f * k);
+            }
+
+            if (IsSwinging || smashing)
             {
                 // Strikes are timed exactly, so follow the pose with no smoothing.
                 basePosition = restPosition + position;
