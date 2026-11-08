@@ -26,6 +26,9 @@ namespace SignalLost.NPC
         [SerializeField] private bool startFriendly;
         [Tooltip("After surrendering, the crab leads the player home; it waits while the player is this far behind.")]
         [SerializeField, Min(2f)] private float leadWaitDistance = 12f;
+        [Tooltip("The crab and its cousins stay out of the world until the quest that sends the player after it is given " +
+                 "(SpawnForQuest; in the tutorial, Cavendish's big-crab quest). Off: it is there from the start.")]
+        [SerializeField] private bool spawnAfterQuest;
 
         [Header("Cousins (the Bucket Brothers)")]
         [Tooltip("The same ten cousins fight beside the crab in its quest and answer when the angry merchant calls. " +
@@ -35,6 +38,10 @@ namespace SignalLost.NPC
         [SerializeField, Min(1)] private int hitsBeforeAmbush = 6;
         [Tooltip("Each hit is forgotten after this many seconds without another.")]
         [SerializeField, Min(1f)] private float angerCooldown = 10f;
+        [Tooltip("After the crab surrenders, a cousin that has not been hit for this many seconds and is farther than " +
+                 "Straggler Distance from the player gives up and goes home, so a stuck or idle cousin cannot stall the quest.")]
+        [SerializeField, Min(1f)] private float stragglerGrace = 10f;
+        [SerializeField, Min(2f)] private float stragglerDistance = 9f;
         private HermitCrab brain;
         private HermitCrabRig rig;
         private Health health;
@@ -91,6 +98,18 @@ namespace SignalLost.NPC
             }
         }
 
+        /// <summary>True while the crab waits, out of the world, for its quest (see Spawn After Quest).</summary>
+        public bool AwaitingQuest => spawnAfterQuest && !spawned;
+        private bool spawned;
+
+        /// <summary>The quest that introduces the crab was given: it and its cousins appear.</summary>
+        public void SpawnForQuest()
+        {
+            spawned = true;
+            gameObject.SetActive(true);
+            foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.gameObject.SetActive(true);
+        }
+
         private void Awake()
         {
             player = FindAnyObjectByType<PlayerLife>();
@@ -103,6 +122,13 @@ namespace SignalLost.NPC
             brain.Stunnable = false; // a mini-boss: the combo finisher does not stun it
             health.Invulnerable = true;
             foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.Crab.enabled = false; // until the quest
+            if (AwaitingQuest)
+            {
+                // Not yet: hide the crab and the cousins until SpawnForQuest. This comes last, after the setup above,
+                // because hiding runs OnDisable (which needs health) and the crab must be ready the moment it appears.
+                foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.gameObject.SetActive(false);
+                gameObject.SetActive(false);
+            }
         }
         private void OnEnable() { health.Died += Defeated; health.Damaged += OnDamaged; health.Blocked += OnBlocked; }
         private void OnDisable()
@@ -155,7 +181,16 @@ namespace SignalLost.NPC
             health.Invulnerable = true;
             if (carriedFlask != null) carriedFlask.SetActive(false);
             foreach (CrabCousin cousin in cousins) if (cousin != null) cousin.Despawn();
+            // Already settled in: on its log by the fire (the island camps, 11-08).
+            if (seat != null)
+            {
+                agent.enabled = false;
+                transform.SetPositionAndRotation(seat.position, seat.rotation);
+            }
         }
+
+        /// <summary>Its log by the fire, if it has one.</summary>
+        public Transform Seat => seat;
 
         /// <summary>The story has already introduced the crab, so the first visit opens the shop straight away.</summary>
         public void MarkGreeted() => friendlyGreetingShown = true;
@@ -193,14 +228,7 @@ namespace SignalLost.NPC
             if (Physics.Raycast(drop + Vector3.up * 8, Vector3.down, out RaycastHit hit, 20, ~0, QueryTriggerInteraction.Ignore))
                 drop = hit.point + Vector3.up * 0.03f;
             flaskDrop.transform.position = drop;
-            flaskDrop.gameObject.SetActive(true);
-            // It floats and turns above the grass so it is easy to spot.
-            Transform bottle = flaskDrop.transform.Find("Visual");
-            if (bottle != null && flaskDrop.GetComponent<SignalLost.Progression.PickupSpin>() == null)
-            {
-                bottle.localPosition += Vector3.up * 0.45f;
-                flaskDrop.gameObject.AddComponent<SignalLost.Progression.PickupSpin>().Model = bottle;
-            }
+            flaskDrop.gameObject.SetActive(true); // it floats and turns above the grass like every collectable (FloatingPickup)
             if (CousinsDown)
                 dialogue.Speak("All right! Claws down!",
                     "Trading is my business. Brawling is clearly yours.",
@@ -219,7 +247,20 @@ namespace SignalLost.NPC
             if (!CousinsDown)
             {
                 // It has given up, but the cousins have not: it waits for the brawl to end before leading the way.
-                yield return new WaitUntil(() => CousinsDown);
+                // Cousins still in the thick of it keep fighting; ones left out of it (idle in a corner of the hollow,
+                // or stuck behind a rock) give up after a while instead of holding up the quest for ever.
+                float surrendered = Time.time;
+                while (!CousinsDown)
+                {
+                    yield return new WaitForSeconds(1f);
+                    if (Time.time - surrendered < stragglerGrace) continue;
+                    foreach (CrabCousin cousin in cousins)
+                    {
+                        if (cousin == null || cousin.IsDown || Time.time - cousin.LastHurt < stragglerGrace) continue;
+                        float gap = player != null ? Vector3.Distance(player.transform.position, cousin.transform.position) : float.PositiveInfinity;
+                        if (gap > stragglerDistance) cousin.Retreat();
+                    }
+                }
                 dialogue.Speak(4f, "...And that's the whole family. Fine, FINE. I'll come quietly.");
             }
             agent.enabled = true;
@@ -313,10 +354,11 @@ namespace SignalLost.NPC
                 if (cousins[i] == null) continue;
                 float angle = (i + UnityEngine.Random.value * 0.5f) / cousins.Length * Mathf.PI * 2f;
                 Vector3 spot = transform.position + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * UnityEngine.Random.Range(4.5f, 8f);
-                if (!NavMesh.SamplePosition(spot, out NavMeshHit hit, 4f, NavMesh.AllAreas)) continue;
-                Vector3 face = player != null ? player.transform.position - hit.position : -transform.forward;
+                // Never inside the wreck, under the ground or somewhere the player can't reach.
+                if (!SpawnSafety.TryPlace(spot, 4f, out Vector3 at)) continue;
+                Vector3 face = player != null ? player.transform.position - at : -transform.forward;
                 face.y = 0f;
-                cousins[i].Summon(hit.position, face.sqrMagnitude > 0.01f ? Quaternion.LookRotation(face) : Quaternion.identity);
+                cousins[i].Summon(at, face.sqrMagnitude > 0.01f ? Quaternion.LookRotation(face) : Quaternion.identity);
                 ambush.Add(cousins[i].Crab);
             }
             if (ambush.Count == 0) { EndAmbush(); return; }

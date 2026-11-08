@@ -352,7 +352,7 @@ MonoBehaviour:
     m_Bits: 4294967295
   heldModel: {fileID: 4307029778071904678, guid: ebf5ba36196b4844497405ecfbecac51, type: 3}
   heldModelScale: 0.55
-  gripPosition: {x: -0.02, y: -0.08, z: -0.22}
+  gripPosition: {x: -0.03, y: -0.02, z: -0.06}
   heldModelRotation: {x: 0, y: -3, z: 0}
   comboDamage:
   - 20
@@ -361,7 +361,7 @@ MonoBehaviour:
   comboDuration:
   - 0.35
   - 0.35
-  - 0.6
+  - 0.85
   meleeRange: 2.5
   comboArc:
   - 30

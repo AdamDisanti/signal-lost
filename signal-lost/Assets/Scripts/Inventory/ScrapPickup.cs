@@ -4,8 +4,9 @@ using UnityEngine;
 namespace SignalLost.Inventory
 {
     /// <summary>
-    /// One chunk of scrap dropped by a defeated enemy (meeting notes 2026-10-20). It pops out, lands, bobs and
-    /// spins, and once the player walks within <see cref="MagnetRadius"/> it is sucked into their pockets and
+    /// One chunk of scrap dropped by a defeated enemy (meeting notes 2026-10-20). It pops out, lands, then floats, bobs
+    /// and spins at the size and height every collectable shares (<see cref="GroundItem"/>), and once the player walks
+    /// within <see cref="MagnetRadius"/> it is sucked into their pockets and
     /// sorted into the inventory. Built at runtime from primitives, so no prefab is needed; shape and colour
     /// tell the four types apart.
     /// </summary>
@@ -51,6 +52,10 @@ namespace SignalLost.Inventory
                 renderer.sharedMaterial = MaterialFor(type);
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
+            // The shared collectable size (GroundItem), measured upright before it is thrown.
+            Bounds bounds = GroundItem.VisibleBounds(chunk.transform);
+            float longest = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
+            if (longest > 0.0001f) chunk.transform.localScale *= GroundItem.Size / longest;
             chunk.transform.position = position;
             chunk.transform.rotation = Random.rotation;
             var pickup = chunk.AddComponent<ScrapPickup>();
@@ -113,19 +118,20 @@ namespace SignalLost.Inventory
                         0.25f - step.y, ~0, QueryTriggerInteraction.Ignore) && !ground.collider.GetComponentInParent<PlayerInventory>())
                 {
                     landed = true;
-                    restY = ground.point.y + 0.3f;
+                    restY = ground.point.y + GroundItem.Hover;
                 }
                 else transform.position += step;
                 transform.Rotate(velocity.magnitude * 40f * Time.deltaTime, spin * Time.deltaTime, 0f, Space.World);
                 return;
             }
 
-            // Resting: hover, bob and spin so it is easy to spot.
+            // Resting: rises to the shared hover height, then bobs and spins like every collectable (GroundItem).
             Vector3 position = transform.position;
-            position.y = Mathf.Lerp(position.y, restY + Mathf.Sin((Time.time + born) * 3f) * 0.06f, 8f * Time.deltaTime);
+            float t = Time.time + born;
+            position.y = Mathf.Lerp(position.y, restY + Mathf.Sin(t * GroundItem.BobSpeed) * GroundItem.BobHeight, 6f * Time.deltaTime);
             transform.position = position;
-            // Settle upright, then turn slowly so the model reads.
-            Quaternion upright = Quaternion.Euler(0f, transform.eulerAngles.y + Mathf.Sign(spin) * 70f * Time.deltaTime, 0f);
+            // Settle upright, then turn so the model reads.
+            Quaternion upright = Quaternion.Euler(0f, transform.eulerAngles.y + Mathf.Sign(spin) * GroundItem.SpinSpeed * Time.deltaTime, 0f);
             transform.rotation = Quaternion.Slerp(transform.rotation, upright, 6f * Time.deltaTime);
         }
 

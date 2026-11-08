@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using SignalLost.Inventory;
+using SignalLost.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -20,6 +21,8 @@ namespace SignalLost.UI
     {
         private const float Range = 6f;
         private const float RowHeight = 108f, RowGap = 8f;
+        // The list and its scrollbar (18 px) fill the panel inside UiTheme.PadLarge on both sides.
+        private const float ListWidth = 1300f - 2f * UiTheme.PadLarge - 18f;
 
         private static readonly (string label, UpgradeSlot slot)[] Filters =
         {
@@ -143,7 +146,7 @@ namespace SignalLost.UI
                 tabButtons[i].GetComponentInChildren<TextMeshProUGUI>().color = on ? new Color(0.08f, 0.08f, 0.12f) : UiTheme.Text;
             }
             PlayerInventory inventory = PlayerInventory.Current;
-            int owned = inventory != null ? inventory.Upgrades.Count : 0;
+            int owned = inventory != null ? UpgradeCatalog.Installed(inventory.Upgrades).Count() : 0;
             TextMeshProUGUI purchasedLabel = purchasedButton.GetComponentInChildren<TextMeshProUGUI>();
             purchasedLabel.text = $"Purchased ({owned})";
             purchasedLabel.color = showPurchased ? new Color(0.08f, 0.08f, 0.12f) : UiTheme.Text;
@@ -163,9 +166,11 @@ namespace SignalLost.UI
         private IEnumerable<Upgrade> Listings(PlayerInventory inventory)
         {
             if (showPurchased)
-                return UpgradeCatalog.All.Where(u => u.OneOff && inventory != null && inventory.Owns(u.Id)).OrderBy(u => u.Slot);
+                return inventory == null ? Enumerable.Empty<Upgrade>() : UpgradeCatalog.Installed(inventory.Upgrades).OrderBy(u => u.Slot);
             UpgradeSlot type = Filters[tab].slot;
-            return UpgradeCatalog.All.Where(u => u.Slot == type && (u.Region == Region || !u.OneOff) && !(u.OneOff && inventory != null && inventory.Owns(u.Id)));
+            // Only the next tier of each upgrade: the first one not owned yet.
+            return UpgradeCatalog.All.Where(u => u.Slot == type && (u.Region == Region || !u.OneOff) &&
+                !(u.OneOff && inventory != null && (inventory.Owns(u.Id) || (u.Requires != null && !inventory.Owns(u.Requires)))));
         }
 
         private void Update()
@@ -177,7 +182,7 @@ namespace SignalLost.UI
             bool walkedAway = owner == null || player == null || Vector3.Distance(owner.position, player.position) > Range;
             if (walkedAway || Keyboard.current?.escapeKey.wasPressedThisFrame == true) { Close(); return; }
             if (openedFrame == Time.frameCount || Keyboard.current == null) return;
-            if (Keyboard.current.eKey.wasPressedThisFrame) { Close(); return; }
+            if (KeyBindings.WasPressed("interact")) { Close(); return; }
             for (int i = 0; i < Filters.Length; i++)
                 if (Keyboard.current[Key.Digit1 + i].wasPressedThisFrame) ShowTab(i);
         }
@@ -223,41 +228,41 @@ namespace SignalLost.UI
             title.text = "BUCKET & BARTER";
 
             TextMeshProUGUI tagline = UiTheme.Label("Tagline", panel, 24f, UiTheme.Muted, TextAlignmentOptions.TopLeft, FontStyles.Italic);
-            UiTheme.Place(tagline.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(46f, -58f), new Vector2(900f, 34f));
+            UiTheme.Place(tagline.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge, -58f), new Vector2(900f, 34f));
             tagline.text = "Est. whenever you crashed. No refunds. No questions. Some claws.";
 
             balanceText = UiTheme.Label("Balance", panel, 28f, UiTheme.Text, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
-            UiTheme.Place(balanceText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(46f, -96f), new Vector2(1220f, 44f));
+            UiTheme.Place(balanceText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge, -96f), new Vector2(ListWidth, 44f));
 
             for (int i = 0; i < Filters.Length; i++)
             {
                 int index = i;
                 Button button = UiTheme.Button(Filters[i].label, panel, $"{i + 1}  {Filters[i].label}", 24f);
-                UiTheme.Place((RectTransform)button.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(46f + i * 203f, -150f), new Vector2(193f, 56f));
+                UiTheme.Place((RectTransform)button.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge + i * 203f, -150f), new Vector2(193f, 56f));
                 button.onClick.AddListener(() => ShowTab(index));
                 tabButtons.Add(button);
             }
 
             // Up to five rows show at once; the Purchased list can be longer, so it scrolls.
-            listArea = UiTheme.Place(UiTheme.Rect("Listings", panel), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(46f, -226f), new Vector2(1208f, 576f));
+            listArea = UiTheme.Place(UiTheme.Rect("Listings", panel), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge, -226f), new Vector2(ListWidth, 576f));
             listContent = UiTheme.ScrollList(listArea);
             emptyText = UiTheme.Label("Empty", listArea, 26f, UiTheme.Muted, TextAlignmentOptions.Center, FontStyles.Italic);
             UiTheme.Place(emptyText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1000f, 40f));
 
             // Below the list: what you already own, kept out of the way.
             purchasedButton = UiTheme.Button("Purchased", panel, "Purchased (0)", 24f);
-            UiTheme.Place((RectTransform)purchasedButton.transform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(46f, 76f), new Vector2(260f, 52f));
+            UiTheme.Place((RectTransform)purchasedButton.transform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(UiTheme.PadLarge, 84f), new Vector2(260f, 52f));
             purchasedButton.onClick.AddListener(ShowPurchased);
 
             Button close = UiTheme.Button("Close", panel, "Close");
-            UiTheme.Place((RectTransform)close.transform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, -30f), new Vector2(150f, 52f));
+            UiTheme.Place((RectTransform)close.transform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-UiTheme.PadLarge, -UiTheme.PadLarge), new Vector2(150f, 52f));
             close.onClick.AddListener(Close);
 
             TextMeshProUGUI hint = UiTheme.Label("Hint", panel, 24f, UiTheme.Accent, TextAlignmentOptions.BottomRight, FontStyles.Bold);
-            UiTheme.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 24f), new Vector2(900f, 34f));
-            hint.text = "[1]-[6]  Filters     BUY, then CONFIRM     [E] / [Esc]  Close";
+            UiTheme.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-UiTheme.PadLarge, UiTheme.PadLarge), new Vector2(900f, 34f));
+            hint.text = $"[1]-[6]  Filters     BUY, then CONFIRM     {KeyBindings.Hint("interact")} / [Esc]  Close";
             TextMeshProUGUI note = UiTheme.Label("Note", panel, 22f, UiTheme.Muted, TextAlignmentOptions.BottomLeft, FontStyles.Italic);
-            UiTheme.Place(note.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(46f, 24f), new Vector2(600f, 34f));
+            UiTheme.Place(note.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(UiTheme.PadLarge, UiTheme.PadLarge), new Vector2(600f, 34f));
             note.text = "All sales final. Installation free. Claws optional.";
             root.SetActive(false);
         }
@@ -266,13 +271,14 @@ namespace SignalLost.UI
         {
             bool owned = listing.OneOff && inventory != null && inventory.Owns(listing.Id);
             bool isSelected = listing == selected;
-            Sprite icon = listing.IsTrade ? ScrapCatalog.Icon(listing.Gives) : ItemCatalog.Icon(listing.Id);
+            Sprite icon = listing.IsTrade ? ScrapCatalog.Icon(listing.Gives) : ItemCatalog.Icon(listing.ArtId);
             string body = listing.IsTrade ? TradeText(listing) : listing.Description;
             if (listing.IsSupply && inventory != null) body += $"   <color={UiTheme.Hex(UiTheme.Text)}>(you have {inventory.SupplyCount(listing.Id)})</color>";
             if (showPurchased) body = $"<color={UiTheme.Hex(ItemRows.SlotColor(listing.Slot))}>{ItemRows.SlotName(listing.Slot)}</color>  " + body;
+            if (listing.Tiers > 1) body += $"   <color={UiTheme.Hex(UiTheme.Muted)}>Tier {listing.Tier} of {listing.Tiers}</color>";
             // The description stops short of the price and button (just the button when it's already yours).
             RectTransform row = ItemRows.Row(listContent, listing.Name, icon, listing.Name, isSelected ? UiTheme.Accent : UiTheme.Text, body,
-                new Vector2(0f, -index * (RowHeight + RowGap)), new Vector2(1208f, RowHeight), owned ? 240f : 580f);
+                new Vector2(0f, -index * (RowHeight + RowGap)), new Vector2(ListWidth, RowHeight), owned ? 240f : 580f);
             if (isSelected) row.GetComponent<Image>().color = Color.Lerp(UiTheme.PanelLight, UiTheme.Accent, 0.25f);
 
             if (!owned)
@@ -289,7 +295,7 @@ namespace SignalLost.UI
             string why = inventory != null ? inventory.WhyNot(listing) : "No pockets";
             string label = owned ? "INSTALLED" : isSelected ? "CONFIRM" : "BUY";
             Button buy = UiTheme.Button("Buy", row, label, 22f);
-            UiTheme.Place((RectTransform)buy.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-16f, 0f), new Vector2(196f, 56f));
+            UiTheme.Place((RectTransform)buy.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-UiTheme.PadSmall, 0f), new Vector2(196f, 56f));
             buy.interactable = why == null;
             if (isSelected) buy.GetComponent<Image>().color = UiTheme.Good;
             buy.onClick.AddListener(() => Press(listing));

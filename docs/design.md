@@ -275,3 +275,97 @@ Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutoria
 - Pause menu centred.
 - Shop: type filters, a Purchased filter, scrap amounts as icons, and a preview-then-confirm purchase. The pockets' Upgrades tab shows only what is installed.
 - The merchant crab and its cousins only appear once Cavendish gives the big-crab quest.
+
+## Islands instead of cliffs (11-07)
+
+Lawson asked for an ocean-island system in place of the cliff boundaries; see [islands](islands.md).
+
+- **Islands.** The tutorial's mountain ring and the desert's perimeter dunes and entrance canyon are now beaches into the sea.
+- **Docks.** There is a departure dock at the end of each stage and an arrival dock where the previous stage's boat lands. Interacting with a departure boat plays the voyage cutscene: sailing out, a wide aerial shot, a fade while the next scene loads, then sailing in and zooming back into the player's eyes.
+- **No swimming.** Feet more than 1.3 m under the surface fade to black, cost 15 health and put the player back on the nearest dry land.
+- **Water.** The water shader was reworked to be clearer, higher resolution and low-poly, in the style of the reference picture.
+- **Placement and gates (my calls, not specified):**
+  - The tutorial boat is behind Cavendish's camp and unlocks when the tutorial is finished; the demo end card still shows.
+  - The desert arrival dock is at the player's start, and its departure dock is past the biome exit marker. That boat unlocks with the Engine Core and says the Fog Forest isn't built yet.
+- **Open:**
+  - Whether the tutorial's "Thanks for playing" card should stay now that the boat continues to the desert.
+  - Inventory, health and gear do not carry between scenes yet. That is the save system's job, so the desert still starts with its own player setup.
+  - Whether wading should slow the player.
+  - Whether the voyage needs sound (sea, sail, gulls).
+  - Whether 15 health is the right cost for deep water.
+  - Whether the far islands should match the real next stages more closely.
+  - The desert's Core Worm exit (in its test scene) and the departure dock are separate; when the boss goes into the desert scene, the worm's ambush should probably happen on the way to the dock.
+
+## The crew sails too, camps and island outfits (11-08)
+
+Lawson asked for three things (see [islands](islands.md)):
+- The player physically boards the boat.
+- Cavendish and Eugene come along, and set up camp near the arrival dock on the next island. The camp keeps the same structure with island theming.
+- The player, Cavendish and Eugene change clothes for each island.
+
+- **On the boat:** the voyage shows the mechanic's own body (the pockets figure's rounded model, from the player model revamp) walking aboard and standing at the tiller.
+  - Cavendish and Eugene come down the dock and climb in.
+  - The boat is now twice the size (about 10 m), with a raised boom and three thwarts, so the three of them fit.
+- **Who comes:** Cavendish always does. Eugene comes once he is a friendly trader, which he always is by the time the tutorial boat unlocks.
+- **Arrival:**
+  - Everyone steps ashore. A short cut shows Cavendish and Eugene at the camp site while the camp goes up piece by piece; then they sit down by the fire.
+  - The camp sits just inland of the desert's arrival dock, on the biome entrance's flat ground. It replaces the old "Cavendish (quest giver)" and merchant-spot placeholders there.
+- **Desert camp:** the same pieces in the same layout as the base camp, restyled for the desert:
+  - sandstone fire ring, driftwood logs and stands, and a terracotta-and-indigo tent;
+  - additions: a sun shade over Cavendish's log, a rug and water jars.
+  - The trophy stands show the same saved trophies.
+- **Outfits (my calls on the details):**
+  - Crash Meadow is everyone's current look.
+  - In the desert:
+    - **The mechanic:** khaki suit with rust trim, a bush hat with goggles, a neckerchief and suede gloves. This shows on the first-person sleeves too.
+    - **Cavendish:** a sand-and-terracotta suit, his helmet frame and lamp off, a straw sun hat, sunglasses and a neckerchief.
+    - **Eugene:** a beach parasol in his bucket, goggles and a bandana.
+  - Each island's look is set by a `StageTheme` in its scene.
+- **Desert residents are the desert scene's own:** the Cavendish and Eugene who step off the boat belong to the desert scene, so they are there (seated by the fire) however the desert is loaded. The tutorial's NPCs are not carried across scenes.
+- **Open:**
+  - Should the desert camp be missing anyone who didn't actually board? For example, sailing with `IgnoreRequirements` before Eugene was met. It always has both today.
+  - Cavendish has small talk in the desert but no quests there yet.
+  - Eugene's shop works, but inventory and upgrades still don't carry between scenes (see above).
+  - Nicole owns the Desert Dunes scene: the camp install removed the two placeholders and added the camp, the residents and a `StageTheme`.
+
+## Upgrade tiers, spawn safety, key bindings and title cycle (11-07)
+
+- **Upgrade tiers.** Each upgrade is a line of small tiers (I, II, III), each dearer than the last; see [upgrades](upgrades.md). Totals at max tier match or slightly beat the old one-off upgrades: bolts +30%, health +30, two extra sips. Open: final costs need play-testing against how much scrap the tutorial actually hands out.
+- **Spawn safety.** `Enemies/Common/SpawnSafety.cs` refuses an enemy spot that is off the NavMesh, has something solid within 7 m overhead, is below a terrain, overlaps solid geometry, or has no complete NavMesh path to the player (or the respawn point). Frog waves, desert fodder waves and the crab-cousin ambush pick only safe spots, and hand-placed crabs, frogs and fodder move to the nearest safe spot (within 8 m) when they start. Open: spots under tree canopies lower than 7 m count as "under" something and are skipped; frog waves fall back to the nearest NavMesh (with a warning) if a whole bank has no safe spot, so the quest can't stall.
+- **Key bindings.** Keyboard and mouse controls can be rebound on the Controls page; gamepad stays fixed for now. The data is ready for the save system (see [core player](core-player.md)). Open: whether gamepad rebinding is wanted, and whether the number keys used by menu tabs should be rebindable.
+- **Text padding.** One padding value per box size, the same on all four sides (`UiTheme.Pad`, `PadSmall`, `PadLarge`).
+- **Title screen.** A Terraria-style day-night cycle, 150 s per day, opening at dusk.
+
+## Combat and crash-site polish (11-07)
+
+Lawson's list, as built. Numbers are provisional, not agreed balance.
+
+- **Crash-site debris:** the random scatter of 140 pieces is replaced by a crash layout. A scorched skid trail runs down the trench, with wreckage dug in and pointing the way the ship slid. It is bunched where it struck and bounced (at the trench fires): a torn wing section on the trench lip, cargo spilled out of one side, light junk thrown past the nose, and ploughed dirt along the trench edges. About half as many pieces. Trees that grew in the trench are gone; the rest of the forest, the hollow and the pond are unchanged. See `CrashDebrisLayout`.
+- **Merchant spawn flag:** the merchant crab has a **Spawn After Quest** setting. With it on, the crab and its cousins stay out of the world until the quest that sends you after them calls `SpawnForQuest`. In the tutorial that is Cavendish's big-crab quest (this was already the rule; it is now a setting on the crab instead of only the saved scene state).
+- **Jump smash (player):** in mid-air with the laser out, press C (gamepad B) to raise the laser and dive. Landing sends a shockwave that hurts and shoves everything around you.
+  - It is the player's version of the Chief Toad's jump slam.
+  - Damage scales with the height you dived from: 15 at 0.8 m up to 60 from 8 m or higher (capped there). The radius grows from 2.5 m to 5.5 m.
+  - Heavy Slam adds to it like it does to the combo finisher.
+  - It does not stun: the 10-22 rule keeps stuns to the combo finisher. 1.2 s cooldown.
+  - No fall damage was added. **Open:** whether it should stun, its numbers, and whether C is the right button.
+- **Collectables on the ground:** gear, the flask, scrap, trophies and ship parts all show at one size (0.55 m on the longest side). They float with their middle 0.8 m above the ground (lower under a low ceiling, so hidden items stay hidden), bob, and spin. The scanner and laser now float in their hiding places instead of lying there. **Open:** whether big main ship parts should be larger than scrap.
+- **Chief Toad beam:** both variants are used in every phase and take turns.
+  - The **tracking jet** has a long windup (2.3 s, never under 1.6 s) that makes it obvious it is coming and that you need cover, without on-screen text. A water orb swells in his mouth, a sighting line locks onto you, a target ring follows you, and lock-on pings speed up into a sharp lock tone. It then turns after you faster than you can run.
+  - The **torrent sweep** paints a wedge on the ground over the arc it will cover, then sweeps a much bigger, wider torrent slowly across it, so it stays on you longer.
+  - Details in [Chief Toad](chief-toad.md).
+
+## Player model revamp (11-07-26)
+
+Christian's direction, as built. Still built in code, with no art assets.
+
+- **First-person hands:** inspired by chunky, pudgy cartoon hands: a puffy palm, short thick fingers with round tips and a chunky thumb. The fingers now close: a fist with nothing out, wrapped round the laser or scanner, round the flask while drinking. They keep the tan work gloves, cream cuffs and orange sleeves.
+- **The mechanic's build:** short and stocky, with a round belly, stubby legs, short arms and a big head with almost no neck. The outfit (orange suit, cream stripe, belt, teal Maintenance Corps patch, orange cap with cream badge, gloves, boots) and face (dark eyes, nose, stubble) are unchanged.
+- **Where it shows:** the first-person hands and the pockets menu's Gear-tab figure. The player still has no body in the world (no shadow or legs when looking down), and the HUD face is unchanged.
+- **Drinking pose:** the flask is now held in the fist with its neck to the mouth and tipped up for the swig. Before, it poked out of the back of the hand.
+- **Smoothness pass (same day, Christian's request: "more smooth and not so blocky, especially the hands"):** the gloves, suit and arms are now each one seamless mesh built from rounded pieces melted together, so no seams or lumps show. The gloves are skinned so fingers bend smoothly; fingers are fatter, and in a fist the thumb wraps across the front. The head, cap, boots, eyes, patch and badge are rounder. The meshes are baked into an asset in the editor so scenes don't hitch building them.
+- **Holding and drinking pass (same day, Christian's list):**
+  - "The gun, flask and sensor don't seat well in the hands": each is now held by its real grip, measured against the actual models. The laser's pistol grip sits under its body, below the screen, so Christian chose to carry the laser **6 cm higher and 16 cm further out** so the holding arm shows (Player prefab `gripPosition` -0.02,-0.08,-0.22 → -0.03,-0.02,-0.06). The scanner is gripped by its side rail; the pockets figure holds both the same way.
+  - "Small stubble with his mouth showing": the stubble band is replaced by a flat mouth and small stubble dots on the chin and jaw, as on the HUD portrait.
+  - "More natural drinking, a big swig, easily turned into hold to chug": the flask comes up from below to the mouth with its bottom tipped up and the head tipped back, with two gulps; the pose is driven by `raise` and `gulps` so a hold-to-chug can stretch the swig. **Open:** the hold-to-chug mechanic itself (not built).
+- **Open:** whether the gloves should stay or become bare hands like the reference (`FirstPersonHands` glove colour), and whether the player should get a world body later.
+

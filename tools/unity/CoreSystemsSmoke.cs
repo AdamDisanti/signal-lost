@@ -183,7 +183,12 @@ public static class CoreSystemsSmoke
         Check(merchant.IsDefeated && !merchant.GetComponent<HermitCrab>().enabled, "The sandbox merchant starts friendly.");
         Check(merchant.Cousins.Count == 10 && merchant.Cousins.All(c => c != null && !c.gameObject.activeSelf), "Its ten cousins wait despawned for the angry-merchant ambush.");
         Aim(life, cavendish.GetComponent<Collider>(), cavendish.transform);
-        Check(interactor.Prompt.Contains("Cavendish") && interactor.TryInteract() && cavendish.Dialogue.IsManual, "Cavendish makes small talk.");
+        // The interactor refreshes its target (and so its prompt) in Update: give it a frame after the teleport.
+        yield return 0.1f;
+        string cavPrompt = interactor.Prompt;
+        bool cavTalk = interactor.TryInteract();
+        Check(cavPrompt.Contains("Cavendish") && cavTalk && cavendish.Dialogue.IsManual,
+              $"Cavendish makes small talk. (prompt='{cavPrompt}', interacted={cavTalk}, manual={cavendish.Dialogue.IsManual})");
         yield return Capture("Prompt");
         interactor.TryInteract();
         Aim(life, merchant.GetComponent<Collider>(), merchant.transform);
@@ -194,7 +199,7 @@ public static class CoreSystemsSmoke
         foreach (ScrapType type in ScrapInfo.All) pockets.AddScrap(type, 60);
         MerchantMenuUi.Instance.ShowTab(0);
         yield return 0.3f;
-        Check(MerchantMenuUi.Instance.ListingCount == 3, "The Laser filter lists the three laser upgrades.");
+        Check(MerchantMenuUi.Instance.ListingCount == 3, "The Laser filter lists tier I of the three laser upgrades.");
         int[] perType = Enumerable.Range(0, 4).Select(t => { MerchantMenuUi.Instance.ShowTab(t); return MerchantMenuUi.Instance.ListingCount; }).ToArray();
         Check(perType.SequenceEqual(new[] { 3, 1, 1, 2 }), "Filters by type: laser 3, scanner 1, flask 1, player 2.");
         MerchantMenuUi.Instance.ShowTab(0);
@@ -202,29 +207,39 @@ public static class CoreSystemsSmoke
         float boltBefore = gear.Laser.MaxShotDamage, cooldownBefore = gear.Laser.ShotCooldown, stunBefore = gear.Laser.FinisherStun;
         var scannerController = life.GetComponentInChildren<ScannerController>(true);
         float rangeBefore = scannerController.Range;
-        Button Buy() => MerchantMenuUi.Instance.GetComponentsInChildren<Button>().First(b => b.name == "Buy" && b.transform.parent.name == "Overclocked Coil");
+        Button Buy() => MerchantMenuUi.Instance.GetComponentsInChildren<Button>().First(b => b.name == "Buy" && b.transform.parent.name == "Overclocked Coil I");
         Buy().onClick.Invoke();
         string preview = GetField<TMPro.TextMeshProUGUI>(MerchantMenuUi.Instance, "balanceText").text;
-        Check(!pockets.Owns("overclocked_coil") && MerchantMenuUi.Instance.Selected?.Id == "overclocked_coil" && preview.Contains("<b>50</b>") && preview.Contains("<b>56</b>"),
-            "The first press previews: 60 \u2192 50 metal, 60 \u2192 56 wiring.");
+        Check(pockets.WhyNot(UpgradeCatalog.Find("overclocked_coil_2")) != null && !pockets.Buy(UpgradeCatalog.Find("overclocked_coil_2")),
+            "Tier II cannot be bought before tier I.");
+        Check(!pockets.Owns("overclocked_coil") && MerchantMenuUi.Instance.Selected?.Id == "overclocked_coil" && preview.Contains("<b>52</b>") && preview.Contains("<b>58</b>"),
+            "The first press previews: 60 \u2192 52 metal, 60 \u2192 58 wiring.");
         yield return Capture("ShopPreview");
         Buy().onClick.Invoke();
-        Check(pockets.Owns("overclocked_coil") && pockets.Scrap(ScrapType.ScrapMetal) == 50 && pockets.Scrap(ScrapType.Wiring) == 56,
-            "Confirm pays 10 metal and 4 wiring and installs the Overclocked Coil.");
-        Check(MerchantMenuUi.Instance.ListingCount == 2, "Bought upgrades leave the type list...");
+        Check(pockets.Owns("overclocked_coil") && pockets.Scrap(ScrapType.ScrapMetal) == 52 && pockets.Scrap(ScrapType.Wiring) == 58,
+            "Confirm pays 8 metal and 2 wiring and installs Overclocked Coil I.");
+        Check(MerchantMenuUi.Instance.ListingCount == 3 && MerchantMenuUi.Instance.GetComponentsInChildren<Button>().Any(b => b.name == "Buy" && b.transform.parent.name == "Overclocked Coil II"),
+            "Buying a tier puts the next tier on the shelf in its place...");
         MerchantMenuUi.Instance.ShowPurchased();
         Check(MerchantMenuUi.Instance.ListingCount == 1, "...and show under Purchased.");
         MerchantMenuUi.Instance.ShowTab(0);
-        Check(Mathf.Approximately(gear.Laser.MaxShotDamage, boltBefore * 1.25f), "Overclocked Coil: bolts hit 25% harder.");
-        Check(!pockets.Buy(UpgradeCatalog.Find("overclocked_coil")), "An upgrade cannot be bought twice.");
-        foreach (string id in new[] { "quickcool_fins", "heavy_slam", "longnose_antenna", "castiron_liver", "padded_overalls", "slick_kneepads" })
-            Check(pockets.Buy(UpgradeCatalog.Find(id)), "Bought " + UpgradeCatalog.Find(id).Name + ".");
-        Check(Mathf.Approximately(gear.Laser.ShotCooldown, cooldownBefore * 0.75f), "Quick-Cool Fins: bolt cooldowns 25% shorter.");
-        Check(Mathf.Approximately(gear.Laser.FinisherStun, stunBefore + 0.5f), "Heavy Slam: the finisher stuns for 1.5 s.");
-        Check(Mathf.Approximately(scannerController.Range, rangeBefore + 10f), "Long-Nose Antenna: +10 m scanner range.");
-        Check(flask.BlackoutAfterStacks == 6, "Cast-Iron Liver: six drinks before a blackout.");
-        Check(Mathf.Approximately(life.Health.Max, 125f), "Padded Overalls: 125 max health.");
-        Check(Mathf.Approximately(movement.SlideDistanceScale, 1.3f), "Slick Kneepads: slides 30% further.");
+        Check(Mathf.Approximately(gear.Laser.MaxShotDamage, boltBefore * 1.1f), "Overclocked Coil I: bolts hit 10% harder.");
+        Check(!pockets.Buy(UpgradeCatalog.Find("overclocked_coil")), "A tier cannot be bought twice.");
+        // Every tier of every line (11-07: tiers cost more each step).
+        foreach (ScrapType type in ScrapInfo.All) pockets.AddScrap(type, 300);
+        foreach (Upgrade tier in UpgradeCatalog.All.Where(u => u.OneOff && !pockets.Owns(u.Id)))
+            Check(pockets.Buy(tier), "Bought " + tier.Name + ".");
+        Check(UpgradeCatalog.All.Where(u => u.Tiers > 1 && u.Tier > 1).All(u => u.Cost.Sum(c => c.amount) > UpgradeCatalog.Find(u.Requires).Cost.Sum(c => c.amount)),
+            "Every tier costs more scrap than the one before it.");
+        Check(Mathf.Approximately(gear.Laser.MaxShotDamage, boltBefore * 1.3f), "Overclocked Coil III: bolts hit 30% harder in all.");
+        Check(Mathf.Approximately(gear.Laser.ShotCooldown, cooldownBefore * 0.75f), "Quick-Cool Fins III: bolt cooldowns 25% shorter in all.");
+        Check(Mathf.Approximately(gear.Laser.FinisherStun, stunBefore + 0.5f), "Heavy Slam III: the finisher stuns 0.5 s longer.");
+        Check(Mathf.Approximately(scannerController.Range, rangeBefore + 10f), "Long-Nose Antenna III: +10 m scanner range.");
+        Check(flask.BlackoutAfterStacks == 7, "Cast-Iron Liver II: seven drinks before a blackout.");
+        Check(Mathf.Approximately(life.Health.Max, 130f), "Padded Overalls III: 130 max health.");
+        Check(Mathf.Approximately(movement.SlideDistanceScale, 1.3f), "Slick Kneepads III: slides 30% further.");
+        MerchantMenuUi.Instance.ShowTab(0);
+        Check(MerchantMenuUi.Instance.ListingCount == 0, "Maxed lines leave the shop.");
         int wiringBefore = pockets.Scrap(ScrapType.Wiring);
         Check(pockets.Buy(UpgradeCatalog.Find("trade_wiring")) && pockets.Scrap(ScrapType.Wiring) == wiringBefore + 1, "Trades turn 5 metal into 1 wiring.");
         Check(pockets.Buy(UpgradeCatalog.Find("hangover_pills")) && pockets.Buy(UpgradeCatalog.Find("mystery_snack")) &&
@@ -236,7 +251,7 @@ public static class CoreSystemsSmoke
         yield return 0.2f;
         var list = MerchantMenuUi.Instance.GetComponentInChildren<UnityEngine.UI.ScrollRect>();
         Check(MerchantMenuUi.Instance.ListingCount == 7 && list != null && list.content.rect.height > list.viewport.rect.height,
-            "All seven upgrades show under Purchased, in a list that scrolls.");
+            "All seven upgrade lines show under Purchased (top tier only), in a list that scrolls.");
         yield return Capture("ShopPurchased");
         list.verticalNormalizedPosition = 0f;
         yield return 0.2f;

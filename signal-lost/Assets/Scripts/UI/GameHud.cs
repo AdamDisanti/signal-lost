@@ -4,6 +4,7 @@ using SignalLost.Combat;
 using SignalLost.Effects;
 using SignalLost.Inventory;
 using SignalLost.Player;
+using SignalLost.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -184,7 +185,7 @@ namespace SignalLost.UI
         private void UpdateFlask()
         {
             bool owned = gear != null && gear.Has(PlayerItem.Flask) && flask != null;
-            flaskTitle.text = owned ? "SCOTCH  <size=80%>[F]</size>" : "SCOTCH";
+            flaskTitle.text = owned ? $"SCOTCH  <size=80%>{KeyBindings.Hint("drink")}</size>" : "SCOTCH";
             if (!owned)
             {
                 flaskInfo.text = $"<color={UiTheme.Hex(UiTheme.Muted)}>No flask</color>";
@@ -213,7 +214,7 @@ namespace SignalLost.UI
             PlayerGear.Held held = gear != null ? gear.InHand : PlayerGear.Held.Nothing;
             handTitle.text = held == PlayerGear.Held.Laser ? "MINING LASER" : held == PlayerGear.Held.Scanner ? "SCANNER" : "EMPTY HANDS";
             bool canSwap = gear != null && gear.Has(PlayerItem.Scanner) && gear.Has(PlayerItem.MiningLaser);
-            if (canSwap) handTitle.text += "  <size=80%><color=#A9B4CC>[Q] swap</color></size>";
+            if (canSwap) handTitle.text += $"  <size=80%><color=#A9B4CC>{KeyBindings.Hint("swap")} swap</color></size>";
 
             if (laser == null || !gear.Has(PlayerItem.MiningLaser))
             {
@@ -253,7 +254,7 @@ namespace SignalLost.UI
             lowHealthImage.color = new Color(0.8f, 0.02f, 0.02f, lowHealthLevel * (0.45f + 0.35f * beat));
             if (lowHealthFx != null) lowHealthFx.Set(lowHealthLevel, beat);
             bool hasFlask = gear != null && gear.Has(PlayerItem.Flask);
-            lowHealthText.text = hasFlask ? "LOW HEALTH  -  drink  <b>[F]</b>" : "LOW HEALTH";
+            lowHealthText.text = hasFlask ? $"LOW HEALTH  -  drink  <b>{KeyBindings.Hint("drink")}</b>" : "LOW HEALTH";
             lowHealthText.alpha = UiMenus.AnyOpen ? 0f : Mathf.Clamp01(lowHealthLevel * 1.6f) * (0.75f + 0.25f * beat);
         }
 
@@ -414,7 +415,7 @@ namespace SignalLost.UI
             UiTheme.Place(handInfo.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 10f), new Vector2(340f, 30f));
             OneLine(handInfo);
 
-            RectTransform scrapBlock = Block(barRect, "Scrap", 1196f, 300f, "SCRAP  <size=80%>[Tab]</size>");
+            RectTransform scrapBlock = Block(barRect, "Scrap", 1196f, 300f, $"SCRAP  <size=80%>{KeyBindings.Hint("inventory")}</size>");
             for (int i = 0; i < ScrapInfo.All.Length; i++)
             {
                 ScrapType type = ScrapInfo.All[i];

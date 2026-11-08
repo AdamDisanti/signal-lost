@@ -37,6 +37,16 @@ namespace SignalLost.Player
         [Tooltip("How quickly air momentum fades back to normal running speed (per second).")]
         [SerializeField, Min(0f)] private float airDrag = 0.6f;
 
+        [Header("Running arm swing (sprinting)")]
+        [Tooltip("Degrees each arm swings forward and back about the shoulder.")]
+        [SerializeField, Range(0f, 60f)] private float armSwingReach = 36f;
+        [Tooltip("Degrees the hand crosses in toward the chest at the front of the swing.")]
+        [SerializeField, Range(0f, 40f)] private float armSwingAcross = 16f;
+        [Tooltip("How wide the loop is: in on the way forward, out on the way back (degrees). 0 is a straight line.")]
+        [SerializeField, Range(0f, 25f)] private float armSwingLoop = 9f;
+        [Tooltip("Arm swings per metre run (radians). Lower is a slower, longer stride.")]
+        [SerializeField, Range(0.5f, 3f)] private float strideRate = 1.6f;
+
         private CharacterController controller;
         private InputActionAsset runtimeActions;
         private InputActionMap playerMap;
@@ -53,6 +63,44 @@ namespace SignalLost.Player
         public float SlideDistanceScale { get; set; } = 1f;
         public bool IsCrouched => crouched;
         public bool IsSliding => sliding;
+        public bool IsGrounded => controller != null && controller.isGrounded;
+        public float VerticalSpeed => verticalSpeed;
+
+        /// <summary>
+        /// Asked when C is pressed in mid-air (the jump smash, <see cref="SignalLost.Combat.JumpSmash"/>). Returning true
+        /// uses the press, so the player does not also crouch.
+        /// </summary>
+        public System.Func<bool> AirCrouchPressed { get; set; }
+
+        /// <summary>Drives the player straight down at <paramref name="speed"/>, keeping a little sideways drift.</summary>
+        public void Dive(float speed)
+        {
+            verticalSpeed = Mathf.Min(verticalSpeed, -speed);
+            momentum *= 0.25f;
+        }
+
+        /// <summary>Sprinting on the ground (not sliding or crouched): the arms pump.</summary>
+        public bool IsRunning { get; private set; }
+        /// <summary>Radians; advances with ground speed. sin(StridePhase) swings the right arm forward and back.</summary>
+        public float StridePhase { get; private set; }
+
+        /// <summary>Camera-space right shoulder (the left mirrors x): the running arm swings about it.</summary>
+        public static readonly Vector3 RightShoulder = new Vector3(0.2f, -0.32f, 0f);
+
+        /// <summary>
+        /// The running arm swing for one arm (<paramref name="side"/> 1 right, -1 left, opposite strides), as a turn
+        /// about that shoulder: a wide loop that comes up and across toward the chest, then sweeps back down and out
+        /// of view on the outside. Applied to the whole hand (position about the shoulder), so it reads as the arm
+        /// swinging, not the wrist.
+        /// </summary>
+        public Quaternion ArmSwing(float side)
+        {
+            float forward = side * Mathf.Sin(StridePhase);   // 1 at the front of the swing, -1 at the back
+            float rising = side * Mathf.Cos(StridePhase);    // > 0 on the way forward
+            float pitch = 8f - armSwingReach * forward;                              // up to the chest, down past the hip
+            float across = 6f + armSwingAcross * forward + armSwingLoop * rising;    // inside lane up, outside lane down
+            return Quaternion.Euler(pitch, -side * across, side * (4f + 8f * forward));
+        }
 
         /// <summary>Look-speed multiplier from the settings menu (GameSettings.LookSensitivity).</summary>
         public static float SensitivityScale { get; set; } = 1f;
@@ -86,7 +134,7 @@ namespace SignalLost.Player
             }
 
             // Each player owns its action state; never enable/disable the shared source asset.
-            runtimeActions = Instantiate(inputActions);
+            runtimeActions = Instantiate(inputActions); SignalLost.Core.KeyBindings.Register(runtimeActions);
             playerMap = runtimeActions.FindActionMap("Player", true);
             playerMap.bindingMask = InputBinding.MaskByGroups("Keyboard&Mouse", "Gamepad");
             move = playerMap.FindAction("Move", true);
@@ -162,6 +210,28 @@ namespace SignalLost.Player
             }
 
             bool canMove = (canControl || (menuOpen && Application.isFocused)) && !IsStunned;
+
+            // Testing cheat (End): 9999 damage and free flight.
+            if (canControl && SignalLost.Core.KeyBindings.WasPressed("cheat"))
+            {
+                SignalLost.Core.CheatMode.Toggle();
+                SignalLost.Enemies.Desert.MiniBossHud.Message(SignalLost.Core.CheatMode.Enabled
+                        ? "CHEAT MODE ON: 9999 damage, flying (" + SignalLost.Core.KeyBindings.Display("jump") + " up, " + SignalLost.Core.KeyBindings.Display("crouch") + " down)"
+                        : "CHEAT MODE OFF", new Color(1f, 0.85f, 0.3f), 2.5f);
+            }
+            if (SignalLost.Core.CheatMode.Enabled)
+            {
+                Fly(canMove);
+                return;
+            }
+            if (!controller.enabled)
+            {
+                // Back from flying: walk (and fall) again from here.
+                controller.enabled = true;
+                verticalSpeed = 0f;
+                momentum = Vector3.zero;
+            }
+
             bool grounded = controller.isGrounded;
             float dt = Time.deltaTime;
             if (grounded && verticalSpeed < 0f) verticalSpeed = -2f;
@@ -172,13 +242,18 @@ namespace SignalLost.Player
             axis = new Vector2(axis.x * Mathf.Cos(stagger) + axis.y * Mathf.Sin(stagger),
                 axis.y * Mathf.Cos(stagger) - axis.x * Mathf.Sin(stagger));
             bool sprinting = canMove && sprint.IsPressed() && axis.y > 0.1f;
+            IsRunning = sprinting && grounded && !sliding && !crouched;
+            // One stride cycle (two steps) per ~1.6 m at sprint pace; drives the running arm swing.
+            if (grounded) StridePhase += dt * new Vector2(controller.velocity.x, controller.velocity.z).magnitude * strideRate;
             Vector3 wish = transform.right * axis.x + transform.forward * axis.y;
 
             // C: hold while sprinting (or landing from a slide-jump) to slide; otherwise a tap toggles crouching.
             bool crouchHeld = canMove && crouch.IsPressed();
             if (canMove && crouch.WasPressedThisFrame())
             {
-                if (grounded && (sprinting || momentum.magnitude > sprintSpeed)) StartSlide(wish);
+                bool usedInAir = !grounded && AirCrouchPressed != null && AirCrouchPressed(); // the jump smash took it
+                if (usedInAir) { }
+                else if (grounded && (sprinting || momentum.magnitude > sprintSpeed)) StartSlide(wish);
                 else if (crouched) TryStand();
                 else Crouch(true);
             }
@@ -237,6 +312,33 @@ namespace SignalLost.Player
             if ((collisions & CollisionFlags.Above) != 0 && verticalSpeed > 0f) verticalSpeed = 0f;
             if ((collisions & CollisionFlags.Below) != 0 && verticalSpeed < 0f) verticalSpeed = -2f;
             if ((collisions & CollisionFlags.Sides) != 0 && sliding && controller.velocity.magnitude < slideEndSpeed) sliding = false;
+        }
+
+        private const float FlySpeed = 12f, FlySprintSpeed = 40f;
+
+        // Cheat flight: no gravity and no collisions. Moves where the camera looks; Jump rises, Crouch sinks, Sprint is fast.
+        private void Fly(bool canMove)
+        {
+            if (controller.enabled) controller.enabled = false;
+            sliding = false;
+            momentum = Vector3.zero;
+            verticalSpeed = 0f;
+            Vector2 axis = canMove ? Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f) : Vector2.zero;
+            float rise = canMove ? (jump.IsPressed() ? 1f : 0f) - (crouch.IsPressed() ? 1f : 0f) : 0f;
+            Vector3 direction = cameraPivot.forward * axis.y + cameraPivot.right * axis.x + Vector3.up * rise;
+            float speed = canMove && sprint.IsPressed() ? FlySprintSpeed : FlySpeed;
+            transform.position += Vector3.ClampMagnitude(direction, 1f) * (speed * Time.deltaTime);
+            eyeHeight = Mathf.MoveTowards(eyeHeight, standEyeHeight, 6f * Time.deltaTime);
+            Vector3 eye = cameraPivot.localPosition;
+            cameraPivot.localPosition = new Vector3(eye.x, eyeHeight, eye.z);
+        }
+
+        private void OnGUI()
+        {
+            if (!SignalLost.Core.CheatMode.Enabled) return;
+            var style = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold };
+            style.normal.textColor = new Color(1f, 0.85f, 0.3f);
+            GUI.Label(new Rect(12f, 8f, 420f, 24f), "CHEAT MODE (" + SignalLost.Core.KeyBindings.Display("cheat") + " to turn off)", style);
         }
 
         private void StartSlide(Vector3 wish)

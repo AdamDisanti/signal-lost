@@ -5,6 +5,7 @@
 - [Combat prototype](combat-prototype.md): health system, mining laser, training dummies, and test checklist.
 - [Scanner prototype](scanner-prototype.md): scanner controls, target detection, HUD/audio setup, and validation status.
 - [Player HUD](hud.md): HUD prefab, test scene, how other systems feed it, and test checklist.
+- [Islands, docks and the sea](islands.md): each stage is an island; beaches, the no-swimming rescue, docks, the boat voyage between stages, and the water shader.
 - [Desert / Dunes level](desert-dunes.md): first biome prototype, layout, how to build it, and test checklist.
 - [Crystal Caves level](crystal-caves.md): the third biome's world (coast, dock, camp, two-level crystal-lit cave), how to build and extend it, and what was verified.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.

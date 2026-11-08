@@ -1,5 +1,6 @@
 using System.Linq;
 using SignalLost.Player;
+using SignalLost.World;
 using UnityEngine;
 
 namespace SignalLost.NPC
@@ -39,6 +40,9 @@ namespace SignalLost.NPC
             if (story == null)
                 story = FindObjectsByType<MonoBehaviour>().OfType<INpcStory>().FirstOrDefault();
         }
+
+        // Dressed for the island they are on (11-08); Crash Meadow is the look they start in.
+        private void Start() => Outfits.Dress(this, StageTheme.Current);
 
         public bool CanInteract(PlayerInteractor player) =>
             isActiveAndEnabled && (role == Role.Cavendish || (merchant != null && merchant.IsDefeated));

@@ -343,9 +343,8 @@ namespace SignalLost.Story
             SetStage(Stage.Fight);
             Signal(cavendish, false);
             Signal(merchant, true);
-            // The crab and its cousins only turn up in the hollow now (meeting notes 10-23).
-            merchant.gameObject.SetActive(true);
-            foreach (var cousin in merchant.Cousins) if (cousin != null) cousin.gameObject.SetActive(true);
+            // The crab and its cousins only turn up in the hollow now (meeting notes 10-23; its Spawn After Quest flag).
+            merchant.SpawnForQuest();
             merchant.BeginQuest();
             UpdateFightObjective();
         }
@@ -495,7 +494,9 @@ namespace SignalLost.Story
         {
             SetStage(Stage.DemoComplete);
             Signal(cavendish, false);
-            GameplayOverlay.Instance.SetQuest(ToadTitle, "Chief Toad defeated. Thanks for playing the demo!", true);
+            // The boat at the south-west dock sails to the next island from now on (islands, 11-07).
+            SignalLost.Progression.StageProgress.ClearStage(SignalLost.Progression.StageProgress.Tutorial, SignalLost.Progression.StageProgress.Desert);
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "Chief Toad defeated. Thanks for playing the demo! The boat at the dock past camp can take you to the next island.", true);
             DemoEndCard.Show(Timer.Finish(), Timer.Deaths);
         }
 

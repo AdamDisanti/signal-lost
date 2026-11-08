@@ -38,6 +38,20 @@ Player components:
 
 Tuning is on `FirstPersonController` ("Crouch and slide"). Upgrades can lengthen slides (`SlideDistanceScale`).
 
+- **Jump smash (C in mid-air, laser out):** raises the laser and dives straight down. The landing shockwave does 15 to 60 damage depending on how high you dived from (0.8 m to 8 m; capped above that). Its radius is 2.5 to 5.5 m and it shoves things back. It takes over the airborne C press, so you don't crouch. `MiningLaser` adds the `JumpSmash` component to the player at runtime; its tuning is there.
+
+## Testing cheat (End)
+
+Lawson, 11-08: press **End** to switch cheat mode on or off. A banner says which, and "CHEAT MODE" shows in the top-left corner while it is on. It is rebindable on the Controls page, as "Cheat mode (testing)".
+
+- **9999 damage:** every hit the player lands (bolts, the laser combo, the jump smash, anything else sourced from the player) does 9999. This is applied in `Health.TakeDamage`. Other sources, and the player's own hits on themselves, are unchanged. Friendly characters such as Eugene still can't be hurt.
+- **Flying:** no gravity and no collisions.
+  - WASD moves where you look; Space rises; C sinks; Shift goes fast (40 m/s instead of 12).
+  - The deep-water rescue is off while flying.
+  - Turning it off drops you from wherever you are.
+- It lasts for the play session (across scene loads) and is never saved. It is not god mode: you still take damage.
+- Code: `Core/CheatMode.cs`, the flight in `FirstPersonController.Fly`.
+
 ## Moving a scene to the shared player
 
 Use **Signal Lost > Scenes**, or `CoreSceneSetup.UpgradeToCorePlayer(scene, startingItems, stageGroup)`. It does the following:
@@ -51,11 +65,22 @@ Use **Signal Lost > Scenes**, or `CoreSceneSetup.UpgradeToCorePlayer(scene, star
 
 The hands stay fixed at the bottom of the screen, just above the status bar.
 
-- **Right hand:** holds the laser or the scanner (Q cycles), so laser swings carry it along. With nothing out it rests as a fist.
-- **Left hand:** on F it reaches down out of view for the flask, snaps it up to the mouth, swigs, and stows it again.
+- **Look:** pudgy gloved hands: a puffy palm, short thick two-jointed fingers and a chunky thumb, with the cream cuff and the orange suit sleeve.
+- **Right hand:** holds the laser or the scanner (Q cycles), so laser swings carry it along. With nothing out it closes into a fist.
+  - **Laser:** the fist is wrapped round the real pistol grip, index finger under the trigger guard. The laser is carried 6 cm higher and 16 cm further out than before (`gripPosition` on the Player prefab, set by `CorePrefabBuilder`), so the arm holding it shows above the status bar.
+  - **Scanner:** the fist grips the scanner's right-hand side rail, wrist tipped so the arm comes up from below.
+  - The grips are measured against the real models and kept in `MechanicModel.LaserHold` / `ScannerHold`; the fingers use `Hand.Wrap(radius)`, which bends each finger round a handle of that thickness. They assume the hand scale of 1.2.
+- **Left hand: the swig.** On F it reaches down out of view for the flask, brings it up from the lower left to the mouth (the neck just below the screen, the label toward you), tips the bottom up for a big swig with two gulps, and the head tips back about 10° (`swigHeadTilt`). Then it lowers the flask out of view and comes back up empty. At rest the fingers are relaxed and half open.
+  - The whole drink is posed by moving the flask (neck position and tip angle); the hand follows it.
+  - **Hold-to-chug ready:** the pose comes from `PoseDrink(raise, gulps)` in `FirstPersonHands`. The timed sip runs raise 0→1, two gulps, then 1→0. A hold-to-chug would keep `raise` at 1 for as long as the button is held and keep counting `gulps` (each whole number is one swallow). PlayerFlask would need its own change to keep the drink going.
 - **Footsteps:** a soft, low bass note per step (pitched per surface), replacing the old crunch. **Switched off for now** (lead's request, 10-23): set `PlayerAudio.FootstepsEnabled` to bring them back.
 
-Everything is built from boxes at runtime. Colours, size and poses are at the top of `FirstPersonHands.cs`.
+The hands and the pockets menu's mechanic are built by the same code (`MechanicModel.cs`), so they always match, with no art assets:
+
+- The gloves, the suit (legs, belly and chest) and the arms are each **one seamless, smooth mesh** (`SoftShape.cs`): rounded pieces melted together like clay, so there are no seams or lumps where parts meet. The gloves are skinned, so the fingers bend smoothly at their joints.
+- Small details (cuffs, sleeves, belt, eyes, nose, cap, badge, boots) are separate rounded shapes.
+- **Baked meshes:** the seamless meshes take a moment to build, so they are baked into `Resources/SignalLost/MechanicMeshes/` (one asset per mesh) with **Signal Lost > Models > Bake Mechanic Meshes** and loaded from there. If you change a shape in `MechanicModel.cs`, bump `MechanicModel.MeshVersion` and bake again. Without an up-to-date bake the game still works: it builds them when the scene starts (a short hitch) and warns in the Console.
+- Colours, size, poses, finger grip and curl speed are at the top of `FirstPersonHands.cs`; the shapes and the body's proportions are in `MechanicModel.cs`.
 
 ## HUD and menus
 
@@ -88,8 +113,12 @@ All UI is drawn in code on singleton canvases (`Scripts/UI/`), so there are no U
   - pages: Controls, Sound, Video;
   - stored in PlayerPrefs (`GameSettings`);
   - partly placeholder.
+- **Controls page (11-07):** every keyboard/mouse control can be changed. Click its key, then press the new key or mouse button; Esc cancels. Taking a key that another control uses swaps the two. **Reset to defaults** restores everything. Gamepad buttons, Look and Pause/Esc are listed but fixed for now.
+  - `Core/KeyBindings.cs` holds the bindings. Every component that copies the input actions calls `KeyBindings.Register`, so a change applies at once, in game or from the title screen. Menus that read keys themselves use `KeyBindings.WasPressed("interact")`, and on-screen hints use `KeyBindings.Hint("drink")`, so they follow rebinds.
+  - **Save system hand-off:** `KeyBindings.Export()` / `Import(SaveData)` (or `ToJson` / `FromJson`) carry only the changed bindings, by stable Ids such as `jump` and `move_forward`. Until the save system merges, they are kept in PlayerPrefs by `Store` and `Load` in that file; replace those two methods.
+- **Text padding (11-07):** every text box keeps the same gap on all four sides: `UiTheme.Pad` (26 px) for panels, cards and popups, `UiTheme.PadSmall` (16 px) for subtitles, speech bubbles and list rows, `UiTheme.PadLarge` (40 px) for the full-screen pockets and shop. Lay new text out from these.
 - **Title screen** (`Scenes/MainMenu.unity`, `MainMenuScreen`):
-  - a Terraria-style title over a code-drawn golden-hour scene;
+  - a Terraria-style title over a code-drawn scene with a day-night cycle (11-07): the sun and moon arc across the sky, the sky runs dawn, noon blue, golden dusk and night, stars come out, the land darkens and the campfire glows brighter. One day lasts `MainMenuScreen.CycleSeconds` (150 s) and the screen opens at dusk;
   - New Game loads the Tutorial (`SceneNames.FirstLevel`);
   - Continue is a placeholder; Settings and Exit work.
 - **Item cards** ("NEW GEAR"): stay up until the player presses **E** or Enter; several queue up. **Rule for all future tutorial pop-ups: never on a timer.**

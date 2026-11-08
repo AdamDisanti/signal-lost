@@ -206,11 +206,13 @@ namespace SignalLost.Editor
             data.FindProperty("seat").objectReferenceValue = seat;
             data.FindProperty("flaskDrop").objectReferenceValue = flask.GetComponent<ItemPickup>();
             data.FindProperty("startFriendly").boolValue = false;
+            data.FindProperty("spawnAfterQuest").boolValue = true; // nobody in the hollow until Cavendish's big-crab quest
             SerializedProperty list = data.FindProperty("cousins");
             list.arraySize = cousins.Length;
             for (int c = 0; c < cousins.Length; c++) list.GetArrayElementAtIndex(c).objectReferenceValue = cousins[c];
             data.ApplyModifiedPropertiesWithoutUndo();
-            // Nobody is in the hollow until Cavendish's big-crab quest (TutorialStory switches them on).
+            // Saved inactive too, so nobody flashes into view on the first frame; Spawn After Quest keeps them hidden
+            // even if they are switched on by hand, until TutorialStory calls SpawnForQuest.
             merchant.SetActive(false);
             foreach (CrabCousin cousin in cousins) cousin.gameObject.SetActive(false);
             return merchant.GetComponent<MerchantCrab>();
@@ -252,8 +254,8 @@ namespace SignalLost.Editor
             var rig = AssetDatabase.LoadAssetAtPath<GameObject>(ScannerRigPath);
             GameObject model = Object.Instantiate(rig.transform.Find("ScannerVisualRoot/ScannerModel").gameObject, root.transform);
             model.name = "Scanner Model";
+            // Upright, as it is held: in play it floats and spins under the panel like every collectable (FloatingPickup).
             model.transform.localPosition = new Vector3(0f, 0.12f, 0f);
-            model.transform.localRotation = Quaternion.Euler(-75f, 0f, 20f); // lying on its back
             model.transform.localScale = Vector3.one * 0.6f;
             Bounds bounds = new Bounds(model.transform.position, Vector3.zero);
             foreach (Renderer part in model.GetComponentsInChildren<Renderer>()) bounds.Encapsulate(part.bounds);

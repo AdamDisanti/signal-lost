@@ -5,7 +5,8 @@ namespace SignalLost.Player
 {
     /// <summary>
     /// One of the player's three items lying in the world. E picks it up (<see cref="PlayerGear.Collect"/>), which
-    /// hides this object. Put a collider on it (or a child) so the interaction ray can find it.
+    /// hides this object. It floats and spins like every collectable (<see cref="FloatingPickup"/>, added if missing),
+    /// which also gives the interaction ray something to find.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ItemPickup : MonoBehaviour, IInteractable
@@ -20,6 +21,12 @@ namespace SignalLost.Player
 
         public static PlayerItem ToGear(Item item) =>
             item == Item.Laser ? PlayerItem.MiningLaser : item == Item.Scanner ? PlayerItem.Scanner : PlayerItem.Flask;
+
+        // Shown like every collectable: the shared size, floating and spinning above where it lies.
+        private void Awake()
+        {
+            if (!TryGetComponent(out FloatingPickup _)) gameObject.AddComponent<FloatingPickup>();
+        }
 
         public bool CanInteract(PlayerInteractor player) => isActiveAndEnabled && player.Gear != null && !player.Gear.Has(Gear);
 

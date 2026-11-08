@@ -6,7 +6,7 @@ First biome after the tutorial, built from the design document's level descripti
 
 Open the `signal-lost/` project, then choose **Signal Lost → Create Desert Dunes Level**. It creates:
 
-- `Assets/Prefabs/Enviornment objects/DesertDunes/DesertEnvironment.prefab`: terrain, perimeter dunes, mesas, rocks, alien plants, wreckage, ribcage and boss-arena spires. Its meshes and materials are in `Meshes/` and `Materials/` beside it.
+- `Assets/Prefabs/Enviornment objects/DesertDunes/DesertEnvironment.prefab`: terrain, the sea floor, the sea and two docks (11-07, see [islands](islands.md)), mesas, rocks, alien plants, wreckage, ribcage and boss-arena spires. Its meshes and materials are in `Meshes/` and `Materials/` beside it.
 - `Assets/Scenes/Large Areas/DesertDunes.unity`: the environment, desert lighting/fog/sky, the player, five hermit crabs at three encounter sites, and placeholder markers.
 
 Like the other builders, it refuses to overwrite the scene. Commit the scene, the `DesertDunes` folder, the builder script and all `.meta` files.
@@ -26,7 +26,7 @@ The map is 320 × 320 m, the same footprint as the tutorial crash site, made of 
 | Encounter 3: Buried Hull | North-west, (−58, 62) | 2 hermit crabs among wreckage |
 | Giant Ribcage | Center-south, (22, −48) | Bleached ribs arching out of the sand. A landmark only |
 | Boss Arena | North, (38, 92) | Sand bowl ringed by tall spires, open to the south and west, with a half-buried ship engine. Boss Spawn and Engine Core Drop markers, no boss yet |
-| Perimeter | All round | Tall, steep dunes the player can't climb, so no invisible walls are needed |
+| Perimeter | All round | A beach into the sea (11-07; it was a wall of unclimbable dunes). Deep water puts the player back on land; see [islands](islands.md) |
 
 Scattered across the dunes are 12 flat-topped mesas (long-range landmarks), 70 boulders (cover) and 34 goofy alien cacti (teal stems, pink bulbs). Lighting is a warm, high sun with a procedural sky and linear dust haze (45–260 m) so far areas fade out. This is the biome's own lighting and fog, as the design doc's Artistic Differentiation asks.
 
@@ -41,7 +41,7 @@ The flask and drinking are **not** in this level. They live in `TutorialPlayer`,
 1. Open `DesertDunes.unity` and press Play. No Console errors. There may be a short pause at start while the crabs' NavMesh is built.
 2. You start in the south canyon facing north, with Cavendish beside you. The HUD shows 100 / 100 and the objective.
 3. Walk out into the dunes. The slopes are walkable, the facets read as low-poly, and the far edges fade into warm haze.
-4. Try to climb the perimeter dunes. You can't get out anywhere, including at the canyon's dead end.
+4. Wade out from any beach. Past about 1.3 m deep the screen fades and you are put back on land with 15 less health.
 5. Press **Q**: the laser disappears and the scanner comes up, fully visible. Walk toward the Wreck Field (west). The proximity bar and beep cadence change as the selected crab's signal strength changes; the scanner does not show a direction. Press **Q** again: the scanner goes down and the laser comes back. Clicking while scanning does nothing.
    - Start charging a shot (hold right click), then press **Q**: the charge is cancelled and nothing fires.
 6. Fight the crabs at all three sites. They chase, attack, and stay dead when defeated.

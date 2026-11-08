@@ -77,7 +77,8 @@ namespace SignalLost.UI
 
         private void Update()
         {
-            bool pausePressed = Keyboard.current?.escapeKey.wasPressedThisFrame == true || Gamepad.current?.startButton.wasPressedThisFrame == true;
+            bool pausePressed = (Keyboard.current?.escapeKey.wasPressedThisFrame == true && !SignalLost.Core.KeyBindings.EscapeConsumed) ||
+                               Gamepad.current?.startButton.wasPressedThisFrame == true;
             if (IsOpen)
             {
                 panel.localScale = Vector3.one * Mathf.LerpUnclamped(0.9f, 1f, UiTheme.Pop((Time.unscaledTime - shownAt) / 0.25f));

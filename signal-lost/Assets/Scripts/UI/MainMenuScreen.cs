@@ -11,15 +11,18 @@ namespace SignalLost.UI
 {
     /// <summary>
     /// The title screen (MainMenu scene, meeting notes 10-22), in the spirit of Terraria's: the title in the middle
-    /// over a golden-hour low-poly scene (mountains, hills, pines, the smoking wreck and Cavendish by his campfire),
-    /// with New Game, Continue, Settings and Exit. Continue and parts of Settings are placeholders until saving lands.
+    /// over a low-poly scene (mountains, hills, pines, the smoking wreck and Cavendish by his campfire), with New Game,
+    /// Continue, Settings and Exit. Like Terraria's title, the scene runs through a day-night cycle (11-07): the sun and
+    /// moon arc across the sky, the sky shifts from dawn to noon blue to golden dusk to night, stars come out and the
+    /// land darkens while the campfire glows brighter. Continue and parts of Settings are placeholders until saving lands.
     /// Everything is drawn in code, so there are no art assets; tweak colours and shapes here.
     /// </summary>
     public sealed class MainMenuScreen : MonoBehaviour
     {
         private static readonly Color Title = new Color(1f, 0.6f, 0.18f);
 
-        private RectTransform art;
+        private RectTransform art, screen;
+        private Image backdrop;
         private TextMeshProUGUI title;
         private SettingsPanel settings;
         private GameObject settingsRoot;
@@ -28,6 +31,37 @@ namespace SignalLost.UI
         private readonly List<(RectTransform rect, float phase)> buttons = new List<(RectTransform, float)>();
         private UiShape fire;
         private Image fireGlow;
+
+        // ---------- Day-night cycle ----------
+        /// <summary>Seconds for one whole day and night on the title screen.</summary>
+        public const float CycleSeconds = 150f;
+        // Sky colours (top, middle, horizon) through the day; time of day 0 = midnight, 0.25 dawn, 0.5 noon, 0.75 dusk.
+        private static readonly (float time, Color top, Color middle, Color bottom)[] SkyKeys =
+        {
+            (0.00f, new Color(0.02f, 0.03f, 0.09f), new Color(0.05f, 0.07f, 0.18f), new Color(0.1f, 0.12f, 0.26f)),
+            (0.20f, new Color(0.05f, 0.07f, 0.18f), new Color(0.22f, 0.2f, 0.38f), new Color(0.55f, 0.36f, 0.42f)),
+            (0.27f, new Color(0.22f, 0.32f, 0.58f), new Color(0.92f, 0.58f, 0.48f), new Color(1f, 0.78f, 0.52f)),
+            (0.38f, new Color(0.22f, 0.45f, 0.85f), new Color(0.45f, 0.7f, 0.95f), new Color(0.78f, 0.88f, 0.95f)),
+            (0.62f, new Color(0.22f, 0.45f, 0.85f), new Color(0.45f, 0.7f, 0.95f), new Color(0.8f, 0.88f, 0.94f)),
+            (0.73f, new Color(0.15f, 0.2f, 0.4f), new Color(0.95f, 0.6f, 0.4f), new Color(1f, 0.86f, 0.55f)),
+            (0.81f, new Color(0.06f, 0.07f, 0.2f), new Color(0.3f, 0.2f, 0.4f), new Color(0.62f, 0.32f, 0.3f)),
+            (1.00f, new Color(0.02f, 0.03f, 0.09f), new Color(0.05f, 0.07f, 0.18f), new Color(0.1f, 0.12f, 0.26f))
+        };
+        private static readonly Color NightLand = new Color(0.3f, 0.36f, 0.6f), WarmLand = new Color(1f, 0.84f, 0.72f);
+        private const float HorizonY = -40f, ArcHeight = 450f, ArcWidth = 860f;
+
+        private Texture2D skyTexture;
+        private readonly Color[] skyPixels = new Color[64];
+        private Image sun, sunGlow;
+        private RectTransform moon;
+        private Image moonGlow;
+        private Graphic[] moonParts;
+        private readonly List<Graphic> land = new List<Graphic>();
+
+        /// <summary>Where the title screen is in its day (0 midnight, 0.25 dawn, 0.5 noon, 0.75 dusk). It opens at dusk.</summary>
+        public float TimeOfDay { get; set; } = 0.7f;
+        /// <summary>0 in full daylight, 1 at night.</summary>
+        public float Night { get; private set; }
 
         private void Awake()
         {
@@ -38,14 +72,18 @@ namespace SignalLost.UI
             UiTheme.EnsureEventSystem();
             Canvas canvas = UiTheme.CreateCanvas("Main Menu", 10);
             canvas.transform.SetParent(transform, false);
-            Build((RectTransform)canvas.transform);
+            screen = (RectTransform)canvas.transform;
+            Build(screen);
         }
 
         private void Update()
         {
             float now = Time.unscaledTime;
+            TimeOfDay = Mathf.Repeat(TimeOfDay + Time.unscaledDeltaTime / CycleSeconds, 1f);
+            FitArt();
+            ApplyTimeOfDay();
             foreach ((Image image, float phase) in stars)
-                image.color = new Color(1f, 1f, 0.9f, 0.35f + 0.45f * Mathf.Abs(Mathf.Sin(now * 1.3f + phase)));
+                image.color = new Color(1f, 1f, 0.9f, (0.35f + 0.45f * Mathf.Abs(Mathf.Sin(now * 1.3f + phase))) * Night);
             foreach (var puff in smoke)
             {
                 float k = Mathf.Repeat(now * 0.12f + puff.offset, 1f);
@@ -55,7 +93,7 @@ namespace SignalLost.UI
             }
             float flicker = 0.85f + Mathf.PerlinNoise(now * 6f, 0f) * 0.35f;
             fire.rectTransform.localScale = new Vector3(1f, flicker, 1f);
-            fireGlow.color = new Color(1f, 0.6f, 0.2f, 0.45f * flicker);
+            fireGlow.color = new Color(1f, 0.6f, 0.2f, 0.45f * flicker * (0.6f + 0.9f * Night));
             AnimateTitle(now);
             for (int i = 0; i < buttons.Count; i++)
             {
@@ -66,7 +104,7 @@ namespace SignalLost.UI
                 rect.localScale = Vector3.one * Mathf.MoveTowards(rect.localScale.x, target, Time.unscaledDeltaTime * 2f);
                 rect.localRotation = Quaternion.Euler(0f, 0f, selected ? Mathf.Sin(now * 5f + buttons[i].phase) * 2f : 0f);
             }
-            if (settingsRoot.activeSelf && Keyboard.current?.escapeKey.wasPressedThisFrame == true) settingsRoot.SetActive(false);
+            if (settingsRoot.activeSelf && Keyboard.current?.escapeKey.wasPressedThisFrame == true && !KeyBindings.EscapeConsumed) settingsRoot.SetActive(false);
         }
 
         // Letters bob in a gentle wave.
@@ -118,10 +156,14 @@ namespace SignalLost.UI
         private void Build(RectTransform root)
         {
             // Art is laid out on a fixed 1920 x 1080 board, centred and slightly over-scanned.
+            backdrop = UiTheme.Block("Backdrop", root, new Color(0.1f, 0.12f, 0.2f));
+            UiTheme.Stretch(backdrop.rectTransform);
             art = UiTheme.Place(UiTheme.Rect("Art", root), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1920f, 1080f));
-            art.localScale = Vector3.one * 1.08f;
+            FitArt();
             Image sky = art.gameObject.AddComponent<Image>();
-            sky.sprite = Gradient(new Color(0.15f, 0.2f, 0.4f), new Color(0.95f, 0.6f, 0.4f), new Color(1f, 0.86f, 0.55f));
+            skyTexture = new Texture2D(1, skyPixels.Length, TextureFormat.RGBA32, false)
+                { name = "Title Sky", wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave };
+            sky.sprite = Sprite.Create(skyTexture, new Rect(0f, 0f, 1f, skyPixels.Length), new Vector2(0.5f, 0.5f));
             sky.raycastTarget = false;
 
             var random = new System.Random(7);
@@ -133,8 +175,17 @@ namespace SignalLost.UI
                     new Vector2(-940f + (float)random.NextDouble() * 1880f, 260f + (float)random.NextDouble() * 270f), new Vector2(size, size));
                 stars.Add((star, (float)random.NextDouble() * 6f));
             }
-            Circle(art, "Sun Glow", new Vector2(520f, 60f), 620f, new Color(1f, 0.85f, 0.55f, 0.55f), true);
-            Circle(art, "Sun", new Vector2(520f, 60f), 210f, new Color(1f, 0.92f, 0.68f));
+            // The sun and moon ride arcs behind the mountains (ApplyTimeOfDay moves them).
+            sunGlow = Circle(art, "Sun Glow", new Vector2(520f, 60f), 620f, new Color(1f, 0.85f, 0.55f, 0.55f), true);
+            sun = Circle(art, "Sun", new Vector2(520f, 60f), 210f, new Color(1f, 0.92f, 0.68f));
+            moonGlow = Circle(art, "Moon Glow", Vector2.zero, 420f, new Color(0.7f, 0.8f, 1f, 0.3f), true);
+            moon = UiTheme.Place(UiTheme.Rect("Moon", art), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150f, 150f));
+            Circle(moon, "Disc", Vector2.zero, 150f, new Color(0.93f, 0.94f, 0.88f));
+            Circle(moon, "Crater", new Vector2(-30f, 22f), 34f, new Color(0.8f, 0.82f, 0.78f));
+            Circle(moon, "Crater", new Vector2(28f, -18f), 46f, new Color(0.82f, 0.84f, 0.8f));
+            Circle(moon, "Crater", new Vector2(-14f, -42f), 20f, new Color(0.8f, 0.82f, 0.78f));
+            moonParts = moon.GetComponentsInChildren<Graphic>();
+            int landFrom = art.childCount; // everything after this is landscape, tinted by the light
 
             UiShape.Ridge("Far Mountains", art, new Color(0.56f, 0.45f, 0.6f), -540f,
                 V(-960, 40), V(-820, 150), V(-700, 60), V(-560, 210), V(-430, 90), V(-300, 170), V(-150, 70), V(0, 140),
@@ -165,6 +216,7 @@ namespace SignalLost.UI
                 Pine(art, new Vector2(x, y), scale);
 
             // Cavendish at his campfire.
+            int fireFrom = art.childCount;
             fireGlow = Circle(art, "Fire Glow", new Vector2(-380f, -240f), 300f, new Color(1f, 0.6f, 0.2f, 0.45f), true);
             RectTransform fireRoot = UiTheme.Place(UiTheme.Rect("Fire", art), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0f), new Vector2(-380f, -265f), new Vector2(10f, 10f));
             fire = UiShape.Create("Flame", fireRoot, new Color(1f, 0.55f, 0.15f), V(-22, 0), V(0, 62), V(22, 0));
@@ -178,6 +230,14 @@ namespace SignalLost.UI
             Blob(cav, "Head", new Vector2(-6f, 78f), new Vector2(48f, 40f), new Color(0.52f, 0.36f, 0.22f));
             Blob(cav, "Snout", new Vector2(-28f, 72f), new Vector2(26f, 22f), new Color(0.44f, 0.3f, 0.19f));
             Blob(cav, "Eye", new Vector2(-14f, 84f), new Vector2(6f, 6f), new Color(0.08f, 0.06f, 0.05f));
+            // The land takes the light's colour; the fire (its glow and flames) makes its own.
+            for (int i = landFrom; i < art.childCount; i++)
+            {
+                Transform child = art.GetChild(i);
+                if (i >= fireFrom && child != cav) continue;
+                land.AddRange(child.GetComponentsInChildren<Graphic>());
+            }
+            ApplyTimeOfDay();
 
             // Title.
             Shadow(root, "SIGNAL LOST", 170f, new Vector2(0f, 300f), new Vector2(1600f, 200f), new Vector2(6f, -8f));
@@ -223,12 +283,81 @@ namespace SignalLost.UI
             settings = SettingsPanel.Create(settingsRoot.transform, new Vector2(1000f, 680f));
             UiTheme.Place((RectTransform)settings.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, 680f));
             Button close = UiTheme.Button("Close", settings.transform, "Close", 24f);
-            UiTheme.Place((RectTransform)close.transform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-28f, -26f), new Vector2(140f, 52f));
+            UiTheme.Place((RectTransform)close.transform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-UiTheme.Pad, -UiTheme.Pad), new Vector2(140f, 52f));
             close.onClick.AddListener(() => settingsRoot.SetActive(false));
             settingsRoot.SetActive(false);
         }
 
         private static Vector2 V(float x, float y) => new Vector2(x, y);
+
+        /// <summary>
+        /// Scales the 1920 x 1080 art board so it covers the whole screen at any aspect ratio (cropping the top and
+        /// bottom on wide screens, the sides on tall ones) instead of leaving the camera's background showing at the
+        /// edges. The slight over-scan stays.
+        /// </summary>
+        private void FitArt()
+        {
+            if (art == null || screen == null) return;
+            Vector2 size = screen.rect.size;
+            if (size.x <= 0f || size.y <= 0f) return;
+            float cover = Mathf.Max(size.x / 1920f, size.y / 1080f);
+            art.localScale = Vector3.one * (cover * 1.08f);
+        }
+
+        /// <summary>Paints the sky, places the sun and moon and tints the land for <see cref="TimeOfDay"/>.</summary>
+        public void ApplyTimeOfDay()
+        {
+            float t = Mathf.Repeat(TimeOfDay, 1f);
+            float angle = (t - 0.25f) * Mathf.PI * 2f; // 0 at dawn (sun on the left horizon), pi at dusk (right)
+            float sunHeight = Mathf.Sin(angle);
+            float daylight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.22f, 0.3f, sunHeight));
+            Night = 1f - daylight;
+
+            // Sky: blend the two keyframes either side of now.
+            int k = 0;
+            while (k < SkyKeys.Length - 2 && t > SkyKeys[k + 1].time) k++;
+            var (t0, top0, mid0, bottom0) = SkyKeys[k];
+            var (t1, top1, mid1, bottom1) = SkyKeys[k + 1];
+            float blend = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(t0, t1, t));
+            Color top = Color.Lerp(top0, top1, blend), middle = Color.Lerp(mid0, mid1, blend), bottom = Color.Lerp(bottom0, bottom1, blend);
+            for (int y = 0; y < skyPixels.Length; y++)
+            {
+                float v = y / (skyPixels.Length - 1f);
+                skyPixels[y] = v < 0.5f ? Color.Lerp(bottom, middle, v / 0.5f) : Color.Lerp(middle, top, (v - 0.5f) / 0.5f);
+            }
+            if (backdrop != null) backdrop.color = Color.Lerp(middle, bottom, 0.5f);
+            if (skyTexture != null)
+            {
+                skyTexture.SetPixels(skyPixels);
+                skyTexture.Apply(false);
+            }
+
+            // Sun and moon on opposite sides of the same arc; each sinks behind the hills.
+            Vector2 sunAt = new Vector2(-Mathf.Cos(angle) * ArcWidth, HorizonY + sunHeight * ArcHeight);
+            Vector2 moonAt = new Vector2(Mathf.Cos(angle) * ArcWidth, HorizonY - sunHeight * ArcHeight);
+            float low = 1f - Mathf.Clamp01(Mathf.Abs(sunHeight) * 2.5f); // 1 near the horizon: a big orange sun
+            if (sun != null)
+            {
+                sun.rectTransform.anchoredPosition = sunGlow.rectTransform.anchoredPosition = sunAt;
+                sun.enabled = sunGlow.enabled = sunHeight > -0.35f;
+                sun.color = Color.Lerp(new Color(1f, 0.97f, 0.86f), new Color(1f, 0.72f, 0.4f), low);
+                sunGlow.color = Color.Lerp(new Color(1f, 0.96f, 0.85f, 0.35f), new Color(1f, 0.7f, 0.4f, 0.6f), low);
+            }
+            if (moon != null)
+            {
+                moon.anchoredPosition = moonGlow.rectTransform.anchoredPosition = moonAt;
+                bool up = -sunHeight > -0.35f;
+                moonGlow.enabled = up;
+                foreach (Graphic part in moonParts) part.enabled = up;
+                moonGlow.color = new Color(0.7f, 0.8f, 1f, 0.3f * Night);
+            }
+
+            // Land: cool blue at night, warm near sunrise and sunset, plain by day.
+            Color light = Color.Lerp(NightLand, Color.white, daylight);
+            light = Color.Lerp(light, light * WarmLand, low * daylight);
+            light.a = 1f;
+            foreach (Graphic graphic in land) if (graphic != null) graphic.canvasRenderer.SetColor(light);
+        }
 
         private static Image Circle(RectTransform parent, string name, Vector2 centre, float size, Color color, bool soft = false)
         {
@@ -287,16 +416,9 @@ namespace SignalLost.UI
             return button;
         }
 
-        private static Sprite Gradient(Color top, Color middle, Color bottom)
+        private void OnDestroy()
         {
-            var texture = new Texture2D(1, 256, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave };
-            for (int y = 0; y < 256; y++)
-            {
-                float t = y / 255f;
-                texture.SetPixel(0, y, t < 0.5f ? Color.Lerp(bottom, middle, t / 0.5f) : Color.Lerp(middle, top, (t - 0.5f) / 0.5f));
-            }
-            texture.Apply();
-            return Sprite.Create(texture, new Rect(0f, 0f, 1f, 256f), new Vector2(0.5f, 0.5f));
+            if (skyTexture != null) Destroy(skyTexture);
         }
     }
 }

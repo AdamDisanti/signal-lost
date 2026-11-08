@@ -24,6 +24,15 @@ namespace SignalLost.UI
         public static readonly Color WarningPanel = new Color(0.32f, 0.03f, 0.04f, 0.86f);
         public static readonly Color Dim = new Color(0f, 0f, 0f, 0.4f);
 
+        /// <summary>
+        /// The gap between a text box's edge and its text, the same on all four sides (11-07). Panels, cards, popups
+        /// and settings pages use <see cref="Pad"/>; small boxes (subtitles, speech bubbles, list rows) use
+        /// <see cref="PadSmall"/>. Lay text out from these rather than from one-off numbers.
+        /// </summary>
+        public const float Pad = 26f, PadSmall = 16f;
+        /// <summary>The same idea for the big full-screen menus (pockets, shop): their content keeps this far in on every side.</summary>
+        public const float PadLarge = 40f;
+
         // Reference resolution for every overlay canvas; sizes below are in these pixels.
         public static readonly Vector2 Reference = new Vector2(1920f, 1080f);
 

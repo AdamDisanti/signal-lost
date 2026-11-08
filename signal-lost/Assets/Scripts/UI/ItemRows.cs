@@ -55,22 +55,24 @@ namespace SignalLost.UI
         {
             Image row = UiTheme.Panel(name, parent, UiTheme.PanelLight, null, 0.7f);
             RectTransform rect = UiTheme.Place(row.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), position, size);
-            float left = 20f;
+            // The same padding on every side (UiTheme.PadSmall); the icon sits inside it like the text does.
+            const float pad = UiTheme.PadSmall;
+            float left = pad;
             if (icon != null)
             {
                 Image image = UiTheme.Icon("Icon", rect, icon);
-                float side = Mathf.Min(size.y - 16f, 84f);
-                UiTheme.Place(image.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(12f, 0f), new Vector2(side, side));
-                left = side + 26f;
+                float side = Mathf.Min(size.y - 2f * pad, 84f);
+                UiTheme.Place(image.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(pad, 0f), new Vector2(side, side));
+                left = side + 2f * pad;
             }
             TextMeshProUGUI heading = UiTheme.Label("Title", rect, 28f, titleColor, TextAlignmentOptions.TopLeft, FontStyles.Bold);
-            UiTheme.Place(heading.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(left, -10f), new Vector2(size.x - left - 20f, 36f));
+            UiTheme.Place(heading.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(left, -pad + 4f), new Vector2(size.x - left - pad, 36f));
             heading.textWrappingMode = TextWrappingModes.NoWrap;
             heading.overflowMode = TextOverflowModes.Ellipsis;
             heading.text = title;
             // The body fills the rest of the row and shrinks a little rather than spill out of it.
             TextMeshProUGUI text = UiTheme.Label("Body", rect, 21f, UiTheme.Muted, TextAlignmentOptions.TopLeft);
-            UiTheme.Place(text.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(left, -44f), new Vector2(Mathf.Max(80f, size.x - left - rightReserve), size.y - 52f - bottomReserve));
+            UiTheme.Place(text.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(left, -pad - 30f), new Vector2(Mathf.Max(80f, size.x - left - rightReserve), size.y - 2f * pad - 30f - bottomReserve));
             text.enableAutoSizing = true;
             text.fontSizeMin = 15f;
             text.fontSizeMax = 21f;
@@ -83,7 +85,7 @@ namespace SignalLost.UI
         public static TextMeshProUGUI RightLabel(RectTransform row, string text, float size, Color color, float width = 240f)
         {
             TextMeshProUGUI label = UiTheme.Label("Right", row, size, color, TextAlignmentOptions.Right, FontStyles.Bold);
-            UiTheme.Place(label.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-20f, 0f), new Vector2(width, 60f));
+            UiTheme.Place(label.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-UiTheme.PadSmall, 0f), new Vector2(width, 60f));
             label.text = text;
             return label;
         }

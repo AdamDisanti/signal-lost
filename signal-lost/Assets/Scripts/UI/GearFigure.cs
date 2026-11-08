@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using SignalLost.Combat;
 using SignalLost.Inventory;
 using SignalLost.Player;
@@ -9,8 +10,9 @@ using UnityEngine.Rendering.Universal;
 namespace SignalLost.UI
 {
     /// <summary>
-    /// The 3D view in the pockets menu's Gear tab (meeting notes 10-23): a blocky mechanic, Minecraft-inspired but in
-    /// Signal Lost's low-poly style, holding the mining laser and the scanner with the flask on the belt, wearing every
+    /// The 3D view in the pockets menu's Gear tab (meeting notes 10-23): the mechanic, short and round with pudgy hands
+    /// (built by <see cref="MechanicModel"/>, like the first-person hands), holding the mining laser and the scanner
+    /// with the flask on the belt, wearing every
     /// upgrade bought (a coil on the laser, an antenna on the scanner, padding...). Each tool also gets a close-up.
     /// Everything lives on a hidden stage far below the level on its own layer and renders into textures the menu
     /// shows; nothing is drawn while the menu is closed. Models come from the player's own gear and the ItemCatalog.
@@ -21,14 +23,6 @@ namespace SignalLost.UI
         private static readonly Vector3 StagePosition = new Vector3(0f, -3000f, 0f);
 
         public enum Shot { Figure, Laser, Scanner, Flask }
-
-        private static readonly Color Suit = new Color(0.93f, 0.48f, 0.15f);
-        private static readonly Color Cream = new Color(0.9f, 0.86f, 0.78f);
-        private static readonly Color Glove = new Color(0.62f, 0.44f, 0.27f);
-        private static readonly Color Skin = new Color(0.93f, 0.74f, 0.58f);
-        private static readonly Color Boot = new Color(0.25f, 0.18f, 0.13f);
-        private static readonly Color Belt = new Color(0.18f, 0.16f, 0.15f);
-        private static readonly Color Teal = new Color(0.42f, 0.9f, 0.86f);
 
         private readonly Dictionary<Shot, Camera> cameras = new Dictionary<Shot, Camera>();
         private readonly Dictionary<Shot, RenderTexture> textures = new Dictionary<Shot, RenderTexture>();
@@ -65,7 +59,8 @@ namespace SignalLost.UI
             builtFor = key;
             foreach (GameObject part in attachments) Destroy(part);
             attachments.Clear();
-            foreach (string id in inventory.Upgrades)
+            // One part per upgrade line, whatever its tier.
+            foreach (string id in UpgradeCatalog.Installed(inventory.Upgrades).Select(u => u.ArtId))
             {
                 GameObject model = ItemCatalog.Model(id);
                 if (model == null) continue;
@@ -103,37 +98,25 @@ namespace SignalLost.UI
 
         private void Build(PlayerGear gear)
         {
-            // The mechanic, built from boxes (~1.85 m tall), facing +Z.
+            // The mechanic (MechanicModel: short and round, ~1.66 m to the top of the cap), facing +Z. The right arm reaches
+            // forward holding the laser, the left holds the scanner low, and the flask hangs on the belt.
             Transform figure = Pivot(Shot.Figure, Vector3.zero);
             var body = new GameObject("Mechanic").transform;
             body.SetParent(figure, false);
-            Box(body, "Leg L", Suit, new Vector3(-0.13f, 0.42f, 0f), new Vector3(0.22f, 0.66f, 0.24f));
-            Box(body, "Leg R", Suit, new Vector3(0.13f, 0.42f, 0f), new Vector3(0.22f, 0.66f, 0.24f));
-            Box(body, "Boot L", Boot, new Vector3(-0.13f, 0.06f, 0.03f), new Vector3(0.24f, 0.14f, 0.3f));
-            Box(body, "Boot R", Boot, new Vector3(0.13f, 0.06f, 0.03f), new Vector3(0.24f, 0.14f, 0.3f));
-            kneeL = Empty(body, new Vector3(-0.13f, 0.45f, 0f));
-            kneeR = Empty(body, new Vector3(0.13f, 0.45f, 0f));
-            Box(body, "Torso", Suit, new Vector3(0f, 1.08f, 0f), new Vector3(0.52f, 0.62f, 0.3f));
-            torso = Empty(body, new Vector3(0f, 1.08f, 0f));
-            Box(body, "Stripe", Cream, new Vector3(0f, 0.86f, 0f), new Vector3(0.53f, 0.06f, 0.31f));
-            Box(body, "Belt", Belt, new Vector3(0f, 0.78f, 0f), new Vector3(0.54f, 0.08f, 0.32f));
-            Box(body, "Patch", Teal, new Vector3(-0.13f, 1.22f, 0.155f), new Vector3(0.1f, 0.1f, 0.01f));
-            Box(body, "Patch Gear", Cream, new Vector3(-0.13f, 1.22f, 0.161f), new Vector3(0.05f, 0.05f, 0.005f));
-            Transform head = Box(body, "Head", Skin, new Vector3(0f, 1.62f, 0f), new Vector3(0.38f, 0.38f, 0.36f));
-            Box(head, "Cap", Suit, new Vector3(0f, 0.22f, 0f), new Vector3(1.04f, 0.3f, 1.04f));
-            Box(head, "Peak", Suit * 0.85f, new Vector3(0f, 0.12f, 0.6f), new Vector3(1.04f, 0.08f, 0.35f));
-            Box(head, "Badge", Cream, new Vector3(0f, 0.24f, 0.525f), new Vector3(0.2f, 0.16f, 0.02f));
-            Box(head, "Eye L", new Color(0.08f, 0.07f, 0.07f), new Vector3(-0.2f, -0.02f, 0.505f), new Vector3(0.12f, 0.1f, 0.02f));
-            Box(head, "Eye R", new Color(0.08f, 0.07f, 0.07f), new Vector3(0.2f, -0.02f, 0.505f), new Vector3(0.12f, 0.1f, 0.02f));
-            Box(head, "Nose", Skin * 0.92f, new Vector3(0f, -0.14f, 0.53f), new Vector3(0.12f, 0.14f, 0.08f));
-            Box(head, "Stubble", new Color(0.62f, 0.4f, 0.25f), new Vector3(0f, -0.38f, 0.51f), new Vector3(0.8f, 0.2f, 0.04f));
-
-            // Arms: the right reaches forward holding the laser, the left holds the scanner low.
-            Transform armR = Arm(body, "Arm R", new Vector3(0.36f, 1.32f, 0f), new Vector3(-62f, 0f, 6f));
-            Transform armL = Arm(body, "Arm L", new Vector3(-0.36f, 1.32f, 0f), new Vector3(-25f, 0f, -10f));
-            figureLaser = Holding(armR, LaserModel(gear), new Vector3(0f, -0.62f, 0.06f), new Vector3(62f, 0f, 0f), 0.75f);
-            figureScanner = Holding(armL, ScannerModel(gear), new Vector3(0f, -0.62f, 0.08f), new Vector3(25f, 0f, 0f), 0.55f);
-            figureFlask = Holding(body, FlaskModel(gear), new Vector3(0.3f, 0.7f, 0.06f), new Vector3(0f, 90f, 0f), 0.5f);
+            // Dressed for the island it is on (11-08: the desert has its own outfit).
+            MechanicModel.Figure mechanic = MechanicModel.BuildFigure(body, Paint, new Vector3(-62f, 0f, 6f), new Vector3(-25f, 0f, -10f),
+                0.75f, 0.75f, SignalLost.World.Outfits.Mechanic(SignalLost.World.StageTheme.Current));
+            torso = mechanic.Torso;
+            kneeL = mechanic.KneeL;
+            kneeR = mechanic.KneeR;
+            // Each tool sits in the fist exactly as in first person (MechanicModel's ToolHolds); the hold is tipped down a
+            // little so the laser is carried at the ready and the scanner in front of the chest.
+            figureLaser = Seat(LaserModel(gear), mechanic.HandR, mechanic.ArmR, MechanicModel.LaserHold, false, new Vector3(25f, 0f, 0f), 1f, null);
+            // The scanner is clipped flat against his left hip (its back on the suit, screen facing out to the side),
+            // leaning in with the curve of the belly; the left hand rests as a relaxed fist.
+            figureScanner = Holding(body, ScannerModel(gear), new Vector3(-0.355f, 0.52f, 0.03f), Vector3.zero, 0.4f);
+            if (figureScanner != null) figureScanner.localRotation = Quaternion.Euler(0f, 0f, -12f) * Quaternion.Euler(0f, 90f, 0f);
+            figureFlask = Holding(mechanic.Hip, FlaskModel(gear), Vector3.zero, new Vector3(0f, 90f, 0f), 0.5f);
 
             // Close-ups of each tool, side on.
             showLaser = Holding(Pivot(Shot.Laser, new Vector3(20f, 0f, 0f)), LaserModel(gear), Vector3.zero, Vector3.zero, 1f);
@@ -143,7 +126,7 @@ namespace SignalLost.UI
 
             Lamp(new Vector3(35f, 150f, 0f), new Color(1f, 0.93f, 0.82f), 1.2f);
             Lamp(new Vector3(20f, -30f, 0f), new Color(0.55f, 0.75f, 1f), 0.6f);
-            Lens(Shot.Figure, 512, 768, new Vector3(0f, 1.0f, 0f), 4.4f, 30f);
+            Lens(Shot.Figure, 512, 768, new Vector3(0f, MechanicModel.Height * 0.52f, 0f), 3.9f, 30f);
             foreach (Shot tool in new[] { Shot.Laser, Shot.Scanner, Shot.Flask })
                 Lens(tool, 384, 256, pivots[tool].position - transform.position, Size(tool) * 1.9f, 30f);
             SetLayer(transform);
@@ -197,15 +180,21 @@ namespace SignalLost.UI
             lamp.shadows = LightShadows.None;
         }
 
-        private Transform Arm(Transform body, string name, Vector3 shoulder, Vector3 angles)
+        // Puts a tool in one of the mechanic's hands the way the first-person hands hold it (a left hand mirrors the
+        // grip; 'shrink' draws the tool smaller about the grip), then turns the hand as in first person, tipped by
+        // 'lower', and points the arm along the hand, or at the given angles (the arm has no elbow, so a hand tipped up,
+        // as on the scanner, would otherwise lift the whole arm).
+        private static Transform Seat(GameObject model, MechanicModel.Hand hand, Transform shoulder, MechanicModel.ToolHold hold, bool mirror,
+            Vector3 lower, float shrink, Vector3? armAngles)
         {
-            Transform pivot = Empty(body, shoulder);
-            pivot.name = name;
-            pivot.localRotation = Quaternion.Euler(angles);
-            Box(pivot, "Sleeve", Suit, new Vector3(0f, -0.25f, 0f), new Vector3(0.17f, 0.5f, 0.18f));
-            Box(pivot, "Cuff", Cream, new Vector3(0f, -0.5f, 0f), new Vector3(0.18f, 0.05f, 0.19f));
-            Box(pivot, "Glove", Glove, new Vector3(0f, -0.6f, 0f), new Vector3(0.17f, 0.16f, 0.18f));
-            return pivot;
+            if (model == null) return null;
+            Transform grip = model.transform.Find("GripAnchor");
+            hold.Seat(model.transform, hand, mirror, grip != null ? grip.localPosition : (Vector3?)null, shrink);
+            Quaternion handInBody = Quaternion.Euler(lower) * hold.HandRotationFor(mirror);
+            shoulder.localRotation = armAngles.HasValue ? Quaternion.Euler(armAngles.Value)
+                : Quaternion.FromToRotation(Vector3.down, handInBody * Vector3.forward);
+            hand.Root.localRotation = Quaternion.Inverse(shoulder.localRotation) * handInBody;
+            return model.transform;
         }
 
         private Transform Holding(Transform parent, GameObject model, Vector3 position, Vector3 angles, float scale)
@@ -252,29 +241,6 @@ namespace SignalLost.UI
             attachments.Add(part);
         }
 
-        // Children of a box (the head's cap, eyes...) are placed in the box's own scaled units.
-        private Transform Box(Transform parent, string name, Color color, Vector3 position, Vector3 size)
-        {
-            GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            box.name = name;
-            Destroy(box.GetComponent<Collider>());
-            box.transform.SetParent(parent, false);
-            box.transform.localPosition = position;
-            box.transform.localScale = size;
-            var renderer = box.GetComponent<Renderer>();
-            renderer.sharedMaterial = Paint(color);
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
-            return box.transform;
-        }
-
-        private static Transform Empty(Transform parent, Vector3 position)
-        {
-            var empty = new GameObject("Mount").transform;
-            empty.SetParent(parent, false);
-            empty.localPosition = position;
-            return empty;
-        }
-
         private Material Paint(Color color)
         {
             string key = ColorUtility.ToHtmlStringRGB(color);
@@ -300,6 +266,15 @@ namespace SignalLost.UI
             if (visual == null) return null;
             GameObject copy = Copy(visual);
             copy.transform.localPosition = Vector3.zero;
+            // While the scanner is out, the first-person right hand is parented to it; leave that behind.
+            foreach (Transform part in copy.GetComponentsInChildren<Transform>(true))
+                if (part != copy.transform && part.GetComponent<SkinnedMeshRenderer>() != null && part.parent != null)
+                {
+                    Transform hand = part.parent;
+                    if (hand == copy.transform) continue;
+                    hand.SetParent(null, false);
+                    Destroy(hand.gameObject);
+                }
             return copy;
         }
 

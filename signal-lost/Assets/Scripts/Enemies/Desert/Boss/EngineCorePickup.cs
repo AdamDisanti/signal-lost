@@ -1,4 +1,5 @@
 using System;
+using SignalLost.Inventory;
 using SignalLost.Player;
 using SignalLost.Progression;
 using UnityEngine;
@@ -6,7 +7,8 @@ using UnityEngine;
 namespace SignalLost.Enemies.Desert
 {
     /// <summary>
-    /// The Engine Core dropped by the Coreworm: it floats and glows until the player walks into it. Picking it up
+    /// The Engine Core dropped by the Coreworm: it floats, spins and glows at the size every collectable shares
+    /// (<see cref="GroundItem"/>) until the player walks into it. Picking it up
     /// records it as a main ship part (<see cref="StageProgress"/>), clears the desert stage and unlocks the next one.
     /// </summary>
     public sealed class EngineCorePickup : MonoBehaviour
@@ -15,7 +17,8 @@ namespace SignalLost.Enemies.Desert
 
         private string partName = "Engine Core";
         private string unlocks;
-        private Vector3 from, rest;
+        private Transform display; // the core, centred and scaled to the shared collectable size (GroundItem)
+        private Vector3 near, from, rest;
         private Quaternion fromRotation;
         private float born;
         private Transform player;
@@ -33,15 +36,19 @@ namespace SignalLost.Enemies.Desert
             var pickup = part.gameObject.AddComponent<EngineCorePickup>();
             pickup.partName = name;
             pickup.unlocks = unlocksStage;
-            pickup.from = part.position;
+            pickup.near = near;
             pickup.fromRotation = part.rotation;
-            pickup.rest = near + Vector3.up * 1.4f;
             return pickup;
         }
 
         private void Start()
         {
             born = Time.time;
+            display = GroundItem.Wrap(transform, null, partName);
+            from = display.position;
+            display.rotation = fromRotation;
+            Vector3 ground = GroundItem.GroundBelow(near, display);
+            rest = ground + Vector3.up * GroundItem.HoverHeight(ground, display);
             var controller = FindAnyObjectByType<FirstPersonController>();
             if (controller != null) player = controller.transform;
             glow = GetComponentInChildren<Light>();
@@ -63,16 +70,15 @@ namespace SignalLost.Enemies.Desert
                 float k = t / 1f;
                 Vector3 p = Vector3.Lerp(from, rest, k);
                 p.y += Mathf.Sin(k * Mathf.PI) * 2f;
-                transform.position = p;
-                transform.rotation = Quaternion.Slerp(fromRotation, Quaternion.identity, k);
+                display.position = p;
+                display.rotation = Quaternion.Slerp(fromRotation, Quaternion.Euler(0f, (Time.time + born) * GroundItem.SpinSpeed, 0f), k);
                 return;
             }
-            transform.position = rest + Vector3.up * Mathf.Sin(t * 1.8f) * 0.2f;
-            transform.rotation = Quaternion.Euler(0f, t * 45f, Mathf.Sin(t) * 10f);
+            GroundItem.Animate(display, rest, born);
             if (glow != null) glow.intensity = 4f + Mathf.Sin(t * 5f) * 1.5f;
 
             if (player == null) return;
-            Vector3 offset = player.position - transform.position;
+            Vector3 offset = player.position - display.position;
             offset.y = 0f;
             if (offset.magnitude > pickupRadius) return;
 
@@ -80,7 +86,7 @@ namespace SignalLost.Enemies.Desert
             StageProgress.ClearStage(StageProgress.Desert, unlocks);
             MiniBossHud.Message($"RECOVERED: {partName.ToUpperInvariant()}  (main ship part)", new Color(0.55f, 1f, 0.6f), 4f);
             Recovered?.Invoke(partName);
-            Destroy(gameObject);
+            Destroy(display.gameObject);
         }
     }
 }

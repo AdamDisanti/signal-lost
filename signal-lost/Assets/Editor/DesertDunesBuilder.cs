@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SignalLost.Combat;
 using SignalLost.Enemies;
+using SignalLost.NPC;
 using SignalLost.Player;
 using SignalLost.Scanner;
 using SignalLost.UI;
@@ -41,6 +42,7 @@ namespace SignalLost.Editor
         private const string ScannerRigPath = "Assets/Prefabs/Player/Scanner/ScannerRig.prefab";
         private const string HudPrefabPath = "Assets/Prefabs/UI/PlayerHUD.prefab";
         private const string CapybaraPath = "Assets/Prefabs/Enviornment objects/GrayboxProps/CapybaraAstronaut.prefab";
+        private const string MerchantPath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
         private const string RocketEnginePath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Upgrades/RocketEngine.prefab";
         private const string ShipPanelMeshPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Meshes/BentShipPanel.asset";
         private const string HullMaterialPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Materials/DamagedRocketHull.mat";
@@ -52,6 +54,8 @@ namespace SignalLost.Editor
         private const float MapSize = 320f;   // same footprint as the tutorial crash site
         private const int Cells = 80;         // 4 m facets
         private const float PlayableRadius = 128f;
+        /// <summary>The sea round the island (11-07: the perimeter dune wall became a beach; see IslandKit).</summary>
+        public const float SeaLevel = -0.5f;
 
         private static readonly Vector3 SpawnPoint = new Vector3(0f, 0f, -132f);
 
@@ -71,6 +75,9 @@ namespace SignalLost.Editor
             new Site("Encounter 3 - Buried Hull", -58f, 62f, 16f),
         };
         private static readonly Site BossArena = new Site("Boss Arena", 38f, 92f, 26f);
+        /// <summary>Cavendish's camp (its fire), just inland of the arrival dock, beside the biome entrance.</summary>
+        private static readonly Vector2 CampOrigin = new Vector2(9f, -116f);
+        private const string CampName = "Cavendish's Camp";
 
         // Crash streak: debris was flung from the south-west toward the boss arena.
         private static readonly Vector2 StreakStart = new Vector2(-30f, -105f);
@@ -128,6 +135,143 @@ namespace SignalLost.Editor
             BuildEnvironmentPrefab();
             AssetDatabase.SaveAssets();
             Debug.Log("DESERT_ENVIRONMENT_REBUILT");
+        }
+
+        /// <summary>
+        /// Turns the existing desert into an island (11-07) without rebuilding the scene: regenerates the environment
+        /// prefab (beach instead of the perimeter dunes, the sea floor, the sea, both docks and the far islands), then
+        /// puts the scene's player and placeholder markers back on the new ground and saves the scene.
+        /// </summary>
+        [MenuItem("Signal Lost/Make Desert An Island")]
+        public static void ConvertToIsland()
+        {
+            if (!Application.isBatchMode && !EditorUtility.DisplayDialog("Make the desert an island",
+                    "This regenerates DesertEnvironment.prefab (replacing edits made to it in Unity) and moves the player and " +
+                    "the placeholder markers onto the new ground in DesertDunes.unity. Continue?", "Convert", "Cancel"))
+                return;
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            BuildEnvironmentPrefab();
+            AssetDatabase.SaveAssets();
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            foreach (FirstPersonController player in Object.FindObjectsByType<FirstPersonController>())
+            {
+                Snap(player.transform, 0.1f);
+                // The sky over the sea, not the shared player's flat clear colour (as the tutorial does).
+                Camera eyes = player.GetComponentInChildren<Camera>(true);
+                if (eyes != null) eyes.clearFlags = CameraClearFlags.Skybox;
+            }
+            GameObject markers = GameObject.Find("Level Markers (placeholders)");
+            if (markers != null) foreach (Transform marker in markers.transform) Snap(marker, 0f);
+            InstallCamp();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            // (Validate() predates the shared HUD and fails on today's scene, so check just what this changed.)
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<SignalLost.World.Ocean>() == 1 && EnemyTestBuilder.Count<SignalLost.World.IslandDock>() == 2,
+                "Expected the sea and two docks in the desert.");
+            ValidateCamp();
+            Debug.Log("DESERT_ISLAND_CONVERTED");
+        }
+
+        /// <summary>
+        /// Rebuilds the desert camp prefab and (re)installs it in DesertDunes.unity with Cavendish and Eugene, without
+        /// regenerating the island. ConvertToIsland does this too.
+        /// </summary>
+        [MenuItem("Signal Lost/Desert/Install Cavendish's Camp")]
+        public static void InstallCampMenu()
+        {
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            BaseCampBuilder.BuildDesert();
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            InstallCamp();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            ValidateCamp();
+            Debug.Log("DESERT_CAMP_INSTALLED");
+        }
+
+        /// <summary>
+        /// Cavendish's camp beside the arrival dock (11-08): the desert camp prefab, Cavendish sitting on his log under the
+        /// sun shade and Eugene (a friendly trader from the start here) on the other log, and the scene's
+        /// <see cref="SignalLost.World.StageTheme"/>, which dresses everyone for the desert. Replaces an earlier install
+        /// and the old "Cavendish (quest giver)" and merchant-spot placeholders, which this camp stands in for.
+        /// </summary>
+        private static void InstallCamp()
+        {
+            foreach (string old in new[] { CampName, "Cavendish (quest giver)", "Merchant Spot (hermit crab merchant goes here)", "Stage Theme" })
+                for (GameObject found = GameObject.Find(old); found != null; found = GameObject.Find(old)) Object.DestroyImmediate(found);
+
+            var campAsset = AssetDatabase.LoadAssetAtPath<GameObject>(BaseCampBuilder.DesertPrefabPath);
+            if (campAsset == null)
+            {
+                BaseCampBuilder.BuildDesert();
+                campAsset = AssetDatabase.LoadAssetAtPath<GameObject>(BaseCampBuilder.DesertPrefabPath);
+            }
+            var camp = (GameObject)PrefabUtility.InstantiatePrefab(campAsset);
+            camp.name = CampName;
+            camp.transform.SetPositionAndRotation(OnGround(CampOrigin.x, CampOrigin.y), Quaternion.identity);
+            var island = camp.GetComponent<SignalLost.World.IslandCamp>();
+            var residents = new GameObject("Residents").transform;
+            residents.SetParent(camp.transform, false);
+
+            var cavendish = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CapybaraPath), residents);
+            cavendish.name = "Cavendish";
+            SignalLost.World.IslandCamp.SitCavendish(cavendish.transform, island.CavendishSeat);
+            var actor = new SerializedObject(cavendish.AddComponent<NpcActor>());
+            actor.FindProperty("role").enumValueIndex = (int)NpcActor.Role.Cavendish;
+            SerializedProperty talk = actor.FindProperty("smallTalk");
+            string[] lines =
+            {
+                "Sand. In the suit. In places a capybara should never have sand.",
+                "The Engine Core is out here somewhere. Your scanner will find it.",
+                "Eugene is selling sunscreen. I'd ask what's in it before you buy.",
+                "Lovely spot for a camp, isn't it? Hot. But lovely."
+            };
+            talk.arraySize = lines.Length;
+            for (int i = 0; i < lines.Length; i++) talk.GetArrayElementAtIndex(i).stringValue = lines[i];
+            actor.ApplyModifiedPropertiesWithoutUndo();
+            var voice = new GameObject("Cavendish Dialogue");
+            voice.transform.SetParent(cavendish.transform, false);
+            voice.transform.localPosition = new Vector3(0f, 2.45f, 0f);
+            var dialogue = new SerializedObject(voice.AddComponent<NpcDialogue>());
+            dialogue.FindProperty("speaker").stringValue = "Cavendish";
+            dialogue.ApplyModifiedPropertiesWithoutUndo();
+
+            var eugene = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(MerchantPath), residents);
+            eugene.name = "Eugene";
+            eugene.transform.SetPositionAndRotation(island.MerchantSeat.position, island.MerchantSeat.rotation);
+            var merchant = new SerializedObject(eugene.GetComponent<MerchantCrab>());
+            merchant.FindProperty("startFriendly").boolValue = true;
+            merchant.FindProperty("spawnAfterQuest").boolValue = false;
+            merchant.FindProperty("seat").objectReferenceValue = island.MerchantSeat;
+            merchant.FindProperty("returnPoint").objectReferenceValue = island.MerchantStand;
+            merchant.FindProperty("cousins").arraySize = 0;
+            merchant.ApplyModifiedPropertiesWithoutUndo();
+
+            var links = new SerializedObject(island);
+            links.FindProperty("cavendish").objectReferenceValue = cavendish.GetComponent<NpcActor>();
+            links.FindProperty("merchant").objectReferenceValue = eugene.GetComponent<NpcActor>();
+            links.ApplyModifiedPropertiesWithoutUndo();
+
+            var theme = new GameObject("Stage Theme");
+            var look = new SerializedObject(theme.AddComponent<SignalLost.World.StageTheme>());
+            look.FindProperty("look").enumValueIndex = (int)SignalLost.World.IslandLook.Desert;
+            look.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ValidateCamp()
+        {
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<SignalLost.World.IslandCamp>() == 1, "Expected one camp in the desert.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<SignalLost.World.StageTheme>() == 1, "Expected one stage theme in the desert.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<NpcActor>() == 2, "Expected Cavendish and Eugene in the desert.");
+            var camp = Object.FindAnyObjectByType<SignalLost.World.IslandCamp>();
+            EnemyTestBuilder.Require(camp.Cavendish != null && camp.Merchant != null && camp.CavendishSeat != null && camp.MerchantSeat != null,
+                "The desert camp is missing its residents or seats.");
+        }
+
+        private static void Snap(Transform item, float lift)
+        {
+            Vector3 p = item.position;
+            item.position = new Vector3(p.x, Ground(p.x, p.z) + lift, p.z);
         }
 
         /// <summary>
@@ -220,20 +364,28 @@ namespace SignalLost.Editor
                 h = Mathf.Lerp(h, flat, 1f - SmoothStep01(site.Radius, site.Radius + 14f, d));
             }
 
+            // Cavendish's camp, up the beach from the arrival dock (11-08): levelled to the entrance's height.
+            float pad = Vector2.Distance(new Vector2(x, z), CampOrigin + new Vector2(-0.5f, 2f));
+            h = Mathf.Lerp(h, DuneHeight(Entrance.Center.x, Entrance.Center.y), 1f - SmoothStep01(9f, 15f, pad));
+
             // Boss arena: shallow sand bowl with a raised rim.
             float boss = Vector2.Distance(new Vector2(x, z), BossArena.Center);
             if (boss < BossArena.Radius) h -= 2.2f * (1f - (boss / BossArena.Radius) * (boss / BossArena.Radius));
             h += 1.6f * Mathf.Exp(-Mathf.Pow((boss - BossArena.Radius - 3f) / 4f, 2f));
 
-            // Perimeter: towering dunes all round (a rounded square) that are far too steep to climb.
+            // The island's edge (11-07, replacing the towering perimeter dunes and the entrance canyon): a beach down into
+            // the sea all round a rounded square. The arrival dock is on the south beach by the entrance; the departure
+            // dock is on the north beach past the biome exit.
+            return IslandKit.Shore(h, ShoreDistance(x, z), SeaLevel);
+        }
+
+        /// <summary>Metres past the coastline (negative inland), round a rounded square with a wavy coast.</summary>
+        private static float ShoreDistance(float x, float z)
+        {
             float edge = Mathf.Pow(Mathf.Pow(Mathf.Abs(x), 4f) + Mathf.Pow(Mathf.Abs(z), 4f), 0.25f);
             float angle = Mathf.Atan2(z, x);
-            float inner = PlayableRadius + 7f * Noise(Mathf.Cos(angle) * 40f, Mathf.Sin(angle) * 40f, 13f, 2.2f, 8.4f);
-            // Entrance canyon: a narrow notch in the south wall the player arrives through.
-            if (z < 0f) inner += 22f * (1f - SmoothStep01(4f, 11f, Mathf.Abs(x)));
-            float wall = SmoothStep01(inner, inner + 13f, edge);
-            h += wall * (24f + 5f * Noise(x, z, 23f, 9.1f, 1.7f));
-            return h;
+            float coast = PlayableRadius + 4f + 7f * Noise(Mathf.Cos(angle) * 40f, Mathf.Sin(angle) * 40f, 13f, 2.2f, 8.4f);
+            return edge - coast;
         }
 
         private static IEnumerable<Site> AllSites()
@@ -306,7 +458,8 @@ namespace SignalLost.Editor
                 AssetDatabase.LoadAssetAtPath<Material>(ScorchedHullPath) ?? mats["RockDark"],
             };
 
-            Mesh terrain = SaveMesh(BuildTerrainMesh());
+            Mesh terrain = SaveMesh(BuildTerrainMesh(out Mesh seabedMesh));
+            seabedMesh = SaveMesh(seabedMesh);
             Mesh boulder = SaveMesh(LowPolyMesh.Icosphere("DesertBoulder", 0));
             Mesh pebble = SaveMesh(LowPolyMesh.Icosphere("DesertRoundRock", 1));
             Mesh mesa6 = SaveMesh(LowPolyMesh.TaperedPrism("DesertMesa6", 6, 0.78f));
@@ -331,6 +484,16 @@ namespace SignalLost.Editor
             ground.AddComponent<MeshRenderer>().sharedMaterials = new[] { mats["Sand"], mats["Shade"], mats["Sandstone"] };
             ground.AddComponent<MeshCollider>().sharedMesh = terrain;
             GameObjectUtility.SetStaticEditorFlags(ground, StaticEditorFlags.BatchingStatic);
+
+            // The sea floor is its own object so the NavMesh leaves it out; then the sea, the docks and the islands around.
+            var seabed = new GameObject("Seabed");
+            seabed.transform.SetParent(root.transform, false);
+            seabed.AddComponent<MeshFilter>().sharedMesh = seabedMesh;
+            seabed.AddComponent<MeshRenderer>().sharedMaterial = MakeMaterial("DesertSeabed", new Color(0.84f, 0.74f, 0.55f), 0.05f);
+            seabed.AddComponent<MeshCollider>().sharedMesh = seabedMesh;
+            IslandKit.NoWalk(seabed);
+            GameObjectUtility.SetStaticEditorFlags(seabed, StaticEditorFlags.BatchingStatic);
+            BuildShore(root.transform);
 
             var placed = new List<Vector3>();
 
@@ -444,23 +607,29 @@ namespace SignalLost.Editor
             return EnemyTestBuilder.SavePrefab(root, EnvironmentPrefabPath);
         }
 
-        private static Mesh BuildTerrainMesh()
+        // The land (three submeshes by slope) and, separately, the sea floor (one), so the floor can be left off the NavMesh.
+        private static Mesh BuildTerrainMesh(out Mesh seabed)
         {
             EnsureGrid();
             float step = MapSize / Cells, origin = -MapSize * 0.5f;
             var vertices = new List<Vector3>();
             var normals = new List<Vector3>();
             var sub = new[] { new List<int>(), new List<int>(), new List<int>() }; // flat sand, slopes, cliffs
+            var floorVertices = new List<Vector3>();
+            var floorNormals = new List<Vector3>();
+            var floor = new List<int>();
+            bool under = false;
 
             void Tri(Vector3 a, Vector3 b, Vector3 c)
             {
                 Vector3 n = Vector3.Cross(b - a, c - a).normalized;
                 if (n.y < 0f) { (b, c) = (c, b); n = -n; }
                 float slope = Mathf.Acos(Mathf.Clamp01(n.y)) * Mathf.Rad2Deg;
-                List<int> target = slope < 16f ? sub[0] : slope < 38f ? sub[1] : sub[2];
-                int start = vertices.Count;
-                vertices.Add(a); vertices.Add(b); vertices.Add(c);
-                normals.Add(n); normals.Add(n); normals.Add(n);
+                List<int> target = under ? floor : slope < 16f ? sub[0] : slope < 38f ? sub[1] : sub[2];
+                List<Vector3> v = under ? floorVertices : vertices, nn = under ? floorNormals : normals;
+                int start = v.Count;
+                v.Add(a); v.Add(b); v.Add(c);
+                nn.Add(n); nn.Add(n); nn.Add(n);
                 target.Add(start); target.Add(start + 1); target.Add(start + 2);
             }
 
@@ -471,6 +640,9 @@ namespace SignalLost.Editor
                     Vector3 p10 = new Vector3(origin + (i + 1) * step, heightGrid[i + 1, j], origin + j * step);
                     Vector3 p01 = new Vector3(origin + i * step, heightGrid[i, j + 1], origin + (j + 1) * step);
                     Vector3 p11 = new Vector3(origin + (i + 1) * step, heightGrid[i + 1, j + 1], origin + (j + 1) * step);
+                    // Sea floor only past the coastline; inland troughs below sea level stay walkable ground.
+                    under = Mathf.Max(Mathf.Max(p00.y, p10.y), Mathf.Max(p01.y, p11.y)) < SeaLevel - 0.6f &&
+                            ShoreDistance(origin + (i + 0.5f) * step, origin + (j + 0.5f) * step) > 0f;
                     if (FlipDiagonal(i, j)) { Tri(p00, p11, p10); Tri(p00, p01, p11); }
                     else { Tri(p00, p01, p10); Tri(p10, p01, p11); }
                 }
@@ -481,7 +653,42 @@ namespace SignalLost.Editor
             mesh.subMeshCount = 3;
             for (int s = 0; s < 3; s++) mesh.SetTriangles(sub[s], s);
             mesh.RecalculateBounds();
+
+            seabed = new Mesh { name = "DesertSeabed" };
+            seabed.SetVertices(floorVertices);
+            seabed.SetNormals(floorNormals);
+            seabed.SetTriangles(floor, 0);
+            seabed.RecalculateBounds();
             return mesh;
+        }
+
+        // The sea, the arrival dock on the south beach where the player starts, the departure dock on the north beach
+        // past the biome exit (its boat waits for the Engine Core; the Fog Forest isn't built yet), and the islands on
+        // the horizon: the forest ahead, the meadow behind.
+        private static void BuildShore(Transform root)
+        {
+            Transform shore = Group("Shore", root);
+            IslandKit.BuildOcean(shore, SeaLevel, Vector2.zero, MapSize * 0.5f, 2f, Ground, Vector3.zero, "DesertOcean");
+
+            Vector2 arrival = IslandKit.ShoreStart(new Vector2(SpawnPoint.x, SpawnPoint.z + 8f), Vector2.down, Ground, SeaLevel);
+            IslandKit.BuildDock(shore, new IslandKit.DockSpec
+            {
+                Name = "DesertArrivalDock", Start = arrival, Seaward = Vector2.down, Length = 16f,
+                Role = SignalLost.World.IslandDock.Role.Arrival, IslandName = "The Desert Dunes"
+            }, SeaLevel, Ground, 20261109);
+
+            Vector2 exit = new Vector2(BossArena.Center.x - 40f, BossArena.Center.y + 18f);
+            Vector2 departure = IslandKit.ShoreStart(exit, Vector2.up, Ground, SeaLevel);
+            IslandKit.BuildDock(shore, new IslandKit.DockSpec
+            {
+                Name = "DesertDepartureDock", Start = departure, Seaward = Vector2.up, Length = 16f,
+                Role = SignalLost.World.IslandDock.Role.Departure, IslandName = "The Desert Dunes",
+                DestinationScene = "", DestinationName = "the Fog Forest", RequiredStage = SignalLost.Progression.StageProgress.Desert,
+                LockedMessage = "Recover the Engine Core before you set sail."
+            }, SeaLevel, Ground, 20261110);
+
+            IslandKit.DistantIsland(shore, "ForestIslandSilhouette", new Vector3(departure.x + 60f, SeaLevel, departure.y + 720f), 160f, 46f, true, 20261111);
+            IslandKit.DistantIsland(shore, "MeadowIslandSilhouette", new Vector3(arrival.x - 90f, SeaLevel, arrival.y - 760f), 140f, 28f, true, 20261112);
         }
 
         // =====================================================================

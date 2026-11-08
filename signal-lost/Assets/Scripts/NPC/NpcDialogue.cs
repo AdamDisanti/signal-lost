@@ -98,7 +98,7 @@ namespace SignalLost.NPC
             DialogueUi ui = DialogueUi.Instance;
             bool popupOwned = ui.PopupOpen && ui.Owner != null && transform.IsChildOf(ui.Owner);
             string line = Suppressed || popupOwned ? null : CurrentLine;
-            bubble.Show(line, warning, IsManual ? "[E] Continue" : null);
+            bubble.Show(line, warning, IsManual ? SignalLost.Core.KeyBindings.Hint("interact") + " Continue" : null);
 
             // One subtitle per line, only while the player is close enough to hear it.
             if (string.IsNullOrEmpty(line) || line == subtitled || viewer == null) return;

@@ -53,7 +53,7 @@ namespace SignalLost.UI
             panel.color = warning ? UiTheme.Warning : Paper;
             tail.color = panel.color;
             Vector2 size = text.GetPreferredValues(content, 460f, 0f);
-            body.sizeDelta = new Vector2(Mathf.Clamp(size.x, 60f, 460f) + 40f, size.y + 26f);
+            body.sizeDelta = new Vector2(Mathf.Clamp(size.x, 60f, 460f), size.y) + Vector2.one * (2f * UiTheme.PadSmall);
             if (fresh) shownAt = Time.unscaledTime;
         }
 
@@ -85,9 +85,7 @@ namespace SignalLost.UI
             edge.raycastTarget = false;
 
             text = UiTheme.Label("Text", body, 30f, Ink, TextAlignmentOptions.Center);
-            UiTheme.Stretch(text.rectTransform);
-            text.rectTransform.offsetMin = new Vector2(20f, 13f);
-            text.rectTransform.offsetMax = new Vector2(-20f, -13f);
+            UiTheme.Stretch(text.rectTransform, UiTheme.PadSmall);
         }
 
         private void LateUpdate()

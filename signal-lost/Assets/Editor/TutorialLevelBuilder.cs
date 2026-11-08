@@ -15,8 +15,9 @@ namespace SignalLost.Editor
 {
     /// <summary>
     /// Builds the tutorial level (Scenes/Tutorial/Tutorial Demo.unity, meeting notes 10-22): a green meadow at golden late
-    /// afternoon ringed by rocky mountains, with a dense forest belt and inner hills so the player never sees end to
-    /// end. The stripped shipwreck lies nose-first in a dirt berm at the end of a gouged trench, burning and smoking
+    /// afternoon on an island (11-07: the mountain ring became a sandy beach and the sea, see IslandKit), with a dense
+    /// forest belt behind the beach and inner hills so the player never sees end to end. A dock past the camp has the
+    /// boat to the desert island, which sits on the horizon. The stripped shipwreck lies nose-first in a dirt berm at the end of a gouged trench, burning and smoking
     /// (the ground is dug out under the hull so it never pokes through); Cavendish's campsite sits in a pine-ringed
     /// clearing far to the south-west, with no trail to the wreck, so the player follows its smoke; a reed-fringed pond
     /// lies under the hill to the north-west; the merchant crab's hollow hides behind rocks and bushes far to the
@@ -33,7 +34,9 @@ namespace SignalLost.Editor
 
         private const float MapSize = 320f;
         private const int Cells = 106;              // about 3 m facets
-        public const float PlayRadius = 112f;      // the mountains begin beyond this
+        public const float PlayRadius = 112f;      // the beach begins beyond this
+        public const float SeaLevel = -0.5f;
+        private const float Coast = PlayRadius + 8f; // the beach's top edge (IslandKit.Shore's coastline), give or take the noise
 
         // Landmarks (x, z). +Z is north.
         // The camp is about 100 m from the wreck, out of sight behind groves and a rise: the smoke shows the way.
@@ -60,7 +63,12 @@ namespace SignalLost.Editor
 
         private static readonly Vector2[] HollowPath = { Ship + ShipForward * 16f, new Vector2(32f, 22f), new Vector2(42f, 37f) }; // fades out short of the hollow
 
-        private enum T { Grass, GrassDark, GoldGrass, Dirt, Scorched, Rock, Cliff }
+        private enum T { Grass, GrassDark, GoldGrass, Dirt, Scorched, Rock, Cliff, Sand, Seabed }
+
+        /// <summary>The departure dock: straight out from the camp to the beach behind it, the camp's back door.</summary>
+        private static Vector2 DockDirection => Camp.normalized;
+        public static Vector2 DockStart => IslandKit.ShoreStart(Camp + DockDirection * 20f, DockDirection, Height, SeaLevel);
+        private static Vector2[] DockPath => new[] { Camp + DockDirection * 7f, DockStart };
 
         [MenuItem("Signal Lost/Tutorial/Rebuild Tutorial Level")]
         public static void BuildFromMenu()
@@ -94,9 +102,11 @@ namespace SignalLost.Editor
                 Transform camp = BuildCamp(level, clear);
                 Transform hollow = BuildHollow(level, clear, random);
                 BuildPond(level, clear, random);
+                BuildShore(level, clear);
                 foreach (Vector2 glimpse in DragPoints) clear.Add(new Vector3(glimpse.x, glimpse.y, 7f));
                 Physics.SyncTransforms();
                 ScatterNature(level, clear, random);
+                ClearTrench(level);
                 BakeNavigation(level);
                 BuildFoliage(level, ground, clear);
                 BuildLighting();
@@ -154,10 +164,8 @@ namespace SignalLost.Editor
                 float d = new Vector2(x - hill.x, z - hill.y).magnitude / hill.z;
                 h += hill.w * Mathf.Exp(-d * d * 2.2f) * (1f + 0.15f * Noise(x, z, 6f, 9f));
             }
-            // Mountains: steep and jagged beyond the playable circle.
-            float r = new Vector2(x, z).magnitude + 7f * Noise(x, z, 30f, 5f);
-            float rise = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(PlayRadius + 4f, PlayRadius + 36f, r));
-            h += rise * rise * (34f + 18f * Noise(x, z, 40f, 11f)) + rise * 5f * Noise(x, z, 8f, 13f);
+            // The island's edge: a sandy beach down into the sea beyond the playable circle (no more mountains).
+            h = IslandKit.Shore(h, ShoreDistance(x, z), SeaLevel);
 
             // The crash: local coordinates along (u) and across (v) the ship.
             Vector2 local = new Vector2(x, z) - Ship;
@@ -175,6 +183,9 @@ namespace SignalLost.Editor
             h = Mathf.Lerp(h, CampHeight, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(13f, 7f, camp)));
             return h;
         }
+
+        /// <summary>Metres past the coastline (negative inland), with a wavy coast.</summary>
+        private static float ShoreDistance(float x, float z) => new Vector2(x, z).magnitude + 7f * Noise(x, z, 30f, 5f) - Coast;
 
         private static float CampHeight => 1.6f * Noise(Camp.x, Camp.y, 38f) + 0.3f;
 
@@ -234,9 +245,11 @@ namespace SignalLost.Editor
             Vector2 p = new Vector2(centre.x, centre.z);
             Vector2 local = p - Ship;
             float u = Vector2.Dot(local, ShipForward), v = Vector2.Dot(local, new Vector2(ShipForward.y, -ShipForward.x));
+            if (centre.y < SeaLevel - 0.05f && ShoreDistance(p.x, p.y) > 0f) return T.Seabed;
+            if (centre.y < SeaLevel + 1.45f && ShoreDistance(p.x, p.y) > -12f + Noise(p.x, p.y, 5f, 31f) * 2f) return T.Sand;
             if (normal.y < 0.6f) return T.Cliff;
             if (normal.y < 0.82f) return T.Rock;
-            if (p.magnitude > PlayRadius + 14f) return centre.y > 14f ? T.Rock : T.GrassDark;
+            if (DistanceToPath(p, DockPath) < 1.2f + Noise(p.x, p.y, 3f, 41f) * 0.4f) return T.Dirt;
             bool nearShip = Mathf.Abs(u) < 18f && Mathf.Abs(v) < 9f + Noise(p.x, p.y, 3f) * 2f;
             bool inTrench = u > -42f && u < -10f && Mathf.Abs(v) < 5.5f + Noise(p.x, p.y, 3f) * 1.5f;
             if (inTrench || nearShip) return Mathf.Abs(v) < 3.5f || (nearShip && Mathf.Abs(u) < 12f) ? T.Scorched : T.Dirt;
@@ -255,7 +268,9 @@ namespace SignalLost.Editor
             for (int j = 0; j <= Cells; j++)
                 heights[i, j] = Height(origin + i * step, origin + j * step);
 
+            // The sea floor is its own object, marked not walkable, so the NavMesh (and creatures) stay on land.
             var kit = new FlatMeshKit<T>();
+            var seabedKit = new FlatMeshKit<T>();
             for (int i = 0; i < Cells; i++)
             for (int j = 0; j < Cells; j++)
             {
@@ -265,10 +280,25 @@ namespace SignalLost.Editor
                 Vector3 d = new Vector3(origin + i * step, heights[i, j + 1], origin + (j + 1) * step);
                 // Alternate the diagonal for a less regular facet pattern.
                 bool flip = (i + j) % 2 == 0;
-                AddFacet(kit, a, flip ? b : d, c);
-                AddFacet(kit, a, c, flip ? d : b);
+                // Sea floor only past the coastline: the hollow and other inland dips lie below sea level too, and
+                // must stay walkable (11-07: the hollow's floor had no NavMesh, so crabs there could not path).
+                bool under = Mathf.Max(Mathf.Max(a.y, b.y), Mathf.Max(c.y, d.y)) < SeaLevel - 0.6f &&
+                             ShoreDistance(origin + (i + 0.5f) * step, origin + (j + 0.5f) * step) > 0f;
+                AddFacet(under ? seabedKit : kit, a, flip ? b : d, c);
+                AddFacet(under ? seabedKit : kit, a, c, flip ? d : b);
             }
             Mesh mesh = SaveTerrainMesh(kit.Build("TutorialMeadowTerrain"));
+            Mesh seabedMesh = SaveTerrainMesh(seabedKit.Build("TutorialSeabed"));
+
+            var seabed = new GameObject("Seabed");
+            seabed.transform.SetParent(level, false);
+            seabed.AddComponent<MeshFilter>().sharedMesh = seabedMesh;
+            var seabedMaterials = new Material[seabedMesh.subMeshCount];
+            for (int s = 0; s < seabedMaterials.Length; s++) seabedMaterials[s] = TerrainMaterial(FlatMeshKit<T>.MaterialOf(seabedMesh, s));
+            seabed.AddComponent<MeshRenderer>().sharedMaterials = seabedMaterials;
+            seabed.AddComponent<MeshCollider>().sharedMesh = seabedMesh;
+            IslandKit.NoWalk(seabed);
+            seabed.isStatic = true;
 
             var ground = new GameObject("Terrain");
             ground.transform.SetParent(level, false);
@@ -299,6 +329,8 @@ namespace SignalLost.Editor
                 T.Dirt => new Color(0.55f, 0.4f, 0.25f),
                 T.Scorched => new Color(0.2f, 0.15f, 0.12f),
                 T.Rock => new Color(0.55f, 0.51f, 0.47f),
+                T.Sand => new Color(0.88f, 0.78f, 0.56f),
+                T.Seabed => new Color(0.82f, 0.76f, 0.58f),
                 _ => new Color(0.66f, 0.61f, 0.56f)
             };
             System.IO.Directory.CreateDirectory(TerrainFolder);
@@ -320,7 +352,7 @@ namespace SignalLost.Editor
         {
             System.IO.Directory.CreateDirectory(TerrainFolder);
             AssetDatabase.Refresh();
-            string path = TerrainFolder + "/TutorialMeadowTerrain.asset";
+            string path = TerrainFolder + "/" + mesh.name + ".asset";
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing == null)
             {
@@ -329,7 +361,7 @@ namespace SignalLost.Editor
             }
             string order = FlatMeshKit<T>.Order(mesh);
             EditorUtility.CopySerialized(mesh, existing);
-            existing.name = "TutorialMeadowTerrain";
+            existing.name = mesh.name;
             FlatMeshKit<T>.Remember(existing, order);
             EditorUtility.SetDirty(existing);
             UnityEngine.Object.DestroyImmediate(mesh);
@@ -381,26 +413,54 @@ namespace SignalLost.Editor
             clear.Add(new Vector3(Ship.x, Ship.y, 15f));
             for (float along = 14f; along <= 40f; along += 6f) clear.Add(new Vector3(Ship.x + back.x * along, Ship.y + back.y * along, 6f));
 
-            // Junk thrown along the trench and around the ship, and clods of dirt on the berm.
-            string[] junk = { "HullPanel", "HullPanelSmall", "HullPanelSmall", "Crate", "Barrel", "Pipe", "Rib", "Seat", "Gear", "Gear", "CableBundle", "Strut", "HullChunk", "ScorchMark", "ScorchMark" };
+            // The old random junk scatter drew from the shared generator; replay its draws so the hollow, pond and forest
+            // that come after keep exactly the same layout.
+            SkipLegacyJunkDraws(random);
             var pieces = new GameObject("Wreckage").transform;
             pieces.SetParent(site, false);
-            for (int n = 0, tries = 0; n < 140 && tries < 2000; tries++)
-            {
-                float along = Range(random, -46f, 22f), across = Range(random, -16f, 16f) * (along < -14f ? 0.6f : 1f);
-                if (Mathf.Abs(along) < 14f && Mathf.Abs(across) < 6f) continue; // not inside the hull
-                string name = junk[random.Next(junk.Length)];
-                Vector2 p = Ship + ShipForward * along + side * across;
-                Place(CrashSiteWreckBuilder.DebrisPath(name), pieces, Ground(p), Quaternion.Euler(Range(random, -8f, 8f), Range(random, 0f, 360f), Range(random, -8f, 8f)), Range(random, 0.8f, 1.25f), true);
-                n++;
-            }
+            var wreckage = new CrashDebrisLayout(pieces, Ship, ShipForward, Ground, Place);
             for (int n = 0; n < 28; n++)
             {
                 float angle = Range(random, -1.4f, 1.4f);
                 Vector2 p = Ship + ShipForward * (13f + Mathf.Cos(angle) * Range(random, 4f, 8f)) + side * Mathf.Sin(angle) * Range(random, 5f, 9f);
-                Place(MeadowAssetBuilder.PrefabPath(n % 3 == 0 ? "RockB" : "RockC"), pieces, Ground(p) + Vector3.down * 0.2f, Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.8f, 1.6f), true);
+                Quaternion turn = Quaternion.Euler(0f, Range(random, 0f, 360f), 0f); // draw order as before: turn, then scale
+                float scale = Range(random, 0.8f, 1.6f);
+                Place(MeadowAssetBuilder.PrefabPath(n % 3 == 0 ? "RockB" : "RockC"), pieces, Ground(p) + Vector3.down * 0.2f, turn, scale, true);
+                wreckage.Reserve(p, 0.9f * scale); // the berm the nose ploughed up
             }
+            wreckage.Build();
             return site;
+        }
+
+        // The draws the pre-11-07 scatter loop made (140 pieces, up to 2000 tries), without placing anything.
+        private static void SkipLegacyJunkDraws(System.Random random)
+        {
+            for (int n = 0, tries = 0; n < 140 && tries < 2000; tries++)
+            {
+                float along = Range(random, -46f, 22f), across = Range(random, -16f, 16f) * (along < -14f ? 0.6f : 1f);
+                if (Mathf.Abs(along) < 14f && Mathf.Abs(across) < 6f) continue;
+                random.Next(15);
+                for (int i = 0; i < 4; i++) random.NextDouble(); // three rotation angles and the scale
+                n++;
+            }
+        }
+
+        // Trees and bushes that grew where the ship ploughed its trench go; nothing else in the forest moves.
+        private static void ClearTrench(Transform level)
+        {
+            Vector2 side = new Vector2(ShipForward.y, -ShipForward.x);
+            foreach (string group in new[] { "Forest", "Bushes", "Rocks" })
+            {
+                Transform parent = level.Find(group);
+                if (parent == null) continue;
+                for (int i = parent.childCount - 1; i >= 0; i--)
+                {
+                    Vector3 at = parent.GetChild(i).position;
+                    Vector2 local = new Vector2(at.x, at.z) - Ship;
+                    float u = Vector2.Dot(local, ShipForward), v = Vector2.Dot(local, side);
+                    if (u > -52f && u < -10f && Mathf.Abs(v) < 8f) UnityEngine.Object.DestroyImmediate(parent.GetChild(i).gameObject);
+                }
+            }
         }
 
         private static Transform BuildCamp(Transform level, List<Vector3> clear)
@@ -619,7 +679,7 @@ namespace SignalLost.Editor
             {
                 if (Blocked(p, 1f) || trunks.Any(t => (t - p).sqrMagnitude < 9f)) return;
                 Vector3 at = Ground(p);
-                if (at.y > 18f) return; // not up on the mountains
+                if (at.y < SeaLevel + 1.5f) return; // not on the beach
                 double roll = random.NextDouble();
                 string kind = pinesOnly || roll < 0.6 ? MeadowAssetBuilder.Trees[random.Next(3)] : MeadowAssetBuilder.Trees[3 + random.Next(3)];
                 Place(MeadowAssetBuilder.PrefabPath(kind), forest, at + Vector3.down * 0.15f, Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.85f, 1.35f), false);
@@ -644,7 +704,7 @@ namespace SignalLost.Editor
             {
                 float angle = i * Mathf.PI * 2f / 16f;
                 Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                if (Vector2.Dot(dir, (Ship - Camp).normalized) > 0.75f) continue;
+                if (Vector2.Dot(dir, (Ship - Camp).normalized) > 0.75f || Vector2.Dot(dir, DockDirection) > 0.8f) continue; // open to the wreck and the dock
                 Vector2 p = Camp + dir * Range(random, 14f, 19f);
                 if (trunks.Any(t => (t - p).sqrMagnitude < 9f)) continue;
                 Place(MeadowAssetBuilder.PrefabPath(MeadowAssetBuilder.Trees[random.Next(3)]), forest, Ground(p) + Vector3.down * 0.15f, Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 1f, 1.3f), false);
@@ -654,14 +714,14 @@ namespace SignalLost.Editor
             for (int i = 0, placed = 0; i < 1200 && placed < 300; i++)
             {
                 Vector2 p = new Vector2(Range(random, -105f, 105f), Range(random, -105f, 105f));
-                if (p.magnitude > PlayRadius || Blocked(p, 0f)) continue;
+                if (p.magnitude > PlayRadius || Blocked(p, 0f) || Height(p.x, p.y) < SeaLevel + 1.3f) continue;
                 Place(MeadowAssetBuilder.PrefabPath(MeadowAssetBuilder.Bushes[random.Next(2)]), bushes, Ground(p), Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.8f, 1.6f), false);
                 placed++;
             }
             for (int i = 0, placed = 0; i < 1500 && placed < 320; i++)
             {
                 Vector2 p = new Vector2(Range(random, -110f, 110f), Range(random, -110f, 110f));
-                if (p.magnitude > PlayRadius + 6f || Blocked(p, -2f)) continue;
+                if (p.magnitude > PlayRadius + 10f || Blocked(p, -2f) || Height(p.x, p.y) < SeaLevel - 1.2f) continue;
                 bool big = random.NextDouble() < 0.15;
                 string kind = big ? MeadowAssetBuilder.Rocks[3 + random.Next(2)] : MeadowAssetBuilder.Rocks[random.Next(3)];
                 Place(MeadowAssetBuilder.PrefabPath(kind), rocks, Ground(p) + Vector3.down * (big ? 0.4f : 0.1f), Quaternion.Euler(0f, Range(random, 0f, 360f), 0f), Range(random, 0.7f, big ? 1.6f : 1.8f), false);
@@ -725,8 +785,39 @@ namespace SignalLost.Editor
                 entry.FindPropertyRelative("count").intValue = items[i].count;
                 entry.FindPropertyRelative("scale").vector2Value = items[i].scale;
             }
-            data.FindProperty("radius").floatValue = PlayRadius + 4f;
+            data.FindProperty("radius").floatValue = PlayRadius - 4f; // grass stops short of the sand
             data.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // ---------- The shore ----------
+
+        // The sea round the island, the dock past the camp with the boat to the desert, and the desert island on the
+        // horizon beyond it. The trail from the camp to the dock is kept clear of trees.
+        private static void BuildShore(Transform level, List<Vector3> clear)
+        {
+            var shore = new GameObject("Shore").transform;
+            shore.SetParent(level, false);
+            IslandKit.BuildOcean(shore, SeaLevel, Vector2.zero, MapSize * 0.5f, 2f, Height, Vector3.zero, "TutorialOcean");
+
+            Vector2 start = DockStart;
+            IslandKit.BuildDock(shore, new IslandKit.DockSpec
+            {
+                Name = "TutorialDock", Start = start, Seaward = DockDirection, Length = 18f,
+                Role = SignalLost.World.IslandDock.Role.Departure, IslandName = "Crash Meadow",
+                DestinationScene = "DesertDunes", DestinationName = "the Desert Dunes",
+                RequiredStage = SignalLost.Progression.StageProgress.Tutorial,
+                LockedMessage = "Cavendish still needs you here before you can sail."
+            }, SeaLevel, Height, 20261107);
+            Vector2 far = start + DockDirection * 720f;
+            IslandKit.DistantIsland(shore, "DesertIslandSilhouette", new Vector3(far.x, SeaLevel, far.y), 150f, 38f, false, 20261108);
+
+            // The trail: no trees or rocks from the camp down to the dock.
+            Vector2[] path = DockPath;
+            for (float d = 0f, length = (path[1] - path[0]).magnitude; d <= length + 4f; d += 3f)
+            {
+                Vector2 p = path[0] + (path[1] - path[0]).normalized * d;
+                clear.Add(new Vector3(p.x, p.y, 3.2f));
+            }
         }
 
         // ---------- Lighting and gameplay ----------

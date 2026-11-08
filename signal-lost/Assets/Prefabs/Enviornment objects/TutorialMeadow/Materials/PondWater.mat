@@ -12,7 +12,8 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _USEDEPTH_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -25,9 +26,17 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
+    - _CausticScale: 0.45
+    - _CausticStrength: 0.75
+    - _Clarity: 2.2
+    - _DepthFade: 3.5
+    - _EdgeFoam: 0.45
+    - _Facets: 0.6
     - _FoamWidth: 0.12
     - _Smoothness: 0.85
     - _Sparkle: 0.8
+    - _UseDepth: 1
+    - _WashLines: 0.7
     - _WaveHeight: 0.05
     - _WaveScale: 0.25
     - _WaveSpeed: 0.8
