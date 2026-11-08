@@ -255,3 +255,19 @@ Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutoria
 - Pause menu centred.
 - Shop: type filters, a Purchased filter, scrap amounts as icons, and a preview-then-confirm purchase. The pockets' Upgrades tab shows only what is installed.
 - The merchant crab and its cousins only appear once Cavendish gives the big-crab quest.
+
+## Player model revamp (11-07-26)
+
+Christian's direction, as built. Still built in code, with no art assets.
+
+- **First-person hands:** inspired by chunky, pudgy cartoon hands: a puffy palm, short thick fingers with round tips and a chunky thumb. The fingers now close: a fist with nothing out, wrapped round the laser or scanner, round the flask while drinking. They keep the tan work gloves, cream cuffs and orange sleeves.
+- **The mechanic's build:** short and stocky, with a round belly, stubby legs, short arms and a big head with almost no neck. The outfit (orange suit, cream stripe, belt, teal Maintenance Corps patch, orange cap with cream badge, gloves, boots) and face (dark eyes, nose, stubble) are unchanged.
+- **Where it shows:** the first-person hands and the pockets menu's Gear-tab figure. The player still has no body in the world (no shadow or legs when looking down), and the HUD face is unchanged.
+- **Drinking pose:** the flask is now held in the fist with its neck to the mouth and tipped up for the swig. Before, it poked out of the back of the hand.
+- **Smoothness pass (same day, Christian's request: "more smooth and not so blocky, especially the hands"):** the gloves, suit and arms are now each one seamless mesh built from rounded pieces melted together, so no seams or lumps show. The gloves are skinned so fingers bend smoothly; fingers are fatter, and in a fist the thumb wraps across the front. The head, cap, boots, eyes, patch and badge are rounder. The meshes are baked into an asset in the editor so scenes don't hitch building them.
+- **Holding and drinking pass (same day, Christian's list):**
+  - "The gun, flask and sensor don't seat well in the hands": each is now held by its real grip, measured against the actual models. The laser's pistol grip sits under its body, below the screen, so Christian chose to carry the laser **6 cm higher and 16 cm further out** so the holding arm shows (Player prefab `gripPosition` -0.02,-0.08,-0.22 → -0.03,-0.02,-0.06). The scanner is gripped by its side rail; the pockets figure holds both the same way.
+  - "Small stubble with his mouth showing": the stubble band is replaced by a flat mouth and small stubble dots on the chin and jaw, as on the HUD portrait.
+  - "More natural drinking, a big swig, easily turned into hold to chug": the flask comes up from below to the mouth with its bottom tipped up and the head tipped back, with two gulps; the pose is driven by `raise` and `gulps` so a hold-to-chug can stretch the swig. **Open:** the hold-to-chug mechanic itself (not built).
+- **Open:** whether the gloves should stay or become bare hands like the reference (`FirstPersonHands` glove colour), and whether the player should get a world body later.
+

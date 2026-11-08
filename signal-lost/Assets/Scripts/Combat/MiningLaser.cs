@@ -62,6 +62,8 @@ namespace SignalLost.Combat
         [SerializeField] private Color energyColor = new Color(1f, 0.549f, 0f); // dark orange
 
         [Header("Feel")]
+        [Tooltip("While sprinting the laser follows the arm's swing; this is how much of the arm's turn the wrist follows (0 = gun stays level).")]
+        [SerializeField, Range(0f, 1f)] private float runWristTurn = 0.35f;
         [Tooltip("Strength of the camera kick on strikes and shots. 0 turns it off.")]
         [SerializeField, Min(0f)] private float viewKick = 0.9f;
         [Tooltip("How much the laser lags behind when you look around. 0 turns it off.")]
@@ -128,11 +130,13 @@ namespace SignalLost.Combat
             new Vector3(-0.22f, 0.02f, 0.1f), new Vector3(5f, -55f, -35f),
             0.35f, new Vector3(0.5f, -1.5f, 1.5f));
 
-        // Overhead slam: raise it muzzle-up, then bring it crashing down.
+        // Overhead slam (exaggerated, 11-07): heave it high overhead, muzzle tipped back, hang there a beat, then
+        // bring it crashing down muzzle-first past the crosshair, with a heavy camera jolt.
+        // (The arm does most of the travel; the wrist turns no more than a real one would.)
         private static readonly Strike Slam = new Strike(
-            new Vector3(0f, 0.16f, -0.08f), new Vector3(-55f, 0f, -10f),
-            new Vector3(-0.08f, -0.06f, 0.14f), new Vector3(35f, -8f, 5f),
-            0.45f, new Vector3(3f, 0f, 0f));
+            new Vector3(0.04f, 0.34f, -0.12f), new Vector3(-45f, 10f, -12f),
+            new Vector3(-0.1f, -0.2f, 0.24f), new Vector3(38f, -8f, 6f),
+            0.55f, new Vector3(6f, 0f, 1.5f));
 
         private const float StrikeHold = 0.12f; // part of a swing spent holding the strike pose before recovering
 
@@ -157,6 +161,8 @@ namespace SignalLost.Combat
         private Vector3 basePosition;
         private Quaternion baseRotation = Quaternion.identity;
         private CharacterController body;
+        private SignalLost.Player.FirstPersonController runner;
+        private float runWeight;
         private Quaternion lastAim;
         private Vector2 sway;            // x: pitch lag, y: yaw lag, in degrees
         private float bobPhase, bobWeight, airLift, landDip, landDipTarget, lastVerticalSpeed, airTime;
@@ -197,6 +203,8 @@ namespace SignalLost.Combat
         public float FullChargeBlastRadius => fullChargeBlastRadius;
         /// <summary>The held laser's grip point; it moves with every swing (hands attach here).</summary>
         public Transform HeldTool => toolPivot;
+        /// <summary>0-1: how far into the sprinting carry the laser is (it pumps with the stride while sprinting).</summary>
+        public float RunWeight => runWeight;
 
         /// <summary>Cooldown for a shot at this charge: 10% or less uses the tap cooldown, scaling up to full charge.</summary>
         // Eased so part charges stay quick and only near-full shots pay the long cooldown (10-23 tuning: 1 s to 6 s).
@@ -247,6 +255,7 @@ namespace SignalLost.Combat
             beam.enabled = false;
             viewCamera = aimOrigin.GetComponent<Camera>();
             body = GetComponent<CharacterController>();
+            runner = GetComponentInParent<SignalLost.Player.FirstPersonController>();
             lastAim = aimOrigin.rotation;
 
             if (heldModel != null) BuildHeldModel();
@@ -656,6 +665,22 @@ namespace SignalLost.Combat
                 position.z += 0.05f * fullChargePop * fullChargePop; // jolt forward the moment it is full
                 if (charge >= 1f) position += Random.insideUnitSphere * 0.005f; // slight shake while full
                 rotation = Quaternion.Euler(-4f, -8f, 0f); // point toward the crosshair
+            }
+
+            // Sprinting (not swinging or charging): carried low and angled in, pumping back and forth with the stride
+            // like a running arm.
+            bool running = runner != null && runner.IsRunning && !IsSwinging && !IsCharging;
+            runWeight = Mathf.MoveTowards(runWeight, running ? 1f : 0f, Time.deltaTime * (running ? 4f : 7f));
+            if (runWeight > 0f && !IsSwinging && runner != null)
+            {
+                // Carried a little low and canted in, then swung with the whole arm about the right shoulder.
+                float w = Mathf.SmoothStep(0f, 1f, runWeight);
+                Vector3 shoulder = muzzle.InverseTransformPoint(aimOrigin.TransformPoint(SignalLost.Player.FirstPersonController.RightShoulder));
+                Quaternion arc = Quaternion.Slerp(Quaternion.identity, runner.ArmSwing(1f), w);
+                Vector3 at = restPosition + position + w * new Vector3(-0.02f, -0.03f, -0.02f);
+                position = shoulder + arc * (at - shoulder) - restPosition;
+                // The gun travels the arm's full arc but only turns with a third of it, so the wrist stays steady.
+                rotation = Quaternion.Slerp(Quaternion.identity, arc, runWristTurn) * Quaternion.Slerp(rotation, Quaternion.Euler(5f, -5f, 4f), w);
             }
 
             if (IsSwinging)

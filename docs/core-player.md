@@ -46,11 +46,22 @@ Use **Signal Lost > Scenes**, or `CoreSceneSetup.UpgradeToCorePlayer(scene, star
 
 The hands stay fixed at the bottom of the screen, just above the status bar.
 
-- **Right hand:** holds the laser or the scanner (Q cycles), so laser swings carry it along. With nothing out it rests as a fist.
-- **Left hand:** on F it reaches down out of view for the flask, snaps it up to the mouth, swigs, and stows it again.
+- **Look:** pudgy gloved hands: a puffy palm, short thick two-jointed fingers and a chunky thumb, with the cream cuff and the orange suit sleeve.
+- **Right hand:** holds the laser or the scanner (Q cycles), so laser swings carry it along. With nothing out it closes into a fist.
+  - **Laser:** the fist is wrapped round the real pistol grip, index finger under the trigger guard. The laser is carried 6 cm higher and 16 cm further out than before (`gripPosition` on the Player prefab, set by `CorePrefabBuilder`), so the arm holding it shows above the status bar.
+  - **Scanner:** the fist grips the scanner's right-hand side rail, wrist tipped so the arm comes up from below.
+  - The grips are measured against the real models and kept in `MechanicModel.LaserHold` / `ScannerHold`; the fingers use `Hand.Wrap(radius)`, which bends each finger round a handle of that thickness. They assume the hand scale of 1.2.
+- **Left hand: the swig.** On F it reaches down out of view for the flask, brings it up from the lower left to the mouth (the neck just below the screen, the label toward you), tips the bottom up for a big swig with two gulps, and the head tips back about 10° (`swigHeadTilt`). Then it lowers the flask out of view and comes back up empty. At rest the fingers are relaxed and half open.
+  - The whole drink is posed by moving the flask (neck position and tip angle); the hand follows it.
+  - **Hold-to-chug ready:** the pose comes from `PoseDrink(raise, gulps)` in `FirstPersonHands`. The timed sip runs raise 0→1, two gulps, then 1→0. A hold-to-chug would keep `raise` at 1 for as long as the button is held and keep counting `gulps` (each whole number is one swallow). PlayerFlask would need its own change to keep the drink going.
 - **Footsteps:** a soft, low bass note per step (pitched per surface), replacing the old crunch. **Switched off for now** (lead's request, 10-23): set `PlayerAudio.FootstepsEnabled` to bring them back.
 
-Everything is built from boxes at runtime. Colours, size and poses are at the top of `FirstPersonHands.cs`.
+The hands and the pockets menu's mechanic are built by the same code (`MechanicModel.cs`), so they always match, with no art assets:
+
+- The gloves, the suit (legs, belly and chest) and the arms are each **one seamless, smooth mesh** (`SoftShape.cs`): rounded pieces melted together like clay, so there are no seams or lumps where parts meet. The gloves are skinned, so the fingers bend smoothly at their joints.
+- Small details (cuffs, sleeves, belt, eyes, nose, cap, badge, boots) are separate rounded shapes.
+- **Baked meshes:** the seamless meshes take a moment to build, so they are baked into `Resources/SignalLost/MechanicMeshes/` (one asset per mesh) with **Signal Lost > Models > Bake Mechanic Meshes** and loaded from there. If you change a shape in `MechanicModel.cs`, bump `MechanicModel.MeshVersion` and bake again. Without an up-to-date bake the game still works: it builds them when the scene starts (a short hitch) and warns in the Console.
+- Colours, size, poses, finger grip and curl speed are at the top of `FirstPersonHands.cs`; the shapes and the body's proportions are in `MechanicModel.cs`.
 
 ## HUD and menus
 

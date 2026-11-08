@@ -37,6 +37,16 @@ namespace SignalLost.Player
         [Tooltip("How quickly air momentum fades back to normal running speed (per second).")]
         [SerializeField, Min(0f)] private float airDrag = 0.6f;
 
+        [Header("Running arm swing (sprinting)")]
+        [Tooltip("Degrees each arm swings forward and back about the shoulder.")]
+        [SerializeField, Range(0f, 60f)] private float armSwingReach = 36f;
+        [Tooltip("Degrees the hand crosses in toward the chest at the front of the swing.")]
+        [SerializeField, Range(0f, 40f)] private float armSwingAcross = 16f;
+        [Tooltip("How wide the loop is: in on the way forward, out on the way back (degrees). 0 is a straight line.")]
+        [SerializeField, Range(0f, 25f)] private float armSwingLoop = 9f;
+        [Tooltip("Arm swings per metre run (radians). Lower is a slower, longer stride.")]
+        [SerializeField, Range(0.5f, 3f)] private float strideRate = 1.6f;
+
         private CharacterController controller;
         private InputActionAsset runtimeActions;
         private InputActionMap playerMap;
@@ -53,6 +63,28 @@ namespace SignalLost.Player
         public float SlideDistanceScale { get; set; } = 1f;
         public bool IsCrouched => crouched;
         public bool IsSliding => sliding;
+        /// <summary>Sprinting on the ground (not sliding or crouched): the arms pump.</summary>
+        public bool IsRunning { get; private set; }
+        /// <summary>Radians; advances with ground speed. sin(StridePhase) swings the right arm forward and back.</summary>
+        public float StridePhase { get; private set; }
+
+        /// <summary>Camera-space right shoulder (the left mirrors x): the running arm swings about it.</summary>
+        public static readonly Vector3 RightShoulder = new Vector3(0.2f, -0.32f, 0f);
+
+        /// <summary>
+        /// The running arm swing for one arm (<paramref name="side"/> 1 right, -1 left, opposite strides), as a turn
+        /// about that shoulder: a wide loop that comes up and across toward the chest, then sweeps back down and out
+        /// of view on the outside. Applied to the whole hand (position about the shoulder), so it reads as the arm
+        /// swinging, not the wrist.
+        /// </summary>
+        public Quaternion ArmSwing(float side)
+        {
+            float forward = side * Mathf.Sin(StridePhase);   // 1 at the front of the swing, -1 at the back
+            float rising = side * Mathf.Cos(StridePhase);    // > 0 on the way forward
+            float pitch = 8f - armSwingReach * forward;                              // up to the chest, down past the hip
+            float across = 6f + armSwingAcross * forward + armSwingLoop * rising;    // inside lane up, outside lane down
+            return Quaternion.Euler(pitch, -side * across, side * (4f + 8f * forward));
+        }
 
         /// <summary>Look-speed multiplier from the settings menu (GameSettings.LookSensitivity).</summary>
         public static float SensitivityScale { get; set; } = 1f;
@@ -172,6 +204,9 @@ namespace SignalLost.Player
             axis = new Vector2(axis.x * Mathf.Cos(stagger) + axis.y * Mathf.Sin(stagger),
                 axis.y * Mathf.Cos(stagger) - axis.x * Mathf.Sin(stagger));
             bool sprinting = canMove && sprint.IsPressed() && axis.y > 0.1f;
+            IsRunning = sprinting && grounded && !sliding && !crouched;
+            // One stride cycle (two steps) per ~1.6 m at sprint pace; drives the running arm swing.
+            if (grounded) StridePhase += dt * new Vector2(controller.velocity.x, controller.velocity.z).magnitude * strideRate;
             Vector3 wish = transform.right * axis.x + transform.forward * axis.y;
 
             // C: hold while sprinting (or landing from a slide-jump) to slide; otherwise a tap toggles crouching.
