@@ -114,6 +114,7 @@ namespace SignalLost.Enemies.Desert
             }
 
             Agent.enabled = true;
+            SpawnSafety.Settle(transform); // out of structures and off unreachable ledges
             if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 3f, NavMesh.AllAreas))
             {
                 Agent.Warp(hit.position);

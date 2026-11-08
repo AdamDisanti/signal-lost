@@ -4,6 +4,7 @@ using SignalLost.Combat;
 using SignalLost.Inventory;
 using SignalLost.Player;
 using SignalLost.Scanner;
+using SignalLost.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -120,7 +121,7 @@ namespace SignalLost.UI
 
         private void Update()
         {
-            bool toggle = Keyboard.current?.tabKey.wasPressedThisFrame == true || Gamepad.current?.selectButton.wasPressedThisFrame == true;
+            bool toggle = KeyBindings.WasPressed("inventory") || Gamepad.current?.selectButton.wasPressedThisFrame == true;
             if (IsOpen)
             {
                 panel.localScale = Vector3.one * Mathf.LerpUnclamped(0.9f, 1f, UiTheme.Pop((Time.unscaledTime - shownAt) / 0.3f));
@@ -211,7 +212,7 @@ namespace SignalLost.UI
                 TextMeshProUGUI name = UiTheme.Label("Name", rect, 28f, ItemRows.SlotColor(slot), TextAlignmentOptions.TopLeft, FontStyles.Bold);
                 UiTheme.Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(214f, -10f), new Vector2(330f, 36f));
                 name.text = ItemRows.SlotName(slot);
-                string[] fitted = inventory.Upgrades.Select(UpgradeCatalog.Find).Where(u => u != null && u.Slot == slot).Select(u => "+ " + u.Name).ToArray();
+                string[] fitted = UpgradeCatalog.Installed(inventory.Upgrades).Where(u => u.Slot == slot).Select(u => "+ " + u.Name).ToArray();
                 TextMeshProUGUI body = UiTheme.Label("Fitted", rect, 21f, UiTheme.Text, TextAlignmentOptions.TopLeft);
                 UiTheme.Place(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(214f, -48f), new Vector2(330f, 92f));
                 body.enableAutoSizing = true;
@@ -220,7 +221,7 @@ namespace SignalLost.UI
                 body.text = !inventory.Has(item) ? $"<color={UiTheme.Hex(UiTheme.Muted)}><i>Not found yet. {missing}</i></color>" :
                     fitted.Length > 0 ? string.Join("\n", fitted) : $"<color={UiTheme.Hex(UiTheme.Muted)}>No upgrades fitted yet.</color>";
             }
-            string[] suit = inventory.Upgrades.Select(UpgradeCatalog.Find).Where(u => u != null && u.Slot == UpgradeSlot.Suit).Select(u => "+ " + u.Name).ToArray();
+            string[] suit = UpgradeCatalog.Installed(inventory.Upgrades).Where(u => u.Slot == UpgradeSlot.Suit).Select(u => "+ " + u.Name).ToArray();
             TextMeshProUGUI suitText = UiTheme.Label("Suit", page, 22f, UiTheme.Text, TextAlignmentOptions.TopLeft);
             UiTheme.Place(suitText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(440f, -478f), new Vector2(560f, 120f));
             suitText.text = $"<b><color={UiTheme.Hex(ItemRows.SlotColor(UpgradeSlot.Suit))}>Suit</color></b>\n" +
@@ -255,7 +256,7 @@ namespace SignalLost.UI
         // Only upgrades actually installed, grouped by type (meeting notes 10-23); the shop lists what is for sale.
         private void UpgradesPage()
         {
-            Upgrade[] owned = inventory.Upgrades.Select(UpgradeCatalog.Find).Where(u => u != null).ToArray();
+            Upgrade[] owned = UpgradeCatalog.Installed(inventory.Upgrades).ToArray();
             if (owned.Length == 0)
             {
                 TextMeshProUGUI none = UiTheme.Label("None", page, 28f, UiTheme.Muted, TextAlignmentOptions.TopLeft, FontStyles.Italic);
@@ -278,7 +279,7 @@ namespace SignalLost.UI
                     y -= 40f;
                     foreach (Upgrade upgrade in group)
                     {
-                        RectTransform row = ItemRows.Row(page, upgrade.Name, ItemCatalog.Icon(upgrade.Id), upgrade.Name, UiTheme.Text,
+                        RectTransform row = ItemRows.Row(page, upgrade.Name, ItemCatalog.Icon(upgrade.ArtId), upgrade.Name, UiTheme.Text,
                             upgrade.Description, new Vector2(c * 700f, y), new Vector2(680f, 116f), 180f);
                         TextMeshProUGUI installed = ItemRows.RightLabel(row, "INSTALLED", 20f, UiTheme.Good, 150f);
                         installed.textWrappingMode = TextWrappingModes.NoWrap;
@@ -303,7 +304,7 @@ namespace SignalLost.UI
                 ("Drinks in you", flask != null ? $"{flask.DrunkStacks} / {flask.BlackoutAfterStacks}  (one wears off every 15 s)" : "-"),
                 ("Scanner critter range", scanner != null && inventory.Has(PlayerItem.Scanner) ? $"{scanner.Range:0} m" : "No scanner"),
                 ("Slide distance", movement != null ? $"{movement.SlideDistanceScale * 100f:0}%" : "-"),
-                ("Upgrades installed", $"{inventory.Upgrades.Count}")
+                ("Upgrade tiers installed", $"{inventory.Upgrades.Count}")
             };
             var right = new List<(string, string)>();
             if (laser != null && inventory.Has(PlayerItem.MiningLaser))
@@ -360,7 +361,7 @@ namespace SignalLost.UI
             panel = UiTheme.Place(background.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(1480f, 880f));
 
             TextMeshProUGUI title = UiTheme.Label("Title", panel, 54f, UiTheme.Accent, TextAlignmentOptions.TopLeft, FontStyles.Bold);
-            UiTheme.Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(48f, -26f), new Vector2(400f, 70f));
+            UiTheme.Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge, -UiTheme.PadLarge + 8f), new Vector2(400f, 70f));
             title.text = "POCKETS";
             title.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 1.5f);
 
@@ -368,15 +369,15 @@ namespace SignalLost.UI
             {
                 int index = i;
                 Button button = UiTheme.Button(Tabs[i], panel, $"{i + 1}  {Tabs[i]}");
-                UiTheme.Place((RectTransform)button.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(380f + i * 240f, -32f), new Vector2(226f, 56f));
+                UiTheme.Place((RectTransform)button.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(380f + i * 240f, -UiTheme.PadLarge), new Vector2(226f, 56f));
                 button.onClick.AddListener(() => ShowTab(index));
                 tabButtons.Add(button);
             }
-            page = UiTheme.Place(UiTheme.Rect("Page", panel), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(48f, -118f), new Vector2(1390f, 700f));
+            page = UiTheme.Place(UiTheme.Rect("Page", panel), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge, -126f), new Vector2(1480f - 2f * UiTheme.PadLarge, 680f));
 
             TextMeshProUGUI hint = UiTheme.Label("Hint", panel, 24f, UiTheme.Accent, TextAlignmentOptions.BottomRight, FontStyles.Bold);
-            UiTheme.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 20f), new Vector2(700f, 34f));
-            hint.text = "[1]-[4]  Tabs     [Tab] / [Esc]  Close";
+            UiTheme.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-UiTheme.PadLarge, UiTheme.PadLarge), new Vector2(700f, 34f));
+            hint.text = $"[1]-[4]  Tabs     {KeyBindings.Hint("inventory")} / [Esc]  Close";
             root.SetActive(false);
         }
 

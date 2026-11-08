@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using SignalLost.Combat;
 using SignalLost.Inventory;
 using SignalLost.Player;
@@ -65,7 +66,8 @@ namespace SignalLost.UI
             builtFor = key;
             foreach (GameObject part in attachments) Destroy(part);
             attachments.Clear();
-            foreach (string id in inventory.Upgrades)
+            // One part per upgrade line, whatever its tier.
+            foreach (string id in UpgradeCatalog.Installed(inventory.Upgrades).Select(u => u.ArtId))
             {
                 GameObject model = ItemCatalog.Model(id);
                 if (model == null) continue;

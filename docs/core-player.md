@@ -85,8 +85,12 @@ All UI is drawn in code on singleton canvases (`Scripts/UI/`), so there are no U
   - pages: Controls, Sound, Video;
   - stored in PlayerPrefs (`GameSettings`);
   - partly placeholder.
+- **Controls page (11-07):** every keyboard/mouse control can be changed. Click its key, then press the new key or mouse button; Esc cancels. Taking a key that another control uses swaps the two. **Reset to defaults** restores everything. Gamepad buttons, Look and Pause/Esc are listed but fixed for now.
+  - `Core/KeyBindings.cs` holds the bindings. Every component that copies the input actions calls `KeyBindings.Register`, so a change applies at once, in game or from the title screen. Menus that read keys themselves use `KeyBindings.WasPressed("interact")`, and on-screen hints use `KeyBindings.Hint("drink")`, so they follow rebinds.
+  - **Save system hand-off:** `KeyBindings.Export()` / `Import(SaveData)` (or `ToJson` / `FromJson`) carry only the changed bindings, by stable Ids such as `jump` and `move_forward`. Until the save system merges, they are kept in PlayerPrefs by `Store` and `Load` in that file; replace those two methods.
+- **Text padding (11-07):** every text box keeps the same gap on all four sides: `UiTheme.Pad` (26 px) for panels, cards and popups, `UiTheme.PadSmall` (16 px) for subtitles, speech bubbles and list rows, `UiTheme.PadLarge` (40 px) for the full-screen pockets and shop. Lay new text out from these.
 - **Title screen** (`Scenes/MainMenu.unity`, `MainMenuScreen`):
-  - a Terraria-style title over a code-drawn golden-hour scene;
+  - a Terraria-style title over a code-drawn scene with a day-night cycle (11-07): the sun and moon arc across the sky, the sky runs dawn, noon blue, golden dusk and night, stars come out, the land darkens and the campfire glows brighter. One day lasts `MainMenuScreen.CycleSeconds` (150 s) and the screen opens at dusk;
   - New Game loads the Tutorial (`SceneNames.FirstLevel`);
   - Continue is a placeholder; Settings and Exit work.
 - **Item cards** ("NEW GEAR"): stay up until the player presses **E** or Enter; several queue up. **Rule for all future tutorial pop-ups: never on a timer.**

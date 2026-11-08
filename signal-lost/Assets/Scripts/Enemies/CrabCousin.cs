@@ -83,8 +83,26 @@ namespace SignalLost.Enemies
             gameObject.SetActive(false);
         }
 
+        /// <summary>When it was last hurt (negative infinity if never), so a straggler can be told apart from a fighter.</summary>
+        public float LastHurt { get; private set; } = float.NegativeInfinity;
+
+        private static readonly string[] RetreatLines =
+            { "Forget this, I'm going home!", "Uh... I left the stove on.", "You didn't see me. Bye!" };
+
+        /// <summary>
+        /// Gives up and leaves the fight (it counts as down). Used once the merchant has surrendered, for cousins that
+        /// are no longer really fighting, so a crab stuck behind a rock cannot hold up the quest.
+        /// </summary>
+        public void Retreat()
+        {
+            if (IsDown) return;
+            Say(RetreatLines[Random.Range(0, RetreatLines.Length)], true);
+            Despawn();
+        }
+
         private void OnDamaged(Health _, float amount, GameObject source)
         {
+            LastHurt = Time.time;
             if (barked || health.IsDead || barks.Length == 0) return;
             barked = true;
             Say(barks[Random.Range(0, barks.Length)]);

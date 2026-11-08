@@ -132,7 +132,8 @@ namespace SignalLost.Enemies.Desert
                 if (i > 0)
                 {
                     Vector2 jitter = Random.insideUnitCircle * 1.6f;
-                    if (NavMesh.SamplePosition(centre + new Vector3(jitter.x, 0f, jitter.y), out NavMeshHit near, 1.5f, NavMesh.AllAreas))
+                    if (NavMesh.SamplePosition(centre + new Vector3(jitter.x, 0f, jitter.y), out NavMeshHit near, 1.5f, NavMesh.AllAreas) &&
+                        SpawnSafety.IsSafe(near.position))
                         point = near.position;
                 }
                 Vector3 toPlayer = player.position - point;
@@ -202,6 +203,7 @@ namespace SignalLost.Enemies.Desert
                 Vector3 candidate = transform.position + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * distance;
                 if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 3f, NavMesh.AllAreas)) continue;
                 if (FlatDistance(hit.position, player.position) < minPlayerDistance) continue;
+                if (!SpawnSafety.IsSafe(hit.position)) continue; // not in a structure, under the map or cut off
 
                 float score = Random.value * 0.2f;
                 if (preferOutOfView && view != null)

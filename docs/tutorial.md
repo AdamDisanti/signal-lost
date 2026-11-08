@@ -74,7 +74,7 @@ Each cousin drops 2-3 scrap metal, 1 wiring and 0-1 circuit boards.
 The level is generated, so a rebuild gives the same result:
 
 - a golden late-afternoon meadow, about 320 m across;
-- a jagged mountain ring and a dense forest belt;
+- a beach and the sea all round (11-07, replacing the mountain ring; see [islands](islands.md)), with a dense forest belt behind it and a dock with the boat to the desert behind the camp;
 - inner hills and groves, so no spot sees from one end to the other;
 - a reed-fringed pond in its own basin under the north-west hill, with stylized water (`Shaders/StylizedWater.shader`), lily pads, bank rocks and a ring of trees open toward the meadow. It is shallow enough to wade;
 - grass and flowers, scattered at runtime.

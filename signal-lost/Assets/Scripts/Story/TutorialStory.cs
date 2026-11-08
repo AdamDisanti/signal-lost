@@ -494,7 +494,9 @@ namespace SignalLost.Story
         {
             SetStage(Stage.DemoComplete);
             Signal(cavendish, false);
-            GameplayOverlay.Instance.SetQuest(ToadTitle, "Chief Toad defeated. Thanks for playing the demo!", true);
+            // The boat at the south-west dock sails to the next island from now on (islands, 11-07).
+            SignalLost.Progression.StageProgress.ClearStage(SignalLost.Progression.StageProgress.Tutorial, SignalLost.Progression.StageProgress.Desert);
+            GameplayOverlay.Instance.SetQuest(ToadTitle, "Chief Toad defeated. Thanks for playing the demo! The boat at the dock past camp can take you to the next island.", true);
             DemoEndCard.Show(Timer.Finish(), Timer.Deaths);
         }
 
