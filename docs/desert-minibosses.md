@@ -25,9 +25,13 @@ The `feature/desert-boss-polish` branch reworks all three. See each boss below f
   - A close-range claw combo, tail sting and flamethrower.
   - A segmented body with jointed legs and claws that moves like a scorpion.
 
-**After pulling this branch, run Signal Lost > Desert Mini-Bosses > Regenerate Prefabs once.** Old Buzzard's elbows and tail joint, and Sludge's segmented body, jointed legs, claw elbows and five-joint tail, only exist in regenerated prefabs. The old prefabs still run, but stiffly, and the Console warns about this on every script reload until you regenerate.
+The saved prefabs were regenerated on 11-08 (Lawson), so they have the polish-pass rigs: Old Buzzard's elbows and tail joint, and Sludge's segmented body, jointed legs, claw elbows and five-joint tail. The Chief Toad and Core Worm prefabs were regenerated at the same time.
 
-Regenerating keeps the prefab GUIDs. It then opens the three boss test scenes and re-links each boss to its fodder spawner and start position if the rebuild knocked them loose. Commit the regenerated prefabs and meshes, and any scenes it re-saved.
+- The models and moves are unchanged; the prefabs now match their builders.
+- Sludge's claw settings were stale in the old prefab (12 damage, 0.5 s wind-up). They now match the code and the table below: 11 damage, 0.4 s wind-up, 3.6 m range, 120° arc, 1.1 s cooldown.
+- The other new settings (Burnout's redline and chain homing, the toad's sweep and tracking beams, the worm's neck length) were already running from code defaults with the same values. They are now saved in the prefabs.
+
+If the rigs change again, run **Signal Lost > Desert Mini-Bosses > Regenerate Prefabs**. The Console warns on script reload when a saved prefab predates its builder's rig. Regenerating keeps the prefab GUIDs. It then opens the three boss test scenes and re-links each boss to its fodder spawner and start position if the rebuild knocked them loose. Commit the regenerated prefabs and meshes, and any scenes it re-saved.
 
 ## Open the delivered assets
 
