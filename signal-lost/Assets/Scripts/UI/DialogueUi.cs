@@ -1,4 +1,5 @@
 using System;
+using SignalLost.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -92,7 +93,7 @@ namespace SignalLost.UI
             subtitleText.fontSize = warning ? 38f : 32f;
             subtitlePanel.color = warning ? UiTheme.WarningPanel : UiTheme.PanelColor;
             Vector2 size = subtitleText.GetPreferredValues(subtitleText.text, 1100f, 0f);
-            ((RectTransform)subtitlePanel.transform).sizeDelta = new Vector2(Mathf.Min(size.x, 1100f) + 56f, size.y + 30f);
+            ((RectTransform)subtitlePanel.transform).sizeDelta = new Vector2(Mathf.Min(size.x, 1100f), size.y) + Vector2.one * (2f * UiTheme.PadSmall);
             subtitleShown = Time.unscaledTime;
             subtitleUntil = Time.unscaledTime + Mathf.Max(1.5f, seconds);
         }
@@ -175,7 +176,7 @@ namespace SignalLost.UI
             lineStarted = Time.unscaledTime;
             counterText.text = lines.Length > 1 ? $"{index + 1} / {lines.Length}" : "";
             bool last = index == lines.Length - 1;
-            hintText.text = last ? $"<b>[E]</b> / Click  -  {finishLabel}" : "<b>[E]</b> / Click  -  Next";
+            hintText.text = last ? $"<b>{KeyBindings.Hint("interact")}</b> / Click  -  {finishLabel}" : $"<b>{KeyBindings.Hint("interact")}</b> / Click  -  Next";
         }
 
         private bool InRange() => Owner == null || player == null || Vector3.Distance(player.position, Owner.position) <= PopupRange;
@@ -188,12 +189,12 @@ namespace SignalLost.UI
             float age = Time.unscaledTime - popupShown;
             popupPanel.localScale = Vector3.one * Mathf.LerpUnclamped(0.85f, 1f, UiTheme.Pop(age / 0.28f));
             nameTag.localRotation = Quaternion.Euler(0f, 0f, 4f + Mathf.Sin(Time.unscaledTime * 2.2f) * 1.2f);
-            hint.anchoredPosition = new Vector2(-36f, 26f + Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4f)) * 6f);
+            hint.anchoredPosition = new Vector2(-UiTheme.Pad, UiTheme.Pad + Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4f)) * 6f);
             bodyText.maxVisibleCharacters = Mathf.FloorToInt((Time.unscaledTime - lineStarted) * CharactersPerSecond);
 
             if (!InRange() || Keyboard.current?.escapeKey.wasPressedThisFrame == true) { CloseAll(); return; }
             if (openedFrame == Time.frameCount) return;
-            bool next = Keyboard.current?.eKey.wasPressedThisFrame == true ||
+            bool next = KeyBindings.WasPressed("interact") ||
                         Mouse.current?.leftButton.wasPressedThisFrame == true ||
                         Gamepad.current?.buttonNorth.wasPressedThisFrame == true ||
                         Gamepad.current?.buttonSouth.wasPressedThisFrame == true;
@@ -230,9 +231,7 @@ namespace SignalLost.UI
             subtitlePanel = UiTheme.Panel("Panel", subtitle, UiTheme.PanelColor, null, 0.7f);
             UiTheme.Place(subtitlePanel.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(400f, 64f));
             subtitleText = UiTheme.Label("Line", subtitlePanel.transform, 32f, UiTheme.Text, TextAlignmentOptions.Center);
-            UiTheme.Stretch(subtitleText.rectTransform, 14f);
-            subtitleText.rectTransform.offsetMin = new Vector2(28f, 14f);
-            subtitleText.rectTransform.offsetMax = new Vector2(-28f, -14f);
+            UiTheme.Stretch(subtitleText.rectTransform, UiTheme.PadSmall);
 
             popupRoot = UiTheme.Stretch(UiTheme.Rect("Quest Popup", root)).gameObject;
             Image dim = UiTheme.Block("Dim", popupRoot.transform, UiTheme.Dim);
@@ -251,19 +250,20 @@ namespace SignalLost.UI
             UiTheme.Stretch(nameText.rectTransform);
 
             titleText = UiTheme.Label("Title", popupPanel, 24f, UiTheme.Muted, TextAlignmentOptions.TopRight, FontStyles.Bold | FontStyles.UpperCase);
-            UiTheme.Place(titleText.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -22f), new Vector2(700f, 36f));
+            UiTheme.Place(titleText.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-UiTheme.Pad, -UiTheme.Pad), new Vector2(700f, 36f));
 
             bodyText = UiTheme.Label("Body", popupPanel, 38f, UiTheme.Text, TextAlignmentOptions.TopLeft);
             UiTheme.Stretch(bodyText.rectTransform);
-            bodyText.rectTransform.offsetMin = new Vector2(48f, 76f);
-            bodyText.rectTransform.offsetMax = new Vector2(-48f, -66f);
+            // Between the name tag / title along the top and the counter / hint along the bottom.
+            bodyText.rectTransform.offsetMin = new Vector2(UiTheme.Pad, UiTheme.Pad + 50f);
+            bodyText.rectTransform.offsetMax = new Vector2(-UiTheme.Pad, -(UiTheme.Pad + 46f));
             bodyText.lineSpacing = 6f;
 
             counterText = UiTheme.Label("Counter", popupPanel, 24f, UiTheme.Muted, TextAlignmentOptions.BottomLeft);
-            UiTheme.Place(counterText.rectTransform, Vector2.zero, Vector2.zero, new Vector2(48f, 26f), new Vector2(200f, 34f));
+            UiTheme.Place(counterText.rectTransform, Vector2.zero, Vector2.zero, new Vector2(UiTheme.Pad, UiTheme.Pad), new Vector2(200f, 34f));
 
             hintText = UiTheme.Label("Hint", popupPanel, 26f, UiTheme.Accent, TextAlignmentOptions.BottomRight);
-            hint = UiTheme.Place(hintText.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-36f, 26f), new Vector2(600f, 36f));
+            hint = UiTheme.Place(hintText.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-UiTheme.Pad, UiTheme.Pad), new Vector2(600f, 36f));
 
             popupRoot.SetActive(false);
         }

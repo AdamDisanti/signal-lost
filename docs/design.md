@@ -256,6 +256,34 @@ Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutoria
 - Shop: type filters, a Purchased filter, scrap amounts as icons, and a preview-then-confirm purchase. The pockets' Upgrades tab shows only what is installed.
 - The merchant crab and its cousins only appear once Cavendish gives the big-crab quest.
 
+## Islands instead of cliffs (11-07)
+
+Lawson asked for an ocean-island system in place of the cliff boundaries; see [islands](islands.md).
+
+- **Islands.** The tutorial's mountain ring and the desert's perimeter dunes and entrance canyon are now beaches into the sea.
+- **Docks.** There is a departure dock at the end of each stage and an arrival dock where the previous stage's boat lands. Interacting with a departure boat plays the voyage cutscene: sailing out, a wide aerial shot, a fade while the next scene loads, then sailing in and zooming back into the player's eyes.
+- **No swimming.** Feet more than 1.3 m under the surface fade to black, cost 15 health and put the player back on the nearest dry land.
+- **Water.** The water shader was reworked to be clearer, higher resolution and low-poly, in the style of the reference picture.
+- **Placement and gates (my calls, not specified):**
+  - The tutorial boat is behind Cavendish's camp and unlocks when the tutorial is finished; the demo end card still shows.
+  - The desert arrival dock is at the player's start, and its departure dock is past the biome exit marker. That boat unlocks with the Engine Core and says the Fog Forest isn't built yet.
+- **Open:**
+  - Whether the tutorial's "Thanks for playing" card should stay now that the boat continues to the desert.
+  - Inventory, health and gear do not carry between scenes yet. That is the save system's job, so the desert still starts with its own player setup.
+  - Whether wading should slow the player.
+  - Whether the voyage needs sound (sea, sail, gulls).
+  - Whether 15 health is the right cost for deep water.
+  - Whether the far islands should match the real next stages more closely.
+  - The desert's Core Worm exit (in its test scene) and the departure dock are separate; when the boss goes into the desert scene, the worm's ambush should probably happen on the way to the dock.
+
+## Upgrade tiers, spawn safety, key bindings and title cycle (11-07)
+
+- **Upgrade tiers.** Each upgrade is a line of small tiers (I, II, III), each dearer than the last; see [upgrades](upgrades.md). Totals at max tier match or slightly beat the old one-off upgrades: bolts +30%, health +30, two extra sips. Open: final costs need play-testing against how much scrap the tutorial actually hands out.
+- **Spawn safety.** `Enemies/Common/SpawnSafety.cs` refuses an enemy spot that is off the NavMesh, has something solid within 7 m overhead, is below a terrain, overlaps solid geometry, or has no complete NavMesh path to the player (or the respawn point). Frog waves, desert fodder waves and the crab-cousin ambush pick only safe spots, and hand-placed crabs, frogs and fodder move to the nearest safe spot (within 8 m) when they start. Open: spots under tree canopies lower than 7 m count as "under" something and are skipped; frog waves fall back to the nearest NavMesh (with a warning) if a whole bank has no safe spot, so the quest can't stall.
+- **Key bindings.** Keyboard and mouse controls can be rebound on the Controls page; gamepad stays fixed for now. The data is ready for the save system (see [core player](core-player.md)). Open: whether gamepad rebinding is wanted, and whether the number keys used by menu tabs should be rebindable.
+- **Text padding.** One padding value per box size, the same on all four sides (`UiTheme.Pad`, `PadSmall`, `PadLarge`).
+- **Title screen.** A Terraria-style day-night cycle, 150 s per day, opening at dusk.
+
 ## Combat and crash-site polish (11-07)
 
 Lawson's list, as built. Numbers are provisional, not agreed balance.

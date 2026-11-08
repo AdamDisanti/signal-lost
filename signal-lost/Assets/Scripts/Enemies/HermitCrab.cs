@@ -175,6 +175,9 @@ namespace SignalLost.Enemies
             }
 
             agent.enabled = true;
+            // Out of structures and rocks, off unreachable ledges; look further afield before giving up.
+            if (SpawnSafety.Settle(transform) == null && SpawnSafety.Settle(transform, 20f) == null)
+                Debug.LogWarning($"{name} starts somewhere unsafe ({SpawnSafety.WhyUnsafe(transform.position)}) with no safe ground within 20 m.", this);
             if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 2f, NavMesh.AllAreas))
             {
                 agent.Warp(hit.position);

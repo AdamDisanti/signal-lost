@@ -137,6 +137,7 @@ namespace SignalLost.Enemies
             agent.enabled = true;
             agent.updateRotation = false; // it turns itself; it only moves by hopping
             agent.isStopped = true;
+            SpawnSafety.Settle(transform); // out of structures and off unreachable ledges
             if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 2f, NavMesh.AllAreas))
             {
                 agent.Warp(hit.position);

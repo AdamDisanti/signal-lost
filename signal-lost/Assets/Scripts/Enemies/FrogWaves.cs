@@ -139,7 +139,13 @@ namespace SignalLost.Enemies
         private MortarFrog SpawnFrog(Vector3 at, bool dropsScrap)
         {
             at += new Vector3(UnityEngine.Random.Range(-1.5f, 1.5f), 0f, UnityEngine.Random.Range(-1.5f, 1.5f));
-            if (NavMesh.SamplePosition(at, out NavMeshHit hit, 4f, NavMesh.AllAreas)) at = hit.position;
+            // Somewhere safe and reachable near the chosen bank spot, else near any other one, else (and warn) the old way.
+            if (!SpawnSafety.TryPlace(at, 5f, out Vector3 safe) && !TryAnySpawnPoint(out safe))
+            {
+                Debug.LogWarning($"{name}: no safe spot for a frog near {at}; spawning on the nearest NavMesh.", this);
+                safe = NavMesh.SamplePosition(at, out NavMeshHit hit, 4f, NavMesh.AllAreas) ? hit.position : at;
+            }
+            at = safe;
             Vector3 inward = transform.position - at;
             inward.y = 0f;
             MortarFrog frog = Instantiate(frogPrefab, at, inward.sqrMagnitude > 0.01f ? Quaternion.LookRotation(inward) : Quaternion.identity);
@@ -147,6 +153,13 @@ namespace SignalLost.Enemies
             if (!dropsScrap && frog.TryGetComponent(out SignalLost.Inventory.ScrapDropper dropper)) dropper.enabled = false;
             alive.Add(frog);
             return frog;
+        }
+
+        private bool TryAnySpawnPoint(out Vector3 point)
+        {
+            foreach (Transform spawn in spawnPoints)
+                if (spawn != null && SpawnSafety.TryPlace(spawn.position, 6f, out point)) return true;
+            return SpawnSafety.TryPlace(transform.position, 12f, out point);
         }
     }
 }

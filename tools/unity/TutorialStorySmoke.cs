@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -159,15 +159,23 @@ public static class TutorialStorySmoke
         Teleport(life, entry);
         view.transform.LookAt(zone.Centre + Vector3.up * 0.5f);
         yield return 2f;
-        Check(cousins.Count(c => GetState(c.Crab) != "Idle") >= 8, "Stepping into the hollow sets the whole family on the mechanic.");
+        Check(cousins.Count(c => GetState(c.Crab) != "Idle") == 10, "Stepping into the hollow sets the whole family on the mechanic.");
         yield return Capture("BucketBrothers");
         life.Health.Invulnerable = true; // the checks below are about the quest, not about surviving ten crabs
 
         merchant.GetComponent<Health>().TakeDamage(10000f, life.gameObject);
         yield return 1.6f;
         Check(merchant.IsDefeated && !merchant.IsReturning && story.Current == TutorialStory.Stage.Fight, "The crab gives up first but waits while the cousins still fight.");
-        foreach (CrabCousin cousin in cousins) cousin.GetComponent<Health>().TakeDamage(10000f, life.gameObject);
+        // One cousin gets stuck out of the fight (brain off, far from the player); the rest are beaten.
+        CrabCousin straggler = cousins[cousins.Length - 1];
+        straggler.Crab.enabled = false;
+        straggler.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled = false;
+        straggler.transform.position = life.transform.position + new Vector3(25f, 0f, 0f);
+        foreach (CrabCousin cousin in cousins) if (cousin != straggler) cousin.GetComponent<Health>().TakeDamage(10000f, life.gameObject);
         yield return 3.5f;
+        Check(!straggler.IsDown && story.Current == TutorialStory.Stage.Fight, "A stuck cousin still counts for a while.");
+        yield return 8.5f;
+        Check(straggler.IsDown, "...then gives up and goes home instead of stalling the quest.");
         Check(cousins.All(c => !c.gameObject.activeSelf), "Defeated cousins despawn.");
         Check(story.Current == TutorialStory.Stage.MerchantComing, "With the family down, the crab heads for camp.");
         ItemPickup flask = UnityEngine.Object.FindObjectsByType<ItemPickup>().First(p => p.Kind == ItemPickup.Item.Flask);

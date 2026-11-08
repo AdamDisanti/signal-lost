@@ -247,7 +247,7 @@ namespace SignalLost.Combat
             }
 
             // Same pattern as FirstPersonController: use a private copy so components never fight over the shared asset.
-            runtimeActions = Instantiate(inputActions);
+            runtimeActions = Instantiate(inputActions); SignalLost.Core.KeyBindings.Register(runtimeActions);
             playerMap = runtimeActions.FindActionMap("Player", true);
             playerMap.bindingMask = InputBinding.MaskByGroups("Keyboard&Mouse", "Gamepad");
             attack = playerMap.FindAction("Attack", true);

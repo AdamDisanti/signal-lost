@@ -25,7 +25,7 @@ namespace SignalLost.Scanner
                 return;
             }
 
-            runtimeActions = Instantiate(inputActions);
+            runtimeActions = Instantiate(inputActions); SignalLost.Core.KeyBindings.Register(runtimeActions);
             playerMap = runtimeActions.FindActionMap("Player", true);
             playerMap.bindingMask = InputBinding.MaskByGroups("Keyboard&Mouse", "Gamepad");
             toggleScanner = playerMap.FindAction("ToggleScanner", true);

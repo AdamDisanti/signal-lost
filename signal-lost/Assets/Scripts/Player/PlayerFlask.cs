@@ -86,7 +86,7 @@ namespace SignalLost.Player
             movement = GetComponent<FirstPersonController>();
             if (inputActions != null)
             {
-                runtimeActions = Instantiate(inputActions);
+                runtimeActions = Instantiate(inputActions); SignalLost.Core.KeyBindings.Register(runtimeActions);
                 InputActionMap map = runtimeActions.FindActionMap("Player", true);
                 map.bindingMask = InputBinding.MaskByGroups("Keyboard&Mouse", "Gamepad");
                 drink = map.FindAction("Drink", true);

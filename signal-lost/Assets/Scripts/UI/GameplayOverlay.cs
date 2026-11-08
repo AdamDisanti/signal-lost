@@ -1,3 +1,4 @@
+using SignalLost.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -14,6 +15,9 @@ namespace SignalLost.UI
     /// </summary>
     public sealed class GameplayOverlay : MonoBehaviour
     {
+        // Heights of the fixed lines above and below the wrapping body text, inside UiTheme.Pad on every side.
+        private const float TrackerTop = 72f, CardTop = 80f, CardBottom = 42f;
+
         private static GameplayOverlay instance;
 
         private CanvasGroup trackerGroup;
@@ -73,7 +77,7 @@ namespace SignalLost.UI
             trackerHeader.color = complete ? UiTheme.Good : UiTheme.Accent;
             trackerTitle.text = title;
             trackerBody.text = objective ?? "";
-            float height = 96f + trackerBody.GetPreferredValues(trackerBody.text, 400f, 0f).y;
+            float height = 2f * UiTheme.Pad + TrackerTop + trackerBody.GetPreferredValues(trackerBody.text, 460f - 2f * UiTheme.Pad, 0f).y;
             trackerPanel.sizeDelta = new Vector2(460f, height);
         }
 
@@ -105,8 +109,8 @@ namespace SignalLost.UI
             cardTitle.color = color;
             cardStripe.color = color;
             cardBody.text = description;
-            cardHint.text = cards.Count > 0 ? $"<b>[E]</b>  Next ({cards.Count} more)" : "<b>[E]</b>  Got it";
-            float height = 170f + cardBody.GetPreferredValues(description, 470f, 0f).y;
+            cardHint.text = cards.Count > 0 ? $"<b>{KeyBindings.Hint("interact")}</b>  Next ({cards.Count} more)" : $"<b>{KeyBindings.Hint("interact")}</b>  Got it";
+            float height = 2f * UiTheme.Pad + CardTop + CardBottom + cardBody.GetPreferredValues(description, 540f - 2f * UiTheme.Pad, 0f).y;
             cardPanel.sizeDelta = new Vector2(540f, height);
             cardShown = Time.unscaledTime;
             cardOpen = true;
@@ -146,14 +150,14 @@ namespace SignalLost.UI
             trackerGroup.blocksRaycasts = false;
             UiTheme.Stretch(UiTheme.Panel("Panel", tracker, UiTheme.PanelColor, UiTheme.Edge, 0.8f).rectTransform);
             trackerHeader = UiTheme.Label("Header", tracker, 22f, UiTheme.Accent, TextAlignmentOptions.TopLeft, FontStyles.Bold);
-            UiTheme.Place(trackerHeader.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(26f, -18f), new Vector2(400f, 30f));
+            UiTheme.Place(trackerHeader.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.Pad, -UiTheme.Pad), new Vector2(460f - 2f * UiTheme.Pad, 30f));
             trackerTitle = UiTheme.Label("Title", tracker, 32f, UiTheme.Text, TextAlignmentOptions.TopLeft, FontStyles.Bold);
-            UiTheme.Place(trackerTitle.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(26f, -46f), new Vector2(410f, 42f));
+            UiTheme.Place(trackerTitle.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.Pad, -UiTheme.Pad - 28f), new Vector2(460f - 2f * UiTheme.Pad, 42f));
             trackerBody = UiTheme.Label("Objective", tracker, 26f, UiTheme.Muted, TextAlignmentOptions.TopLeft);
             trackerBody.rectTransform.anchorMin = Vector2.zero;
             trackerBody.rectTransform.anchorMax = Vector2.one;
-            trackerBody.rectTransform.offsetMin = new Vector2(26f, 16f);
-            trackerBody.rectTransform.offsetMax = new Vector2(-26f, -90f);
+            trackerBody.rectTransform.offsetMin = new Vector2(UiTheme.Pad, UiTheme.Pad);
+            trackerBody.rectTransform.offsetMax = new Vector2(-UiTheme.Pad, -(UiTheme.Pad + TrackerTop));
 
             // Left side: the held laser and scanner fill the lower right of the view.
             cardPanel = UiTheme.Place(UiTheme.Rect("Item Card", root),
@@ -166,21 +170,20 @@ namespace SignalLost.UI
             cardStripe.rectTransform.anchorMin = new Vector2(0f, 0f);
             cardStripe.rectTransform.anchorMax = new Vector2(0f, 1f);
             cardStripe.rectTransform.pivot = new Vector2(0f, 0.5f);
-            cardStripe.rectTransform.offsetMin = new Vector2(14f, 16f);
-            cardStripe.rectTransform.offsetMax = new Vector2(26f, -16f);
+            // The colour stripe sits inside the left padding, so the text keeps the same gap on every side.
+            cardStripe.rectTransform.offsetMin = new Vector2(9f, UiTheme.Pad);
+            cardStripe.rectTransform.offsetMax = new Vector2(16f, -UiTheme.Pad);
             cardKicker = UiTheme.Label("Kicker", cardPanel, 22f, UiTheme.Muted, TextAlignmentOptions.TopLeft, FontStyles.Bold);
-            UiTheme.Place(cardKicker.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(44f, -18f), new Vector2(460f, 30f));
+            UiTheme.Place(cardKicker.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.Pad, -UiTheme.Pad), new Vector2(540f - 2f * UiTheme.Pad, 30f));
             cardTitle = UiTheme.Label("Title", cardPanel, 40f, UiTheme.Accent, TextAlignmentOptions.TopLeft, FontStyles.Bold);
-            UiTheme.Place(cardTitle.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(44f, -44f), new Vector2(470f, 50f));
+            UiTheme.Place(cardTitle.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.Pad, -UiTheme.Pad - 28f), new Vector2(540f - 2f * UiTheme.Pad, 50f));
             cardBody = UiTheme.Label("Body", cardPanel, 26f, UiTheme.Text, TextAlignmentOptions.TopLeft);
             cardBody.rectTransform.anchorMin = Vector2.zero;
             cardBody.rectTransform.anchorMax = Vector2.one;
-            cardBody.rectTransform.offsetMin = new Vector2(44f, 24f);
-
-            cardBody.rectTransform.offsetMax = new Vector2(-26f, -100f);
-            cardBody.rectTransform.offsetMin = new Vector2(44f, 64f);
+            cardBody.rectTransform.offsetMin = new Vector2(UiTheme.Pad, UiTheme.Pad + CardBottom);
+            cardBody.rectTransform.offsetMax = new Vector2(-UiTheme.Pad, -(UiTheme.Pad + CardTop));
             cardHint = UiTheme.Label("Hint", cardPanel, 24f, UiTheme.Accent, TextAlignmentOptions.BottomRight);
-            UiTheme.Place(cardHint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-26f, 20f), new Vector2(460f, 34f));
+            UiTheme.Place(cardHint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-UiTheme.Pad, UiTheme.Pad), new Vector2(460f, 34f));
         }
     }
 }

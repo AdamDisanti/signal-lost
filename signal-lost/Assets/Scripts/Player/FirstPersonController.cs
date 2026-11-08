@@ -134,7 +134,7 @@ namespace SignalLost.Player
             }
 
             // Each player owns its action state; never enable/disable the shared source asset.
-            runtimeActions = Instantiate(inputActions);
+            runtimeActions = Instantiate(inputActions); SignalLost.Core.KeyBindings.Register(runtimeActions);
             playerMap = runtimeActions.FindActionMap("Player", true);
             playerMap.bindingMask = InputBinding.MaskByGroups("Keyboard&Mouse", "Gamepad");
             move = playerMap.FindAction("Move", true);
