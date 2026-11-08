@@ -65,7 +65,8 @@ namespace SignalLost.Core
             new Binding { Id = "swap", Label = "Swap scanner / laser", Action = "Player/ToggleScanner", Default = "<Keyboard>/q", Gamepad = "LB" },
             new Binding { Id = "drink", Label = "Drink from the flask", Action = "Player/Drink", Default = "<Keyboard>/f", Gamepad = "D-pad up" },
             new Binding { Id = "interact", Label = "Talk / pick up / next line", Action = "Player/Interact", Default = "<Keyboard>/e", Gamepad = "Y" },
-            new Binding { Id = "inventory", Label = "Pockets (inventory)", Action = null, Default = "<Keyboard>/tab", Gamepad = "View" }
+            new Binding { Id = "inventory", Label = "Pockets (inventory)", Action = null, Default = "<Keyboard>/tab", Gamepad = "View" },
+            new Binding { Id = "cheat", Label = "Cheat mode (testing)", Action = null, Default = "<Keyboard>/end", Gamepad = "-" }
         };
 
         /// <summary>Raised after any binding changes (rebind, reset, import).</summary>

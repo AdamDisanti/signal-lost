@@ -210,6 +210,28 @@ namespace SignalLost.Player
             }
 
             bool canMove = (canControl || (menuOpen && Application.isFocused)) && !IsStunned;
+
+            // Testing cheat (End): 9999 damage and free flight.
+            if (canControl && SignalLost.Core.KeyBindings.WasPressed("cheat"))
+            {
+                SignalLost.Core.CheatMode.Toggle();
+                SignalLost.Enemies.Desert.MiniBossHud.Message(SignalLost.Core.CheatMode.Enabled
+                        ? "CHEAT MODE ON: 9999 damage, flying (" + SignalLost.Core.KeyBindings.Display("jump") + " up, " + SignalLost.Core.KeyBindings.Display("crouch") + " down)"
+                        : "CHEAT MODE OFF", new Color(1f, 0.85f, 0.3f), 2.5f);
+            }
+            if (SignalLost.Core.CheatMode.Enabled)
+            {
+                Fly(canMove);
+                return;
+            }
+            if (!controller.enabled)
+            {
+                // Back from flying: walk (and fall) again from here.
+                controller.enabled = true;
+                verticalSpeed = 0f;
+                momentum = Vector3.zero;
+            }
+
             bool grounded = controller.isGrounded;
             float dt = Time.deltaTime;
             if (grounded && verticalSpeed < 0f) verticalSpeed = -2f;
@@ -290,6 +312,33 @@ namespace SignalLost.Player
             if ((collisions & CollisionFlags.Above) != 0 && verticalSpeed > 0f) verticalSpeed = 0f;
             if ((collisions & CollisionFlags.Below) != 0 && verticalSpeed < 0f) verticalSpeed = -2f;
             if ((collisions & CollisionFlags.Sides) != 0 && sliding && controller.velocity.magnitude < slideEndSpeed) sliding = false;
+        }
+
+        private const float FlySpeed = 12f, FlySprintSpeed = 40f;
+
+        // Cheat flight: no gravity and no collisions. Moves where the camera looks; Jump rises, Crouch sinks, Sprint is fast.
+        private void Fly(bool canMove)
+        {
+            if (controller.enabled) controller.enabled = false;
+            sliding = false;
+            momentum = Vector3.zero;
+            verticalSpeed = 0f;
+            Vector2 axis = canMove ? Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f) : Vector2.zero;
+            float rise = canMove ? (jump.IsPressed() ? 1f : 0f) - (crouch.IsPressed() ? 1f : 0f) : 0f;
+            Vector3 direction = cameraPivot.forward * axis.y + cameraPivot.right * axis.x + Vector3.up * rise;
+            float speed = canMove && sprint.IsPressed() ? FlySprintSpeed : FlySpeed;
+            transform.position += Vector3.ClampMagnitude(direction, 1f) * (speed * Time.deltaTime);
+            eyeHeight = Mathf.MoveTowards(eyeHeight, standEyeHeight, 6f * Time.deltaTime);
+            Vector3 eye = cameraPivot.localPosition;
+            cameraPivot.localPosition = new Vector3(eye.x, eyeHeight, eye.z);
+        }
+
+        private void OnGUI()
+        {
+            if (!SignalLost.Core.CheatMode.Enabled) return;
+            var style = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold };
+            style.normal.textColor = new Color(1f, 0.85f, 0.3f);
+            GUI.Label(new Rect(12f, 8f, 420f, 24f), "CHEAT MODE (" + SignalLost.Core.KeyBindings.Display("cheat") + " to turn off)", style);
         }
 
         private void StartSlide(Vector3 wish)

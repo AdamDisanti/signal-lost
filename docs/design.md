@@ -283,7 +283,7 @@ Lawson asked for three things (see [islands](islands.md)):
 - Cavendish and Eugene come along, and set up camp near the arrival dock on the next island. The camp keeps the same structure with island theming.
 - The player, Cavendish and Eugene change clothes for each island.
 
-- **On the boat:** the voyage shows the mechanic's own blocky body (the pockets figure's model) walking aboard and standing at the tiller.
+- **On the boat:** the voyage shows the mechanic's own body (the pockets figure's rounded model, from the player model revamp) walking aboard and standing at the tiller.
   - Cavendish and Eugene come down the dock and climb in.
   - The boat is now twice the size (about 10 m), with a raised boom and three thwarts, so the three of them fit.
 - **Who comes:** Cavendish always does. Eugene comes once he is a friendly trader, which he always is by the time the tutorial boat unlocks.
