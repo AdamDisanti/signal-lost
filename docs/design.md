@@ -114,6 +114,26 @@ Lawson requested a main boss for the desert stage. See [desert stage boss](deser
 - **No friendly fire (Lawson's request):** enemies are never hurt by their own attacks or each other's: fire, blasts, the cannon shell, the worm's shrapnel and the mortar frog's goo all skip enemies (`EnemyAllegiance`). This supersedes the earlier "fire and blasts hurt fodder" notes. Hazards the player sets off still count as the player's: shooting an oil slick, a fire the player started, or a Jerry-Can Beetle the player shot or ignited.
 - **Flask in the fight (Lawson's request):** the player has the Scotch flask during the Core Worm fight, with the tutorial's healing and intoxication rules. The tutorial's blackout sends you back to the start, so here a blackout counts as going down. Whether the flask comes from the inventory once stages are linked is still open.
 
+## Crystal Caves world (11-08)
+
+Amanda's request: a new Crystal Caves level built from her design map and reference images, world only. See [Crystal Caves](crystal-caves.md).
+
+- **Size:** 480 × 480 m, which is 1.5 times Desert Dunes' 320 m.
+- **Layout (Amanda's answers):**
+  - The cave fills the island under high mountains.
+  - A walkable rocky shelf wraps along the south coast. Amanda chose this over the drawing's small ledge.
+  - The dock hangs off a cliff, with the cave mouth visible from it and no path to it.
+  - Two cave levels, the deep one about 16 m lower, joined by three ramps.
+- **Dock and boat:** no earlier level had them. Amanda chose reusable static prefabs; travel between levels is not built.
+- **Workflow:** the Desert Dunes pattern (an environment prefab that can be rebuilt, and a scene created once then edited by hand), at Amanda's choice.
+- **Look:** a bright coastal day outside. Inside, the crystals (six colours) are the only light; a scripted fade turns off the sun and sky light under the cave roof.
+- **Chosen while building (open to change):**
+  - the player spawns on the dock with all gear;
+  - Eugene is already friendly and Cavendish has small talk only;
+  - falling into the sea respawns you on the dock;
+  - a faint ambient fill in the cave so rock shapes read.
+- **Not invented:** enemies, quests, boss, level flow or travel. The fight zones are empty CombatZone markers.
+
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
 
 ## Chief Toad decisions (10-23-26)

@@ -6,6 +6,7 @@
 - [Scanner prototype](scanner-prototype.md): scanner controls, target detection, HUD/audio setup, and validation status.
 - [Player HUD](hud.md): HUD prefab, test scene, how other systems feed it, and test checklist.
 - [Desert / Dunes level](desert-dunes.md): first biome prototype, layout, how to build it, and test checklist.
+- [Crystal Caves level](crystal-caves.md): the third biome's world (coast, dock, camp, two-level crystal-lit cave), how to build and extend it, and what was verified.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
 - [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
 - [Desert stage boss](desert-boss.md): the Core Worm: exit ambush cutscene, four phases that change the arena, Engine Core drop and next-stage unlock.
