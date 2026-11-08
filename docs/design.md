@@ -134,6 +134,21 @@ Amanda's request: a new Crystal Caves level built from her design map and refere
   - a faint ambient fill in the cave so rock shapes read.
 - **Not invented:** enemies, quests, boss, level flow or travel. The fight zones are empty CombatZone markers.
 
+## Crystal Caves revisions (11-09)
+
+Amanda's fixes and changes after reviewing the world. See [Crystal Caves](crystal-caves.md).
+
+- **Roof:** part of the cave, left of the entrance, was open to the sky. The roof only covered ground north of the portal line. It now covers the whole cavern, and the terrain self-check refuses any cave ground left uncovered.
+- **Smaller outside:** the mountains now rise straight from the sea everywhere except the south-east ledge, so the only open ground is the ledge with the camp, the cove and the cave mouth.
+- **Dock:** no more staircase. A cove of low rocks steps down from the ledge to the water, and the dock starts at its foot. The cove points at the cave mouth, which stays visible from the dock (the self-check covers this).
+- **Brighter cave:** the cave fill is now bright enough that every part of the cave is easy to see. No crystals were added.
+- **Upper level only at the front and the beetles:** the back of the cave is all deep level. Nothing up there overlooks mini boss 2's or the final boss's zone: the nearest upper ground is about 90 m from mini boss 2's centre. The beetles' zone sits in a 62 m lobe, about 38 m from any drop. There are three ramps, two from the front and one from the lobe.
+- **Teammate's islands update:** the teammate's pushes (islands, docks and voyages on main; the crew sailing along, island camps and outfits on `claude/crew-voyage-outfits`) were merged into `feature/crystal-caves`. The level now uses them:
+  - the island kit's sea, deep-water rescue, arrival dock and sailboat, and a not-walkable sea floor;
+  - Cavendish and Eugene at an island camp (a base camp variant with an `IslandCamp`), set up as in the desert.
+  - These replace the level's own dock, boat, ocean and `FallRespawn`, which were removed. Eugene no longer has ambush cousins here, matching the desert camp.
+- **Not decided, so not invented:** Crystal Caves outfits and camp styling (no `StageTheme` yet, so the crew wears its Crash Meadow look), and a departure dock and voyage route (waiting on the Fog Forest).
+
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
 
 ## Chief Toad decisions (10-23-26)

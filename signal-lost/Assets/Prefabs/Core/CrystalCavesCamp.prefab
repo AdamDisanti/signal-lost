@@ -1,0 +1,275 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2113892038879194389
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5065223114876838301}
+  m_Layer: 0
+  m_Name: Merchant Seat
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5065223114876838301
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2113892038879194389}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.043989487, z: -0, w: 0.999032}
+  m_LocalPosition: {x: 0.3, y: 0.5302908, z: -3.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3124577785309738659}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4270314211111581022
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8971248672522705190}
+  m_Layer: 0
+  m_Name: Cavendish Stand
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8971248672522705190
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4270314211111581022}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.46653837, z: -0, w: 0.884501}
+  m_LocalPosition: {x: 1.9, y: 0, z: -1.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3124577785309738659}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5415103497425855926
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6215763922569824045}
+  m_Layer: 0
+  m_Name: Cavendish Seat
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6215763922569824045
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5415103497425855926}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.77334213, z: 0, w: 0.6339889}
+  m_LocalPosition: {x: 3, y: 0.5302908, z: 0.6000001}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3124577785309738659}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8046215824176156487
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3234265639804200933}
+  m_Layer: 0
+  m_Name: Merchant Stand
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3234265639804200933
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8046215824176156487}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.38268346, z: -0, w: 0.92387956}
+  m_LocalPosition: {x: 2.6, y: 0, z: -2.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3124577785309738659}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &719380610041915669
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6736307784105125598, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_Name
+      value: CrystalCavesCamp
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6215763922569824045}
+    - targetCorrespondingSourceObject: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5065223114876838301}
+    - targetCorrespondingSourceObject: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8971248672522705190}
+    - targetCorrespondingSourceObject: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3234265639804200933}
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6736307784105125598, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7248739911939637468}
+  m_SourcePrefab: {fileID: 100100000, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+--- !u!4 &425036694708772362 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 873074102586668831, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &532776819045215143 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1053575594330718898, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1210313921993856239 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1814993269008727546, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3124577785309738659 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2497098841651453878, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3563812858375530609 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4075463216366043492, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4781031478853612690 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5450026349909351815, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5576976116110886921 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4944572924963758364, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6091097499241729995 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6736307784105125598, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7248739911939637468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6091097499241729995}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2342f56d6e0077948bdb8933f3a0ec9e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SignalLost.World.IslandCamp
+  cavendish: {fileID: 0}
+  merchant: {fileID: 0}
+  cavendishSeat: {fileID: 6215763922569824045}
+  merchantSeat: {fileID: 5065223114876838301}
+  cavendishStand: {fileID: 8971248672522705190}
+  merchantStand: {fileID: 3234265639804200933}
+  pieces:
+  - {fileID: 3563812858375530609}
+  - {fileID: 4781031478853612690}
+  - {fileID: 7109832615928124947}
+  - {fileID: 532776819045215143}
+  - {fileID: 5576976116110886921}
+  - {fileID: 7072858688976515351}
+  - {fileID: 1210313921993856239}
+  - {fileID: 425036694708772362}
+--- !u!4 &7072858688976515351 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7772112738442074114, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7109832615928124947 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7732948576006569734, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+  m_PrefabInstance: {fileID: 719380610041915669}
+  m_PrefabAsset: {fileID: 0}

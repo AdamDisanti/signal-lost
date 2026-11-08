@@ -9,6 +9,7 @@ using SignalLost.NPC;
 using SignalLost.Player;
 using SignalLost.Progression;
 using SignalLost.Scanner;
+using SignalLost.World;
 using Unity.AI.Navigation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -24,14 +25,16 @@ using T = SignalLost.Editor.CrystalCavesTerrain;
 namespace SignalLost.Editor
 {
     /// <summary>
-    /// Creates the Crystal Caves level (design map 11-08; see docs/crystal-caves.md). Like Desert Dunes, it is two parts:
-    ///  * CrystalCavesEnvironment.prefab (Prefabs/Enviornment objects/CrystalCaves): the island's ground and cave roof, the
-    ///    ocean, the coast (cliff columns, rocks, plants, the shared Dock and Boat), the cave (columns, stalagmites,
-    ///    stalactites, boulders, glowing crystal batches) and the CaveLighting that darkens it. Rebuilding it from this
+    /// Creates the Crystal Caves level (design map 11-08, revised 11-09; see docs/crystal-caves.md). Like Desert Dunes, it
+    /// is two parts:
+    ///  * CrystalCavesEnvironment.prefab (Prefabs/Enviornment objects/CrystalCaves): the island's ground, sea floor and cave
+    ///    roof; the shared island pieces (<see cref="IslandKit"/>: the sea, and the arrival dock with its sailboat at the
+    ///    foot of the cove); the ledge's rock, plants and sea-cliff columns; the cave's columns, stalagmites,
+    ///    stalactites, boulders and glowing crystal batches; and the CaveLighting that darkens it. Rebuilding it from this
     ///    script (same seed, same layout) replaces edits made to the prefab.
     ///  * Scenes/Large Areas/CrystalCaves.unity, created once and then edited by hand: the coastal lighting, the shared
-    ///    Player and GameSystems (HUD, menus, pause), the spawn on the dock, the base camp with Cavendish and Eugene, the
-    ///    baked NavMesh, and empty fight-zone markers for enemies to come.
+    ///    Player and GameSystems (HUD, menus, pause), the spawn at the dock, Cavendish's island camp with Cavendish and
+    ///    Eugene, the baked NavMesh, and empty fight-zone markers for enemies to come.
     /// The landform itself is in <see cref="CrystalCavesTerrain"/>; the art kit in <see cref="CrystalAssetBuilder"/>.
     /// </summary>
     internal static class CrystalCavesBuilder
@@ -39,10 +42,12 @@ namespace SignalLost.Editor
         public const string ScenePath = "Assets/Scenes/Large Areas/CrystalCaves.unity";
         private const string NavMeshPath = "Assets/Scenes/Large Areas/CrystalCavesNavMesh.asset";
         public const string EnvironmentPrefabPath = CrystalAssetBuilder.Folder + "/CrystalCavesEnvironment.prefab";
+        /// <summary>Cavendish's camp as pitched here: the base camp with an <see cref="IslandCamp"/> (a prefab variant).</summary>
+        public const string CampPrefabPath = "Assets/Prefabs/Core/CrystalCavesCamp.prefab";
+        public const string IslandName = "The Crystal Caves";
         private const string MeshFolder = CrystalAssetBuilder.Folder + "/Meshes";
         private const string CavendishPath = "Assets/Prefabs/Enviornment objects/GrayboxProps/CapybaraAstronaut.prefab";
         private const string MerchantPath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
-        private const float SitDrop = 0.55f; // how far Cavendish's unrigged model sinks to sit on his log (as in the tutorial)
         private const float NearMouth = 70f; // crystal lights this close to the mouth stay on when you are outside
 
         // Crystal colours by area: each batch takes one of its nearest area's colours, sometimes any colour at all.
@@ -69,14 +74,15 @@ namespace SignalLost.Editor
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             GameObject environment = AssetDatabase.LoadAssetAtPath<GameObject>(EnvironmentPrefabPath) ?? BuildEnvironmentPrefab();
+            GameObject camp = AssetDatabase.LoadAssetAtPath<GameObject>(CampPrefabPath) ?? BuildCampPrefab();
             T.Generate();
             PrefabUtility.InstantiatePrefab(environment);
             BuildLighting();
-            Transform camp = Place(BaseCampBuilder.PrefabPath, null, Ground(T.Camp), Quaternion.identity, Vector3.one).transform;
-            camp.name = "Campsite";
+            IslandCamp island = Place(CampPrefabPath, null, Ground(T.Camp), Quaternion.identity, Vector3.one).GetComponent<IslandCamp>();
+            island.name = "Cavendish's Camp";
             BakeNavigation(); // before anyone who walks is placed, so they never punch holes in it
             BuildGameplay();
-            BuildResidents(camp);
+            BuildResidents(island);
             BuildMarkers();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -94,8 +100,8 @@ namespace SignalLost.Editor
                     "made to them in Unity. The scene keeps its instance; re-bake its NavMesh afterwards (select Navigation, press Bake). Continue?", "Rebuild", "Cancel"))
                 return;
             CrystalAssetBuilder.Build();
-            DockBoatBuilder.Build();
             BuildEnvironmentPrefab();
+            BuildCampPrefab();
             AssetDatabase.SaveAssets();
             Debug.Log("CRYSTAL_CAVES_ENVIRONMENT_REBUILT");
         }
@@ -121,37 +127,40 @@ namespace SignalLost.Editor
 
         private static GameObject BuildEnvironmentPrefab()
         {
-            // The art kits, if they are missing (checked by the last piece each builder makes).
+            // The art kit, if it is missing (checked by the last piece it makes).
             if (AssetDatabase.LoadAssetAtPath<GameObject>(CrystalAssetBuilder.RockPath("CoastBlock")) == null) CrystalAssetBuilder.Build();
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(DockBoatBuilder.BoatPath) == null) DockBoatBuilder.Build();
             T.Generate();
             List<string> problems = T.Check();
             if (problems.Count > 0) throw new InvalidOperationException("Crystal Caves landform check failed:\n" + string.Join("\n", problems));
 
             var rng = new Random(20261108);
             var root = new GameObject("Crystal Caves Environment");
-            Mesh groundMesh = T.BuildGroundMesh(out T.Surface[] groundSurfaces);
+            Mesh groundMesh = T.BuildGroundMesh(out T.Surface[] groundSurfaces, out Mesh seabedMesh);
             MeshCollider ground = Solid("Ground", root.transform, SaveMesh(groundMesh), groundSurfaces);
+            // The sea floor beyond the coast is its own object, not walkable, as on the other islands: the NavMesh,
+            // enemies and spawns stay on land.
+            MeshCollider seabed = Solid("Seabed", root.transform, SaveMesh(seabedMesh), new[] { T.Surface.SeaFloor });
+            IslandKit.NoWalk(seabed.gameObject);
             Mesh roofMesh = T.BuildRoofMesh(out T.Surface[] roofSurfaces);
             MeshCollider roof = Solid("Cave Roof", root.transform, SaveMesh(roofMesh), roofSurfaces);
             roof.gameObject.AddComponent<NavMeshModifier>().ignoreFromBuild = true; // the mountain top is out of reach
-
-            var ocean = new GameObject("Ocean");
-            ocean.transform.SetParent(root.transform, false);
-            ocean.transform.position = new Vector3(0f, T.SeaLevel, 0f);
-            ocean.AddComponent<MeshFilter>().sharedMesh = SaveMesh(T.BuildOceanMesh());
-            var water = ocean.AddComponent<MeshRenderer>();
-            water.sharedMaterial = OceanMaterial();
-            water.shadowCastingMode = ShadowCastingMode.Off;
-            water.receiveShadows = false;
             Physics.SyncTransforms();
+
+            // The shared island pieces: the sea (with its deep-water rescue) and the arrival dock at the foot of the cove.
+            Transform shore = Group("Shore", root.transform);
+            IslandKit.BuildOcean(shore, T.SeaLevel, Vector2.zero, T.MapSize * 0.5f, 2f, T.Ground, new Vector3(T.CaveCentre.x, 0f, T.CaveCentre.y), "CrystalCavesOcean");
+            Vector2 dockStart = IslandKit.ShoreStart(T.CoveTop, T.DockSeaward, T.Ground, T.SeaLevel);
+            IslandKit.BuildDock(shore, new IslandKit.DockSpec
+            {
+                Name = "CrystalCavesDock", Start = dockStart, Seaward = T.DockSeaward, Length = 12f,
+                Role = IslandDock.Role.Arrival, IslandName = IslandName
+            }, T.SeaLevel, T.Ground, 20261109);
 
             BuildCoast(Group("Coast", root.transform), rng);
             Transform cave = Group("Cave", root.transform);
             var mouth = new GameObject("Cave Mouth").transform;
             mouth.SetParent(cave, false);
-            Vector2 portal = T.MouthPath[1];
-            mouth.SetPositionAndRotation(Ground(portal) + Vector3.up * 2f, Quaternion.LookRotation(Vector3.back));
+            mouth.SetPositionAndRotation(Ground(T.MouthPath[1]) + Vector3.up * 2f, Quaternion.LookRotation(Vector3.back));
             BuildCaveRock(cave, rng);
             Transform crystals = BuildCrystals(cave, ground, roof, rng);
 
@@ -185,15 +194,9 @@ namespace SignalLost.Editor
 
         private static void BuildCoast(Transform coast, Random rng)
         {
-            // The dock hangs off the ledge's south cliff; the boat is moored at its jetty.
-            Vector3 deck = new Vector3(T.DockRoot.x, DockBoatBuilder.DeckHeight, T.DockRoot.y);
-            Transform dock = Place(DockBoatBuilder.DockPath, coast, deck, Quaternion.Euler(0f, 180f, 0f), Vector3.one).transform;
-            Vector3 mooring = dock.TransformPoint(DockBoatBuilder.BoatMooring);
-            Place(DockBoatBuilder.BoatPath, coast, new Vector3(mooring.x, T.SeaLevel, mooring.z), Quaternion.Euler(0f, 183f, 0f), Vector3.one);
-
-            // Where the shelf meets the sea, found by walking out from the mountains at each angle along the south coast.
+            // Where the ledge meets the sea, found by walking out from the mountains at each angle round the south-east.
             var edge = new List<(Vector2 point, Vector2 outward)>();
-            for (float angle = 212f; angle <= 363f; angle += 1.2f)
+            for (float angle = 280f; angle <= 336f; angle += 1.2f)
             {
                 var outward = new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
                 for (float r = 200f; r < 300f; r += 0.5f)
@@ -206,11 +209,12 @@ namespace SignalLost.Editor
                 }
             }
 
-            // Stacked rock columns lining the sea cliffs, and tumbled blocks in the surf, like the reference coast.
+            // Stacked rock columns lining the sea cliffs, and tumbled blocks in the surf, like the reference coast; the
+            // cove and the water off the dock stay clear.
             Transform columns = Group("Cliff Columns", coast);
             foreach ((Vector2 point, Vector2 outward) in edge)
             {
-                if (Vector2.Distance(point, T.DockRoot) < 14f) continue; // keep the dock's cliff clear
+                if (T.DistanceToCove(point) < 14f) continue;
                 Vector2 inland = point - outward * 4f;
                 float top = T.GroundAt(inland.x, inland.y);
                 int count = rng.NextDouble() < 0.5 ? 1 : 2;
@@ -223,20 +227,31 @@ namespace SignalLost.Editor
                 }
             }
             Transform surf = Group("Surf Blocks", coast);
-            for (int n = 0; n < 110; n++)
+            for (int n = 0; n < 60; n++)
             {
                 (Vector2 point, Vector2 outward) = edge[rng.Next(edge.Count)];
                 Vector2 p = point + outward * Range(rng, 2f, 12f) + new Vector2(-outward.y, outward.x) * Range(rng, -3f, 3f);
-                if (Vector2.Distance(p, T.DockRoot + new Vector2(0f, -20f)) < 22f) continue; // keep the water by the dock open
+                if (T.DistanceToCove(p) < 18f || DistanceToSegment(p, T.CoveBottom, T.CoveBottom + T.DockSeaward * 30f) < 16f) continue;
                 float size = Range(rng, 1.4f, 3.8f);
                 Place(CrystalAssetBuilder.RockPath("CoastBlock"), surf, new Vector3(p.x, Range(rng, -2.5f, -0.2f), p.y), RandomRotation(rng),
                     new Vector3(size * Range(rng, 0.8f, 1.3f), size * Range(rng, 0.7f, 1.3f), size * Range(rng, 0.8f, 1.3f)));
             }
+            // Low rocks along both sides of the cove, stepping down to the water with it.
+            Transform cove = Group("Cove Rocks", coast);
+            Vector2 down = T.DockSeaward, across = new Vector2(-down.y, down.x);
+            for (float d = 2f; d < (T.CoveBottom - T.CoveTop).magnitude; d += Range(rng, 2.5f, 4f))
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    Vector2 p = T.CoveTop + down * d + across * side * Range(rng, 7f, 9.5f);
+                    float size = Range(rng, 1.2f, 2.6f);
+                    Place(CrystalAssetBuilder.RockPath("CoastBlock"), cove, Ground(p) + Vector3.down * size * 0.4f,
+                        Quaternion.Euler(Range(rng, -8f, 8f), Range(rng, 0f, 360f), Range(rng, -8f, 8f)), new Vector3(size * Range(rng, 1f, 1.5f), size * Range(rng, 0.5f, 0.9f), size));
+                }
 
-            // Rock formations, boulders, wind-bent pines, bushes and grass on the shelf; none of them on the camp, the
-            // dock, the mouth or the line of sight from the dock to the mouth.
+            // Rock formations, boulders, wind-bent pines, bushes and grass on the ledge; none of them on the camp, the
+            // cove or the line of sight from the dock to the mouth.
             Transform formations = Group("Rock Formations", coast);
-            for (int n = 0; n < 16; n++)
+            for (int n = 0; n < 7; n++)
             {
                 if (!ShelfPoint(rng, 5f, true, out Vector2 centre)) continue;
                 int count = rng.Next(3, 7);
@@ -249,7 +264,7 @@ namespace SignalLost.Editor
                 }
             }
             Transform rocks = Group("Rocks", coast);
-            for (int n = 0; n < 60; n++)
+            for (int n = 0; n < 30; n++)
             {
                 if (!ShelfPoint(rng, 2f, true, out Vector2 p)) continue;
                 bool big = rng.NextDouble() < 0.25;
@@ -257,7 +272,7 @@ namespace SignalLost.Editor
                 Place(MeadowAssetBuilder.PrefabPath(kind), rocks, Ground(p) + Vector3.down * (big ? 0.4f : 0.1f), Quaternion.Euler(0f, Range(rng, 0f, 360f), 0f), Vector3.one * Range(rng, 0.8f, big ? 1.5f : 2f));
             }
             Transform pines = Group("Pines", coast);
-            for (int n = 0, tries = 0; n < 20 && tries < 4000; tries++)
+            for (int n = 0, tries = 0; n < 10 && tries < 4000; tries++)
             {
                 if (!ShelfPoint(rng, 2f, true, out Vector2 p)) continue;
                 T.Coast(p.x, p.y, out _, out float mountain);
@@ -266,10 +281,10 @@ namespace SignalLost.Editor
                 n++;
             }
             Transform plants = Group("Bushes And Grass", coast);
-            for (int n = 0; n < 40; n++)
+            for (int n = 0; n < 20; n++)
                 if (ShelfPoint(rng, 1f, false, out Vector2 p))
                     Place(MeadowAssetBuilder.PrefabPath(MeadowAssetBuilder.Bushes[rng.Next(2)]), plants, Ground(p), Quaternion.Euler(0f, Range(rng, 0f, 360f), 0f), Vector3.one * Range(rng, 0.7f, 1.3f));
-            for (int clump = 0; clump < 45; clump++)
+            for (int clump = 0; clump < 24; clump++)
             {
                 if (!ShelfPoint(rng, 0f, false, out Vector2 centre)) continue;
                 for (int i = rng.Next(3, 9); i > 0; i--)
@@ -281,20 +296,20 @@ namespace SignalLost.Editor
             }
         }
 
-        // A random spot on the open shelf (dry, below the mountains, not too steep), away from the camp, the dock and
-        // the mouth, and (for anything tall) off the sight line from the dock to the cave mouth.
+        // A random spot on the open ledge (dry, below the mountains, not too steep), away from the camp, the cove and the
+        // mouth, and (for anything tall) off the sight line from the dock to the cave mouth.
         private static bool ShelfPoint(Random rng, float pad, bool tall, out Vector2 p)
         {
             for (int tries = 0; tries < 400; tries++)
             {
-                p = new Vector2(Range(rng, T.Origin, -T.Origin), Range(rng, T.Origin, 40f));
+                p = T.LedgeCentre + new Vector2(Range(rng, -70f, 70f), Range(rng, -60f, 60f));
                 T.Coast(p.x, p.y, out float land, out float mountain);
                 if (land < 0.98f || mountain > 0.3f || T.Roofed(p.x, p.y) || T.GroundAt(p.x, p.y) < 4f) continue;
                 if (Slope(p) > 26f) continue;
                 if (Vector2.Distance(p, T.Camp) < T.CampClearRadius + pad) continue;
-                if (DistanceToSegment(p, T.DockRoot + new Vector2(0f, 10f), T.DockRoot + new Vector2(0f, -40f)) < 8f + pad) continue;
+                if (T.DistanceToCove(p) < 11f + pad) continue;
                 if (T.DistanceToMouth(p) < 15f + pad) continue;
-                if (tall && DistanceToSegment(p, T.DockRoot, T.MouthPath[1]) < 7f + pad) continue;
+                if (tall && DistanceToSegment(p, T.CoveBottom, T.MouthPath[1]) < 7f + pad) continue;
                 return true;
             }
             p = default;
@@ -382,8 +397,7 @@ namespace SignalLost.Editor
         private static bool CaveClear(Vector2 p, float pad)
         {
             if (T.DistanceToMouth(p) < 12f + pad) return false;
-            float e = T.DeepAmount(p.x, p.y, out float angle);
-            if (T.RampWeight(angle) > 0.01f && e > 0.6f && e < 1.14f) return false;
+            if (T.RampWeight(p.x, p.y) > 0.01f) return false;
             if (Vector2.Distance(p, T.BeetleZone) < T.ZoneRadius + pad || Vector2.Distance(p, T.MiniBossZone) < T.ZoneRadius + pad) return false;
             Vector2 boss = new Vector2((p.x - T.FinalBossZone.x) / (T.FinalBossRadii.x + pad), (p.y - T.FinalBossZone.y) / (T.FinalBossRadii.y + pad));
             return boss.magnitude >= 1f;
@@ -391,8 +405,8 @@ namespace SignalLost.Editor
 
         // ---------- The cave: crystals ----------
 
-        // Crystal batches are the cave's only light: signposts along the tunnel, at the top and bottom of each ramp and
-        // around the fight zones, then scattered over the floors, the walls and the ceiling.
+        // Crystal batches light the cave: signposts along the tunnel, at the top and foot of each ramp and around the
+        // fight zones, then scattered over the floors, the walls and the ceiling.
         private static Transform BuildCrystals(Transform cave, Collider ground, Collider roof, Random rng)
         {
             Transform crystals = Group("Crystals", cave);
@@ -401,7 +415,7 @@ namespace SignalLost.Editor
 
             void Add(Vector3 at, Vector3 normal, float size, float reach = 1f)
             {
-                string area = Vector3.Distance(at, Ground(T.MouthPath[1])) < NearMouth ? "Near The Mouth" : T.DeepAmount(at.x, at.z, out _) < 1f ? "Deep Level" : "Upper Level";
+                string area = Vector3.Distance(at, Ground(T.MouthPath[1])) < NearMouth ? "Near The Mouth" : T.UpperDistance(at.x, at.z) < 0f ? "Deep Level" : "Upper Level";
                 if (!groups.TryGetValue(area, out Transform group)) groups[area] = group = Group(area, crystals);
                 Batch(group, at, normal, ColourAt(new Vector2(at.x, at.z), rng), size, reach, rng);
                 spots.Add(at);
@@ -423,15 +437,14 @@ namespace SignalLost.Editor
                 var ray = new Ray(new Vector3(p.x, T.GroundAt(p.x, p.y) + Range(rng, 1.5f, 4f), p.y), new Vector3(side.x, -0.15f, side.y));
                 if (Cast(ray, 20f, out RaycastHit hit)) Add(hit.point, hit.normal, Range(rng, 0.9f, 1.3f));
             }
-            // Either side of each ramp, at the top and the bottom.
-            foreach (float ramp in T.RampAngles)
+            // Either side of each ramp, at the top and the foot.
+            foreach (T.Ramp ramp in T.Ramps)
             {
-                Vector2 dir = new Vector2(Mathf.Cos(ramp * Mathf.Deg2Rad) * T.DeepRadii.x, Mathf.Sin(ramp * Mathf.Deg2Rad) * T.DeepRadii.y);
-                Vector2 across = new Vector2(-dir.y, dir.x).normalized;
-                foreach (float e in new[] { 0.6f, 1.1f })
-                    foreach (float sideways in new[] { -18f, 18f })
+                Vector2 across = new Vector2(-ramp.Down.y, ramp.Down.x);
+                foreach (Vector2 end in new[] { ramp.Top, ramp.Foot })
+                    foreach (float sideways in new[] { -1f, 1f })
                     {
-                        Vector2 p = T.DeepCentre + dir * e + across * sideways;
+                        Vector2 p = end + across * sideways * (T.RampHalfWidth + 7f);
                         if (T.Roofed(p.x, p.y) && T.CavernDepth(p.x, p.y) > 4f) Add(Ground(p), Vector3.up, Range(rng, 1f, 1.6f));
                     }
             }
@@ -511,6 +524,47 @@ namespace SignalLost.Editor
         }
 
         // =====================================================================
+        // Cavendish's camp
+        // =====================================================================
+
+        /// <summary>
+        /// Cavendish's camp for this island: a prefab variant of the shared base camp (same fire, tent, logs, supplies and
+        /// trophy stands, so later changes to BaseCamp carry over) with an <see cref="IslandCamp"/>, so the crew can arrive
+        /// by boat and pitch it, like the desert camp. It has no island theme of its own yet.
+        /// </summary>
+        private static GameObject BuildCampPrefab()
+        {
+            var camp = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(BaseCampBuilder.PrefabPath));
+            camp.name = "Crystal Caves Camp";
+            Transform Child(string name) => camp.GetComponentsInChildren<Transform>(true).First(t => t.name == name);
+            Transform cavendishLog = Child("Cavendish's Log"), otherLog = Child("LogSeat");
+            Transform Mark(string name, Vector3 at)
+            {
+                var mark = new GameObject(name).transform;
+                mark.SetParent(camp.transform, false);
+                mark.localPosition = at;
+                Vector3 toFire = -at;
+                toFire.y = 0f;
+                mark.localRotation = toFire.sqrMagnitude > 0.01f ? Quaternion.LookRotation(toFire) : Quaternion.identity;
+                return mark;
+            }
+            // Where Cavendish and Eugene sit (the log tops, facing the fire) and stand while pitching camp, as at the desert camp.
+            var island = new SerializedObject(camp.AddComponent<IslandCamp>());
+            island.FindProperty("cavendishSeat").objectReferenceValue = Mark("Cavendish Seat", camp.transform.InverseTransformPoint(LogTop(cavendishLog)));
+            island.FindProperty("merchantSeat").objectReferenceValue = Mark("Merchant Seat", camp.transform.InverseTransformPoint(LogTop(otherLog)));
+            island.FindProperty("cavendishStand").objectReferenceValue = Mark("Cavendish Stand", new Vector3(1.9f, 0f, -1.3f));
+            island.FindProperty("merchantStand").objectReferenceValue = Mark("Merchant Stand", new Vector3(2.6f, 0f, -2.6f));
+            Transform[] order = { Child("Fire Pit"), cavendishLog, otherLog, Child("Tent"), Child("Cavendish's Supplies"), Child("Barrel"), Child("Trophy Stands"), Child("Campfire") };
+            SerializedProperty pieces = island.FindProperty("pieces");
+            pieces.arraySize = order.Length;
+            for (int i = 0; i < order.Length; i++) pieces.GetArrayElementAtIndex(i).objectReferenceValue = order[i];
+            island.ApplyModifiedPropertiesWithoutUndo();
+            GameObject saved = PrefabUtility.SaveAsPrefabAsset(camp, CampPrefabPath);
+            Object.DestroyImmediate(camp);
+            return saved;
+        }
+
+        // =====================================================================
         // Scene contents
         // =====================================================================
 
@@ -553,8 +607,8 @@ namespace SignalLost.Editor
             RenderSettings.fogEndDistance = 560f;
         }
 
-        // Baked in the editor from the ground, rocks, crystals and camp only, and saved beside the scene.
-        // NavMeshBaker rebuilds it at runtime if the data goes missing.
+        // Baked in the editor from the ground, rocks, crystals and camp only (not the sea floor or the mountain top),
+        // and saved beside the scene. NavMeshBaker rebuilds it at runtime if the data goes missing.
         private static void BakeNavigation()
         {
             var navigation = new GameObject("Navigation");
@@ -570,16 +624,18 @@ namespace SignalLost.Editor
             AssetDatabase.CreateAsset(surface.navMeshData, NavMeshPath);
         }
 
-        // The player arrives by boat: they start (and respawn) on the dock's top deck, looking toward the cave mouth,
-        // with all their gear. GameSystems brings up the HUD, menus and pause, as in every level.
+        // Loaded directly (not by boat), the player starts at the foot of the cove by the dock, looking up it toward
+        // the cave mouth, with all their gear. Arriving by boat, the voyage puts them on the dock instead.
+        // GameSystems brings up the HUD, menus and pause; the sea adds the deep-water rescue to the player.
         private static void BuildGameplay()
         {
             var gameplay = new GameObject("Gameplay").transform;
-            Vector3 spawnAt = new Vector3(T.DockRoot.x, DockBoatBuilder.DeckHeight, T.DockRoot.y - 2.5f);
-            Vector2 toMouth = T.MouthPath[1] - new Vector2(spawnAt.x, spawnAt.z);
+            Vector2 foot = T.CoveBottom - T.DockSeaward * 3f;
+            Vector3 spawnAt = Ground(foot) + Vector3.up * 0.1f;
+            Vector2 toMouth = T.MouthPath[1] - foot;
             Quaternion facing = Quaternion.LookRotation(new Vector3(toMouth.x, 0f, toMouth.y));
             GameObject spawn = Place(CorePrefabBuilder.SpawnPath, gameplay, spawnAt, facing, Vector3.one);
-            spawn.name = "Spawn At Dock";
+            spawn.name = "Spawn At The Cove";
 
             GameObject player = Place(CorePrefabBuilder.PlayerPath, null, spawnAt + Vector3.up * 0.05f, facing, Vector3.one);
             player.GetComponentInChildren<Camera>(true).clearFlags = CameraClearFlags.Skybox; // the shared player clears to a flat colour
@@ -594,26 +650,31 @@ namespace SignalLost.Editor
             scanner.FindProperty("levelRangeOverride").floatValue = 200f;
             scanner.ApplyModifiedPropertiesWithoutUndo();
             Place(CorePrefabBuilder.SystemsPath, null, Vector3.zero, Quaternion.identity, Vector3.one);
-
-            // Falling off a sea cliff or the dock lands you back on the dock.
-            new GameObject("Fall Respawn", typeof(FallRespawn)).transform.SetParent(gameplay, false);
         }
 
-        // Cavendish sits on his log and Eugene waits by the fire with his shop open, as at the end of the tutorial.
-        // Neither has quests here yet; Eugene's ten cousins wait despawned for the angry-merchant ambush.
-        private static void BuildResidents(Transform camp)
+        // Cavendish sits on his log and Eugene on the other, a friendly trader, as at the desert camp. Cavendish has small
+        // talk only; no quests here yet. Without a StageTheme the crew wears its Crash Meadow look.
+        private static void BuildResidents(IslandCamp island)
         {
-            var residents = new GameObject("Camp Residents").transform;
-            Vector3 fire = camp.position;
+            var residents = new GameObject("Residents").transform;
+            residents.SetParent(island.transform, false);
 
-            GameObject cavendish = Place(CavendishPath, residents, fire, Quaternion.identity, Vector3.one);
+            var cavendish = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(CavendishPath), residents);
             cavendish.name = "Cavendish";
-            Transform log = camp.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "Cavendish's Log");
-            Vector3 seat = log != null ? LogTop(log) : Ground(T.Camp + new Vector2(3.4f, 0.5f));
-            cavendish.transform.SetPositionAndRotation(seat, Facing(seat, fire));
-            Transform visual = cavendish.transform.Find("Visual");
-            if (log != null && visual != null) visual.localPosition += Vector3.down * SitDrop;
-            cavendish.AddComponent<NpcActor>();
+            IslandCamp.SitCavendish(cavendish.transform, island.CavendishSeat);
+            var actor = new SerializedObject(cavendish.AddComponent<NpcActor>());
+            actor.FindProperty("role").enumValueIndex = (int)NpcActor.Role.Cavendish;
+            SerializedProperty talk = actor.FindProperty("smallTalk");
+            string[] lines =
+            {
+                "That cave goes a long way down. Mind the drop past the front ledge.",
+                "Glowing rocks. Lovely. Don't lick them.",
+                "The Flight Control Module is in there somewhere. Your scanner will find it.",
+                "Sea air. Much better than sand. Much, much better than sand."
+            };
+            talk.arraySize = lines.Length;
+            for (int i = 0; i < lines.Length; i++) talk.GetArrayElementAtIndex(i).stringValue = lines[i];
+            actor.ApplyModifiedPropertiesWithoutUndo();
             var voice = new GameObject("Cavendish Dialogue");
             voice.transform.SetParent(cavendish.transform, false);
             voice.transform.localPosition = new Vector3(0f, 2.45f, 0f);
@@ -621,37 +682,31 @@ namespace SignalLost.Editor
             dialogue.FindProperty("speaker").stringValue = "Cavendish";
             dialogue.ApplyModifiedPropertiesWithoutUndo();
 
-            Vector3 stand = Ground(T.Camp + new Vector2(1.8f, -3f));
-            var spot = new GameObject("Merchant Spot At Camp").transform;
-            spot.SetParent(residents, false);
-            spot.SetPositionAndRotation(stand, Facing(stand, fire));
-            var perch = new GameObject("Merchant Seat").transform;
-            perch.SetParent(residents, false);
-            Transform otherLog = camp.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "LogSeat");
-            Vector3 top = otherLog != null ? LogTop(otherLog) : stand;
-            perch.SetPositionAndRotation(top, Facing(top, fire));
-            GameObject merchant = Place(MerchantPath, residents, stand, spot.rotation, Vector3.one);
-            merchant.name = "Eugene"; // also its name in the HUD target readout
-            var data = new SerializedObject(merchant.GetComponent<MerchantCrab>());
-            data.FindProperty("returnPoint").objectReferenceValue = spot;
-            data.FindProperty("seat").objectReferenceValue = perch;
-            data.FindProperty("startFriendly").boolValue = true;
-            CoreSceneSetup.AddCousins(merchant.GetComponent<MerchantCrab>(), data.FindProperty("cousins"));
-            data.ApplyModifiedPropertiesWithoutUndo();
+            var eugene = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(MerchantPath), residents);
+            eugene.name = "Eugene"; // also its name in the HUD target readout
+            eugene.transform.SetPositionAndRotation(island.MerchantSeat.position, island.MerchantSeat.rotation);
+            var merchant = new SerializedObject(eugene.GetComponent<MerchantCrab>());
+            merchant.FindProperty("startFriendly").boolValue = true;
+            merchant.FindProperty("spawnAfterQuest").boolValue = false;
+            merchant.FindProperty("seat").objectReferenceValue = island.MerchantSeat;
+            merchant.FindProperty("returnPoint").objectReferenceValue = island.MerchantStand;
+            merchant.FindProperty("cousins").arraySize = 0;
+            merchant.ApplyModifiedPropertiesWithoutUndo();
+
+            var links = new SerializedObject(island);
+            links.FindProperty("cavendish").objectReferenceValue = cavendish.GetComponent<NpcActor>();
+            links.FindProperty("merchant").objectReferenceValue = eugene.GetComponent<NpcActor>();
+            links.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // Empty fight zones from the design map, each a CombatZone (enemies placed later attack inside its radius and
-        // its rings show in the Scene view), and where boat travel will go.
+        // its rings show in the Scene view).
         private static void BuildMarkers()
         {
             var markers = new GameObject("Level Markers (placeholders)").transform;
             Zone(markers, "Beetles Fight Zone", T.BeetleZone, T.ZoneRadius);
             Zone(markers, "Mini Boss 2 Fight Zone", T.MiniBossZone, T.ZoneRadius);
             Zone(markers, "Final Boss Fight Zone", T.FinalBossZone, T.FinalBossRadii.y * 1.4f);
-            Transform boat = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include).First(t => t.name == "Boat");
-            var travel = new GameObject("Boat Travel (level-to-level travel is not built yet)").transform;
-            travel.SetParent(markers, false);
-            travel.position = boat.position;
         }
 
         private static void Zone(Transform parent, string name, Vector2 centre, float radius)
@@ -669,18 +724,21 @@ namespace SignalLost.Editor
         public static void Validate()
         {
             EditorSceneManager.OpenScene(ScenePath);
+            T.Generate(); // the ground samples the reachability checks use
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<PlayerGear>() == 1, "Expected one shared Player.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<GameSystems>() == 1, "Expected one GameSystems (HUD, menus, pause).");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<PlayerSpawnPoint>() == 1, "Expected one PlayerSpawnPoint.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<Camera>() == 1 && EnemyTestBuilder.Count<AudioListener>() == 1, "Expected one camera and listener.");
-            EnemyTestBuilder.Require(EnemyTestBuilder.Count<FallRespawn>() == 1, "Expected one FallRespawn.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<Ocean>() == 1, "Expected the sea.");
+            IslandDock dock = EnemyTestBuilder.All<IslandDock>().SingleOrDefault();
+            EnemyTestBuilder.Require(dock != null && dock.DockRole == IslandDock.Role.Arrival && dock.Boat != null, "Expected one arrival dock with its boat.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<CaveLighting>() == 1, "Expected one CaveLighting.");
-            EnemyTestBuilder.Require(EnemyTestBuilder.Count<TrophyStand>() == 3, "Expected the base camp's three trophy stands.");
-            EnemyTestBuilder.Require(EnemyTestBuilder.All<NpcActor>().Any(a => a.Kind == NpcActor.Role.Cavendish), "Cavendish is missing.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<TrophyStand>() == 3, "Expected the camp's three trophy stands.");
+            IslandCamp camp = EnemyTestBuilder.All<IslandCamp>().SingleOrDefault();
+            EnemyTestBuilder.Require(camp != null && camp.Cavendish != null && camp.Merchant != null && camp.CavendishSeat != null && camp.MerchantSeat != null,
+                "Expected Cavendish's camp with Cavendish, Eugene and their seats.");
             MerchantCrab eugene = EnemyTestBuilder.All<MerchantCrab>().SingleOrDefault();
             EnemyTestBuilder.Require(eugene != null && new SerializedObject(eugene).FindProperty("startFriendly").boolValue, "Expected one friendly Eugene.");
-            foreach (string piece in new[] { "Dock", "Boat", "Campsite" })
-                EnemyTestBuilder.Require(Object.FindObjectsByType<Transform>(FindObjectsInactive.Include).Any(t => t.name == piece), piece + " is missing.");
             NavMeshSurface surface = EnemyTestBuilder.All<NavMeshSurface>().Single();
             EnemyTestBuilder.Require(surface.navMeshData != null, "The NavMesh is not baked.");
 
@@ -690,22 +748,21 @@ namespace SignalLost.Editor
             EnemyTestBuilder.Require(lights >= 100 && lights <= 220, $"{lights} crystal lights; expected 100-220 (enough to see by, within Forward+'s light budget).");
             EnemyTestBuilder.Require(batches.Select(b => b.CrystalMaterial).Distinct().Count() == 6, "Expected all six crystal colours.");
 
-            // Everything that matters is reachable on foot from the dock.
+            // Everything that matters is reachable on foot from the spawn, including the dock's end.
             Vector3 start = Object.FindAnyObjectByType<PlayerSpawnPoint>().transform.position;
-            var goals = new List<(string name, Vector2 at)>
+            var goals = new List<(string name, Vector3 at)>
             {
-                ("the camp", T.Camp + new Vector2(0f, -9f)), ("inside the cave mouth", T.PointOnPath(0.85f)),
-                ("the beetles' zone", T.BeetleZone), ("mini boss 2's zone", T.MiniBossZone), ("the final boss's zone", T.FinalBossZone)
+                ("the end of the dock", dock.Landing.position), ("the camp", Ground(T.Camp + new Vector2(0f, -9f))), ("inside the cave mouth", Ground(T.PointOnPath(0.85f))),
+                ("the beetles' zone", Ground(T.BeetleZone)), ("mini boss 2's zone", Ground(T.MiniBossZone)), ("the final boss's zone", Ground(T.FinalBossZone))
             };
-            foreach (float ramp in T.RampAngles) // the foot of every ramp, on the deep level
-                goals.Add(($"the foot of the {ramp} degree ramp", T.DeepCentre + new Vector2(Mathf.Cos(ramp * Mathf.Deg2Rad) * T.DeepRadii.x, Mathf.Sin(ramp * Mathf.Deg2Rad) * T.DeepRadii.y) * 0.55f));
+            foreach (T.Ramp ramp in T.Ramps) goals.Add(($"the foot of the ramp at ({ramp.Edge.x:0}, {ramp.Edge.y:0})", Ground(ramp.Foot)));
             EnemyTestBuilder.Require(NavMesh.SamplePosition(start, out NavMeshHit from, 3f, NavMesh.AllAreas), "The spawn is off the NavMesh.");
-            foreach ((string name, Vector2 at) in goals)
+            foreach ((string name, Vector3 at) in goals)
             {
-                EnemyTestBuilder.Require(NavMesh.SamplePosition(Ground(at), out NavMeshHit to, 6f, NavMesh.AllAreas), name + " is off the NavMesh.");
+                EnemyTestBuilder.Require(NavMesh.SamplePosition(at, out NavMeshHit to, 6f, NavMesh.AllAreas), name + " is off the NavMesh.");
                 var path = new NavMeshPath();
                 EnemyTestBuilder.Require(NavMesh.CalculatePath(from.position, to.position, NavMesh.AllAreas, path) && path.status == NavMeshPathStatus.PathComplete,
-                    "No walkable path from the dock to " + name + ".");
+                    "No walkable path from the spawn to " + name + ".");
             }
             foreach (GameObject root in SceneManager.GetActiveScene().GetRootGameObjects())
                 foreach (Transform item in root.GetComponentsInChildren<Transform>(true))
@@ -746,8 +803,6 @@ namespace SignalLost.Editor
         }
 
         private static Quaternion RandomRotation(Random rng) => Quaternion.Euler(Range(rng, 0f, 360f), Range(rng, 0f, 360f), Range(rng, 0f, 360f));
-
-        private static Quaternion Facing(Vector3 from, Vector3 to) => Quaternion.LookRotation(new Vector3(to.x - from.x, 0f, to.z - from.z));
 
         private static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
         {
@@ -808,30 +863,6 @@ namespace SignalLost.Editor
                 _ => new Color(0.26f, 0.27f, 0.32f)
             };
             return CrystalAssetBuilder.SimpleMaterial("Ground" + surface, color, 0.06f);
-        }
-
-        // The tutorial pond's stylized water, retuned for open sea: deeper blue, turquoise shallows, bigger slower swells.
-        private static Material OceanMaterial()
-        {
-            Shader shader = Shader.Find("Signal Lost/Stylized Water");
-            if (shader == null) throw new InvalidOperationException("Signal Lost/Stylized Water shader not found.");
-            string path = CrystalAssetBuilder.MaterialFolder + "/OceanWater.mat";
-            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material == null)
-            {
-                material = new Material(shader);
-                AssetDatabase.CreateAsset(material, path);
-            }
-            material.SetColor("_DeepColor", new Color(0.03f, 0.28f, 0.42f, 0.95f));
-            material.SetColor("_ShallowColor", new Color(0.1f, 0.58f, 0.6f, 0.85f));
-            material.SetColor("_HorizonColor", new Color(0.72f, 0.84f, 0.93f, 1f));
-            material.SetFloat("_FoamWidth", 0.22f);
-            material.SetFloat("_WaveHeight", 0.22f);
-            material.SetFloat("_WaveScale", 0.06f);
-            material.SetFloat("_WaveSpeed", 0.6f);
-            material.SetFloat("_Sparkle", 1f);
-            EditorUtility.SetDirty(material);
-            return material;
         }
 
         private static Mesh SaveMesh(Mesh mesh)

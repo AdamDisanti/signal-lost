@@ -49,7 +49,7 @@ namespace SignalLost.Editor
         }
 
         // The merchant's ten cousins (CrabCousinBuilder), placed beside it; they only appear when it calls them.
-        internal static void AddCousins(MerchantCrab merchant, SerializedProperty list)
+        private static void AddCousins(MerchantCrab merchant, SerializedProperty list)
         {
             if (list.arraySize > 0) return;
             CrabCousinBuilder.Build();

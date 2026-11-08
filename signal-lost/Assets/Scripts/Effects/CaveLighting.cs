@@ -4,9 +4,9 @@ using UnityEngine;
 namespace SignalLost.Effects
 {
     /// <summary>
-    /// Makes a cave dark inside a sunlit level: while the camera is under the cave's roof collider, the sun,
+    /// Gives a cave its own light inside a sunlit level: while the camera is under the cave's roof collider, the sun,
     /// sky light, reflections and fog fade to the cave settings over <see cref="blendDistance"/> metres from the
-    /// entrance, so the glowing crystals become the only light. The scene's own lighting settings are the
+    /// entrance, to a bright, even cave fill that the glowing crystals tint. The scene's own lighting settings are the
     /// outdoor look. Crystal lights deep inside (beyond <see cref="alwaysLitRadius"/> of the entrance) are only
     /// switched on while the player is in the cave, so they never shine through the mountain onto the outside.
     /// </summary>
@@ -24,13 +24,13 @@ namespace SignalLost.Effects
         [SerializeField, Min(0f)] private float alwaysLitRadius = 70f;
 
         [Header("Inside the cave")]
-        [Tooltip("A faint fill so rock shapes read between the crystals' pools of light.")]
-        [SerializeField] private Color skyLight = new Color(0.09f, 0.1f, 0.16f);
-        [SerializeField] private Color equatorLight = new Color(0.06f, 0.07f, 0.12f);
-        [SerializeField] private Color groundLight = new Color(0.035f, 0.035f, 0.055f);
-        [SerializeField] private Color fogColor = new Color(0.03f, 0.04f, 0.07f);
-        [SerializeField, Min(0f)] private float fogStart = 25f;
-        [SerializeField, Min(1f)] private float fogEnd = 260f;
+        [Tooltip("The cave's fill light, bright enough that every part of the cave is easy to see and navigate; the crystals add colour on top.")]
+        [SerializeField] private Color skyLight = new Color(0.72f, 0.76f, 0.92f);     // lights floors
+        [SerializeField] private Color equatorLight = new Color(0.56f, 0.6f, 0.74f);  // walls
+        [SerializeField] private Color groundLight = new Color(0.42f, 0.44f, 0.55f);  // ceilings
+        [SerializeField] private Color fogColor = new Color(0.15f, 0.17f, 0.24f);
+        [SerializeField, Min(0f)] private float fogStart = 60f;
+        [SerializeField, Min(1f)] private float fogEnd = 420f;
 
         private Color outSky, outEquator, outGround, outFog;
         private float outFogStart, outFogEnd, outReflections, outSun;
