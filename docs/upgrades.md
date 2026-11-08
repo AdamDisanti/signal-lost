@@ -46,7 +46,7 @@ The shop shows only the current region's upgrades (`MerchantMenuUi.Region`); sup
 - **Scrap amounts everywhere** (shop, HUD toast, trades) are written as a number and the scrap's icon, using the TextMeshPro sprite asset `Resources/SignalLost/ScrapIcons` (built with the scrap assets; `ScrapInfo.Inline`).
 - **Pockets** (Tab): four tabs, 1-4.
   - **Materials:** scrap with icons and counts; key items.
-  - **Gear:** a blocky 3D mechanic (Minecraft-inspired, drag to turn) holding the laser and scanner with the flask on the belt, wearing every upgrade; close-ups of each tool with what is fitted; supplies with Use buttons.
+  - **Gear:** the 3D mechanic (short and round with pudgy hands, built by `MechanicModel`; drag to turn) holding the laser and scanner with the flask on the belt, wearing every upgrade; close-ups of each tool with what is fitted; supplies with Use buttons.
   - **Upgrades:** only the upgrades you have installed, grouped by type (Mining Laser, Scanner, Flask, Player).
   - **Stats:** health, healing, drinks, scanner range, slide, combo and bolt numbers.
 

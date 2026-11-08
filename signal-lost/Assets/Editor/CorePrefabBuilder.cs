@@ -80,11 +80,14 @@ namespace SignalLost.Editor
                 laserData.FindProperty("beam").objectReferenceValue = beam;
                 laserData.FindProperty("heldModel").objectReferenceValue = Load<GameObject>(LaserModel);
                 Array(laserData, "comboDamage", 20f, 20f, 40f);
-                Array(laserData, "comboDuration", 0.35f, 0.35f, 0.6f);
+                Array(laserData, "comboDuration", 0.35f, 0.35f, 0.85f); // the slam finisher is long and heavy (11-07)
                 laserData.FindProperty("meleeRange").floatValue = 2.5f;
                 laserData.FindProperty("comboCooldown").floatValue = 2f;
                 laserData.FindProperty("finisherStun").floatValue = 1f;
                 laserData.FindProperty("energyColor").colorValue = new Color(0.4f, 0.9f, 1f);
+                // Carried 6 cm higher, 16 cm further out and 1 cm further in than the component default (11-07), so the
+                // arm holding the pistol grip shows above the status bar.
+                laserData.FindProperty("gripPosition").vector3Value = new Vector3(-0.03f, -0.02f, -0.06f);
                 laserData.FindProperty("swayStrength").floatValue = 0f;
                 laserData.FindProperty("bobStrength").floatValue = 0f;
                 laserData.FindProperty("minShotDamage").floatValue = 10f;
