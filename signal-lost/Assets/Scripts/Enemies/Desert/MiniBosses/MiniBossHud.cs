@@ -111,7 +111,8 @@ namespace SignalLost.Enemies.Desert
                 Color fill = phase == 3 ? new Color(0.9f, 0.12f, 0.12f) : phase == 2 ? new Color(1f, 0.35f, 0.15f) : new Color(0.9f, 0.6f, 0.15f);
                 if (boss.InPhaseShift && Mathf.Sin(Time.time * 30f) > 0f) fill = Color.white;
                 Fill(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(boss.HealthFraction), bar.height), fill);
-                Fill(new Rect(bar.x + bar.width * boss.PhaseTwoAt - 1f, bar.y - 3f, 2f, bar.height + 6f), new Color(1f, 1f, 1f, 0.8f));
+                if (boss.HasPhaseTwo)
+                    Fill(new Rect(bar.x + bar.width * boss.PhaseTwoAt - 1f, bar.y - 3f, 2f, bar.height + 6f), new Color(1f, 1f, 1f, 0.8f));
                 if (boss.PhaseThreeAt > 0f)
                     Fill(new Rect(bar.x + bar.width * boss.PhaseThreeAt - 1f, bar.y - 3f, 2f, bar.height + 6f), new Color(1f, 1f, 1f, 0.8f));
                 y0 += 52f;

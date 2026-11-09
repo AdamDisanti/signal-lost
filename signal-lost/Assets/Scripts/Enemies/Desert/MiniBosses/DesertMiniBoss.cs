@@ -71,6 +71,10 @@ namespace SignalLost.Enemies.Desert
         public string DisplayName => displayName;
         public string PartName => partName;
         public float PhaseTwoAt => phaseTwoAt;
+        /// <summary>False for a mini-boss without a phase 2 (the cave beetles get angrier as a band instead).</summary>
+        public virtual bool HasPhaseTwo => true;
+        /// <summary>False to skip the top-of-screen boss bar; its health then shows only in the HUD's crosshair target readout, like the crab cousins (the four cave beetles).</summary>
+        public virtual bool ShowsBossBar => true;
         /// <summary>Health fraction where a third phase starts, or 0 when the boss has only two (the boss bar's second notch).</summary>
         public virtual float PhaseThreeAt => 0f;
         /// <summary>The phase the boss bar shows: <see cref="Phase"/>, or 3 for bosses with a third phase.</summary>
@@ -174,7 +178,7 @@ namespace SignalLost.Enemies.Desert
                 if (IsDead || Health.IsDead) return;
             }
             if (!Engaged) Engage();
-            if (Phase == 1 && Health.Normalized <= phaseTwoAt) BeginPhaseTwo();
+            if (HasPhaseTwo && Phase == 1 && Health.Normalized <= phaseTwoAt) BeginPhaseTwo();
             OnBossHit(amount, source, away);
         }
 
@@ -186,13 +190,14 @@ namespace SignalLost.Enemies.Desert
             DamageTakenMultiplier = 1f;
 
             OnBossDeath();
+            bool dropsPart = shipPart != null;
             if (shipPart != null)
             {
                 ShipPartDrop.Create(shipPart, partName, transform.position, PartStage);
                 shipPart = null;
             }
             DefeatedCount++;
-            MiniBossHud.Message($"{displayName.ToUpperInvariant()} DEFEATED!  The {partName.ToLowerInvariant()} dropped.", new Color(1f, 0.85f, 0.35f));
+            MiniBossHud.Message(dropsPart ? $"{displayName.ToUpperInvariant()} DEFEATED!  The {partName.ToLowerInvariant()} dropped." : $"{displayName.ToUpperInvariant()} DEFEATED!", new Color(1f, 0.85f, 0.35f));
             Defeated?.Invoke(this);
         }
 
@@ -341,13 +346,13 @@ namespace SignalLost.Enemies.Desert
             return TargetAlive && PlayerDistanceFromHome() <= arenaRadius;
         }
 
-        private void Engage()
+        protected void Engage()
         {
             if (Engaged || IsDead) return;
             Engaged = true;
             LastSeen = Time.time;
             if (fodderSpawner != null) fodderSpawner.enabled = fodderWhileEngaged;
-            MiniBossHud.Register(this);
+            if (ShowsBossBar) MiniBossHud.Register(this);
             OnEngaged();
         }
 

@@ -10,6 +10,7 @@
 - [Crystal Caves level](crystal-caves.md): the third island's world (a small coastal ledge with Cavendish's camp and the arrival dock, and a two-level crystal-lit cave), how to build and extend it, and what was verified.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
 - [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
+- [The Beetles](cave-beetles.md): the Crystal Caves band of four beetle mini-bosses, their box-in charge and jump dodge, lines, test scene and checklist.
 - [Desert stage boss](desert-boss.md): the Core Worm: exit ambush cutscene, four phases that change the arena, Engine Core drop and next-stage unlock.
 - [Chief Toad](chief-toad.md): the pond boss for the tutorial meadow (in its own test arena for now): water beam, water blades, jump slam and splash wave, stunning scream, three phases, cooling-system drop.
 - [Fire effect](fire-effect.md): the reusable particle fire (and sand/smoke/spark bursts) for stage design and gameplay.
