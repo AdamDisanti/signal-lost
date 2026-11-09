@@ -20,6 +20,8 @@ namespace SignalLost.Enemies
         [SerializeField] private EnemySignalSource signalSource;
         [SerializeField] private Collider[] bodyColliders = new Collider[0];
 
+        [Tooltip("Rise when the player comes within Trigger Radius. Untick for enemies that only rise when something calls Emerge() (the crystal chameleon, revealed by the scanner).")]
+        [SerializeField] private bool emergeOnProximity = true;
         [SerializeField, Min(0f)] private float triggerRadius = 3f;
         [SerializeField, Min(0f)] private float emergenceDuration = 0.8f;
         [SerializeField, Min(0f)] private float burrowDepth = 1.25f;
@@ -112,19 +114,30 @@ namespace SignalLost.Enemies
             Vector3 offset = player.position - transform.position;
             offset.y = 0f;
 
-            if(offset.sqrMagnitude <= triggerRadius * triggerRadius)
+            if(emergeOnProximity && offset.sqrMagnitude <= triggerRadius * triggerRadius)
             {
-                phase = Phase.Emerging;
-                phaseTime = 0f;
-                
-                if(burrowReceiver != null)
-                {
-                    emergenceStartOffset = burrowReceiver.BurrowOffset;
-                }
-                else
-                {
-                    emergenceStartOffset = -burrowDepth;
-                }
+                Emerge();
+            }
+        }
+
+        /// <summary>Starts rising now, whatever the player's distance. Does nothing unless it is still buried.</summary>
+        public void Emerge()
+        {
+            if(!enabled || phase != Phase.Buried)
+            {
+                return;
+            }
+
+            phase = Phase.Emerging;
+            phaseTime = 0f;
+
+            if(burrowReceiver != null)
+            {
+                emergenceStartOffset = burrowReceiver.BurrowOffset;
+            }
+            else
+            {
+                emergenceStartOffset = -burrowDepth;
             }
         }
 

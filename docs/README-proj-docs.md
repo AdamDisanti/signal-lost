@@ -8,6 +8,7 @@
 - [Islands, docks and the sea](islands.md): each stage is an island; beaches, the no-swimming rescue, docks, the boat voyage between stages, and the water shader.
 - [Desert / Dunes level](desert-dunes.md): first biome prototype, layout, how to build it, and test checklist.
 - [Crystal Caves level](crystal-caves.md): the third island's world (a small coastal ledge with Cavendish's camp and the arrival dock, and a two-level crystal-lit cave), how to build and extend it, and what was verified.
+- [Crystal Chameleon](crystal-chameleon.md): the Crystal Caves fodder that hides as a crystal batch until the scanner disrupts it, its tongue attack, test scene and the scanner hook.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
 - [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
 - [Desert stage boss](desert-boss.md): the Core Worm: exit ambush cutscene, four phases that change the arena, Engine Core drop and next-stage unlock.
