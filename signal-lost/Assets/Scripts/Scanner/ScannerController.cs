@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using SignalLost.Combat;
 
 namespace SignalLost.Scanner
 {
@@ -58,6 +59,11 @@ namespace SignalLost.Scanner
             UpdateSignal();
         }
 
+        private static bool IsDefeated(EnemySignalSource enemy)
+        {
+            Health health = enemy.GetComponentInParent<Health>();
+            return health != null && health.IsDead;
+        }
         private void ScanForNearestTarget()
         {
             // Quest objectives outrank creatures and are tracked at any distance (meeting notes 2026-10-20).
@@ -74,7 +80,17 @@ namespace SignalLost.Scanner
 
             foreach (EnemySignalSource candidate in FindObjectsByType<EnemySignalSource>())
             {
-                if (!candidate.IsActive || candidate.IsBuried || candidate.SignalType != SignalType.AboveGround)
+                if (!candidate.IsActive || IsDefeated(candidate))
+                {
+                    continue;
+                }
+
+                if(candidate.IsBuried && candidate.SignalType != SignalType.UnderGround)
+                {
+                    continue;
+                }
+
+                if(!candidate.IsBuried && candidate.SignalType != SignalType.AboveGround && candidate.SignalType != SignalType.UnderGround)
                 {
                     continue;
                 }
@@ -93,6 +109,12 @@ namespace SignalLost.Scanner
 
         private void UpdateSignal()
         {
+            EnemySignalSource currentEnemy = currentTarget as EnemySignalSource;
+            if (currentEnemy != null && IsDefeated(currentEnemy))
+            {
+                ScanForNearestTarget();
+            }
+
             if (currentTarget == null || !currentTarget.IsActive)
             {
                 SetCurrentTarget(null);

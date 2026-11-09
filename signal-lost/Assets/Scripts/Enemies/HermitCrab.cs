@@ -103,6 +103,7 @@ namespace SignalLost.Enemies
         private NavMeshAgent agent;
         private Health health;
         private HermitCrabRig rig;
+        private BurrowEmerge burrow; // added for the buried enemies feature
         private Collider[] colliders;
         private Health targetHealth;
         private CharacterController targetBody;
@@ -140,6 +141,7 @@ namespace SignalLost.Enemies
             agent = GetComponent<NavMeshAgent>();
             health = GetComponent<Health>();
             rig = GetComponent<HermitCrabRig>();
+            burrow = GetComponent<BurrowEmerge>(); // added for the buried enemies feature
             // Only the crab's own collider on this object. Shell colliders are removed when the shell is put on,
             // so collecting children here would keep references to destroyed colliders.
             colliders = GetComponents<Collider>();
@@ -162,17 +164,7 @@ namespace SignalLost.Enemies
         // Start, not Awake: the NavMesh is built at runtime in Awake by NavMeshBaker, so it exists by now.
         private void Start()
         {
-            if (target == null)
-            {
-                var player = FindAnyObjectByType<FirstPersonController>();
-                if (player != null) target = player.transform;
-            }
-            if (target != null)
-            {
-                targetHealth = target.GetComponentInParent<Health>();
-                targetBody = target.GetComponentInParent<CharacterController>();
-                targetLaser = target.GetComponentInParent<MiningLaser>();
-            }
+            AcquireTarget();
 
             agent.enabled = true;
             // Out of structures and rocks, off unreachable ledges; look further afield before giving up.
@@ -195,6 +187,32 @@ namespace SignalLost.Enemies
         private void Update()
         {
             if (!started) return;
+
+            // added for buried enemies feature
+            if(burrow != null && burrow.IsBuried)
+            {
+                target = null;
+                targetHealth = null;
+                targetBody = null;
+                targetLaser = null;
+
+                if (agent.isOnNavMesh)
+                {
+                    agent.isStopped = true;
+                    agent.ResetPath();
+                }
+
+                rig.MoveSpeed = 0f;
+                rig.Sideways = false;
+                return;
+            }
+
+            if(burrow != null && burrow.CanTargetPlayer && target == null)
+            {
+                AcquireTarget();
+            }
+            // done with additions
+
             float dt = Time.deltaTime;
             stateTime += dt;
             UpdateShove(dt);
@@ -327,7 +345,8 @@ namespace SignalLost.Enemies
                 return;
             }
 
-            if (distance <= attackRange && Time.time >= nextAttack && Time.time - lastSeen < 0.3f)
+            // changed for buried enemy feature
+            if (distance <= attackRange && Time.time >= nextAttack && Time.time - lastSeen < 0.3f && (burrow == null || burrow.CanAttack))
                 BeginAttack();
         }
 
@@ -398,6 +417,12 @@ namespace SignalLost.Enemies
 
         private void BeginAttack()
         {
+            // added for buried enemy feature
+            if(burrow != null && !burrow.CanAttack)
+            {
+                return;
+            }
+
             Enter(State.Attack);
             phase = AttackPhase.Windup;
             phaseTime = 0f;
@@ -457,6 +482,12 @@ namespace SignalLost.Enemies
         /// <summary>Lands the slam if the player is still in reach and in front. Returns false on a miss.</summary>
         private bool TryHitTarget()
         {
+            // added for buried enemy feature
+            if(!TargetAlive || (burrow != null && !burrow.CanAttack))
+            {
+                return false;
+            }
+
             if (!TargetAlive) return false;
             Vector3 toTarget = target.position - transform.position;
             toTarget.y = 0f;
@@ -596,6 +627,21 @@ namespace SignalLost.Enemies
         // ---------- Helpers ----------
 
         private bool TargetAlive => target != null && (targetHealth == null || !targetHealth.IsDead);
+
+        private void AcquireTarget()
+        {
+            if (target == null)
+            {
+                var player = FindAnyObjectByType<FirstPersonController>();
+                if (player != null) target = player.transform;
+            }
+            if (target != null)
+            {
+                targetHealth = target.GetComponentInParent<Health>();
+                targetBody = target.GetComponentInParent<CharacterController>();
+                targetLaser = target.GetComponentInParent<MiningLaser>();
+            }
+        }
 
         private float FlatDistance(Vector3 point)
         {
