@@ -36,6 +36,10 @@ Tier I keeps the old Id (`slick_kneepads`); later tiers are `slick_kneepads_2`, 
 
 Each upgrade has a generated part (`Prefabs/Items/Upgrades/`, `Editor/UpgradeAssetBuilder.cs`) that the pockets menu's mechanic wears: a copper coil, fins and a striking plate on the laser, an antenna on the scanner, iron bands on the flask, padding and kneepads on the suit.
 
+## Mudlands upgrades
+
+The Mudlands adds a **Car** slot (a Car filter in Bucket & Barter, a Car group in the pockets) for Drunk Driving, seven car upgrades and three general ones; three need a mini-boss key item (Kart Wheel, Mudstone Bead, Witch Ember). The table is in [The Mudlands](mudlands.md#7-upgrades). They have no worn parts on the Gear-tab figure yet.
+
 ## Adding upgrades (desert and later)
 
 1. Add a tiered line with `Line(...)` in `UpgradeCatalog.Build` (`Scripts/Inventory/Upgrades.cs`): a new, never-reused Id, the effect text and field, and one (value, cost) pair per tier, each dearer than the last. A single-tier line is fine. For a one-off item, append an `Upgrade` instead, with a `Region`, a `Cost` and its effect fields. Set `KeyItem` for a mini-boss recipe; `PlayerInventory.AddKeyItem` gives the item.

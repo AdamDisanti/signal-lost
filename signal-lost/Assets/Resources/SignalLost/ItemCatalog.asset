@@ -40,3 +40,33 @@ MonoBehaviour:
   - id: mystery_snack
     model: {fileID: 4668257648977790383, guid: 6ef22e6580dc2405c9a64c479e7631db, type: 3}
     icon: {fileID: -7722516526374950911, guid: ee1496a02fb9e4bc783a954066a520fe, type: 3}
+  - id: swamp_waders
+    model: {fileID: 4008851169789750840, guid: 7e7aa21b7c42e704a88cea6ba1a06c40, type: 3}
+    icon: {fileID: 8608687549007118492, guid: d437c9daf151de24cab25cfccbe04181, type: 3}
+  - id: bootleg_capacitor
+    model: {fileID: 7428062373450879011, guid: 9ab415b4be4d04d439d633f37ebea3d8, type: 3}
+    icon: {fileID: -1539316095180706811, guid: d536cb6b3c2758f45965f8868af3a7e4, type: 3}
+  - id: moonshine_distiller
+    model: {fileID: 756640939055587013, guid: 584361cee8af6cf4f9cb999d52ec4223, type: 3}
+    icon: {fileID: -8228188560048689002, guid: f9475e19262f46e488f9047adaaece39, type: 3}
+  - id: reinforced_bumper
+    model: {fileID: 7549302346223920117, guid: 4bc0bc3014fe28e4b86b70d309744e25, type: 3}
+    icon: {fileID: -830437904367652273, guid: 6bcde1f0947b70d47b7baf4a1830b04e, type: 3}
+  - id: bigger_boom
+    model: {fileID: 8590710375176045063, guid: a0c69c80ff957fd449a40cf50f7546b9, type: 3}
+    icon: {fileID: -6403604904509149180, guid: 79926d92cb5b2e948bbf7656f5868525, type: 3}
+  - id: extra_proof
+    model: {fileID: 293149262186300046, guid: c8c8c91213b6e0f43ba24104f9abe431, type: 3}
+    icon: {fileID: 3956281919891818107, guid: 0cee97e7cdfc5584898ee24e78e41794, type: 3}
+  - id: shockwave_shocks
+    model: {fileID: 3706398110116058799, guid: 7ea069adb2587584186293eab6c52d2a, type: 3}
+    icon: {fileID: -1950409717605564438, guid: 1c764b77606709449a26d162ea14c1e1, type: 3}
+  - id: mud_tires
+    model: {fileID: 3763864190193187030, guid: 756b9536b52d297498a21b6fc4284aad, type: 3}
+    icon: {fileID: 2118283279895247051, guid: 985ccfdef1db1a1439f82965faca07c1, type: 3}
+  - id: quick_chug
+    model: {fileID: 6293461725099904154, guid: 6223c616a14094b4397431cfaf54790f, type: 3}
+    icon: {fileID: 5300267935485330004, guid: 121712ad30c5c8343a78b556ea7755f9, type: 3}
+  - id: spare_keys
+    model: {fileID: 2999751159897393525, guid: 697e4c13ccdcc9d488235e28ec5e4d9a, type: 3}
+    icon: {fileID: 959672062103217499, guid: f33bfc82d9d76144095beb769974ddb7, type: 3}

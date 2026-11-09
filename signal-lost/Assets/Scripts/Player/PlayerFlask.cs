@@ -157,6 +157,29 @@ namespace SignalLost.Player
             ApplyIntoxication();
         }
 
+        /// <summary>The drink action's asset, so the Mudlands' hold-to-chug (DrunkDriving) can read the same button.</summary>
+        public InputActionAsset Actions => inputActions;
+
+        /// <summary>
+        /// Hold-to-chug (Mudlands Drunk Driving) takes over a sip that has not landed yet: it stops with no heal and no
+        /// drink. Returns false if there was no sip to take over, or it already landed.
+        /// </summary>
+        public bool CancelSip()
+        {
+            if (!IsDrinking || sipApplied) return false;
+            IsDrinking = false;
+            nextDrink = Time.time + drinkCooldown;
+            return true;
+        }
+
+        /// <summary>Adds drinks without healing (the chug). Never pushes past the blackout limit.</summary>
+        public void AddDrinks(int drinks)
+        {
+            if (drinks <= 0) return;
+            DrunkStacks = Mathf.Min(BlackoutLimit, DrunkStacks + drinks);
+            nextSober = Time.time + secondsPerStack;
+        }
+
         /// <summary>Wears off some drinks at once (Hangover Pills).</summary>
         public void SoberBy(int drinks)
         {

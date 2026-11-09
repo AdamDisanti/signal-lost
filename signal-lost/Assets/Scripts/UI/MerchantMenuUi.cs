@@ -27,7 +27,7 @@ namespace SignalLost.UI
         private static readonly (string label, UpgradeSlot slot)[] Filters =
         {
             ("Laser", UpgradeSlot.Laser), ("Scanner", UpgradeSlot.Scanner), ("Flask", UpgradeSlot.Flask),
-            ("Player", UpgradeSlot.Suit), ("Supplies", UpgradeSlot.Supply), ("Trades", UpgradeSlot.Trade)
+            ("Player", UpgradeSlot.Suit), ("Car", UpgradeSlot.Car), ("Supplies", UpgradeSlot.Supply), ("Trades", UpgradeSlot.Trade)
         };
 
         /// <summary>The area whose stock is on the shelves (only the tutorial's so far).</summary>
@@ -234,11 +234,12 @@ namespace SignalLost.UI
             balanceText = UiTheme.Label("Balance", panel, 28f, UiTheme.Text, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
             UiTheme.Place(balanceText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge, -96f), new Vector2(ListWidth, 44f));
 
+            float tabWidth = Mathf.Min(203f, (ListWidth + 16f) / Filters.Length); // seven filters since the Mudlands' Car
             for (int i = 0; i < Filters.Length; i++)
             {
                 int index = i;
                 Button button = UiTheme.Button(Filters[i].label, panel, $"{i + 1}  {Filters[i].label}", 24f);
-                UiTheme.Place((RectTransform)button.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge + i * 203f, -150f), new Vector2(193f, 56f));
+                UiTheme.Place((RectTransform)button.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge + i * tabWidth, -150f), new Vector2(tabWidth - 10f, 56f));
                 button.onClick.AddListener(() => ShowTab(index));
                 tabButtons.Add(button);
             }
@@ -260,7 +261,7 @@ namespace SignalLost.UI
 
             TextMeshProUGUI hint = UiTheme.Label("Hint", panel, 24f, UiTheme.Accent, TextAlignmentOptions.BottomRight, FontStyles.Bold);
             UiTheme.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-UiTheme.PadLarge, UiTheme.PadLarge), new Vector2(900f, 34f));
-            hint.text = $"[1]-[6]  Filters     BUY, then CONFIRM     {KeyBindings.Hint("interact")} / [Esc]  Close";
+            hint.text = $"[1]-[{Filters.Length}]  Filters     BUY, then CONFIRM     {KeyBindings.Hint("interact")} / [Esc]  Close";
             TextMeshProUGUI note = UiTheme.Label("Note", panel, 22f, UiTheme.Muted, TextAlignmentOptions.BottomLeft, FontStyles.Italic);
             UiTheme.Place(note.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(UiTheme.PadLarge, UiTheme.PadLarge), new Vector2(600f, 34f));
             note.text = "All sales final. Installation free. Claws optional.";
