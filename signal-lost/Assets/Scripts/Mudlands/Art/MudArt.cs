@@ -48,8 +48,12 @@ namespace SignalLost.Mudlands
         public void Tri(Vector3 a, Vector3 b, Vector3 c, Color color, float glow = 0f)
         {
             Vector3 normal = Vector3.Cross(b - a, c - a);
-            if (normal.sqrMagnitude < 1e-12f) return;
-            normal.Normalize();
+            // Divide by the length ourselves: Vector3.Normalize returns ZERO for anything shorter than 1e-5, which is
+            // every triangle under ~4 mm across (rivets, studs, whiskers, an earring). A zero normal makes the shader
+            // write NaN pixels, which the unclamped bloom smears into a white flash as the camera moves.
+            float length = normal.magnitude;
+            if (length < 1e-12f) return;
+            normal /= length;
             List<int> list = triangles[Sub(color, glow)];
             int start = vertices.Count;
             vertices.Add(a); vertices.Add(b); vertices.Add(c);
@@ -208,7 +212,12 @@ namespace SignalLost.Mudlands
             }
             var result = new List<Vector3>(normals);
             for (int i = 0; i < vertices.Count; i++)
-                if (groups[i] != 0) result[i] = sums[Key(i)].normalized;
+                if (groups[i] != 0)
+                {
+                    Vector3 sum = sums[Key(i)];
+                    float length = sum.magnitude;
+                    result[i] = length > 1e-6f ? sum / length : normals[i]; // never a zero normal (see Tri)
+                }
             return result;
         }
 

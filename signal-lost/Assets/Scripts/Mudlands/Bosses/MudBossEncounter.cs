@@ -81,7 +81,7 @@ namespace SignalLost.Mudlands
             var agent = boss.GetComponent<NavMeshAgent>();
             if (agent != null) agent.enabled = false;
             boss.gameObject.SetActive(true);
-            MudHud.Title(boss.Title, boss.Subtitle, 3.2f);
+            if (!boss.ShowsOwnTitle) MudHud.Title(boss.Title, boss.Subtitle, 3.2f);
             boss.FaceCamera = cine.Camera;
             yield return boss.Entrance(cine);
             boss.FaceCamera = null;

@@ -93,6 +93,8 @@ namespace SignalLost.Mudlands
 
         /// <summary>Where the fight starts after the entrance (the encounter puts the boss here if it is far off).</summary>
         public virtual Vector3 FightStart(Vector3 home) => home;
+        /// <summary>True for a boss that shows its own name card at the climax of its entrance (Clutch).</summary>
+        public virtual bool ShowsOwnTitle => false;
         /// <summary>False for a boss that doesn't walk on the NavMesh when its fight starts (it flies).</summary>
         public virtual bool WalksAfterEntrance => true;
 
@@ -157,7 +159,7 @@ namespace SignalLost.Mudlands
             ["*clang*"] = Mood.Smug,
             // Master Silt
             ["You walk like a startled yak."] = Mood.Smug, ["HUP!"] = Mood.Furious, ["HAAA!"] = Mood.Furious, ["I HEAR YOU!"] = Mood.Furious,
-            ["*huff*"] = Mood.Hurt, ["Now I am listening."] = Mood.Angry, ["...well fought."] = Mood.Neutral,
+            ["*huff*"] = Mood.Hurt, ["Now I am listening."] = Mood.Angry, ["...well fought."] = Mood.Neutral, ["Catch!"] = Mood.Smug,
             // Granny Drowse
             ["*yaaawn*"] = Mood.Sleepy, ["HEHEHEHEHE!"] = Mood.Laugh, ["MY BROOM!"] = Mood.Shock, ["Stir, stir..."] = Mood.Smug,
             ["Oh, bother."] = Mood.Sleepy, ["Which one am I?"] = Mood.Laugh, ["OW! My concentration!"] = Mood.Hurt, ["WAAAH!"] = Mood.Shock,
@@ -166,6 +168,8 @@ namespace SignalLost.Mudlands
             ["You're in my lane, pal."] = Mood.Smug, ["BOYS!"] = Mood.Laugh, ["WATCH THIS!"] = Mood.Smug, ["HOLD MY CHEESE!"] = Mood.Laugh,
             ["CRASH!"] = Mood.Hurt, ["OOF!"] = Mood.Hurt, ["Catch me if you can, cheese-for-brains!"] = Mood.Laugh,
             ["C'mon, slowpoke!"] = Mood.Smug, ["ROUND TWO!"] = Mood.Furious, ["Alright, no more Mr. Nice Mouse."] = Mood.Angry,
+            ["YEEEHAW!"] = Mood.Laugh, ["NITRO!"] = Mood.Furious, ["Bye-bye!"] = Mood.Smug, ["C'mon!"] = Mood.Smug, ["WOOO!"] = Mood.Laugh,
+            ["WHOA!"] = Mood.Shock, ["MY PAINT JOB!"] = Mood.Furious,
         };
 
         /// <summary>

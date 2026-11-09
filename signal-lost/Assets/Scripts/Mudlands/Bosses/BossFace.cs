@@ -135,8 +135,8 @@ namespace SignalLost.Mudlands
         private Mood Current()
         {
             if (boss == null) return Mood.Neutral;
+            if (Time.time < shownUntil) return shown; // a boss can still pick its face after death (the witch nods off)
             if (boss.IsDead) return Mood.Shock;
-            if (Time.time < shownUntil) return shown;
             if (Time.time < flinchUntil) return Mood.Hurt;
             if (!boss.Engaged) return rig.Idle;
             if (health != null && health.Normalized < 0.33f && rig.Fight != Mood.Smug) return Mood.Furious;

@@ -31,13 +31,13 @@ namespace SignalLost.Mudlands
     /// </summary>
     public sealed class MudbenderOtter : MudBoss
     {
-        private enum State { Idle, Reposition, MudBall, Wall, Rush, Winded, Pillar, Leap, Stance, Palm, Dazed }
+        private enum State { Idle, Reposition, MudBall, Wall, Rush, Winded, Pillar, Leap, Stance, Palm, Dazed, Opener, Stomp }
 
         private static readonly Color Fur = new Color(0.42f, 0.28f, 0.18f), Cream = new Color(0.9f, 0.82f, 0.66f),
             Robe = new Color(0.27f, 0.52f, 0.28f), RobeDark = new Color(0.16f, 0.34f, 0.2f), Blindfold = new Color(0.96f, 0.96f, 0.94f);
 
         private State state = State.Idle;
-        private float stateTime, nextBall, nextWall, nextRush, nextPillar, nextStance, heardAt, lastLoud;
+        private float stateTime, nextBall, nextWall, nextRush, nextPillar, nextStance, heardAt, lastLoud, nextHop, nextStomp;
         private Vector3 heard, leapFrom, leapTo;
         private Transform torso, armL, armR, legL, legR, tail, ties, held, pillar;
         private readonly List<EarthWall> walls = new List<EarthWall>();
@@ -153,57 +153,149 @@ namespace SignalLost.Mudlands
 
         // ---------- Entrance ----------
 
+        // The tea rock's top is 0.9 m above its base; sitting cross-legged, his seat is 0.32 m above his feet.
+        private const float RockTop = 0.9f, SeatHeight = RockTop - 0.32f, RockRise = 1.2f, RockBack = 3f;
+        // He somersaults about his middle (not his feet), so his head swings round him instead of through the rock.
+        private const float SpinPivot = 1f;
+        // The boulder he lifts at the end of his entrance and throws to open the fight.
+        private Transform boulder;
+        private const float OpenerWindup = 0.8f;
+        private Vector3 HoverPoint => transform.position + Vector3.up * 3.5f;
+
         public override IEnumerator Entrance(BossEntrance cine)
         {
             Vector3 home = transform.parent != null ? transform.parent.position : transform.position;
             Vector3 toPlayer = (cine.PlayerPosition - home).Flatten().normalized;
             if (toPlayer.sqrMagnitude < 0.01f) toPlayer = Vector3.back;
-            transform.SetPositionAndRotation(home + Vector3.up * 0.8f, Quaternion.LookRotation(toPlayer));
-            // Cross-legged on a rock with a cup of tea.
-            Transform rock = MudArt.Part(null, "Tea Rock", home, Quaternion.identity, "otter_rock", k => k.Ball(new Vector3(0f, 0.4f, 0f), new Vector3(0.9f, 0.5f, 0.8f), Quaternion.identity, MudPalette.Stone, 0));
+            Vector3 side = Vector3.Cross(Vector3.up, toPlayer);
+            Color voice = new Color(0.8f, 1f, 0.8f);
+            // The rock sits behind his fighting spot, so his leap off it lands him right where the fight starts.
+            Vector3 rockAt = Ground(home - toPlayer * RockBack);
+            transform.SetPositionAndRotation(rockAt + Vector3.up * SeatHeight, Quaternion.LookRotation(toPlayer));
+            // Cross-legged on a rock with a cup of tea. The rock is the boulder he'll throw, on a stone column that
+            // lifts it (hidden in the ground for now).
+            if (boulder != null) Destroy(boulder.gameObject);
+            boulder = MudArt.Part(null, "Tea Rock", rockAt + Vector3.up * 0.4f, Quaternion.identity, "otter_boulder", BoulderMesh);
+            Transform column = MudArt.Part(null, "Rock Column", rockAt, Quaternion.identity, "otter_column",
+                k => k.Prism(new Vector3(0f, -1.35f, 0f), Quaternion.identity, 0.75f, 0.55f, 1.45f, 7, MudPalette.Stone));
             Transform cup = MudArt.Part(armR, "Tea", new Vector3(0f, -0.7f, 0.1f), Quaternion.identity, "otter_cup", k =>
             {
                 k.Prism(Vector3.zero, Quaternion.identity, 0.06f, 0.08f, 0.1f, 8, MudPalette.White);
                 k.Prism(new Vector3(0f, 0.085f, 0f), Quaternion.identity, 0.07f, 0.07f, 0.01f, 8, new Color(0.5f, 0.35f, 0.15f));
             });
             Pose(legs: -80f, armRLift: -110f, armLLift: -30f, lean: 0f);
-            cine.Cut(home + toPlayer * 9f + Vector3.up * 2.2f, home + Vector3.up * 1.4f);
+            cine.Cut(rockAt + toPlayer * 9f + Vector3.up * 2.2f, rockAt + Vector3.up * 1.4f);
             yield return cine.Wait(1.2f);
             // A slow sip, a close-up on the blindfold.
-            yield return cine.Move(home + toPlayer * 2.2f + Vector3.up * 2.3f, Head.position, 1.4f);
+            yield return cine.Move(rockAt + toPlayer * 2.2f + Vector3.up * 2.1f, Head.position, 1.4f);
             Say("...", Blindfold, 1.4f, 4f, 2.3f);
             yield return cine.Wait(1f);
-            Say("You walk like a startled yak.", new Color(0.8f, 1f, 0.8f), 2.2f, 2.6f, 2.4f);
+            Say("You walk like a startled yak.", voice, 2.2f, 2.6f, 2.4f);
             yield return cine.Wait(1.6f);
-            // He sets the cup down, stamps, and a stone stage rises under him in a shower of mud.
+
+            // He sets the cup down, stamps, and the column pushes the rock (and him) up in a shower of mud.
             Destroy(cup.gameObject);
-            cine.Cut(home + toPlayer * 10f + Vector3.right * 3f + Vector3.up * 3f, home + Vector3.up * 2f);
+            cine.Cut(home + toPlayer * 7f + side * 3f + Vector3.up * 3f, rockAt + Vector3.up * 2f);
             Sfx.Play("stone_rise", 1f, 0.8f);
             CameraShake.Add(0.5f);
             for (float t = 0f; t < 1.2f && !cine.Tick(); t += Time.deltaTime)
             {
                 float k = Mathf.SmoothStep(0f, 1f, t / 1.2f);
-                rock.position = home + Vector3.up * k * 1.2f;
-                transform.position = home + Vector3.up * (0.8f + k * 1.2f);
-                if (Random.value < 0.4f) Dust(home + Random.insideUnitSphere.Flatten() * 1.5f, 6, 0.6f);
+                boulder.position = rockAt + Vector3.up * (0.4f + k * RockRise);
+                column.position = rockAt + Vector3.up * k * RockRise;
+                transform.position = rockAt + Vector3.up * (SeatHeight + k * RockRise);
+                if (Random.value < 0.4f) Dust(rockAt + Random.insideUnitSphere.Flatten() * 1.5f, 6, 0.6f);
                 yield return null;
             }
-            // A flip down into his stance, fist raised.
-            for (float t = 0f; t < 0.8f && !cine.Tick(); t += Time.deltaTime)
+
+            // He uncrosses his legs and stands up on top of the rock.
+            Vector3 seat = rockAt + Vector3.up * (SeatHeight + RockRise), top = rockAt + Vector3.up * (RockTop + RockRise);
+            for (float t = 0f; t < 0.4f && !cine.Tick(); t += Time.deltaTime)
             {
-                float k = t / 0.8f;
-                transform.position = Vector3.Lerp(home + Vector3.up * 2f, home, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 1.5f;
-                Visual.localRotation = Quaternion.Euler(-360f * k, 0f, 0f);
+                float k = Mathf.SmoothStep(0f, 1f, t / 0.4f);
+                transform.position = Vector3.Lerp(seat, top, k);
+                Pose(Mathf.Lerp(-80f, -30f, k), Mathf.Lerp(-110f, -60f, k), Mathf.Lerp(-30f, -60f, k), 10f * k);
                 yield return null;
             }
-            Visual.localRotation = VisualRestRotation;
-            transform.position = home;
-            Dust(home, 40, 1f);
-            Sfx.PlayAt("laser_slam", home, 1f, 0.6f, 50f);
-            Pose(legs: 0f, armRLift: -170f, armLLift: -40f, lean: 0f);
-            Say("HUP!", new Color(0.8f, 1f, 0.8f), 1.2f, 6f);
-            yield return cine.Wait(1.2f);
-            Destroy(rock.gameObject, 0.1f);
+
+            // A tucked front somersault off the rock, landing well clear of it on his fighting spot.
+            Vector3 land = Ground(home);
+            Sfx.PlayAt("chain_swish", top, 0.8f, 0.7f, 40f);
+            Pose(legs: -95f, armRLift: -50f, armLLift: -50f, lean: 35f);
+            for (float t = 0f; t < 0.9f && !cine.Tick(); t += Time.deltaTime)
+            {
+                float k = t / 0.9f;
+                transform.position = Vector3.Lerp(top, land, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 1.6f;
+                SpinAboutMiddle(360f * Mathf.SmoothStep(0f, 1f, k));
+                if (k > 0.75f) Pose(Mathf.Lerp(-95f, -35f, (k - 0.75f) * 4f), -40f, -40f, Mathf.Lerp(35f, 15f, (k - 0.75f) * 4f));
+                yield return null;
+            }
+            SpinAboutMiddle(0f);
+            transform.position = land;
+            Dust(land, 40, 1f);
+            CameraShake.Add(0.3f);
+            Sfx.PlayAt("laser_slam", land, 1f, 0.6f, 50f);
+            Pose(legs: -40f, armRLift: -20f, armLLift: -20f, lean: 15f);
+            yield return cine.Wait(0.4f);
+
+            // Earthbending: a low shot as he draws his arms down and back, and the rock behind him shudders...
+            cine.Cut(home + toPlayer * 7f + side * 2.5f + Vector3.up * 1.1f, home - toPlayer * 1.2f + Vector3.up * 2.4f);
+            Vector3 rockRest = boulder.position;
+            Sfx.PlayAt("stone_rise", rockRest, 0.6f, 0.6f, 40f);
+            for (float t = 0f; t < 0.5f && !cine.Tick(); t += Time.deltaTime)
+            {
+                float k = t / 0.5f;
+                Pose(-40f, Mathf.Lerp(-20f, 15f, k), Mathf.Lerp(-20f, 15f, k), Mathf.Lerp(15f, 22f, k));
+                boulder.position = rockRest + Random.insideUnitSphere * 0.06f * k;
+                yield return null;
+            }
+
+            // ...then he sweeps them up: the column crumbles back into the ground and the boulder floats up over his head.
+            CameraShake.Add(0.4f);
+            Dust(rockAt, 30, 1f);
+            Sfx.PlayAt("stone_rise", rockAt, 1f, 0.9f, 50f);
+            Vector3 columnTop = column.position;
+            for (float t = 0f; t < 1.1f && !cine.Tick(); t += Time.deltaTime)
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t / 1.1f);
+                Pose(-40f, Mathf.Lerp(15f, -170f, k), Mathf.Lerp(15f, -170f, k), Mathf.Lerp(22f, -8f, k));
+                column.position = columnTop + Vector3.down * 1.6f * Mathf.Clamp01(t / 0.6f);
+                boulder.position = Vector3.Lerp(rockRest, HoverPoint, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 1.2f;
+                boulder.Rotate(new Vector3(20f, 45f, 0f) * Time.deltaTime, Space.Self);
+                if (Random.value < 0.3f) Dust(rockAt + Random.insideUnitSphere.Flatten() * 1.2f, 5, 0.5f);
+                yield return null;
+            }
+            Say("Catch!", voice, 1.4f, 6f, 5.2f);
+            for (float t = 0f; t < 1f && !cine.Tick(); t += Time.deltaTime)
+            {
+                boulder.position = HoverPoint + Vector3.up * Mathf.Sin(t * 2.2f) * 0.12f;
+                boulder.Rotate(new Vector3(9f, 23f, 5f) * Time.deltaTime, Space.Self);
+                yield return null;
+            }
+
+            // Tidy up (this also runs straight through when the entrance is skipped). The boulder stays aloft for the
+            // fight's opening throw.
+            if (cup != null) Destroy(cup.gameObject);
+            if (column != null) Destroy(column.gameObject);
+            SpinAboutMiddle(0f);
+            Pose(legs: -40f, armRLift: -170f, armLLift: -170f, lean: -8f);
+        }
+
+        // Rolls the body forward by an angle about his middle (SpinPivot up from his feet) instead of about his feet.
+        private void SpinAboutMiddle(float degrees)
+        {
+            Quaternion spin = Quaternion.Euler(degrees, 0f, 0f);
+            Visual.localRotation = VisualRestRotation * spin;
+            Visual.localPosition = VisualRest + Vector3.up * SpinPivot - spin * (Vector3.up * SpinPivot);
+        }
+
+        private static void BoulderMesh(MeshKit k)
+        {
+            k.Ball(Vector3.zero, new Vector3(0.9f, 0.5f, 0.8f), Quaternion.identity, MudPalette.Stone, 1);
+            // A couple of low lumps round the sides (kept under the flat top he sits on).
+            k.Ball(new Vector3(0.5f, -0.12f, -0.35f), new Vector3(0.42f, 0.33f, 0.38f), Quaternion.Euler(0f, 30f, 10f), MudPalette.Stone, 0);
+            k.Ball(new Vector3(-0.45f, -0.18f, 0.3f), new Vector3(0.38f, 0.28f, 0.35f), Quaternion.Euler(0f, -20f, -8f), MudPalette.Stone, 0);
+            k.Ball(new Vector3(0f, -0.38f, 0f), new Vector3(0.8f, 0.16f, 0.7f), Quaternion.identity, MudPalette.Mud, 0); // mud caked underneath
         }
 
         private void Pose(float legs, float armRLift, float armLLift, float lean)
@@ -222,7 +314,9 @@ namespace SignalLost.Mudlands
             if (AgentReady) Agent.updateRotation = false;
             playerMovement = Target != null ? Target.GetComponentInParent<FirstPersonController>() : null;
             heard = PlayerPosition;
-            Enter(State.Idle);
+            // He opens the fight by throwing the boulder from his entrance (snapped overhead in case it was skipped).
+            if (boulder != null) boulder.position = HoverPoint;
+            Enter(boulder != null ? State.Opener : State.Idle);
             nextBall = Time.time + 1f;
             nextWall = Time.time + 4f;
             nextRush = Time.time + 6f;
@@ -296,37 +390,95 @@ namespace SignalLost.Mudlands
                 case State.Palm:
                     if (stateTime > 0.6f) Enter(State.Idle);
                     break;
+                case State.Opener: UpdateOpener(dt); break;
+                case State.Stomp: UpdateStomp(dt); break;
             }
         }
 
         private void Decide(float dt)
         {
             TurnToward(heard, 240f * dt);
+            if (boulder != null) { Enter(State.Opener); return; } // the opening throw got interrupted (a car wall)
             float distance = PlayerDistance;
             if (Phase == 2 && Time.time >= nextStance && distance < 6f) { Enter(State.Stance); Say("...", Blindfold, 1.2f, 4f); return; }
             if (Phase == 2 && Time.time >= nextPillar && distance > 5f) { Enter(State.Pillar); return; }
             if (distance < 4f && state != State.Reposition)
             {
-                // Too close: hop back with a ripple of mud.
-                Enter(State.Reposition);
-                Dust(transform.position, 14, 0.6f);
-                return;
+                // Too close. He hops back once in a while (sideways along the dojo's edge when his back is to it);
+                // otherwise he holds his ground and stamps you away.
+                if (Time.time >= nextHop)
+                {
+                    Enter(State.Reposition);
+                    hopTo = HopTarget();
+                    nextHop = Time.time + Random.Range(3.5f, 5f);
+                    Dust(transform.position, 14, 0.6f);
+                    return;
+                }
+                if (Time.time >= nextStomp)
+                {
+                    Enter(State.Stomp);
+                    ring = GroundRing.Spawn(transform.position, StompRadius, new Color(1f, 0.55f, 0.2f, 0.5f));
+                    return;
+                }
             }
             if (state == State.Reposition)
             {
-                Vector3 away = (transform.position - heard).Flatten().normalized;
-                Chase(transform.position + away * 6f, 7f);
+                Chase(hopTo, 7f);
                 if (stateTime > 0.6f) Enter(State.Idle);
                 return;
             }
             if (Time.time >= nextWall && walls.Count == 0 && distance > 7f && Random.value < 0.4f) { RaiseWall(heard, false); return; }
             if (Time.time >= nextRush && distance > 6f && distance < 20f && Random.value < 0.5f) { Enter(State.Rush); spikesLaid = 0; Say("!", Blindfold, 0.6f, 5f); return; }
             if (Time.time >= nextBall) { Enter(State.MudBall); return; }
-            // Drift sideways, keeping 8-14 m.
+            // Drift sideways, keeping 8-14 m, but never off his dojo.
             float want = Mathf.Clamp(distance, 8f, 14f);
             Vector3 side = Vector3.Cross(Vector3.up, (PlayerPosition - transform.position).Flatten().normalized) * Mathf.Sign(Mathf.Sin(Time.time * 0.4f + BossSeed));
             Vector3 goal = PlayerPosition + (transform.position - PlayerPosition).Flatten().normalized * want + side * 3f;
-            Chase(goal, 3f);
+            Chase(OnDojo(goal), 3f);
+        }
+
+        // ---------- Staying on his dojo ----------
+
+        // He fights on his dojo's flat (the stone lanterns stand 13 m out); every place he walks to is kept inside this.
+        private const float DojoRadius = 11f, StompRadius = 3.4f;
+        private Vector3 hopTo;
+
+        /// <summary>The point, pulled back inside the dojo if it is outside.</summary>
+        private Vector3 OnDojo(Vector3 point)
+        {
+            Vector3 offset = (point - Home).Flatten();
+            if (offset.magnitude > DojoRadius) offset = offset.normalized * DojoRadius;
+            return Home + offset;
+        }
+
+        // Straight away from the player if there is room; else sideways along the edge, whichever side has more room;
+        // and never off the dojo.
+        private Vector3 HopTarget()
+        {
+            Vector3 away = (transform.position - heard).Flatten().normalized;
+            if (away.sqrMagnitude < 0.01f) away = -transform.forward;
+            Vector3 straight = transform.position + away * 6f;
+            if ((straight - Home).Flatten().magnitude <= DojoRadius) return straight;
+            Vector3 side = Vector3.Cross(Vector3.up, away);
+            Vector3 left = OnDojo(transform.position + (side + away * 0.3f).normalized * 6f);
+            Vector3 right = OnDojo(transform.position + (-side + away * 0.3f).normalized * 6f);
+            return (left - heard).Flatten().sqrMagnitude > (right - heard).Flatten().sqrMagnitude ? left : right;
+        }
+
+        // Crowded with nowhere to hop: he crouches, then stamps a shockwave that shoves you off him (a ring warns).
+        private void UpdateStomp(float dt)
+        {
+            Halt();
+            TurnToward(heard, 300f * dt);
+            if (ring != null) ring.Progress = Mathf.Clamp01(stateTime / 0.55f);
+            if (stateTime < 0.55f) return;
+            CameraShake.Add(0.25f);
+            Dust(transform.position, 35, 0.9f);
+            Sfx.PlayAt("laser_slam", transform.position, 0.9f, 0.7f, 40f);
+            HurtInCircle(transform.position, StompRadius, 10f, 7f);
+            nextStomp = Time.time + Random.Range(4f, 6f);
+            Enter(State.Palm); // the follow-through pose, then back to idle
+            Say("HUP!", new Color(0.8f, 1f, 0.8f), 0.8f, 6f);
         }
 
         private void UpdateMudBall(float dt)
@@ -363,6 +515,70 @@ namespace SignalLost.Mudlands
             Sfx.PlayAt("chain_swish", transform.position, 0.8f, 0.6f, 35f);
             nextBall = Time.time + (Phase == 2 ? 2.2f : 3f);
             Enter(State.Idle);
+        }
+
+        // The opening move: he draws the boulder back over his head, then hurls it at the player (a ring marks where).
+        private void UpdateOpener(float dt)
+        {
+            Halt();
+            TurnToward(PlayerPosition, 360f * dt);
+            if (stateTime < OpenerWindup)
+            {
+                if (boulder == null) Enter(State.Idle);
+                return;
+            }
+            if (boulder != null) ThrowBoulder();
+            if (stateTime > OpenerWindup + 0.5f) Enter(State.Idle); // the follow-through
+        }
+
+        private void ThrowBoulder()
+        {
+            Transform rock = boulder;
+            boulder = null;
+            Vector3 target = Ground(PlayerPosition);
+            float distance = Vector3.Distance(rock.position, target);
+            Lob.Throw(rock, rock.position, target, Mathf.Clamp(distance / 12f, 1.1f, 1.5f), 1.5f + distance * 0.08f, BoulderLanded,
+                2.8f, new Color(1f, 0.45f, 0.2f, 0.55f));
+            Say("HAAA!", new Color(0.8f, 1f, 0.8f), 1f, 6f);
+            Sfx.PlayAt("chain_swish", transform.position, 1f, 0.45f, 40f);
+            CameraShake.Add(0.15f);
+            nextBall = Time.time + 3f;
+            nextWall = Mathf.Max(nextWall, Time.time + 4f);
+            nextRush = Mathf.Max(nextRush, Time.time + 6f);
+        }
+
+        private void BoulderLanded(Vector3 at)
+        {
+            if (this == null) return;
+            CameraShake.Add(0.5f);
+            Dust(at, 60, 1.3f);
+            Sfx.PlayAt("laser_slam", at, 1f, 0.4f, 60f);
+            Sfx.PlayAt("stone_rise", at, 0.9f, 1.3f, 40f);
+            HurtInCircle(at, 2.8f, 22f, 6f);
+            // It bursts into rubble.
+            for (int i = 0; i < 6; i++)
+            {
+                Vector2 scatter = Random.insideUnitCircle.normalized * Random.Range(1.5f, 3.5f);
+                Transform chunk = MudArt.Part(null, "Rubble", Vector3.zero, Quaternion.identity, "otter_rubble",
+                    k => k.Ball(Vector3.zero, new Vector3(0.28f, 0.2f, 0.24f), Quaternion.identity, MudPalette.Stone, 0));
+                chunk.localScale = Vector3.one * Random.Range(0.6f, 1.3f);
+                Lob.Throw(chunk, at + Vector3.up * 0.4f, Ground(at + new Vector3(scatter.x, 0f, scatter.y)), Random.Range(0.45f, 0.7f),
+                    Random.Range(0.6f, 1.4f), p => Dust(p, 6, 0.4f));
+            }
+        }
+
+        private void DropBoulder()
+        {
+            if (boulder == null) return;
+            Dust(boulder.position, 30, 1f);
+            Destroy(boulder.gameObject);
+            boulder = null;
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            if (boulder != null) Destroy(boulder.gameObject);
         }
 
         private static void MudBallMesh(MeshKit k) => k.Ball(Vector3.zero, new Vector3(0.45f, 0.42f, 0.45f), Quaternion.identity, MudPalette.Mud, 1);
@@ -427,7 +643,7 @@ namespace SignalLost.Mudlands
             transform.position = leapFrom + Vector3.up * 4f * rise;
             TurnToward(heard, 300f * dt);
             if (stateTime < 1.4f) return;
-            leapTo = Ground(heard);
+            leapTo = Ground(OnDojo(heard));
             ring = GroundRing.Spawn(leapTo, 3.5f, new Color(1f, 0.4f, 0.2f, 0.55f));
             Enter(State.Leap);
             Say("HAAA!", new Color(0.8f, 1f, 0.8f), 1f, 6f);
@@ -516,6 +732,7 @@ namespace SignalLost.Mudlands
             walls.Clear();
             if (pillar != null) Destroy(pillar.gameObject);
             pillar = null;
+            DropBoulder();
             AgentUtil.Reenable(Agent, 8f);
             Enter(State.Idle);
         }
@@ -524,24 +741,53 @@ namespace SignalLost.Mudlands
         {
             foreach (EarthWall wall in walls) if (wall != null) wall.Crumble();
             if (pillar != null) Destroy(pillar.gameObject);
+            DropBoulder();
             Say("...well fought.", new Color(0.8f, 1f, 0.8f), 2.5f, 4f);
         }
 
         // ---------- Animation ----------
 
+        // The walk: a real stride driven by how far he moves (one step every StepLength metres), with the legs
+        // swinging opposite each other along his direction of travel (forward, back or a sidestep shuffle), the arms
+        // counter-swinging, a hip roll and dip each step, a shoulder twist and a swishing tail. Turning on the spot
+        // shuffles his feet too.
+        private const float StepLength = 0.7f;
+        private float stride, walkWeight, lastYaw;
+        private Vector3 walkDirection = Vector3.forward;
+
         protected override void AnimateBoss(float dt)
         {
             float t = Time.time;
-            float walk = AgentReady ? Agent.velocity.magnitude : 0f;
-            float legs = -25f, armRLift = -60f, armLLift = -70f, lean = 0f;
+            dt = Mathf.Max(dt, 0.0001f);
+
+            // How he's moving, in his own frame.
+            Vector3 velocity = AgentReady ? Agent.velocity : Vector3.zero;
+            Vector3 local = transform.InverseTransformDirection(velocity);
+            local.y = 0f;
+            float speed = local.magnitude;
+            float yaw = transform.eulerAngles.y;
+            float turnRate = Mathf.Abs(Mathf.DeltaAngle(lastYaw, yaw)) / dt;
+            lastYaw = yaw;
+            bool free = state == State.Idle || state == State.Reposition || !Engaged;
+            float turning = free && speed < 0.4f ? Mathf.Clamp01((turnRate - 40f) / 160f) : 0f;
+            float wantWalk = free ? Mathf.Max(Mathf.Clamp01(speed / 1.2f), turning) : 0f;
+            walkWeight = Mathf.MoveTowards(walkWeight, wantWalk, dt * 5f);
+            Vector3 heading = speed > 0.15f ? local / speed : turning > 0f ? Vector3.forward : walkDirection;
+            walkDirection = Vector3.Lerp(walkDirection, heading, Mathf.Min(1f, dt * 10f));
+            stride = Mathf.Repeat(stride + (speed + turning * 1.2f) / StepLength * Mathf.PI * dt, Mathf.PI * 2f); // half a cycle a step
+            float forward = walkDirection.z, sideways = walkDirection.x;
+            float swing = Mathf.Sin(stride) * Mathf.Lerp(16f, 34f, Mathf.Clamp01(speed / 5f)) * walkWeight; // + = left foot forward
+
+            float legs = -25f, armRLift = -60f, armLLift = -70f, lean = 0f, torsoY = 0.9f;
             float spread = 22f; // the wide horse stance
             switch (state)
             {
                 case State.Idle:
                 case State.Reposition:
+                    // Standing: a slow, breathing guard.
                     armRLift = -80f + Mathf.Sin(t * 1.5f + BossSeed) * 10f;
                     armLLift = -100f + Mathf.Cos(t * 1.5f + BossSeed) * 10f;
-                    legs = -25f + Mathf.Sin(t * 6f) * 15f * Mathf.Clamp01(walk / 3f);
+                    torsoY += Mathf.Sin(t * 1.5f + BossSeed) * 0.01f;
                     break;
                 case State.MudBall:
                     float lift = Mathf.Clamp01(stateTime / 0.6f);
@@ -564,7 +810,7 @@ namespace SignalLost.Mudlands
                     lean = 25f;
                     armRLift = -10f;
                     armLLift = -10f;
-                    torso.localPosition = new Vector3(0f, 0.9f + Mathf.Sin(t * 10f) * 0.03f, 0f);
+                    torsoY += Mathf.Sin(t * 10f) * 0.03f;
                     break;
                 case State.Stance:
                     armRLift = -90f;
@@ -587,22 +833,74 @@ namespace SignalLost.Mudlands
                     armRLift = -120f;
                     armLLift = -40f;
                     break;
+                case State.Stomp:
+                    // Crouched low, arms drawn back, ready to stamp.
+                    legs = -50f;
+                    spread = 32f;
+                    armRLift = 25f;
+                    armLLift = 25f;
+                    lean = 18f;
+                    break;
+                case State.Opener:
+                    legs = -40f;
+                    spread = 28f;
+                    if (stateTime < OpenerWindup)
+                    {
+                        // Arms up, leaning back as he draws the boulder behind him.
+                        armRLift = -170f;
+                        armLLift = -170f;
+                        lean = -14f * Mathf.Clamp01(stateTime / OpenerWindup);
+                    }
+                    else
+                    {
+                        // The follow-through, arms flung after it.
+                        armRLift = -70f;
+                        armLLift = -60f;
+                        lean = 22f;
+                    }
+                    break;
             }
-            legL.localRotation = Quaternion.Slerp(legL.localRotation, Quaternion.Euler(legs, 0f, -spread), dt * 10f);
-            legR.localRotation = Quaternion.Slerp(legR.localRotation, Quaternion.Euler(legs, 0f, spread), dt * 10f);
+
+            // Blend the walk over the pose.
+            legs = Mathf.Lerp(legs, -4f, walkWeight);
+            spread = Mathf.Lerp(spread, 9f, walkWeight);
+            float armSwing = swing * 0.8f * forward;
+            armRLift = Mathf.Lerp(armRLift, -22f, walkWeight) - armSwing;
+            armLLift = Mathf.Lerp(armLLift, -22f, walkWeight) + armSwing;
+            lean = Mathf.Lerp(lean, 2f + 6f * forward * Mathf.Clamp01(speed / 3f), walkWeight);
+            float twist = -swing * 0.35f * forward;
+            float step = swing * sideways * 0.7f;
+            float rate = Mathf.Lerp(10f, 25f, walkWeight);
+            legL.localRotation = Quaternion.Slerp(legL.localRotation, Quaternion.Euler(legs - swing * forward, 0f, -spread + step), dt * rate);
+            legR.localRotation = Quaternion.Slerp(legR.localRotation, Quaternion.Euler(legs + swing * forward, 0f, spread + step), dt * rate);
             armR.localRotation = Quaternion.Slerp(armR.localRotation, Quaternion.Euler(armRLift, 0f, 15f), dt * 12f);
             armL.localRotation = Quaternion.Slerp(armL.localRotation, Quaternion.Euler(armLLift, 0f, -25f), dt * 12f);
-            torso.localRotation = Quaternion.Slerp(torso.localRotation, Quaternion.Euler(lean, 0f, 0f), dt * 10f);
-            // Crouched low in the stance, as in the reference.
-            Visual.localPosition = VisualRest + Vector3.down * (state == State.Stance ? 0.18f : 0.1f);
-            tail.localRotation = Quaternion.Euler(0f, Mathf.Sin(t * 2f) * 15f, 0f);
-            ties.localRotation = Quaternion.Euler(Mathf.Sin(t * 3f) * 12f, Mathf.Sin(t * 2.3f) * 15f, 0f);
+            torso.localRotation = Quaternion.Slerp(torso.localRotation, Quaternion.Euler(lean, twist, 0f), dt * rate);
+            torso.localPosition = new Vector3(0f, torsoY, 0f);
+            // Crouched low in the stance, as in the reference. Walking, he rises a little and dips each step as his
+            // straight legs reach out (so both feet stay on the ground), rolling his hips over the planted foot.
+            float crouch = Mathf.Lerp(state == State.Stance ? 0.18f : 0.1f, 0.03f, walkWeight);
+            float dip = 0.55f * (1f - Mathf.Cos(swing * Mathf.Deg2Rad));
+            Visual.localPosition = VisualRest + Vector3.down * (crouch + dip);
+            Visual.localRotation = VisualRestRotation * Quaternion.Euler(0f, 0f, -Mathf.Cos(stride) * 3f * walkWeight);
+            tail.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.6f) * 4f,
+                Mathf.Sin(t * 2f) * 15f * (1f - walkWeight) + Mathf.Sin(stride) * 22f * walkWeight, 0f);
+            float flutter = 1f + Mathf.Clamp01(speed / 4f);
+            ties.localRotation = Quaternion.Euler(Mathf.Sin(t * 3f * flutter) * 12f * flutter, Mathf.Sin(t * 2.3f * flutter) * 15f, 0f);
             // He turns his ear, not his eyes, toward what he hears.
             if (Head != null)
             {
-                Vector3 local = transform.InverseTransformPoint(heard);
-                float yaw = Mathf.Clamp(Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg, -40f, 40f);
-                Head.localRotation = Quaternion.Slerp(Head.localRotation, Quaternion.Euler(0f, yaw, Quiet ? 20f : 0f), dt * 4f);
+                Vector3 toward = transform.InverseTransformPoint(heard);
+                float look = Mathf.Clamp(Mathf.Atan2(toward.x, toward.z) * Mathf.Rad2Deg, -40f, 40f);
+                Head.localRotation = Quaternion.Slerp(Head.localRotation, Quaternion.Euler(0f, look - twist * 0.6f, Quiet ? 20f : 0f), dt * 4f);
+            }
+            // The boulder from his entrance hangs over his head until he throws it, drawn back in the wind-up.
+            if (boulder != null)
+            {
+                float pull = state == State.Opener ? Mathf.SmoothStep(0f, 1f, stateTime / OpenerWindup) : 0f;
+                Vector3 hover = HoverPoint - transform.forward * 1.2f * pull + Vector3.up * (Mathf.Sin(t * 2.2f) * 0.12f + 0.4f * pull);
+                boulder.position = Vector3.Lerp(boulder.position, hover, Mathf.Min(1f, dt * 10f));
+                boulder.Rotate(new Vector3(9f, 23f, 5f) * dt, Space.Self);
             }
         }
 

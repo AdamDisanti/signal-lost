@@ -60,6 +60,8 @@ namespace SignalLost.Editor
         private static readonly Vector2 Bog = new Vector2(100f, -50f);
         private static readonly Vector2 BogRadii = new Vector2(34f, 24f);
         private static readonly Vector2 Chapel = new Vector2(126f, 14f);
+        // The chapel flood's water sheet (it drains when the dam breaks).
+        private static readonly Vector2 FloodRadii = new Vector2(14f, 10f);
 
         private static readonly Vector2[][] Roads =
         {
@@ -161,6 +163,8 @@ namespace SignalLost.Editor
 
         private static float RoadLevel(float x, float z) => 0.45f + 0.5f * Noise(x, z, 60f);
 
+        private static float FloodLevel => RoadLevel(Chapel.x, Chapel.y) + 0.5f;
+
         public static float Height(float x, float z)
         {
             var p = new Vector2(x, z);
@@ -186,6 +190,17 @@ namespace SignalLost.Editor
             if (bog < 1.35f) h = Mathf.Min(h, Mathf.Lerp(-1.3f, h, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.85f, 1.35f, bog))));
             float shallows = Vector2.Distance(p, WitchClearing + new Vector2(0f, -9f));
             if (shallows < 9f) h = Mathf.Min(h, Mathf.Lerp(-0.9f, h, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(5f, 9f, shallows))));
+            // The chapel flood sits in a hollow (0.6 m under its water) with a low bank round its rim, so the water's
+            // edge always meets the ground instead of hanging in the air where the land dips. The road dips into it
+            // (the water blocks the way to the dojo until it drains).
+            float flood = Ellipse(p, Chapel, FloodRadii);
+            if (flood < 1.3f)
+            {
+                float floor = FloodLevel - 0.6f, bank = FloodLevel + 0.25f;
+                if (flood <= 0.85f) h = Mathf.Min(h, floor);
+                else if (flood <= 1f) h = Mathf.Lerp(floor, bank, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.85f, 1f, flood)));
+                else h = Mathf.Lerp(bank, h, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1f, 1.3f, flood)));
+            }
 
             // The ridge ring: tall and too steep to climb.
             float r = p.magnitude;
@@ -243,6 +258,7 @@ namespace SignalLost.Editor
             if (e > 0.78f && e < 1.22f) return Ground.Road; // the go-kart track
             if (Vector2.Distance(p, Lot) < 30f || Vector2.Distance(p, Camp) < 9f) return Ground.Road;
             foreach ((Vector2 c, Vector2 radii) in MudPatches) if (Ellipse(p, c, radii) < 1.05f) return Ground.Mud;
+            if (Ellipse(p, Chapel, FloodRadii) < 0.97f) return Ground.Mud; // the flood's bed (bare once it drains)
             if (centre.y < WaterY + 0.35f) return Ground.Mud; // muddy shores
             if (p.magnitude > PlayRadius - 6f) return Ground.DarkGrass;
             float patch = Noise(p.x, p.y, 18f, 23f);
@@ -654,7 +670,7 @@ namespace SignalLost.Editor
                 if (p.magnitude > PlayRadius + 8f) return false;
                 if (DistanceToRoads(p) < 6f + margin) return true;
                 if (Ellipse(p, Speedway, new Vector2(32f, 22f)) < 1f || Vector2.Distance(p, Lot) < 36f || Vector2.Distance(p, WitchClearing) < 20f ||
-                    Vector2.Distance(p, Dojo) < 18f || Vector2.Distance(p, Camp) < 14f) return true;
+                    Vector2.Distance(p, Dojo) < 18f || Vector2.Distance(p, Camp) < 14f || Ellipse(p, Chapel, FloodRadii) < 1.15f) return true;
                 foreach (Vector3 c in world.Clear) if (Vector2.Distance(p, new Vector2(c.x, c.y)) < c.z + margin) return true;
                 return false;
             }
@@ -964,8 +980,8 @@ namespace SignalLost.Editor
                     Destructible.Substance.Metal, 10f, true, false, 5f, 45f);
             var flood = new GameObject("Chapel Flood");
             flood.transform.SetParent(gameplay, false);
-            flood.transform.position = new Vector3(Chapel.x, RoadLevel(Chapel.x, Chapel.y) + 0.5f, Chapel.y);
-            AddWaterDisc(flood.transform, "Flood Water", flood.transform.position, new Vector2(14f, 10f), WaterMaterial());
+            flood.transform.position = new Vector3(Chapel.x, FloodLevel, Chapel.y);
+            AddWaterDisc(flood.transform, "Flood Water", flood.transform.position, FloodRadii, WaterMaterial());
             AddZone(flood.transform, "Flood Zone", flood.transform.position, new Vector2(12f, 8.5f), MudZone.Kind.BogWater, 0.7f);
             world.Flood = flood;
 
