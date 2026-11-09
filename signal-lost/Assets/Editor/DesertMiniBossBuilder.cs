@@ -39,7 +39,7 @@ namespace SignalLost.Editor
         private const string ShipPanelMeshPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Meshes/BentShipPanel.asset";
         private const string HullMaterialPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Materials/DamagedRocketHull.mat";
 
-        private enum Theme { MesaPass, WreckField, BuriedHull }
+        internal enum Theme { MesaPass, WreckField, BuriedHull }
 
         private readonly struct BossTest
         {
@@ -823,7 +823,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>The boss's fodder: off until the boss engages (the boss switches it on), stops when the boss dies.</summary>
-        private static FodderSpawner BuildSpawner(Theme theme, Health boss)
+        internal static FodderSpawner BuildSpawner(Theme theme, Health boss)
         {
             var go = new GameObject("Fodder Spawner");
             var spawner = go.AddComponent<FodderSpawner>();

@@ -16,7 +16,12 @@ namespace SignalLost.Progression
 
         public static readonly Trophy[] All =
         {
-            new Trophy { Id = "chief_toad_crown", Name = "Chief Toad's Crown", Boss = "Chief Toad" }
+            new Trophy { Id = "chief_toad_crown", Name = "Chief Toad's Crown", Boss = "Chief Toad" },
+            // The desert (11-08): the Chop Shop's three, then the Core Worm's.
+            new Trophy { Id = "old_buzzard_feathers", Name = "Old Buzzard's Tail Feathers", Boss = "Old Buzzard" },
+            new Trophy { Id = "burnout_thorns", Name = "Burnout's Thorn Crest", Boss = "Burnout" },
+            new Trophy { Id = "sludge_stinger", Name = "Sludge's Stinger", Boss = "Sludge" },
+            new Trophy { Id = "core_worm_fang", Name = "Core Worm Fang", Boss = "Core Worm" }
         };
 
         public static Trophy Find(string id)

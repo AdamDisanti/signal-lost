@@ -73,6 +73,9 @@ namespace SignalLost.Editor
 
         public const string DesertPrefabPath = "Assets/Prefabs/Core/DesertCamp.prefab";
         private const string DesertFolder = "Assets/Prefabs/Core/DesertCamp";
+        public const string RackName = "Chop Shop Rack";
+        /// <summary>The desert camp's extra rack for the Chop Shop's trophies, relative to the fire (x east, y north).</summary>
+        public static readonly Vector2[] RackSpots = { new Vector2(6.3f, -2.1f), new Vector2(7.0f, -0.4f), new Vector2(7.2f, 1.4f) };
 
         private enum DesertPart { Driftwood, DriftwoodDark, Canvas, Indigo, Terracotta, Clay, Rope }
 
@@ -148,6 +151,33 @@ namespace SignalLost.Editor
                 spot.AddComponent<QuestSignalSource>().enabled = false;
             }
 
+            // The Chop Shop rack (11-08): three more stands east of the fire for the desert mini-bosses' trophies, under a
+            // driftwood sign. They are stands 4-6 (the camp save remembers them like the first three).
+            var rack = new GameObject(RackName).transform;
+            rack.SetParent(root.transform, false);
+            for (int i = 0; i < RackSpots.Length; i++)
+            {
+                var spot = new GameObject("Rack Stand " + (i + 1));
+                spot.transform.SetParent(rack, false);
+                spot.transform.localPosition = new Vector3(RackSpots[i].x, 0f, RackSpots[i].y);
+                spot.transform.localRotation = Quaternion.LookRotation(-new Vector3(RackSpots[i].x, 0f, RackSpots[i].y));
+                spot.AddComponent<MeshFilter>().sharedMesh = stand;
+                spot.AddComponent<MeshRenderer>().sharedMaterials = standMaterials;
+                var box = spot.AddComponent<BoxCollider>();
+                box.center = new Vector3(0f, 0.55f, 0f);
+                box.size = new Vector3(0.8f, 1.1f, 0.8f);
+                var mount = new GameObject("Mount").transform;
+                mount.SetParent(spot.transform, false);
+                mount.localPosition = new Vector3(0f, 1.02f, 0f);
+                var trophyStand = new SerializedObject(spot.AddComponent<TrophyStand>());
+                trophyStand.FindProperty("index").intValue = StandSpots.Length + i;
+                trophyStand.FindProperty("mount").objectReferenceValue = mount;
+                trophyStand.ApplyModifiedPropertiesWithoutUndo();
+                spot.AddComponent<QuestSignalSource>().enabled = false;
+            }
+            Transform sign = DesertProp(rack, "Rack Sign", RackSignKit(), new Vector3(8.2f, 0f, -0.3f));
+            sign.localRotation = Quaternion.LookRotation(new Vector3(-8.2f, 0f, 0.3f));
+
             // Where Cavendish and Eugene sit (the log tops, facing the fire) and stand while pitching camp.
             Transform Mark(string name, Vector3 at)
             {
@@ -169,7 +199,7 @@ namespace SignalLost.Editor
             camp.FindProperty("merchantSeat").objectReferenceValue = merchantSeat;
             camp.FindProperty("cavendishStand").objectReferenceValue = cavendishStand;
             camp.FindProperty("merchantStand").objectReferenceValue = merchantStand;
-            Transform[] order = { pit, rug, cavendishLog, otherLog, tent, shade, supplies, barrel, jars, shelf, fire };
+            Transform[] order = { pit, rug, cavendishLog, otherLog, tent, shade, supplies, barrel, jars, shelf, rack, fire };
             SerializedProperty list = camp.FindProperty("pieces");
             list.arraySize = order.Length;
             for (int i = 0; i < order.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = order[i];
@@ -232,6 +262,18 @@ namespace SignalLost.Editor
             kit.Box(new Vector3(0f, 0.022f, 0f), new Vector3(2.2f, 0.02f, 1.3f), Quaternion.identity, DesertPart.Terracotta);
             foreach (float x in new[] { -0.6f, 0f, 0.6f })
                 kit.Box(new Vector3(x, 0.034f, 0f), new Vector3(0.14f, 0.02f, 1.3f), Quaternion.identity, DesertPart.Indigo);
+            return kit;
+        }
+
+        // A driftwood sign behind the rack: two posts and a plank with indigo and terracotta stripes (the camp's colours).
+        private static FlatMeshKit<DesertPart> RackSignKit()
+        {
+            var kit = new FlatMeshKit<DesertPart>();
+            foreach (float x in new[] { -1.4f, 1.4f })
+                kit.Add(LowPolyMesh.TaperedPrism("post", 6, 0.85f), Matrix4x4.TRS(new Vector3(x, 0f, 0f), Quaternion.Euler(-90f, 0f, 0f), new Vector3(0.07f, 0.07f, 1.9f)), DesertPart.DriftwoodDark);
+            kit.Box(new Vector3(0f, 1.55f, 0f), new Vector3(3.2f, 0.5f, 0.07f), Quaternion.Euler(0f, 0f, 2f), DesertPart.Driftwood);
+            kit.Box(new Vector3(0f, 1.66f, 0.04f), new Vector3(2.9f, 0.09f, 0.02f), Quaternion.Euler(0f, 0f, 2f), DesertPart.Indigo);
+            kit.Box(new Vector3(0f, 1.44f, 0.04f), new Vector3(2.9f, 0.09f, 0.02f), Quaternion.Euler(0f, 0f, 2f), DesertPart.Terracotta);
             return kit;
         }
 

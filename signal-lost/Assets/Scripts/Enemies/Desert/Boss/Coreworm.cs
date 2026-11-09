@@ -151,7 +151,14 @@ namespace SignalLost.Enemies.Desert
         private readonly List<Vector3> path = new List<Vector3>();
         private float nextExhaust;
 
-        private float GroundY => arena != null ? arena.GroundY : 0f;
+        private float? groundOverride;
+        private float GroundY => groundOverride ?? (arena != null ? arena.GroundY : 0f);
+
+        /// <summary>
+        /// The sand height it hides under and erupts from, for an ambush somewhere other than its arena (the desert camp,
+        /// on the surface above an underground arena). Null: the arena's floor, as in the fight.
+        /// </summary>
+        public void UseGroundHeight(float? height) => groundOverride = height;
         private float UnderY => GroundY - swimDepth;
         private Vector3 Mouth => head.TransformPoint(new Vector3(0f, 0f, 2.1f));
         private float Fierce => 1f + 0.18f * (Phase - 1); // faster, denser each phase
@@ -379,6 +386,7 @@ namespace SignalLost.Enemies.Desert
         /// <summary>Starts the fight at phase 1 (it should be under the arena).</summary>
         public void BeginFight()
         {
+            groundOverride = null; // the fight is always on its arena's floor
             IsDefeated = false;
             Fighting = true;
             Phase = 1;

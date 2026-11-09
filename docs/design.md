@@ -64,6 +64,7 @@ The source proposes an eight-week sequence: foundation/prototype (weeks 1–3), 
 ## Desert / Dunes decisions
 
 - The first biome prototype is [Desert / Dunes](desert-dunes.md): open low-poly dunes with a crash-debris streak, three encounter sites with hermit crabs that the scanner can detect, and an empty boss arena with a half-buried ship engine, all closed in by unclimbable perimeter dunes. The player respawns at the biome entrance, as the source document says. No encounter counting, boss unlock, boss, merchant, quest, scrap or biome exit was invented; those are marked as placeholders. Confirm level-design ownership with Lawson.
+- Superseded for the encounters, boss, quests and exit by [the desert story (11-08)](#the-desert-story-11-08): the three encounter sites are now the mini-bosses' arenas, the hermit crabs there are gone, and the boss is placed in the level.
 
 ## Desert fodder decisions
 
@@ -76,6 +77,7 @@ The source proposes an eight-week sequence: foundation/prototype (weeks 1–3), 
 - Lawson requested the three desert mini-bosses as a themed gang, each with two phases and with its stolen ship part built into its design and moves. They are implemented as placeholders in [desert mini-bosses](desert-minibosses.md): Burnout (thorny-devil lizard, rocket-thruster dashes), Old Buzzard (vulture with ship wing panels: flying, then grounded after a wing is shot off) and Sludge (scorpion with the fuel tank: oil slicks it ignites, and a tank weak spot that backfires).
 - At Lawson's request, each one patrols a set area while fodder keeps spawning around it during the fight. Phase 2 starts at half health. Leaving the arena or dying resets the mini-boss. On defeat the stolen part drops as a placeholder pickup.
 - Not decided, so not invented: whether the parts count toward progression, the boss becoming scannable after three defeats, placement in the Desert Dunes scene, scanner priority, and death persistence.
+  - Placement, and what follows the three defeats, are now set by [the desert story (11-08)](#the-desert-story-11-08). Scanner priority and death persistence are still open.
 
 ### Mini-boss polish pass
 
@@ -307,6 +309,55 @@ Lawson asked for three things (see [islands](islands.md)):
   - Cavendish has small talk in the desert but no quests there yet.
   - Eugene's shop works, but inventory and upgrades still don't carry between scenes (see above).
   - Nicole owns the Desert Dunes scene: the camp install removed the two placeholders and added the camp, the residents and a `StageTheme`.
+
+## The desert story (11-08)
+
+Lawson asked for the desert to be set up with a short series of quests. See [desert story](desert-story.md).
+- Each quest has a task, then one of the three mini-bosses in its own themed arena, which works as a proper arena.
+- Placing the final trophy on its stand springs the Core Worm. It captures the player and takes them to a large underground arena.
+- After the worm is beaten and its trophy collected, the ceiling falls in and the player emerges above ground.
+
+- **Built:**
+  - **Cavendish's three jobs, in order:**
+    - Old Buzzard: pick up its feathers, then its Roost in the Wreck Field.
+    - Burnout: put out its fires, then the Scorch Raceway in the Mesa Pass.
+    - Sludge: seal the sump's leaks, then its Fuel Sump at the Buried Hull.
+  - **Each mini-boss** appears only once its task is done. It drops its part and a new trophy, which goes on a new three-stand Chop Shop rack at the desert camp.
+  - **The Core Worm:**
+    - The third trophy on the rack springs the worm at camp, and it drags the player into its lair, a cavern 22 m under its old sand bowl.
+    - The Engine Core plus a new fang trophy bring the roof down.
+    - Redesigned three times at Lawson's request. His last brief (11-09): it should always play out the same, with physics-faithful interactions between the rubble, look natural, and leave an opening to climb out.
+      - A gash in the roof, choked with broken rock you can see from the start, gives way.
+      - The floor where it lands flashes red first; staying there gets you crushed.
+      - Sand pours in as a debris cone, and about 220 angular rocks tumble down it.
+      - The fall is a physics simulation run once when the level is built, and recorded. The game plays the recording, so it is identical every time.
+      - The build checks the settled rocks leave a walking route out, and re-runs the fall without any that block it.
+      - The gash stays open to the sky and the player climbs the rubble out. It all stays, so both areas connect.
+    - The fang goes home on a stand, and Cavendish wraps up.
+- **This settles, for the desert:**
+  - **Placement:** the mini-bosses and the boss are now placed in the Desert Dunes level.
+  - **What counts as the three encounters:** the three mini-bosses.
+  - **When the boss comes:** after all three, via their trophies.
+  - **The parts:** the mini-boss parts are recovered as before, and handed to Cavendish "for safe keeping" as in the tutorial.
+- **My calls (open to change):**
+  - the fixed job order;
+  - the tasks;
+  - an extra rack rather than sharing the three boss stands;
+  - the fang as the worm's trophy;
+  - the ambush at the camp rather than at the stage exit;
+  - removing the old hermit-crab encounters.
+- **Open:**
+  - Nicole owns the Desert Dunes scene and environment; this regenerated both. The site radii grew from 16 m to 24 m, which reshuffled where some rocks and cacti landed.
+  - Saving the story's progress: only the trophies persist today.
+  - Balance of each fight in its new arena.
+  - Whether the tutorial camp should also show stands 4-6.
+
+## Testing tools (11-08)
+
+Lawson asked to mark the End-key cheat as a testing tool, and for a second tool: the left and right arrows go to the next or previous stage. All quests of the stages before the one you land in count as done. See [testing tools](core-player.md#testing-tools).
+- **What "done" means here (my call):** the stage is cleared, its ship parts and main part are recovered, and its boss trophies are on the stands. The stage you land in starts fresh.
+- **Arrow keys:** removed from strafing (`Player/Move`) so that walking with them can't skip a stage.
+- **Open:** whether the tools should be compiled out of release builds.
 
 ## Upgrade tiers, spawn safety, key bindings and title cycle (11-07)
 

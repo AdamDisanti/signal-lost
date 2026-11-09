@@ -208,7 +208,11 @@ For each scene: press Play. No Console errors (a short pause while the NavMesh b
   - Do the three parts count toward anything (the Engine Core boss unlock, ship repair, an inventory)?
   - Should the boss become scannable after all three are beaten?
   - `Defeated`, `DefeatedCount` and `ShipPartDrop.Recovered` are ready for this, but nothing is wired up.
-- **Placing them in the Desert Dunes level:** Nicole owns that scene. Putting each mini-boss and its spawner at its encounter site is a separate, coordinated change.
+- **Placing them in the Desert Dunes level:** done on 11-08 by the [desert story](desert-story.md).
+  - Each mini-boss is at home in its own themed arena (Old Buzzard's Roost, Burnout's Scorch Raceway, Sludge's Fuel Sump), with its fodder spawner.
+  - Each is hidden until Cavendish's job for it is done, and drops a trophy as well as its part.
+  - The three trophies spring the Core Worm.
+  - Nicole owns that scene, so the change still needs her review.
 - **Scanner:** each mini-boss has an `EnemySignalSource`, but the scanner picks the nearest eligible enemy source, so a Snorkel Eel near Sludge can become the selected signal instead and affect the proximity strength and audio. The in-hand scanner has no directional arrow. Giving bosses priority means changing Amanda's `ScannerController`.
 - **Death and reset rules:** the mini-bosses reset when you die or leave. Whether progress such as a recovered part survives a death isn't decided.
 - **Frogs:** Burnout's arena reuses Christian's mortar frog prefab unchanged, so the tin-can damage note above applies there.
