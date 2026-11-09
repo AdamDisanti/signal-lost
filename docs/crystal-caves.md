@@ -25,13 +25,13 @@ The map is **480 × 480 m**, 1.5 times Desert Dunes' 320 m, with 4 m flat-shaded
 | Area | Where (x, z) | What's there |
 | --- | --- | --- |
 | Ocean | All round | The island kit's sea. Falling or wading into deep water fades to "TOO DEEP", costs 15 health and puts you back on the nearest dry land. The sea floor is not walkable, so enemies and spawns stay on land. |
-| Mountains | All round the island | Jagged peaks rising straight from the sea everywhere except the south-east ledge, so they close the outside in. They climb from about 60 m at the ledge to 150 m and more, and use the tutorial's mountain rock. |
-| South-east ledge | Around (130, −172) | The only open ground outside: a small rocky ledge about 10–18 m above the sea, stepped like stacked blocks. Columnar sea cliffs line its edge, with tumbled blocks in the surf, a few pines, bushes, grass and rocks. |
+| Mountains | All round the island | Jagged peaks rising straight from the sea everywhere except the south-east ledge, so they close the outside in. A vertical rock wall about 10 m tall runs along their foot all round the ledge, so they can't be climbed (see *Climbing barriers*); above it they climb to peaks of 150 m and more. They use the tutorial's mountain rock. |
+| South-east ledge | Around (130, −172) | The only open ground outside: a small rocky ledge about 10–14 m above the sea, in soft steps like stacked blocks (gentle enough to walk anywhere). Columnar sea cliffs line its edge, with tumbled blocks in the surf, a few pines, bushes, grass and rocks. |
 | Cove and dock | Cove from (127, −180) down to (140, −216); dock straight on from it | Low rocks step down from the ledge to the water, with rocks along both sides. At the bottom the island kit's arrival dock (a timber jetty with a T-shaped end) runs out to sea, with the sailboat moored alongside. The cove points at the cave mouth, so the mouth can be seen from the dock. Loaded directly, the player starts at the foot of the cove, facing the mouth; arriving by boat, the voyage lands them on the dock. |
-| Cavendish's camp | (150, −166) | The base camp (fire, tent, logs, supplies, three trophy stands that remember trophies from earlier levels) as an island camp. Cavendish sits on his log; Eugene, a friendly trader, sits on the other. Arriving by boat, they pitch it in the voyage cutscene. A 16 m clear radius is left round it for the stands of later levels. |
+| Cavendish's camp | (150, −166) | The base camp (fire, tent, logs, supplies, three trophy stands that remember trophies from earlier levels) as an island camp. It stands on its own level pad. Cavendish sits on his log; Eugene, a friendly trader, sits on the ground in front of the other log. Arriving by boat, they pitch it in the voyage cutscene. A 16 m clear radius is left round it for the stands of later levels. |
 | Cave mouth | Portal at (118, −128), facing south | A dark arch at the foot of the mountains, with crystal glow inside. No path leads to it. |
 | Cave, upper level | The front of the cave (south of z ≈ −55) and a lobe round the beetles' zone | Floor about 18 m above sea level, with the ceiling about 32 m above that. The back of the cave has no upper level, so nothing up there overlooks mini boss 2 or the final boss. |
-| Cave, deep level | Everything else, out to the cave walls | Floor about 16 m below the upper level, with a vaulted ceiling about 70 m up. The upper level's edge is a cliff, except at **three ramps**: two from the front, at x = 40 and x = −45, and one from the beetles' lobe. |
+| Cave, deep level | Everything else, out to the cave walls | Floor about 16 m below the upper level, with a vaulted ceiling about 70 m up. The upper level's edge is a 16 m cliff all round, too steep to climb. You may jump down anywhere, but the only way back up is **one ramp**, on the far (north) side of the beetles' zone, so you find it after the beetle fight. The ramp is a long, even incline (about 74 m long, 28 m wide, about 12°), so you walk up and down it without slipping. |
 | Beetles fight zone | (−150, −42), r 24 m, upper level | Flattened, empty, ringed by purple and pink crystals. It sits in the middle of a lobe 62 m in radius, so its edge is about 38 m from any drop. |
 | Mini Boss 2 fight zone | (80, 35), r 24 m, deep level | Flattened, empty, ringed by orange and pink crystals. It is about 90 m from the nearest upper ground. |
 | Final boss fight zone | (0, 138), 152 × 68 m ellipse, deep level | Flattened, empty, ringed by purple and blue crystals, at the back of the cave. |
@@ -42,13 +42,26 @@ To move things, edit the numbers at the top of `Editor/CrystalCavesTerrain.cs` (
 
 The terrain self-check runs on every build. It refuses a landform that has:
 - any cave ground open to the sky;
-- a ramp that is too steep or doesn't reach the deep level;
+- a ramp steeper than 20° anywhere, or one that doesn't reach the deep level;
+- any route up the mountains, or from the deep level back up to the upper level other than the ramp. It treats all ground as climbable (the player can jump up any slope that isn't vertical) and only the barrier walls as solid. When it finds a way up, the error lists the route, so you can see where a wall is missing;
+- any spot steeper than 35° on the way from the dock to the cave and through the tunnel (the player can't walk up more than 45°);
 - the beetles' zone within 10 m of a drop;
 - upper ground near the boss zones;
 - a low tunnel;
 - a cove that doesn't reach the water;
 - the cave mouth hidden from the dock;
 - land at the map edge.
+
+## Climbing barriers
+
+The shared player can jump up any slope that isn't vertical; that's how the player moves in every level, and it isn't changed here. So wherever the player must not climb, the level has vertical rock (the *Climbing Barriers* object in the environment prefab, generated by `CrystalCavesTerrain.Barriers`):
+- **The mountains' foot:** a wall about 10 m tall all the way round the ledge, running on into the sea at both ends.
+- **The cut to the cave mouth:** walls up both sides, from the mountains' wall to the mouth. They stop there; nothing stands inside the tunnel. Beside the opening each one turns into a flat rock face up to the ceiling, so the mouth is a clean opening about 11 m wide seen from either side, and no one climbs round the end of the wall. No wall's top reaches out over the cut, and no trees or rock formations stand in front of the mouth, so the view out of the cave is clear to the sea.
+- **The upper level's cliff in the cave:** a vertical face from the deep floor up to the upper level, all round except at the ramp.
+  - It has a flat rock top back to the edge, so a player who jumps down can't fall in behind it.
+  - Where it meets the cave wall it goes up to the ceiling, so no one climbs round it along the wall.
+
+Every wall is a solid block of rock with closed ends: outside, its flat top runs back to the nearest hillside behind it (looking straight back and diagonally), so there is no gap behind the face; where no hillside is close, the wall has no top rather than a slab sticking out. The mountains' wall and the cut's walls are one continuous piece, turning the corner at the mouth with no seam. The faces bulge out a little between bands, so they read as rough rock, but they never lean back. Change the wall heights and offsets with the constants above `Barriers` in `CrystalCavesTerrain.cs`.
 
 ## Cave lighting
 
@@ -107,6 +120,9 @@ The outdoor look is whatever the scene's Lighting settings are; CaveLighting rea
   - the not-walkable sea floor.
 - **Cavendish's camp** (`Prefabs/Core/CrystalCavesCamp.prefab`):
   - It is a **prefab variant of BaseCamp** with an `IslandCamp`, so changes to the base camp carry over.
+  - Two overrides here only:
+    - The supplies crate and barrel are moved clear of the tent.
+    - Eugene's seat is on the ground in front of his log. Perched on the log top, as at the other camps, his legs hang in the air.
   - It is set up the same way as the desert camp: seats, pitching spots, and the order the pieces go up in.
   - Cavendish (small talk only) and Eugene (friendly from the start, with no ambush cousins at island camps) are linked to it, as in the desert.
 - **No island theme yet:** there is no `StageTheme`, so the crew wears its Crash Meadow look here. Crystal Caves outfits and camp styling are still to be designed.
@@ -140,8 +156,8 @@ The outdoor look is whatever the scene's Lighting settings are; CaveLighting rea
   - Objects inside the prefab may also get new IDs, so re-check any scene references to them.
 - **Starting over:** delete `CrystalCaves.unity` and run **Create Crystal Caves Level** again.
 - **Validation:** **Create** ends by validating the scene. It checks:
-  - the shared pieces, the sea, the dock and boat, the camp and its residents, and the crystals;
-  - that the end of the dock, the camp, the cave mouth, the foot of every ramp and all three fight zones can be reached on foot from the spawn.
+  - the shared pieces, the sea, the dock and boat, the camp and its residents (with every camp piece standing on the ground, not floating or sunk), and the crystals;
+  - that the end of the dock, the camp, the cave mouth, the foot of the ramp and all three fight zones can be reached on foot from the spawn.
   - **Batch builds:** run `SignalLost.Editor.CrystalCavesBuilder.CreateBatch` with `-executeMethod`. To validate an existing scene, run `CrystalCavesBuilder.Validate` with `-executeMethod` and `-quit`.
 - **The NavMesh file:** `CrystalCavesNavMesh.asset` is stored in Git LFS. Run `git lfs install` before you pull.
 
@@ -160,11 +176,19 @@ The outdoor look is whatever the scene's Lighting settings are; CaveLighting rea
 
 ## Verification (11-09, Unity 6000.6.2f1, batch mode)
 
+**Climbing barriers (later on 11-09):**
+- **Validation:** **Create** passed its validation, and the terrain self-check passed, including the climbing and walking checks above. The deep level and its zones are reached through the one ramp.
+- **Play Mode run:** the cave lighting and sea-rescue test still passes, with no Console errors.
+- **Screenshots:** checked the walls from the ledge, the cut, the deep level and the upper level.
+- **Not checked:** climbing with real key presses. Batch mode has no focused window, so the controller ignores input there; the climbing check covers it instead.
+
+**Revision:**
+
 - **Create Crystal Caves Level:** passed its validation, and the terrain self-check passed.
   - It found one Player, GameSystems, spawn point, camera and listener.
   - It found the sea, the arrival dock with its boat, CaveLighting, three trophy stands, and the island camp with Cavendish, a friendly Eugene and their seats.
   - The NavMesh was baked, and 185 crystal lights were found in all six colours.
-  - NavMesh paths from the spawn reach the end of the dock, the camp, the inside of the cave mouth, the foot of all three ramps and all three fight zones.
+  - NavMesh paths from the spawn reach the end of the dock, the camp, the inside of the cave mouth, the foot of the ramp and all three fight zones.
 - **Play Mode smoke run:** a temporary script, not committed. It passed with no Console errors.
   - Outside, the sun was on and the 152 deep crystal lights were off.
   - Inside, the sun turned off, the cave fill and fog applied, and all deep lights came on.

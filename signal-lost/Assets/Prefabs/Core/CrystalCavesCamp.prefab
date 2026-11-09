@@ -24,8 +24,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2113892038879194389}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.043989487, z: -0, w: 0.999032}
-  m_LocalPosition: {x: 0.3, y: 0.5302908, z: -3.4}
+  m_LocalRotation: {x: 0, y: -0.04398949, z: -0, w: 0.999032}
+  m_LocalPosition: {x: 0.18573806, y: 0, z: -2.1050313}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -172,9 +172,25 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4944572924963758364, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4944572924963758364, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3.5
+      objectReference: {fileID: 0}
     - target: {fileID: 6736307784105125598, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
       propertyPath: m_Name
       value: CrystalCavesCamp
+      objectReference: {fileID: 0}
+    - target: {fileID: 7772112738442074114, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7772112738442074114, guid: 2a87d2b18304f4b8ebc27a08156bf09b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4.4
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

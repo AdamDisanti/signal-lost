@@ -147,6 +147,24 @@ Amanda's fixes and changes after reviewing the world. See [Crystal Caves](crysta
   - the island kit's sea, deep-water rescue, arrival dock and sailboat, and a not-walkable sea floor;
   - Cavendish and Eugene at an island camp (a base camp variant with an `IslandCamp`), set up as in the desert.
   - These replace the level's own dock, boat, ocean and `FallRespawn`, which were removed. Eugene no longer has ambush cousins here, matching the desert camp.
+- **Nothing climbable (later on 11-09):**
+  - **The bug:** the player could reach the top of the mountains by pressing Jump over and over.
+  - **The cause:** the shared player can jump on any slope that isn't vertical.
+  - **First attempt, withdrawn:** a footing and sliding rule in the shared `FirstPersonController`. Amanda found it made ordinary ground and the ramp slip, and wanted every level to keep its original movement. The player controller is unchanged.
+  - **The fix:** vertical rock walls instead, wherever the player must not climb:
+    - the mountains' foot round the ledge;
+    - both sides of the cut to the mouth;
+    - the upper level's cliff in the cave, with a flat top back to the edge and full height where it meets the cave wall.
+  - **Getting back up:** you may jump down from the upper level, but the only way back up is one ramp, moved from near the entrance to the far side of the beetles' zone, so you find it after that fight.
+  - **Getting stuck:** Amanda got stuck on the way up to the cave. The ledge had steep spots: hard 2 m terraces, a short pad blend at the top of the cove, and a steep rise at the mountains' foot. The ledge is now soft-terraced and gentler, and the walk from the dock to the cave stays under 35°.
+  - **The check:** the terrain self-check verifies all of this.
+- **Polish (later on 11-09):**
+  - **Ramp:** the ramp still made the player slip, so it is now a long, even incline of about 12° (it was an S-curve, steepest in the middle at about 38°), and wider. The self-check holds it to 20°.
+  - **Walls:** the barrier walls looked broken (thin sheets with gaps behind them and seams at the mouth). They are now solid blocks that run back into the hillside, and the mountains' and the cut's walls are one piece.
+  - **Camp on a slope:** the camp sat on sloping ground, with some pieces floating and others sunk. The widened ease at the top of the cove had reached its pad. The camp's pad now always wins, and validation checks every camp piece stands on the ground.
+  - **Cave mouth:** looking out of the cave there was a block on one side and a wall with a hole on the other, not visible from outside. Two things caused it: the cut's walls ran 8 m into the tunnel, and the mountain wall's solid top reached out over the cut. The walls now stop at the mouth and turn into a flat face beside the opening, no top reaches over the cut, and tall props are kept out of the view in front of the mouth.
+  - **Corner right of the mouth:** a slab stuck out of the mountain wall where it turns from the cut onto the mountain foot. The wall's top had run 15 m straight back over open ledge, because the high ground there is diagonally behind the wall. Tops now reach only the nearest hillside within 8 m, in any direction behind the face, or are left off.
+  - **Camp overrides (this level only):** the supplies crate and barrel are moved clear of the tent, and Eugene sits on the ground in front of his log instead of floating on top of it.
 - **Not decided, so not invented:** Crystal Caves outfits and camp styling (no `StageTheme` yet, so the crew wears its Crash Meadow look), and a departure dock and voyage route (waiting on the Fog Forest).
 
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.

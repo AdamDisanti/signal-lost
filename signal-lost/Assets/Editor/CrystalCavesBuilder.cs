@@ -144,6 +144,9 @@ namespace SignalLost.Editor
             Mesh roofMesh = T.BuildRoofMesh(out T.Surface[] roofSurfaces);
             MeshCollider roof = Solid("Cave Roof", root.transform, SaveMesh(roofMesh), roofSurfaces);
             roof.gameObject.AddComponent<NavMeshModifier>().ignoreFromBuild = true; // the mountain top is out of reach
+            // Vertical rock wherever the player must not climb: the mountains' foot, the cut to the mouth, the cave's cliffs.
+            Mesh barrierMesh = T.BuildBarrierMesh(T.Barriers(), out T.Surface[] barrierSurfaces);
+            Solid("Climbing Barriers", root.transform, SaveMesh(barrierMesh), barrierSurfaces);
             Physics.SyncTransforms();
 
             // The shared island pieces: the sea (with its deep-water rescue) and the arrival dock at the foot of the cove.
@@ -275,8 +278,6 @@ namespace SignalLost.Editor
             for (int n = 0, tries = 0; n < 10 && tries < 4000; tries++)
             {
                 if (!ShelfPoint(rng, 2f, true, out Vector2 p)) continue;
-                T.Coast(p.x, p.y, out _, out float mountain);
-                if (mountain < 0.05f && rng.NextDouble() > 0.15) continue; // mostly along the mountains' foot
                 Place(MeadowAssetBuilder.PrefabPath(MeadowAssetBuilder.Trees[rng.Next(3)]), pines, Ground(p) + Vector3.down * 0.15f, Quaternion.Euler(Range(rng, -5f, 5f), Range(rng, 0f, 360f), 0f), Vector3.one * Range(rng, 0.8f, 1.2f));
                 n++;
             }
@@ -304,12 +305,14 @@ namespace SignalLost.Editor
             {
                 p = T.LedgeCentre + new Vector2(Range(rng, -70f, 70f), Range(rng, -60f, 60f));
                 T.Coast(p.x, p.y, out float land, out float mountain);
-                if (land < 0.98f || mountain > 0.3f || T.Roofed(p.x, p.y) || T.GroundAt(p.x, p.y) < 4f) continue;
+                if (land < 0.98f || mountain > 0.02f || T.Roofed(p.x, p.y) || T.GroundAt(p.x, p.y) < 4f) continue; // in front of the mountains' wall
                 if (Slope(p) > 26f) continue;
                 if (Vector2.Distance(p, T.Camp) < T.CampClearRadius + pad) continue;
                 if (T.DistanceToCove(p) < 11f + pad) continue;
                 if (T.DistanceToMouth(p) < 15f + pad) continue;
                 if (tall && DistanceToSegment(p, T.CoveBottom, T.MouthPath[1]) < 7f + pad) continue;
+                // Nor anything tall in front of the mouth, so the view out of the cave is clear.
+                if (tall && DistanceToSegment(p, T.MouthPath[0], T.MouthPath[0] + Vector2.down * 60f) < 18f + pad) continue;
                 return true;
             }
             p = default;
@@ -398,6 +401,8 @@ namespace SignalLost.Editor
         {
             if (T.DistanceToMouth(p) < 12f + pad) return false;
             if (T.RampWeight(p.x, p.y) > 0.01f) return false;
+            float edge = T.UpperDistance(p.x, p.y);
+            if (edge > -8f - pad && edge < 4f + pad) return false; // the cliff and its barrier wall
             if (Vector2.Distance(p, T.BeetleZone) < T.ZoneRadius + pad || Vector2.Distance(p, T.MiniBossZone) < T.ZoneRadius + pad) return false;
             Vector2 boss = new Vector2((p.x - T.FinalBossZone.x) / (T.FinalBossRadii.x + pad), (p.y - T.FinalBossZone.y) / (T.FinalBossRadii.y + pad));
             return boss.magnitude >= 1f;
@@ -538,6 +543,9 @@ namespace SignalLost.Editor
             camp.name = "Crystal Caves Camp";
             Transform Child(string name) => camp.GetComponentsInChildren<Transform>(true).First(t => t.name == name);
             Transform cavendishLog = Child("Cavendish's Log"), otherLog = Child("LogSeat");
+            // Here only (overrides in this variant): the supplies and barrel stand clear of the tent instead of in it.
+            Child("Cavendish's Supplies").localPosition = new Vector3(-1.5f, 0f, 3.5f);
+            Child("Barrel").localPosition = new Vector3(-0.4f, 0f, 4.4f);
             Transform Mark(string name, Vector3 at)
             {
                 var mark = new GameObject(name).transform;
@@ -551,7 +559,9 @@ namespace SignalLost.Editor
             // Where Cavendish and Eugene sit (the log tops, facing the fire) and stand while pitching camp, as at the desert camp.
             var island = new SerializedObject(camp.AddComponent<IslandCamp>());
             island.FindProperty("cavendishSeat").objectReferenceValue = Mark("Cavendish Seat", camp.transform.InverseTransformPoint(LogTop(cavendishLog)));
-            island.FindProperty("merchantSeat").objectReferenceValue = Mark("Merchant Seat", camp.transform.InverseTransformPoint(LogTop(otherLog)));
+            // Eugene sits on the ground in front of his log, facing the fire: perched on the log, his legs hang in the air.
+            Vector3 log = otherLog.localPosition;
+            island.FindProperty("merchantSeat").objectReferenceValue = Mark("Merchant Seat", new Vector3(log.x, 0f, log.z) * (1f - 1.3f / new Vector2(log.x, log.z).magnitude));
             island.FindProperty("cavendishStand").objectReferenceValue = Mark("Cavendish Stand", new Vector3(1.9f, 0f, -1.3f));
             island.FindProperty("merchantStand").objectReferenceValue = Mark("Merchant Stand", new Vector3(2.6f, 0f, -2.6f));
             Transform[] order = { Child("Fire Pit"), cavendishLog, otherLog, Child("Tent"), Child("Cavendish's Supplies"), Child("Barrel"), Child("Trophy Stands"), Child("Campfire") };
@@ -737,6 +747,13 @@ namespace SignalLost.Editor
             IslandCamp camp = EnemyTestBuilder.All<IslandCamp>().SingleOrDefault();
             EnemyTestBuilder.Require(camp != null && camp.Cavendish != null && camp.Merchant != null && camp.CavendishSeat != null && camp.MerchantSeat != null,
                 "Expected Cavendish's camp with Cavendish, Eugene and their seats.");
+            // Every piece of the camp stands on the ground: none floating, none sunk into it.
+            foreach (Transform piece in camp.transform)
+            {
+                if (piece.GetComponentInChildren<Renderer>() == null || piece.name == "Residents") continue;
+                float ground = T.GroundAt(piece.position.x, piece.position.z);
+                EnemyTestBuilder.Require(Mathf.Abs(piece.position.y - ground) < 0.08f, $"The camp's {piece.name} is {piece.position.y - ground:+0.00;-0.00} m off the ground.");
+            }
             MerchantCrab eugene = EnemyTestBuilder.All<MerchantCrab>().SingleOrDefault();
             EnemyTestBuilder.Require(eugene != null && new SerializedObject(eugene).FindProperty("startFriendly").boolValue, "Expected one friendly Eugene.");
             NavMeshSurface surface = EnemyTestBuilder.All<NavMeshSurface>().Single();
