@@ -159,9 +159,20 @@ The dive now finishes a full movement step, continuing just beyond its nominal e
 7. **Defeat it:** it explodes and sinks, and the Engine Core floats up. Pick it up: "RECOVERED: ENGINE CORE". A moment later you are back at the exit. Walk into it: "DESERT CLEARED! NextStage unlocked (it hasn't been built yet)."
 8. No Console errors. Frame rate stays reasonable in phase 4 with many fires (the light budget caps fire lights at 8).
 
+## In the Desert Dunes level (11-08)
+
+The worm is now in the level, as part of the [desert story](desert-story.md):
+
+- **The trigger:** it is sprung at Cavendish's camp when the last Chop Shop trophy goes on the rack, not at a stage exit. The `DesertStageExit` sits at the rack with **Wait For Arming** on, and **Return After Core** off.
+- **The arena:** it fights in a cavern under its old sand bowl (`CorewormLair.prefab`), with the same arena rules.
+- **Afterwards:** the Engine Core and a fang trophy bring down a rock-choked gash in the roof (behind a red crush zone). Sand pours in as a debris cone, rocks tumble down it in a recorded physics fall that is the same every time, and the player climbs the rubble out.
+- **The worm itself:** `Coreworm.UseGroundHeight` lets it hide and erupt at the camp's sand height while its arena floor is 22 m lower. The fight always runs on the arena floor.
+
+The test scene is unchanged: walk up to the beacon.
+
 ## Open questions
 
-- **Placement:** this boss and its arena belong at the end of Nicole's Desert Dunes scene. The exit and arena can move there as they are, but the change needs coordinating with her.
+- **Placement:** done on 11-08 (see above). The test scene stays for working on the fight on its own.
 - **Parts gate:** the exit requires the three mini-boss parts, counted from `ShipPartDrop.Recovered`. Should it also require anything else?
 - **Saving:** progression is per Play session only. How the Engine Core and the cleared stage persist across sessions, deaths and the next stage is undecided.
 - **Next stage:** the exit calls it `NextStage` and loads nothing until a scene is named.

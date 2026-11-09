@@ -211,14 +211,16 @@ namespace SignalLost.Player
 
             bool canMove = (canControl || (menuOpen && Application.isFocused)) && !IsStunned;
 
-            // Testing cheat (End): 9999 damage and free flight.
+            // Testing tools: cheat mode (End: 9999 damage and free flight) and stage skip (arrows: next / previous stage).
             if (canControl && SignalLost.Core.KeyBindings.WasPressed("cheat"))
             {
                 SignalLost.Core.CheatMode.Toggle();
                 SignalLost.Enemies.Desert.MiniBossHud.Message(SignalLost.Core.CheatMode.Enabled
-                        ? "CHEAT MODE ON: 9999 damage, flying (" + SignalLost.Core.KeyBindings.Display("jump") + " up, " + SignalLost.Core.KeyBindings.Display("crouch") + " down)"
-                        : "CHEAT MODE OFF", new Color(1f, 0.85f, 0.3f), 2.5f);
+                        ? "TESTING TOOL: CHEAT MODE ON: 9999 damage, flying (" + SignalLost.Core.KeyBindings.Display("jump") + " up, " + SignalLost.Core.KeyBindings.Display("crouch") + " down)"
+                        : "TESTING TOOL: CHEAT MODE OFF", new Color(1f, 0.85f, 0.3f), 2.5f);
             }
+            if (canControl && SignalLost.Core.KeyBindings.WasPressed("stage_next")) SignalLost.Progression.StageSkip.Go(1);
+            else if (canControl && SignalLost.Core.KeyBindings.WasPressed("stage_previous")) SignalLost.Progression.StageSkip.Go(-1);
             if (SignalLost.Core.CheatMode.Enabled)
             {
                 Fly(canMove);
@@ -338,7 +340,7 @@ namespace SignalLost.Player
             if (!SignalLost.Core.CheatMode.Enabled) return;
             var style = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold };
             style.normal.textColor = new Color(1f, 0.85f, 0.3f);
-            GUI.Label(new Rect(12f, 8f, 420f, 24f), "CHEAT MODE (" + SignalLost.Core.KeyBindings.Display("cheat") + " to turn off)", style);
+            GUI.Label(new Rect(12f, 8f, 520f, 24f), "TESTING TOOL: CHEAT MODE (" + SignalLost.Core.KeyBindings.Display("cheat") + " to turn off)", style);
         }
 
         private void StartSlide(Vector3 wish)

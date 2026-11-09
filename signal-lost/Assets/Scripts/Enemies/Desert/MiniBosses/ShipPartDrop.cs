@@ -49,6 +49,18 @@ namespace SignalLost.Enemies.Desert
             return count;
         }
 
+        /// <summary>
+        /// Records a part as recovered without anything being picked up (the stage-skip testing tool, which counts an
+        /// earlier stage as finished). Does nothing if that part is already recovered.
+        /// </summary>
+        public static void Record(string partName, string stage)
+        {
+            for (int i = 0; i < Recovered.Count; i++)
+                if (Recovered[i] == partName && RecoveredStages[i] == stage) return;
+            Recovered.Add(partName);
+            RecoveredStages.Add(stage);
+        }
+
         /// <summary>Detaches <paramref name="part"/> from its owner and turns it into a pickup near <paramref name="near"/>.</summary>
         public static ShipPartDrop Create(Transform part, string name, Vector3 near, string stage = StageProgress.Desert)
         {
