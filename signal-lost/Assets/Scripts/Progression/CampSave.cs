@@ -16,7 +16,8 @@ namespace SignalLost.Progression
 
         public static readonly Trophy[] All =
         {
-            new Trophy { Id = "chief_toad_crown", Name = "Chief Toad's Crown", Boss = "Chief Toad" }
+            new Trophy { Id = "chief_toad_crown", Name = "Chief Toad's Crown", Boss = "Chief Toad" },
+            new Trophy { Id = "clutch_aviators", Name = "Clutch's Aviators", Boss = "Clutch McCheddar" }
         };
 
         public static Trophy Find(string id)

@@ -289,3 +289,13 @@ Christian's direction, as built. Still built in code, with no art assets.
   - "More natural drinking, a big swig, easily turned into hold to chug": the flask comes up from below to the mouth with its bottom tipped up and the head tipped back, with two gulps; the pose is driven by `raise` and `gulps` so a hold-to-chug can stretch the swig. **Open:** the hold-to-chug mechanic itself (not built).
 - **Open:** whether the gloves should stay or become bare hands like the reference (`FirstPersonHands` glove colour), and whether the player should get a world body later.
 
+## The Mudlands and Drunk Driving (11-08-26)
+
+Christian's request, built on `feature/mudlands`; the full design is in [The Mudlands](mudlands.md).
+
+- **A new biome after the desert**, not in the original document's list. Same loop as before: camp, Cavendish's quest lines (three, in any order), a mini-boss at the end of each, then a stage boss. Built by a code builder like the tutorial and desert.
+- **Drunk Driving** is the area's ability, unlocked by the Learner's Permit key item from the first quest line and kept after. It reuses the flask button: holding it chugs the scotch flask dry (2 drinks, no healing) and summons a car for 14 s. Small creatures and wooden things get run over; anything big or solid head-on makes it explode (area damage and stun) and you are thrown clear. 30 s cooldown; refused when too drunk, at camp, or with no room.
+- **Exception to the 10-22 stun rule:** the car's explosion stuns, including on mini-bosses, because the boss designs ask for it (Kart Kong's kart breaks, Silt walls it off). **Open.**
+- **New upgrade slot "Car"** with seven car upgrades, plus three general Mudlands upgrades; three use the mini-bosses' key items.
+- **Stage boss getaway:** Clutch McCheddar flees at 15% and must be rammed with the car; the chase hands out a free car, so the ability can't be on cooldown there.
+- **Open:** where the Mudlands sits in the stage order; all numbers; whether the driving HUD should move to the game's HUD style.

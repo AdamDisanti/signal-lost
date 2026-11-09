@@ -65,6 +65,10 @@ The hands and the pockets menu's mechanic are built by the same code (`MechanicM
 - **Baked meshes:** the seamless meshes take a moment to build, so they are baked into `Resources/SignalLost/MechanicMeshes/` (one asset per mesh) with **Signal Lost > Models > Bake Mechanic Meshes** and loaded from there. If you change a shape in `MechanicModel.cs`, bump `MechanicModel.MeshVersion` and bake again. Without an up-to-date bake the game still works: it builds them when the scene starts (a short hitch) and warns in the Console.
 - Colours, size, poses, finger grip and curl speed are at the top of `FirstPersonHands.cs`; the shapes and the body's proportions are in `MechanicModel.cs`.
 
+## Drunk Driving (Mudlands)
+
+`Scripts/Mudlands/Driving/DrunkDriving.cs` adds itself at runtime to whichever object has the `PlayerFlask` (no prefab change). It does nothing until the pockets hold the **Learner's Permit** key item; after that, holding the drink button for 0.3 s chugs the flask dry (`FirstPersonHands` poses it with the flask's `PoseDrink` hook) and summons a car instead of sipping. While driving, the walking controller is switched off, the player is parented to the seat and hidden, made invulnerable (hits damage the car instead) and a chase camera takes over. `PlayerFlask` gained three small hooks for it: `Actions`, `CancelSip()` and `AddDrinks(n)`. Details in [The Mudlands](mudlands.md#3-drunk-driving).
+
 ## HUD and menus
 
 All UI is drawn in code on singleton canvases (`Scripts/UI/`), so there are no UI assets to import.

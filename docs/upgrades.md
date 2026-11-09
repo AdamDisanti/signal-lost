@@ -32,6 +32,10 @@ Runtime code finds models and icons through `ScrapCatalog` (in `Resources/Signal
 
 Each upgrade has a generated part (`Prefabs/Items/Upgrades/`, `Editor/UpgradeAssetBuilder.cs`) that the pockets menu's mechanic wears: a copper coil, fins and a striking plate on the laser, an antenna on the scanner, iron bands on the flask, padding and kneepads on the suit.
 
+## Mudlands upgrades
+
+The Mudlands adds a **Car** slot (a Car filter in Bucket & Barter, a Car group in the pockets) for Drunk Driving, seven car upgrades and three general ones; three need a mini-boss key item (Kart Wheel, Mudstone Bead, Witch Ember). The table is in [The Mudlands](mudlands.md#7-upgrades). They have no worn parts on the Gear-tab figure yet.
+
 ## Adding upgrades (desert and later)
 
 1. Append an `Upgrade` to `UpgradeCatalog.All` (`Scripts/Inventory/Upgrades.cs`) with a new, never-reused `Id`, a `Region`, a `Cost`, and its effect fields. Set `KeyItem` for a mini-boss recipe; `PlayerInventory.AddKeyItem` gives the item.

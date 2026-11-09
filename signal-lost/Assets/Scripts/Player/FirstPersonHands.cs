@@ -139,8 +139,10 @@ namespace SignalLost.Player
                            (laser == null || (!laser.IsCharging && !laser.IsSwinging));
             runWeight = Mathf.MoveTowards(runWeight, running ? 1f : 0f, Time.deltaTime * (running ? 4f : 7f));
             PoseRightHand();
-            float swig = PoseLeftHand(flask != null ? flask.DrinkProgress : 0f);
-            TiltHead(swig * swigHeadTilt);
+            if (driving == null) driving = GetComponent<SignalLost.Mudlands.DrunkDriving>(); // added at runtime
+            bool chugging = driving != null && driving.ChugActive;
+            float swig = chugging ? PoseChug() : PoseLeftHand(flask != null ? flask.DrinkProgress : 0f);
+            TiltHead(swig * (chugging ? swigHeadTilt * 2.2f : swigHeadTilt));
         }
 
         // ---------- Right hand ----------
@@ -266,6 +268,18 @@ namespace SignalLost.Player
             else if (t < SwigEnd) { raise = 1f; gulps = GulpsPerSip * (t - RaiseEnd) / (SwigEnd - RaiseEnd); }
             else raise = 1f - (t - SwigEnd) / (LowerEnd - SwigEnd);
             return PoseDrink(raise, gulps);
+        }
+
+        // ---------- The Mudlands chug (hold F with the Learner's Permit) ----------
+
+        private SignalLost.Mudlands.DrunkDriving driving;
+
+        // The same drinking pose with the same flask, driven by the chug instead of the timed sip: raised and held
+        // bottoms-up until it is drained.
+        private float PoseChug()
+        {
+            SetLeftHolding(true);
+            return PoseDrink(driving.ChugRaise, driving.ChugGulps);
         }
 
         /// <summary>
