@@ -97,7 +97,7 @@ namespace SignalLost.Editor
             cavendish.AddComponent<QuestSignalSource>();
             var voice = new GameObject("Cavendish Dialogue");
             voice.transform.SetParent(cavendish.transform, false);
-            voice.transform.localPosition = new Vector3(0f, 2.45f, 0f);
+            voice.transform.localPosition = CavendishModelBuilder.DialogueHeight; // just above his helmet
             var dialogue = new SerializedObject(voice.AddComponent<NpcDialogue>());
             dialogue.FindProperty("speaker").stringValue = "Cavendish";
             dialogue.ApplyModifiedPropertiesWithoutUndo();
