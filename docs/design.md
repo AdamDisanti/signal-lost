@@ -506,3 +506,21 @@ Amanda's request: the Crystal Caves mini-boss is four beetles who want to be a b
 - **Shared code:** `DesertMiniBoss` gained opt-outs of phase 2 (`HasPhaseTwo`) and of the boss bar (`ShowsBossBar`), and a protected `Engage()`. The defeat banner no longer mentions a part when there is none.
 - **Test scene only:** it is not placed in the level yet.
 
+## Final level and boss (planning 11-06 and 11-09; first slice 11-09)
+
+Adam's planning sessions; see [final boss](final-boss.md).
+
+- **Supersedes, for the finale:** the design document's "Return to crash site: Cavendish in a mech / Reactor Core" stays. These are added:
+  - a wasteland theme;
+  - raid-style shield tasks;
+  - Eugene's crew call-in;
+  - an escape off the island, then the space casino.
+- **The parts:** each island's main part becomes one of the mech's weapons, and the mini-boss parts are its armour. This includes the Mudlands' Landing Gear, which wasn't in the design document's list.
+- **Built in the first slice:** see the final boss page. The rest is placeholders, listed there.
+- **Shared code touched:**
+  - a Finale stage, last in the stage-skip tool, so the right arrow in the desert now goes to the Wasteland;
+  - a `call_crew` key binding (G);
+  - `PlayerSlowReceiver.ExtraSlow`;
+  - the scene added to the build list.
+- **Open:** balance, the mech's final look, the approach and cutscenes, and the island order in between.
+

@@ -55,7 +55,7 @@ Press **End** to switch cheat mode on or off. A banner says which, and "TESTING 
 
 ### Stage skip (left and right arrows)
 
-**Right arrow** goes to the next stage and **left arrow** to the previous one, in the order the islands are sailed: Crash Meadow (the tutorial), then the Desert Dunes.
+**Right arrow** goes to the next stage and **left arrow** to the previous one, in the order the islands are sailed: Crash Meadow (the tutorial), then the Desert Dunes, then the Wasteland (the finale, kept last; the islands in between join the list once their order is decided).
 
 - **Earlier stages count as finished.** Arriving this way finishes every stage before the one you land in, the way playing it through would have left things:
   - the stage is cleared, so its boat sails on;
@@ -63,7 +63,7 @@ Press **End** to switch cheat mode on or off. A banner says which, and "TESTING 
   - its bosses' trophies are on the camp stands. Going to the desert puts the Chief Toad's crown up. The Chop Shop's three go on the desert rack (stands 4-6) and the fang on a boss stand.
 - **The stage you land in starts fresh,** with its own quests from the beginning.
 - **Going back to the tutorial** has nothing before it to finish, so it starts over (things already finished stay finished).
-- **Right arrow in the desert:** the Fog Forest isn't built, so it stays put with a message. The desert still counts as finished.
+- **Right arrow in the desert:** goes to the Wasteland (the finale) until the islands in between are added. **Right arrow in the Wasteland:** the ending isn't built, so it stays put with a message.
 - **Where it works:** only in a stage scene, not in test scenes or the menu.
 - **Saved:** the trophies it places are saved like real ones (New Game clears them). Everything else lasts for the play session.
 - **Not carried:** upgrades and pockets aren't carried between scenes for anyone yet, so the tool doesn't add them.
