@@ -7,14 +7,15 @@ namespace SignalLost.Finale
 {
     /// <summary>
     /// The final fight's call-in (Adam, 11-09): press the "call_crew" key (G by default, rebindable) and Eugene charges
-    /// in with three of his cousins for <see cref="Duration"/> seconds. They draw some of the mech's fire, pinch it
+    /// in with all ten of his cousins (the whole Bucket Brothers gang) for <see cref="Duration"/> seconds. They draw some of the mech's fire, pinch it
     /// during damage windows and clear the adds during shield tasks. They can't be hurt. Then a cooldown.
     /// Only works while the fight is on (<see cref="FinaleEncounter"/> turns it on and off).
     /// </summary>
     public sealed class CrewCallIn : MonoBehaviour
     {
         public const float Duration = 15f, Cooldown = 60f;
-        private const float HitAdds = 14f, HitMech = 9f;
+        // Eleven crabs: they shred the horde, but only chip the mech (about 5% of its health per call).
+        private const float HitAdds = 14f, HitMech = 3f;
 
         private static readonly string[] EugeneLines =
         {
@@ -65,7 +66,9 @@ namespace SignalLost.Finale
             for (int i = 0; i < crew.Length; i++)
             {
                 if (crew[i] == null) continue;
-                Vector3 at = transform.position + back * (3f + (i % 2) * 1.5f) + side * ((i - (crew.Length - 1) * 0.5f) * 2.4f);
+                // Two rows behind the player, Eugene first.
+                int row = i < 6 ? 0 : 1, column = i < 6 ? i : i - 6, perRow = row == 0 ? Mathf.Min(6, crew.Length) : crew.Length - 6;
+                Vector3 at = transform.position + back * (3f + row * 2.2f) + side * ((column - (perRow - 1) * 0.5f) * 2.3f);
                 AllyCrab.Spawn(crew[i], i == 0 ? "Eugene" : crew[i].name, at, Quaternion.LookRotation(-back), Duration, HitAdds, HitMech, encounter.Mech);
             }
             DialogueUi.Instance?.Subtitle("Eugene", EugeneLines[line++ % EugeneLines.Length], 3f);

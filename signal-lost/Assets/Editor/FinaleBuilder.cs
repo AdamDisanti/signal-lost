@@ -36,11 +36,16 @@ namespace SignalLost.Editor
         private const string NavMeshPath = "Assets/Scenes/Large Areas/WastelandNavMesh.asset";
         private const string CavendishPath = "Assets/Prefabs/Enviornment objects/GrayboxProps/CapybaraAstronaut.prefab";
         private const string EugenePath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
-        private static readonly string[] CousinPaths = { "Assets/Prefabs/Enemies/Cousins/Moe.prefab", "Assets/Prefabs/Enemies/Cousins/Larry.prefab", "Assets/Prefabs/Enemies/Cousins/Curly.prefab" };
+        /// <summary>The whole Bucket Brothers gang answers the call-in (Adam, 11-09).</summary>
+        private static readonly string[] CousinPaths =
+        {
+            "Moe", "Larry", "Curly", "Shemp", "Clawdius", "Sir Pinchington", "Barnacle Bob", "Crabigail", "Little Steve", "Big Steve"
+        };
+        private const string CousinFolder = "Assets/Prefabs/Enemies/Cousins/";
         /// <summary>Stand-ins for the adds until each island's own enemies are built (Adam, 11-09).</summary>
         private static readonly string[] AddPaths =
         {
-            "Assets/Prefabs/Enemies/HermitCrab.prefab", "Assets/Prefabs/Enemies/Desert/SparkTick.prefab",
+            "Assets/Prefabs/Enemies/HermitCrab.prefab", "Assets/Prefabs/Enemies/Desert/SparkTick.prefab", "Assets/Prefabs/Enemies/MortarFrog.prefab",
             "Assets/Prefabs/Enemies/Desert/HubcapArmadillo.prefab", "Assets/Prefabs/Enemies/Mudlands/Mudpuppy.prefab"
         };
 
@@ -556,7 +561,7 @@ namespace SignalLost.Editor
             mech.transform.SetPositionAndRotation(GroundAt(MechHome), Quaternion.LookRotation(new Vector3(look.x, 0f, look.y)));
             var health = mech.AddComponent<Health>();
             var hp = new SerializedObject(health);
-            hp.FindProperty("maxHealth").floatValue = 4500f;
+            hp.FindProperty("maxHealth").floatValue = 6000f;
             hp.ApplyModifiedPropertiesWithoutUndo();
             var agent = mech.AddComponent<NavMeshAgent>();
             agent.radius = 3f;
@@ -608,8 +613,17 @@ namespace SignalLost.Editor
             }
             Fill(e.FindProperty("addPrefabs"), adds.ToArray());
             var crew = new List<Object> { AssetDatabase.LoadAssetAtPath<GameObject>(EugenePath) };
-            foreach (string path in CousinPaths) crew.Add(AssetDatabase.LoadAssetAtPath<GameObject>(path));
+            foreach (string cousin in CousinPaths)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CousinFolder + cousin + ".prefab");
+                if (prefab != null) crew.Add(prefab);
+            }
             Fill(e.FindProperty("crewPrefabs"), crew.ToArray());
+            // The originals Cavendish copied as robot mini-bosses (the Mudlands ones are built in code).
+            e.FindProperty("robotSources.chiefToad").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemies/Meadow/ChiefToad.prefab");
+            e.FindProperty("robotSources.oldBuzzard").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemies/Desert/MiniBosses/OldBuzzard.prefab");
+            e.FindProperty("robotSources.burnout").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemies/Desert/MiniBosses/Burnout.prefab");
+            e.FindProperty("robotSources.coreworm").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(DesertBossBuilder.WormPath);
             e.ApplyModifiedPropertiesWithoutUndo();
         }
 

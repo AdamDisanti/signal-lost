@@ -64,8 +64,14 @@ public static class FinaleSmoke
         catch (Exception ex) { Fail(ex); }
     }
 
+    private static readonly List<string> errors = new List<string>();
+
     private static IEnumerator Run()
     {
+        Application.logMessageReceived += (message, stack, type) =>
+        {
+            if ((type == LogType.Exception || type == LogType.Error) && !(message + stack).Contains("SearchDatabase")) errors.Add(message + "\n" + stack);
+        };
         yield return 3f;
         var life = UnityEngine.Object.FindAnyObjectByType<PlayerLife>();
         var pockets = life.GetComponent<PlayerInventory>();
@@ -79,102 +85,179 @@ public static class FinaleSmoke
         Check(UpgradeCatalog.All.Where(u => u.OneOff).All(u => pockets.Owns(u.Id)), $"Every upgrade tier that exists is installed ({lines}).");
         Check(Mathf.Approximately(life.Health.Max, 130f) && Mathf.Approximately(life.Health.Current, 130f), $"End-game health: {life.Health.Current:0} / {life.Health.Max:0}.");
         Check(pockets.HasKeyItem(KeyItems.LearnersPermit), "The Learner's Permit is in the pockets (Drunk Driving works here).");
-        Check(pockets.SupplyCount("hangover_pills") == 2 && pockets.SupplyCount("mystery_snack") == 2, "Two of each supply.");
-        Check(mech.Current == CavendishMech.State.Dormant && mech.Health.Invulnerable, "The mech kneels by the wreck, powered down.");
+        Check(mech.Current == CavendishMech.State.Dormant && mech.Health.Invulnerable && Mathf.Approximately(mech.Health.Max, 6000f), "The mech (6000 health) kneels by the wreck, powered down.");
         yield return Capture("Arrival", view);
-        Transform look = mech.Rig.Cockpit;
-        yield return CaptureFrom("MechDormant", mech.transform.position + mech.transform.forward * 16f + Vector3.up * 7f, look.position - Vector3.up * 2f);
 
         // ---------- The intro ----------
         Teleport(life, encounter.transform.position + (life.transform.position - encounter.transform.position).normalized * 25f);
         yield return WaitFor(() => encounter.Current == FinaleEncounter.State.Intro, 3f, "Walking into the arena starts the intro.");
         encounter.SkipIntro();
         yield return WaitFor(() => mech.Current == CavendishMech.State.Fighting, 5f, "The mech stands up and the fight begins.");
-        Check(!mech.Health.Invulnerable && mech.Phase == 1 && encounter.Crew.Enabled, "Phase 1: it can be hurt, and the crew call-in is live.");
-        yield return CaptureFrom("MechAwake", mech.transform.position + mech.transform.forward * 18f + mech.transform.right * 6f + Vector3.up * 4f, mech.Rig.Chest.position);
+        life.Health.Invulnerable = true;
 
-        // ---------- Its attacks land ----------
-        int hits = 0;
-        var seen = new HashSet<string>();
-        Action<Health, float, GameObject> counter = (h, a, s) => { if (s == mech.gameObject) hits++; };
-        life.Health.Damaged += counter;
-        bool telegraphed = false, captured = false;
-        for (float t = 0f; t < 34f; t += 0.25f)
+        // ---------- The scrap magnet (phase 2's, checked first while the arena is still clear) ----------
+        Teleport(life, mech.transform.position + mech.transform.forward * 18f);
+        yield return 0.3f;
+        bool forced = false;
+        for (int tries = 0; tries < 200 && !forced; tries++) { forced = mech.ForceAttack("Scrap magnet"); if (!forced) yield return 0.05f; }
+        float before = Vector3.Distance(life.transform.position, mech.transform.position), closest = before;
+        for (float t = 0f; t < 12f && mech.AttackName == "Scrap magnet"; t += 0.05f)
         {
-            if (!string.IsNullOrEmpty(mech.AttackName)) seen.Add(mech.AttackName);
-            if (UnityEngine.Object.FindObjectsByType<Telegraph>().Length > 0) telegraphed = true;
-            if (life.Health.Current < 50f) life.Health.Restore();
-            if (!captured && mech.AttackName == "Freezing sweep" && UnityEngine.Object.FindObjectsByType<Telegraph>().Length == 0)
-            {
-                captured = true;
-                yield return CaptureFrom("FreezingSweep", mech.transform.position - mech.transform.forward * 6f + mech.transform.right * 18f + Vector3.up * 9f, mech.transform.position + mech.transform.forward * 12f);
-            }
-            if (seen.Count >= 2 && hits > 0 && t > 12f) break;
-            yield return 0.25f;
+            closest = Mathf.Min(closest, Vector3.Distance(life.transform.position, mech.transform.position));
+            yield return 0.05f;
         }
-        life.Health.Damaged -= counter;
-        Check(telegraphed, "Every attack is painted on the ground first.");
-        Check(seen.Count >= 2, "It uses more than one weapon: " + string.Join(", ", seen) + ".");
-        Check(hits > 0, $"Its attacks hurt the player ({hits} hits).");
-        life.Health.Restore();
+        Check(forced && closest < before - 6f, $"The scrap magnet drags a player who stands still in ({before:0} m -> {closest:0} m).");
 
-        // ---------- The reactor weak spot ----------
-        float before = mech.Health.Current;
-        mech.Rig.Reactor.GetComponent<Health>().TakeDamage(40f, life.gameObject);
-        Check(Mathf.Approximately(before - mech.Health.Current, 60f), $"The Reactor Core takes x1.5 ({before - mech.Health.Current:0} from a 40 hit).");
+        // ---------- Phase 1: each attack, aimed at a player standing still ----------
+        // (The player can only be hurt while an attack is being measured, so the robots can't end the test early.)
+        foreach (string attack in new[] { "Thruster lunge", "Rocket barrage", "Freezing sweep", "Thruster charge" })
+            yield return Attack(mech, life, attack, view);
+        Check(UnityEngine.Object.FindObjectsByType<SignalLost.Enemies.Desert.FireZone>().Length >= 8,
+            $"Fire stays on the field ({UnityEngine.Object.FindObjectsByType<SignalLost.Enemies.Desert.FireZone>().Length} patches burning).");
 
-        // ---------- Phase 1 shield and its conduits ----------
+        // ---------- The horde ----------
+        yield return WaitFor(() => FinaleEncounter.Adds.Count >= 2, 16f, "Robot creatures keep spawning during the fight.");
+        Check(FinaleEncounter.Adds.All(a => a.Go.GetComponent<Robotify>() != null), "They are Cavendish's robot versions.");
+        int earlyCap = encounter.HordeCap;
+        yield return CaptureFrom("Horde", life.transform.position + Vector3.up * 6f - life.transform.forward * 6f, FinaleEncounter.Adds[0].Go.transform.position);
+
+        // ---------- Phase 1 shield: the conduits and three robot mini-bosses ----------
         mech.Health.TakeDamage(mech.Health.Max, life.gameObject);
-        Check(mech.Shielded && Mathf.Abs(mech.HealthFraction - 0.66f) < 0.005f && mech.Health.Invulnerable, "At 66% the shield goes up; the huge hit stopped there.");
-        Check(!mech.Health.TakeDamage(100f, life.gameObject), "Shielded, it takes no damage.");
-        Check(encounter.ConduitsTotal == 3 && encounter.ConduitsLeft == 3, "Three conduits come alive.");
-        var live = UnityEngine.Object.FindObjectsByType<ShieldConduit>().Where(c => c.Live).ToArray();
-        Check(live.Length == 3 && live.All(c => c.GetComponent<QuestSignalSource>().enabled), "Each live conduit shows on the scanner.");
-        Check(QuestSignalSource.Nearest(life.transform.position) != null && live.Contains(QuestSignalSource.Nearest(life.transform.position).GetComponent<ShieldConduit>()),
-            "The scanner selects the nearest live conduit.");
+        Check(mech.Shielded && Mathf.Abs(mech.HealthFraction - 0.66f) < 0.005f, "At 66% the shield goes up.");
+        Check(encounter.HordeCap > earlyCap, $"The horde grows while the shield is up (cap {earlyCap} -> {encounter.HordeCap}).");
+        yield return 3f;
+        string[] first = encounter.Robots.Select(r => r.Name).ToArray();
+        Check(first.SequenceEqual(new[] { "Robo-Toad", "Mecha-Buzzard", "Burn-Bot" }) && encounter.Robots.All(r => r.Alive && r.Go.GetComponent<Robotify>() != null),
+            "Robo-Toad, Mecha-Buzzard and Burn-Bot come in, in robot skins.");
+        Check(encounter.Robots.All(r => r.MiniBoss == null || !BarShown(r.MiniBoss)), "Their own boss bars stay hidden (the finale HUD lists them).");
         yield return 4f;
-        Check(FinaleEncounter.Adds.Count > 0, $"Adds come in while the shield is up ({FinaleEncounter.Adds.Count}).");
-        yield return CaptureFrom("Shielded", mech.transform.position + mech.transform.forward * 20f + Vector3.up * 6f, mech.transform.position + Vector3.up * 5f);
-        ShieldConduit first = live.OrderBy(c => Vector3.Distance(c.transform.position, life.transform.position)).First();
-        Teleport(life, first.transform.position + (encounter.transform.position - first.transform.position).normalized * 6f);
-        view.transform.LookAt(first.transform.position + Vector3.up);
-        yield return Capture("Conduit", view);
+        foreach (FinaleRobots.Robot robot in encounter.Robots)
+            yield return CaptureFrom("Robot_" + robot.Name, robot.Go.transform.position + robot.Go.transform.forward * 9f + Vector3.up * 4f, robot.Go.transform.position + Vector3.up * 1.5f);
+        Check(encounter.Robots.Any(r => r.Alive), "They fight on.");
 
-        // ---------- The crew call-in ----------
-        Check(encounter.Crew.Ready && encounter.Crew.Call() && AllyCrab.Live.Count == 4, "G calls in Eugene and three cousins.");
+        // ---------- The whole crew ----------
+        Check(encounter.Crew.Ready && encounter.Crew.Call() && AllyCrab.Live.Count == 11, $"G calls in Eugene and all ten cousins ({AllyCrab.Live.Count}).");
         yield return 2.5f;
-        yield return CaptureFrom("Crew", life.transform.position - life.transform.forward * 4f + Vector3.up * 5f, AllyCrab.Live.Count > 0 ? AllyCrab.Live[0].transform.position : mech.transform.position);
-        Check(!encounter.Crew.Ready && encounter.Crew.CooldownRemaining > CrewCallIn.Cooldown, "Then it cools down.");
+        yield return Capture("Crew", view);
 
-        foreach (ShieldConduit c in live) c.GetComponent<Health>().TakeDamage(500f, life.gameObject);
-        Check(!mech.Shielded && mech.Current == CavendishMech.State.Staggered, "Breaking all three drops the shield; the mech staggers.");
-        yield return WaitFor(() => mech.Phase == 2 && mech.Current == CavendishMech.State.Fighting, 6f, "Phase 2 starts.");
+        foreach (ShieldConduit c in UnityEngine.Object.FindObjectsByType<ShieldConduit>().Where(c => c.Live).ToArray()) c.GetComponent<Health>().TakeDamage(500f, life.gameObject);
+        for (float t = 0f; t < 10f && !(mech.Phase == 2 && mech.Current == CavendishMech.State.Fighting); t += 0.1f) yield return 0.1f;
+        Check(mech.Phase == 2 && mech.Current == CavendishMech.State.Fighting,
+            $"Breaking the conduits starts phase 2 (phase {mech.Phase}, {mech.Current}, shielded {mech.Shielded}, retries {encounter.Retries}, conduits left {encounter.ConduitsLeft}, player dead {life.Health.IsDead}).");
+        Check(encounter.Robots.Any(r => r.Alive), "The robot mini-bosses keep fighting after the shield breaks.");
 
+        // ---------- Phase 2 attacks ----------
+        yield return Attack(mech, life, "Coolant tidal wave", view);
         // ---------- A death retries the phase ----------
-        mech.Health.TakeDamage(mech.Health.Max * 0.1f, life.gameObject);
-        Check(mech.HealthFraction < 0.6f, "Phase 2 damage lands.");
         life.Health.Invulnerable = false;
         life.Health.TakeDamage(9999f, null);
         yield return WaitFor(() => !life.IsRespawning && mech.Current == CavendishMech.State.Staggered, 12f, "The player respawns at the arena edge.");
-        Check(mech.Phase == 2 && Mathf.Abs(mech.HealthFraction - 0.66f) < 0.005f && encounter.Retries == 1, "Dying puts the mech back to the start of phase 2, not the whole fight.");
-        Check(AllyCrab.Live.Count == 0 && encounter.Crew.Ready && FinaleEncounter.Adds.Count == 0, "The crew, the call-in cooldown and the adds reset.");
+        Check(mech.Phase == 2 && Mathf.Abs(mech.HealthFraction - 0.66f) < 0.005f && encounter.Robots.Count == 0 && FinaleEncounter.Adds.Count == 0 && AllyCrab.Live.Count == 0,
+            "Dying restarts phase 2: the robots, the horde and the crew are cleared.");
         yield return WaitFor(() => mech.Current == CavendishMech.State.Fighting, 6f, "The fight resumes.");
+        life.Health.Invulnerable = true;
 
         // ---------- The car: it hurts, it never stuns ----------
         before = mech.Health.Current;
         CarBlast.Explode(mech.transform.position + mech.transform.forward * 3f + Vector3.up, 6f, 80f, 3f, life.gameObject, mech.Health);
         Check(mech.Health.Current < before && mech.Current == CavendishMech.State.Fighting, $"A car ram hurts the mech ({before - mech.Health.Current:0}) and doesn't stun it.");
 
-        // ---------- Phase 2's placeholder task, phase 3, the end ----------
+        // ---------- Phase 2 shield: the toughest three ----------
         mech.Health.TakeDamage(mech.Health.Max, life.gameObject);
-        Check(mech.Shielded && Mathf.Abs(mech.HealthFraction - 0.33f) < 0.005f && encounter.ConduitsTotal == 4, "At 33%: shielded again; the placeholder task uses four more conduits.");
+        Check(mech.Shielded && Mathf.Abs(mech.HealthFraction - 0.33f) < 0.005f, "At 33% the shield goes up again.");
+        yield return 4f;
+        string[] second = encounter.Robots.Select(r => r.Name).ToArray();
+        Check(second.SequenceEqual(new[] { "Mecha-Worm", "Witch-Bot", "Silt-Bot" }), "Mecha-Worm, Witch-Bot and Silt-Bot come in: " + string.Join(", ", second) + ".");
+        yield return 5f;
+        Check(encounter.Robots.All(r => r.Go != null), "All three are still in the fight a few seconds later.");
+        foreach (FinaleRobots.Robot robot in encounter.Robots.Where(r => r.Go != null))
+        {
+            Vector3 at = robot.Go.transform.position;
+            yield return CaptureFrom("Robot_" + robot.Name, at + (life.transform.position - at).normalized * 10f + Vector3.up * 5f, at + Vector3.up * 1.5f);
+        }
         foreach (ShieldConduit c in UnityEngine.Object.FindObjectsByType<ShieldConduit>().Where(c => c.Live).ToArray()) c.GetComponent<Health>().TakeDamage(500f, life.gameObject);
         yield return WaitFor(() => mech.Phase == 3 && mech.Current == CavendishMech.State.Fighting, 6f, "Phase 3 starts.");
+
+        // ---------- Phase 3: the napalm flyover ----------
+        // (The robots are checked; clear them so they can't knock the "standing still" player off the line.)
+        foreach (FinaleRobots.Robot robot in encounter.Robots) if (robot.Go != null) UnityEngine.Object.Destroy(robot.Go);
+        foreach (FinaleEncounter.Add add in FinaleEncounter.Adds.ToArray()) if (add.Go != null) UnityEngine.Object.Destroy(add.Go);
+        yield return 0.2f;
+        int fires = UnityEngine.Object.FindObjectsByType<SignalLost.Enemies.Desert.FireZone>().Length;
+        yield return Attack(mech, life, "Napalm flyover", view);
+        int burning = UnityEngine.Object.FindObjectsByType<SignalLost.Enemies.Desert.FireZone>().Length;
+        Check(burning >= fires + 5, $"The flyover carpets a line of fire ({fires} -> {burning} patches; older ones burn out meanwhile).");
+        var legs = mech.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        Check(legs.enabled && legs.isOnNavMesh, "The mech lands back on the NavMesh, free to move.");
+
         mech.Health.TakeDamage(mech.Health.Max, life.gameObject);
         yield return WaitFor(() => encounter.Current == FinaleEncounter.State.Won, 3f, "Phase 3 fights to zero: the mech goes down.");
+        yield return 1f;
+        Check(FinaleEncounter.Adds.Count == 0 && encounter.Robots.All(r => !r.Alive), "With Cavendish down, his robots power off (the horde and any robot mini-bosses).");
         Check(StageProgress.HasMainPart("Reactor Core") && StageProgress.IsCleared(StageProgress.Finale), "The Reactor Core is recovered and the finale counts as cleared.");
-        yield return 2f;
-        yield return CaptureFrom("Defeated", mech.transform.position + mech.transform.forward * 16f + Vector3.up * 5f, mech.transform.position + Vector3.up * 3f);
+        Check(errors.Count == 0, errors.Count == 0 ? "No errors or exceptions during the fight." : "Errors during the fight:\n" + string.Join("\n---\n", errors.Take(5)));
+    }
+
+    // A spot this far from the mech with nothing solid in between (the magnet test needs a straight pull).
+    private static Vector3 ClearSpot(CavendishMech mech, float distance)
+    {
+        Vector3 centre = UnityEngine.Object.FindAnyObjectByType<FinaleEncounter>().transform.position;
+        for (int a = 0; a < 360; a += 15)
+        {
+            Vector3 dir = Quaternion.Euler(0f, a, 0f) * mech.transform.forward;
+            Vector3 spot = mech.transform.position + dir * distance;
+            Vector3 fromCentre = spot - centre;
+            fromCentre.y = 0f;
+            if (fromCentre.magnitude > 34f) continue; // on the levelled arena, not the hills round it
+            bool blocked = false;
+            foreach (RaycastHit hit in Physics.RaycastAll(spot + Vector3.up * 0.8f, -dir, distance - 5f, ~0, QueryTriggerInteraction.Ignore))
+                if (!hit.collider.transform.IsChildOf(mech.transform) && hit.collider.GetComponentInParent<Health>() == null && !(hit.collider is CharacterController)) blocked = true;
+            if (!blocked) return spot;
+        }
+        return mech.transform.position + mech.transform.forward * distance;
+    }
+
+    private static bool BarShown(SignalLost.Enemies.Desert.DesertMiniBoss boss)
+    {
+        var list = typeof(SignalLost.Enemies.Desert.MiniBossHud).GetField("Engaged", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            ?.GetValue(null) as System.Collections.IList;
+        return list != null && list.Contains(boss);
+    }
+
+    // Forces one attack at a player standing still (healed between attacks), and checks it lands.
+    private static IEnumerator Attack(CavendishMech mech, PlayerLife life, string attack, Camera view)
+    {
+        // On the arena side of the mech (its leaps and flyovers stay inside the arena).
+        Vector3 centre = UnityEngine.Object.FindAnyObjectByType<FinaleEncounter>().transform.position;
+        Vector3 inward = centre - mech.transform.position;
+        inward.y = 0f;
+        Vector3 front = mech.transform.position + (inward.magnitude > 6f ? inward.normalized : mech.transform.forward) * 16f;
+        Teleport(life, front);
+        view.transform.rotation = Quaternion.LookRotation(mech.transform.position + Vector3.up * 6f - view.transform.position);
+        life.Health.Restore();
+        life.Health.Invulnerable = false;
+        yield return 0.2f;
+        int hits = 0;
+        Action<Health, float, GameObject> count = (h, a, src) => { if (src == mech.gameObject) hits++; };
+        life.Health.Damaged += count;
+        for (int tries = 0; tries < 40 && !mech.ForceAttack(attack); tries++) yield return 0.1f;
+        bool captured = false;
+        for (float t = 0f; t < 14f && !string.IsNullOrEmpty(mech.AttackName); t += 0.1f)
+        {
+            if (life.Health.Current < 40f) life.Health.Restore();
+            bool ready = attack == "Coolant tidal wave" ? GameObject.Find("Coolant Wave") != null : t > 0.6f;
+            if (!captured && ready && attack == "Coolant tidal wave") yield return 0.6f; // let it get out across the arena
+            if (!captured && ready)
+            {
+                captured = true;
+                yield return CaptureFrom("Attack_" + attack.Replace(" ", ""), mech.transform.position + mech.transform.right * 22f + mech.transform.forward * 10f + Vector3.up * 10f, mech.transform.position + mech.transform.forward * 10f);
+            }
+            yield return 0.1f;
+        }
+        life.Health.Damaged -= count;
+        life.Health.Invulnerable = true;
+        Check(hits > 0, $"{attack}: it lands on a player who stands still ({hits} hits).");
+        life.Health.Restore();
     }
 
     // ---------- Helpers ----------

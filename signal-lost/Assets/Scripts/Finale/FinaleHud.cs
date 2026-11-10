@@ -21,6 +21,14 @@ namespace SignalLost.Finale
         private Image fill, shieldCover, crewFill;
         private TextMeshProUGUI phase, shieldLabel, attack, crewLabel;
         private float shown;
+        private readonly RobotRow[] robotRows = new RobotRow[6];
+
+        private sealed class RobotRow
+        {
+            public GameObject Root;
+            public TextMeshProUGUI Name;
+            public Image Fill;
+        }
 
         public static FinaleHud Ensure(FinaleEncounter encounter)
         {
@@ -70,6 +78,23 @@ namespace SignalLost.Finale
             crewFill.rectTransform.anchorMax = Vector2.one;
             crewFill.rectTransform.offsetMin = new Vector2(2f, 2f);
             crewFill.rectTransform.offsetMax = new Vector2(-2f, -2f);
+            // The robot mini-bosses, listed under the boss bar while they're up.
+            for (int i = 0; i < robotRows.Length; i++)
+            {
+                Image row = UiTheme.Panel("Robot " + i, root, UiTheme.PanelColor, null, 0.6f);
+                RectTransform r = UiTheme.Place(row.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((i % 3 - 1) * 276f, -138f - (i / 3) * 44f), new Vector2(266f, 38f));
+                TextMeshProUGUI label = UiTheme.Label("Name", r, 17f, UiTheme.Text, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
+                UiTheme.Place(label.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(10f, -2f), new Vector2(246f, 20f));
+                Image barBack = UiTheme.Panel("Bar", r, new Color(0f, 0f, 0f, 0.55f), null, 0.3f);
+                RectTransform b = UiTheme.Place(barBack.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 5f), new Vector2(246f, 10f));
+                Image f = UiTheme.Panel("Fill", b, new Color(0.3f, 0.95f, 0.9f), null, 0.3f);
+                f.rectTransform.anchorMin = Vector2.zero;
+                f.rectTransform.anchorMax = Vector2.one;
+                f.rectTransform.offsetMin = new Vector2(1f, 1f);
+                f.rectTransform.offsetMax = new Vector2(-1f, -1f);
+                robotRows[i] = new RobotRow { Root = row.gameObject, Name = label, Fill = f };
+                row.gameObject.SetActive(false);
+            }
             boss.SetActive(false);
             crew.SetActive(false);
         }
@@ -115,6 +140,18 @@ namespace SignalLost.Finale
                 phase.text = mech.Current == CavendishMech.State.Defeated ? "DOWN!" : $"PHASE {mech.Phase} / 3";
                 attack.text = string.IsNullOrEmpty(mech.AttackName) ? "" : mech.AttackName + "!";
             }
+
+            int shownRows = 0;
+            if (boss.activeSelf)
+                foreach (FinaleRobots.Robot robot in encounter.Robots)
+                {
+                    if (!robot.Alive || shownRows >= robotRows.Length) continue;
+                    RobotRow row = robotRows[shownRows++];
+                    row.Root.SetActive(true);
+                    row.Name.text = robot.Name.ToUpperInvariant();
+                    row.Fill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(robot.Health.Normalized), 1f);
+                }
+            for (int i = shownRows; i < robotRows.Length; i++) robotRows[i].Root.SetActive(false);
 
             CrewCallIn call = encounter.Crew;
             crew.SetActive(visible && call != null && call.Enabled);

@@ -46,24 +46,47 @@ namespace SignalLost.Finale
         [SerializeField, Range(0.3f, 1f)] private float shieldedTempo = 0.7f;
         [SerializeField, Min(1f)] private float reactorMultiplier = 1.5f;
 
+        // Tuned "very hard" (Adam, 11-09: a new player should expect 5+ deaths): it hits hard, its warnings cover big
+        // areas, it moves fast, and fire stays on the ground.
         [Header("Movement")]
-        [SerializeField, Min(0.5f)] private float walkSpeed = 3.4f;
-        [SerializeField, Min(4f)] private float preferredRange = 16f;
-        [SerializeField, Min(10f)] private float turnRate = 70f;
-        [SerializeField, Min(0f)] private float attackGap = 1.8f;
+        [SerializeField, Min(0.5f)] private float walkSpeed = 6.5f;
+        [SerializeField, Min(4f)] private float preferredRange = 14f;
+        [SerializeField, Min(10f)] private float turnRate = 120f;
+        [SerializeField, Min(0f)] private float attackGap = 0.9f;
 
         [Header("Cooling System: freezing sweep")]
-        [SerializeField] private float sweepWindup = 1.7f, sweepTime = 2.3f, sweepRange = 26f, sweepHalfAngle = 40f, sweepCooldown = 7f;
-        [SerializeField] private float sweepDamage = 7f, sweepTick = 0.15f, sweepWidth = 1.5f;
-        [SerializeField] private float iceRadius = 2.6f, iceLife = 9f, iceSlow = 0.45f;
+        [SerializeField] private float sweepWindup = 1.3f, sweepTime = 2f, sweepRange = 32f, sweepHalfAngle = 55f, sweepCooldown = 5f;
+        [SerializeField] private float sweepDamage = 11f, sweepTick = 0.15f, sweepWidth = 2.6f;
+        [SerializeField] private float iceRadius = 3.6f, iceLife = 12f, iceSlow = 0.5f;
 
         [Header("Engine Core: thruster charge")]
-        [SerializeField] private float chargeWindup = 1.3f, chargeSpeed = 26f, chargeMaxLength = 34f, chargeWidth = 6f, chargeCooldown = 9f;
-        [SerializeField] private float chargeDamage = 26f, chargeShove = 7f;
-        [SerializeField] private FireStyle fireTrail = new FireStyle { damage = 6f, interval = 0.5f, duration = 7f, smoke = 0.5f };
+        [SerializeField] private float chargeWindup = 1f, chargeSpeed = 32f, chargeMaxLength = 42f, chargeWidth = 9f, chargeCooldown = 6f;
+        [SerializeField] private float chargeDamage = 40f, chargeShove = 9f;
+        [SerializeField] private FireStyle fireTrail = new FireStyle { damage = 9f, interval = 0.5f, duration = 22f, smoke = 0.5f, fierceness = 0.7f };
 
         [Header("Stomp")]
-        [SerializeField] private float stompWindup = 0.9f, stompRadius = 8f, stompDamage = 22f, stompShove = 5f, stompCooldown = 4f;
+        [SerializeField] private float stompWindup = 0.75f, stompRadius = 11.5f, stompDamage = 38f, stompShove = 7f, stompCooldown = 3f;
+
+        [Header("Engine Core: thruster lunge (phase 1+)")]
+        [SerializeField] private float lungeWindup = 0.75f, lungeAir = 1f, lungeHeight = 9f, lungeRadius = 10f, lungeDamage = 45f, lungeShove = 8f;
+        [SerializeField] private float lungeCooldown = 7f, lungeMaxRange = 36f;
+
+        [Header("Flight Control Module: rocket barrage (phase 1+)")]
+        [SerializeField, Range(1, 4)] private int barrageVolleys = 2;
+        [SerializeField, Range(1, 16)] private int barrageMissiles = 7;
+        [SerializeField] private float barrageSpread = 9f, barrageRadius = 3.6f, barrageDamage = 26f, barrageWarning = 1.1f, barrageCooldown = 9f;
+        [SerializeField] private FireStyle craterFire = new FireStyle { damage = 8f, interval = 0.5f, duration = 10f, smoke = 0.6f, fierceness = 0.6f };
+
+        [Header("Cooling System: tidal wave (phase 2+)")]
+        [SerializeField] private float waveWindup = 0.9f, waveSpeed = 15f, waveReach = 48f, waveDamage = 32f, waveCooldown = 11f;
+
+        [Header("Reactor: scrap magnet (phase 2+)")]
+        [SerializeField] private float magnetTime = 2.4f, magnetPull = 5.6f, magnetRange = 45f, magnetCooldown = 13f;
+        [SerializeField] private float slamRadius = 12f, slamDamage = 42f;
+
+        [Header("Engine Core: napalm flyover (phase 3)")]
+        [SerializeField] private float napalmHeight = 10f, napalmSpeed = 24f, napalmLength = 64f, napalmWidth = 7f, napalmCooldown = 14f;
+        [SerializeField] private FireStyle napalm = new FireStyle { damage = 10f, interval = 0.5f, duration = 18f, smoke = 0.6f, fierceness = 0.7f };
 
         public event Action<int> ShieldRaised;
         public event Action<int> PhaseStarted;
@@ -82,6 +105,13 @@ namespace SignalLost.Finale
         public MechRig Rig { get; private set; }
         public Vector3 Home { get; private set; }
 
+        /// <summary>The arena the leaps and flyovers stay inside (set by the encounter).</summary>
+        public void SetArena(Vector3 centre, float radius)
+        {
+            arenaCentre = centre;
+            arenaRadius = radius;
+        }
+
         private NavMeshAgent agent;
         private PlayerLife player;
         private Health playerHealth;
@@ -93,13 +123,18 @@ namespace SignalLost.Finale
         private Coroutine attack;
         private readonly List<Telegraph> telegraphs = new List<Telegraph>();
         private readonly List<FireZone> fires = new List<FireZone>();
-        private float nextAttack, sweepReady, chargeReady, stompReady, closeSince = -1f;
+        private readonly List<GameObject> temporaries = new List<GameObject>(); // missiles and waves in flight
+        private float nextAttack, sweepReady, chargeReady, stompReady, lungeReady, barrageReady, waveReady, magnetReady, napalmReady, closeSince = -1f;
+        private string lastAttack = "";
+        private Vector3 arenaCentre;
+        private float arenaRadius = 40f;
+        private bool airborne;
         private bool settingHealth;
         private int lastBodyHitFrame = -1;
 
         // Pose targets, eased toward each frame.
         private float crouch, lean, aim, liftR, kneel, stride, walkWeight, thrusterHeat;
-        private float crouchNow, leanNow, aimNow, liftNow, kneelNow = 1f, deadNow, waistYaw, nextSmoke;
+        private float crouchNow, leanNow, aimNow, liftNow, kneelNow = 1f, deadNow, waistYaw, nextSmoke, reactorBoost;
         private Vector3 shoveDirection;
         private float shoveRemaining;
 
@@ -159,6 +194,7 @@ namespace SignalLost.Finale
                 Home = hit.position;
             }
             agent.isStopped = true;
+            if (arenaCentre == Vector3.zero) arenaCentre = Home;
         }
 
         private void Update()
@@ -391,15 +427,52 @@ namespace SignalLost.Finale
             else Halt();
         }
 
+        // Phase 1: sweep, charge, lunge, rocket barrage (and the stomp up close). Phase 2 adds the tidal wave and the
+        // scrap magnet; phase 3 the napalm flyover. It never uses the same attack twice running.
         private IEnumerator ChooseAttack(Transform target, float distance)
         {
             float now = Time.time;
-            if (closeSince >= 0f && now - closeSince > 1.2f && now >= stompReady) return Stomp();
-            var options = new List<IEnumerator>();
-            if (now >= sweepReady && distance < sweepRange + 4f) options.Add(Sweep(target));
-            if (now >= chargeReady && distance > 9f) options.Add(Charge(target));
-            if (options.Count == 0) return now >= stompReady && distance < stompRadius + 2f ? Stomp() : null;
-            return options[Random.Range(0, options.Count)];
+            if (closeSince >= 0f && now - closeSince > 0.9f && now >= stompReady) return Named("Stomp");
+            var options = new List<string>();
+            void Offer(string name, float ready, bool fits) { if (now >= ready && fits && name != lastAttack) options.Add(name); }
+            Offer("Freezing sweep", sweepReady, distance < sweepRange + 4f);
+            Offer("Thruster charge", chargeReady, distance > 9f);
+            Offer("Thruster lunge", lungeReady, distance > 8f && distance < lungeMaxRange);
+            Offer("Rocket barrage", barrageReady, true);
+            if (Phase >= 2)
+            {
+                Offer("Coolant tidal wave", waveReady, distance < waveReach - 6f);
+                Offer("Scrap magnet", magnetReady, distance > 10f && distance < magnetRange);
+            }
+            if (Phase >= 3) Offer("Napalm flyover", napalmReady, true);
+            if (options.Count == 0) return now >= stompReady && distance < stompRadius + 2f ? Named("Stomp") : null;
+            return Named(options[Random.Range(0, options.Count)]);
+        }
+
+        private IEnumerator Named(string attack)
+        {
+            lastAttack = attack;
+            Transform target = PickTarget(false);
+            return attack switch
+            {
+                "Freezing sweep" => Sweep(target),
+                "Thruster charge" => Charge(target),
+                "Thruster lunge" => Lunge(),
+                "Rocket barrage" => Barrage(),
+                "Coolant tidal wave" => TidalWave(),
+                "Scrap magnet" => Magnet(),
+                "Napalm flyover" => Napalm(),
+                _ => Stomp()
+            };
+        }
+
+        /// <summary>Starts a named attack straight away (for tests). Returns false if it's busy or not fighting.</summary>
+        public bool ForceAttack(string name)
+        {
+            if (Current != State.Fighting || attack != null) return false;
+            Halt();
+            attack = StartCoroutine(Run(Named(name)));
+            return true;
         }
 
         // While Eugene's crew is in, some attacks go after them instead.
@@ -418,15 +491,22 @@ namespace SignalLost.Finale
             nextAttack = Time.time + attackGap / Tempo;
         }
 
+        // Everything in progress stops: the attack, and any missiles or waves it already sent (they live in their own
+        // coroutines).
         private void StopAttack()
         {
-            if (attack != null) StopCoroutine(attack);
+            StopAllCoroutines();
             attack = null;
             AttackName = "";
             foreach (Telegraph t in telegraphs)
                 if (t != null) t.Clear();
             telegraphs.Clear();
             if (beam != null) beam.gameObject.SetActive(false);
+            if (airborne) Settle(Ground(transform.position));
+            foreach (GameObject temporary in temporaries)
+                if (temporary != null) Destroy(temporary);
+            temporaries.Clear();
+            reactorBoost = 0f;
             if (muzzleLight != null) muzzleLight.intensity = 0f;
             crouch = lean = aim = liftR = 0f;
             thrusterHeat = 0f;
@@ -585,8 +665,8 @@ namespace SignalLost.Finale
                 travelled += step;
                 if (travelled >= nextFire)
                 {
-                    nextFire = travelled + 3.2f;
-                    FireZone fire = FireZone.Spawn(fireTrail, Ground(transform.position - direction * 2.5f), 1.9f, gameObject, transform, fireTrail.duration);
+                    nextFire = travelled + 2.6f;
+                    FireZone fire = FireZone.Spawn(fireTrail, Ground(transform.position - direction * 2.5f), 2.8f, gameObject, transform, fireTrail.duration);
                     if (fire != null) fires.Add(fire);
                     ParticleBurst.Spawn(ParticleBurst.Kind.Sand, transform.position, -direction + Vector3.up, 18, 0.6f, 6f);
                 }
@@ -646,6 +726,367 @@ namespace SignalLost.Finale
             closeSince = -1f;
             stompReady = Time.time + stompCooldown / Tempo;
             yield return new WaitForSeconds(0.6f);
+        }
+
+        // ---------- Engine Core: the thruster lunge ----------
+
+        // The back engines roar and it launches itself at you: a ring on the ground marks where it will land (it
+        // follows you for most of the wind-up, then locks), and the landing blasts everything round it and lights a
+        // ring of fire.
+        private IEnumerator Lunge()
+        {
+            AttackName = "Thruster lunge";
+            Transform target = PickTarget(true);
+            Vector3 land = ClampArena(Ground(Lead(target, 0.45f)));
+            Telegraph ring = Paint(Telegraph.Shape.Disc, land, Quaternion.identity, new Vector2(lungeRadius, 0f), FinalePalette.Warning);
+            float windup = lungeWindup / Tempo;
+            for (float t = 0f; t < windup; t += Time.deltaTime)
+            {
+                if (t < windup * 0.65f)
+                {
+                    land = ClampArena(Ground(Lead(target, 0.45f)));
+                    ring.transform.position = land + Vector3.up * 0.07f;
+                }
+                ring.Progress = t / windup;
+                Face(land, Time.deltaTime, 6f);
+                crouch = 1f;
+                thrusterHeat = Mathf.Lerp(0.3f, 1f, t / windup);
+                yield return null;
+            }
+            yield return Leap(land, lungeAir / Mathf.Lerp(1f, Tempo, 0.5f), lungeHeight);
+            Unpaint(ring);
+            Blast(land, lungeRadius, lungeDamage, lungeShove);
+            for (int i = 0; i < 6; i++)
+            {
+                float a = i * Mathf.PI / 3f + Random.Range(0f, 0.5f);
+                Burn(fireTrail, land + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 5.5f, 2.6f, 14f);
+            }
+            thrusterHeat = 0.15f;
+            yield return new WaitForSeconds(0.5f / Tempo);
+            crouch = 0f;
+            lungeReady = Time.time + lungeCooldown / Tempo;
+        }
+
+        // Off the ground in an arc to a point (the NavMeshAgent is off while airborne), then back on the NavMesh.
+        private IEnumerator Leap(Vector3 land, float seconds, float height)
+        {
+            airborne = true;
+            if (agent.enabled) agent.enabled = false;
+            Vector3 from = transform.position;
+            lean = 0.5f;
+            crouch = 0.4f;
+            for (float t = 0f; t < seconds; t += Time.deltaTime)
+            {
+                float k = t / seconds;
+                transform.position = Vector3.Lerp(from, land, Mathf.SmoothStep(0f, 1f, k)) + Vector3.up * Mathf.Sin(k * Mathf.PI) * height;
+                if (Random.value < 0.4f) ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, Rig.ThrusterL.position, Vector3.down, 6, 1f, 3f);
+                yield return null;
+            }
+            Settle(land);
+            lean = 0f;
+        }
+
+        // Back on the NavMesh after a leap or a flight: the nearest walkable spot, or home if there's none near
+        // (it must never be left with its agent off, or it could no longer move).
+        private void Settle(Vector3 at)
+        {
+            Vector3 spot = NavMesh.SamplePosition(at, out NavMeshHit hit, 20f, NavMesh.AllAreas) ? hit.position : Home;
+            transform.position = spot;
+            agent.enabled = true;
+            if (agent.isOnNavMesh || agent.Warp(spot)) agent.isStopped = true;
+            airborne = false;
+        }
+
+        // ---------- Flight Control Module: the rocket barrage ----------
+
+        // The shoulder pods fire a volley of missiles that rain down in big circles round you; then another where you
+        // went. Each blast leaves a burning crater.
+        private IEnumerator Barrage()
+        {
+            AttackName = "Rocket barrage";
+            for (int volley = 0; volley < barrageVolleys; volley++)
+            {
+                Transform target = PickTarget(true);
+                crouch = 0.3f;
+                for (int i = 0; i < barrageMissiles; i++)
+                {
+                    Vector3 spot = i == 0 ? Lead(target, barrageWarning * 0.6f) : target.position + Flat3(Random.insideUnitSphere) * barrageSpread;
+                    spot = ClampArena(Ground(spot));
+                    Transform pod = i % 2 == 0 ? Rig.ShoulderL : Rig.ShoulderR;
+                    StartCoroutine(Missile(pod.position + Vector3.up * 1.6f - transform.forward * 0.8f, spot, barrageWarning / Mathf.Lerp(1f, Tempo, 0.5f)));
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, pod.position + Vector3.up * 1.5f, Vector3.up, 6, 0.8f, 3f);
+                    yield return new WaitForSeconds(0.08f);
+                }
+                yield return new WaitForSeconds(1.3f / Tempo);
+            }
+            crouch = 0f;
+            barrageReady = Time.time + barrageCooldown / Tempo;
+        }
+
+        private IEnumerator Missile(Vector3 from, Vector3 to, float flight)
+        {
+            Telegraph circle = Paint(Telegraph.Shape.Disc, to, Quaternion.identity, new Vector2(barrageRadius, 0f), FinalePalette.Warning);
+            Transform rocket = MudArt.Part(null, "Missile", from, Quaternion.identity, "finale_missile", k =>
+            {
+                k.Prism(new Vector3(0f, -0.4f, 0f), Quaternion.identity, 0.14f, 0.14f, 0.7f, 8, FinalePalette.Steel);
+                k.Cone(new Vector3(0f, 0.3f, 0f), Quaternion.identity, 0.14f, 0.3f, 8, FinalePalette.Trim);
+                k.Prism(new Vector3(0f, -0.55f, 0f), Quaternion.identity, 0.1f, 0.12f, 0.12f, 8, FinalePalette.EngineGlow, 2f);
+            }, false);
+            temporaries.Add(rocket.gameObject);
+            Vector3 peak = Vector3.Lerp(from, to, 0.4f) + Vector3.up * 14f;
+            Vector3 last = from;
+            for (float t = 0f; t < flight; t += Time.deltaTime)
+            {
+                float k = t / flight;
+                if (circle != null) circle.Progress = k;
+                Vector3 p = Vector3.Lerp(Vector3.Lerp(from, peak, k), Vector3.Lerp(peak, to, k), k);
+                if (rocket != null)
+                {
+                    rocket.position = p;
+                    if ((p - last).sqrMagnitude > 0.0001f) rocket.rotation = Quaternion.FromToRotation(Vector3.up, p - last);
+                }
+                last = p;
+                if (Random.value < 0.5f) ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, p, Vector3.up, 2, 0.5f, 0.5f);
+                yield return null;
+            }
+            if (rocket != null) Destroy(rocket.gameObject);
+            Unpaint(circle);
+            ParticleBurst.Explosion(to, barrageRadius * 0.7f);
+            CameraShake.Add(0.15f);
+            Blast(to, barrageRadius, barrageDamage, 3f);
+            Burn(craterFire, to, 2.2f, craterFire.duration);
+        }
+
+        // ---------- Cooling System: the tidal wave ----------
+
+        // It slams the cannon into the ground and a wall of freezing coolant races out across the whole arena. Jump it.
+        // Phase 3 sends two, close together.
+        private IEnumerator TidalWave()
+        {
+            AttackName = "Coolant tidal wave";
+            Vector3 centre = Ground(transform.position);
+            Telegraph warning = Paint(Telegraph.Shape.Disc, centre, Quaternion.identity, new Vector2(6f, 0f), FinalePalette.FrostWarning);
+            float windup = waveWindup / Tempo;
+            for (float t = 0f; t < windup; t += Time.deltaTime)
+            {
+                warning.Progress = t / windup;
+                aim = 0.5f;
+                crouch = t / windup;
+                yield return null;
+            }
+            Unpaint(warning);
+            aim = 0f;
+            CameraShake.Add(0.5f);
+            ParticleBurst.Spawn(ParticleBurst.Kind.Water, centre, Vector3.up, 120, 0.5f, 12f);
+            int waves = Phase >= 3 ? 2 : 1;
+            for (int i = 0; i < waves; i++)
+            {
+                StartCoroutine(Wave(centre));
+                yield return new WaitForSeconds(0.9f);
+            }
+            crouch = 0f;
+            yield return new WaitForSeconds(waveReach / waveSpeed * 0.5f);
+            waveReady = Time.time + waveCooldown / Tempo;
+        }
+
+        private IEnumerator Wave(Vector3 centre)
+        {
+            const int segments = 72;
+            var ring = new Transform[segments];
+            var root = new GameObject("Coolant Wave").transform;
+            temporaries.Add(root.gameObject);
+            root.position = centre;
+            for (int i = 0; i < segments; i++)
+            {
+                ring[i] = MudArt.Part(root, "Crest", Vector3.zero, Quaternion.identity, "finale_wave", k =>
+                {
+                    k.Box(new Vector3(0f, 0.45f, 0f), new Vector3(1f, 0.9f, 0.7f), new Color(0.55f, 0.88f, 1f), 1.1f);
+                    k.Box(new Vector3(0f, 1.05f, -0.1f), new Vector3(1f, 0.35f, 0.4f), new Color(0.85f, 0.97f, 1f), 1.4f);
+                }, false);
+            }
+            bool hitPlayer = false;
+            for (float r = 1f; r < waveReach; r += waveSpeed * Time.deltaTime)
+            {
+                if (root == null) yield break;
+                float width = 2f * Mathf.PI * r / segments * 1.08f;
+                for (int i = 0; i < segments; i++)
+                {
+                    float a = i * Mathf.PI * 2f / segments;
+                    Vector3 offset = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * r;
+                    ring[i].position = centre + offset + Vector3.up * 0.05f; // the arena is level
+                    ring[i].rotation = Quaternion.LookRotation(offset);
+                    ring[i].localScale = new Vector3(width, 1f, 1f);
+                }
+                if (!hitPlayer && player != null && !player.IsRespawning && playerBody != null)
+                {
+                    float d = Flat(player.transform.position - centre);
+                    if (Mathf.Abs(d - r) < 1.1f && playerBody.isGrounded)
+                    {
+                        hitPlayer = true;
+                        playerHealth.TakeDamage(waveDamage, gameObject);
+                        Shove(player.transform.position - centre, 6f);
+                        IcePatch.Spawn(Ground(player.transform.position), 2f, 2.5f, 0.6f);
+                    }
+                }
+                foreach (AllyCrab crab in AllyCrab.Live)
+                    if (crab != null && Mathf.Abs(Flat(crab.transform.position - centre) - r) < 1.1f) crab.Knock(crab.transform.position - centre);
+                yield return null;
+            }
+            Destroy(root.gameObject);
+        }
+
+        // ---------- Reactor: the scrap magnet ----------
+
+        // The chest flares and the reactor drags everything toward it for a couple of seconds; sprint against it. Anyone
+        // still close when it lets go gets a double-fisted ground slam.
+        private IEnumerator Magnet()
+        {
+            AttackName = "Scrap magnet";
+            Halt();
+            float duration = magnetTime;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                lean = -0.35f;
+                reactorBoost = 1f;
+                if (player != null && !player.IsRespawning && playerBody != null && playerBody.enabled)
+                {
+                    Vector3 pull = transform.position - player.transform.position;
+                    pull.y = 0f;
+                    if (pull.magnitude < magnetRange && pull.magnitude > 4f) playerBody.Move(pull.normalized * magnetPull * Time.deltaTime);
+                    if (Random.value < 0.6f) ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, player.transform.position + Vector3.up, pull.normalized, 4, 0.12f, 9f);
+                }
+                foreach (AllyCrab crab in AllyCrab.Live)
+                    if (crab != null && Flat(crab.transform.position - transform.position) < magnetRange) crab.Knock(transform.position - crab.transform.position);
+                yield return null;
+            }
+            lean = 0f;
+            reactorBoost = 0f;
+            if (player != null && Flat(player.transform.position - transform.position) < slamRadius + 1f)
+            {
+                Vector3 centre = Ground(transform.position + transform.forward * 2f);
+                Telegraph disc = Paint(Telegraph.Shape.Disc, centre, Quaternion.identity, new Vector2(slamRadius, 0f), FinalePalette.Warning);
+                for (float t = 0f; t < 0.55f; t += Time.deltaTime)
+                {
+                    disc.Progress = t / 0.55f;
+                    crouch = 0.5f;
+                    liftR = t / 0.55f;
+                    yield return null;
+                }
+                Unpaint(disc);
+                liftR = 0f;
+                crouch = 0f;
+                Blast(centre, slamRadius, slamDamage, 8f);
+            }
+            magnetReady = Time.time + magnetCooldown / Tempo;
+            yield return new WaitForSeconds(0.4f);
+        }
+
+        // ---------- Engine Core: the napalm flyover ----------
+
+        // It blasts into the air and strafes the arena along a line through you, carpeting it with fire that burns for
+        // a long time, so the safe ground keeps shrinking.
+        private IEnumerator Napalm()
+        {
+            AttackName = "Napalm flyover";
+            Transform target = PickTarget(true);
+            Vector3 start = transform.position;
+            Vector3 direction = Flat3(target.position - start);
+            direction = direction.sqrMagnitude > 0.01f ? direction.normalized : transform.forward;
+            Vector3 end = ClampArena(start + direction * napalmLength);
+            float length = Flat(end - start);
+            Telegraph strip = Paint(Telegraph.Shape.Strip, Ground(start), Quaternion.LookRotation(direction), new Vector2(napalmWidth, length), FinalePalette.Warning);
+            for (float t = 0f; t < 1.3f / Tempo; t += Time.deltaTime)
+            {
+                strip.Progress = t * Tempo / 1.3f;
+                Face(end, Time.deltaTime, 6f);
+                crouch = 1f;
+                thrusterHeat = 0.8f;
+                yield return null;
+            }
+            Unpaint(strip);
+            airborne = true;
+            if (agent.enabled) agent.enabled = false;
+            crouch = 0f;
+            lean = 0.9f;
+            thrusterHeat = 1f;
+            Vector3 ground = transform.position;
+            for (float t = 0f; t < 0.7f; t += Time.deltaTime)
+            {
+                transform.position = ground + Vector3.up * Mathf.SmoothStep(0f, napalmHeight, t / 0.7f);
+                yield return null;
+            }
+            float travelled = 0f, nextDrop = 0f;
+            while (travelled < length)
+            {
+                float step = napalmSpeed * Time.deltaTime;
+                travelled += step;
+                Vector3 over = start + direction * Mathf.Min(travelled, length);
+                transform.position = new Vector3(over.x, Ground(over).y + napalmHeight, over.z);
+                if (travelled >= nextDrop)
+                {
+                    nextDrop = travelled + 2.6f;
+                    Burn(napalm, over, 2.8f, napalm.duration);
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, transform.position - Vector3.up * 2f, Vector3.down, 10, 0.8f, 6f);
+                }
+                yield return null;
+            }
+            Vector3 landing = Ground(end);
+            for (float t = 0f; t < 0.6f; t += Time.deltaTime)
+            {
+                transform.position = Vector3.Lerp(transform.position, landing, t / 0.6f);
+                yield return null;
+            }
+            Settle(landing);
+            Blast(landing, 7f, 25f, 5f);
+            lean = 0f;
+            thrusterHeat = 0.15f;
+            napalmReady = Time.time + napalmCooldown / Tempo;
+            yield return new WaitForSeconds(0.6f);
+        }
+
+        // ---------- Shared bits for the new attacks ----------
+
+        // Where a target will be in a moment (it leads a running player).
+        private Vector3 Lead(Transform target, float seconds)
+        {
+            Vector3 velocity = Vector3.zero;
+            if (player != null && target == player.transform && playerBody != null) velocity = playerBody.velocity;
+            velocity.y = 0f;
+            return target.position + velocity * seconds;
+        }
+
+        private Vector3 ClampArena(Vector3 point)
+        {
+            Vector3 offset = Flat3(point - arenaCentre);
+            if (offset.magnitude > arenaRadius - 3f) offset = offset.normalized * (arenaRadius - 3f);
+            Vector3 p = arenaCentre + offset;
+            return new Vector3(p.x, point.y, p.z);
+        }
+
+        // Damage falling off to 60% at the edge, a shove, a dust ring, and the crew bowled over.
+        private void Blast(Vector3 centre, float radius, float damage, float shove)
+        {
+            CameraShake.Add(0.45f);
+            ParticleBurst.Spawn(ParticleBurst.Kind.Sand, centre, Vector3.up, 90, 0.8f, 10f);
+            ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, centre, Vector3.up, 30, 2f, 3f);
+            if (player != null && !player.IsRespawning)
+            {
+                float distance = Flat(player.transform.position - centre);
+                if (distance < radius && player.transform.position.y - centre.y < 4f)
+                {
+                    playerHealth.TakeDamage(damage * Mathf.Lerp(1f, 0.6f, distance / radius), gameObject);
+                    Shove(player.transform.position - centre, shove);
+                }
+            }
+            foreach (AllyCrab crab in AllyCrab.Live)
+                if (crab != null && Flat(crab.transform.position - centre) < radius) crab.Knock(crab.transform.position - centre);
+        }
+
+        private void Burn(FireStyle style, Vector3 at, float radius, float seconds)
+        {
+            FireZone fire = FireZone.Spawn(style, Ground(at), radius, gameObject, transform, seconds);
+            if (fire != null) fires.Add(fire);
+            fires.RemoveAll(f => f == null);
         }
 
         // ---------- Helpers ----------
@@ -780,7 +1221,8 @@ namespace SignalLost.Finale
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * (3f + hurt * 6f));
             bool alive = Current != State.Defeated;
             Rig.ReactorGlow.localScale = Vector3.one * (alive ? 0.92f + pulse * 0.16f : 0.6f);
-            reactorLight.intensity = alive ? (Current == State.Dormant ? 0.4f : 1.6f + pulse * 1.6f) : 0f;
+            reactorLight.intensity = alive ? (Current == State.Dormant ? 0.4f : 1.6f + pulse * 1.6f + reactorBoost * 8f) : 0f;
+            if (reactorBoost > 0f) Rig.ReactorGlow.localScale = Vector3.one * (1.3f + pulse * 0.3f);
             if (Rig.Dish != null) Rig.Dish.localRotation = Quaternion.Euler(0f, Time.time * 90f, 0f);
             Rig.Turbine.localRotation *= Quaternion.Euler(0f, 0f, (200f + thrusterHeat * 1400f) * dt);
             jetL.Strength = jetR.Strength = alive ? Mathf.Lerp(jetL.Strength, thrusterHeat, ease) : 0f;

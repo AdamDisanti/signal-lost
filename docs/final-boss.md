@@ -82,7 +82,7 @@ The scene is `Scenes/Large Areas/Wasteland.unity`. Build it with **Signal Lost >
   - Walking into the arena plays the intro dialogue (subtitles only for now), and the mech stands up.
   - At 66% the shield goes up. Three conduits come alive and show on the scanner, and adds come in. Break all three and the mech staggers, then phase 2 starts.
   - Dying puts the mech back to the start of the current phase.
-- **Eugene's crew** (`CrewCallIn.cs`, `AllyCrab.cs`): G calls in Eugene and three Bucket Brothers.
+- **Eugene's crew** (`CrewCallIn.cs`, `AllyCrab.cs`): G calls in Eugene and the whole gang of ten cousins (since the difficulty pass below).
 - **HUD** (`FinaleHud.cs`):
   - a boss bar with phase notches and a teal "SHIELDED" cover with the conduit count;
   - the crew widget (ready, in the fight, or cooling down).
@@ -97,16 +97,63 @@ The scene is `Scenes/Large Areas/Wasteland.unity`. Build it with **Signal Lost >
   - `PlayerSlowReceiver.ExtraSlow`, so the ice can slow you like Sludge's oil;
   - the scene added to the build list.
 
+## Difficulty pass (11-09, after Adam's first playtest)
+
+Adam found the first slice far too easy: he never dropped below half health. He asked for a **very hard** fight (a new player should expect five or more deaths). The conduit tasks stay as placeholders for now.
+
+- **The mech hits harder, over bigger areas, and moves faster.**
+
+  | | Before | Now |
+  | --- | --- | --- |
+  | Walk speed | 3.4 | 6.5 |
+  | Gap between attacks | 1.8 s | 0.9 s |
+  | Health | 4500 | 6000 |
+  | Freezing sweep, per tick (about 70 a second) | 7 | 11 |
+  | Freezing sweep wedge | 26 m, 40° | 32 m, 55° |
+  | Thruster charge | 26 damage, 6 m wide | 40 damage, 9 m wide |
+  | Stomp | 22 damage, 8 m | 38 damage, 11.5 m |
+  | Fire trail | 7 s | 22 s |
+
+- **New attacks.** Each phase adds some, and it never uses the same attack twice in a row.
+
+  | Attack | Phase | What it does |
+  | --- | --- | --- |
+  | **Thruster lunge** | 1+ | The back engines launch it at you. A 10 m ring marks the landing; it follows you for most of the wind-up, then locks. The landing does 45 and leaves a ring of fire. |
+  | **Rocket barrage** | 1+ | The shoulder pods rain two volleys of seven missiles into warning circles round you: 26 each, and each leaves a burning crater. |
+  | **Coolant tidal wave** | 2+ | It slams the cannon down and a freezing wall races across the whole arena. Jump it, or take 32. Phase 3 sends two. |
+  | **Scrap magnet** | 2+ | The reactor drags you in at 5.6 m/s for 2.4 s. Walking (4 m/s) loses; sprinting (7 m/s) escapes. Anyone still close gets a 42-damage double-fist slam. |
+  | **Napalm flyover** | 3 | It jets up and strafes a line through you, carpeting it with fire that burns for 18 s, so the safe ground keeps shrinking. |
+
+- **The horde.** Cavendish's robot versions of the creatures pour in for the whole fight: Robo-Crabs, Spark Ticks, Mortar Frogs, Hubcap Armadillos and Mudpuppies.
+  - At the start: one every 5.5 s, at most 6 alive.
+  - It grows each minute and each phase, and jumps while the shield is up, up to 26 alive and one every second.
+  - When Cavendish goes down, they all power off.
+- **Robot mini-bosses** (`FinaleRobots.cs`). When the shield goes up, three of Cavendish's robot copies of earlier bosses come in:
+
+  | Shield | Robot mini-bosses |
+  | --- | --- |
+  | 66% | **Robo-Toad**, **Mecha-Buzzard**, **Burn-Bot** |
+  | 33% | **Mecha-Worm**, **Witch-Bot**, **Silt-Bot** |
+
+  - Each is the real boss (its own script, moves and attacks) in a robot skin, at 70% of its health.
+  - They don't drop ship parts or key items, and they keep fighting after the shield breaks.
+  - The finale HUD lists them under the boss bar instead of their own bars.
+- **Robot skins** (`Robotify.cs`):
+  - every colour becomes metal of the same lightness (gunmetal to the mech's off-white), keeping a hint of the original hue;
+  - glowing parts turn Cavendish's teal (orange for Burn-Bot and the Mecha-Worm);
+  - an antenna with a blinking light, a glowing visor and rivets are bolted on.
+- **The whole crew.** G now brings Eugene and all ten Bucket Brothers. With eleven crabs, each pinch on the mech is smaller (about 5% of its health per call); they shred the horde.
+
 ### Placeholders (not built yet)
 
 | Placeholder | Stand-in now |
 | --- | --- |
-| Phase 2 and phase 3 weapons | Phase 1's weapons, faster |
+| The Navigation Computer and Flight Control Module weapons from the plan | The new attacks above stand in, by phase |
 | Phase 2 task (coolant cells) | A second set of four conduits |
 | Phase 3 task (launch clamps) | Phase 3 just fights to zero |
 | Meltdown, escape run, launch, credits | A message says they aren't built |
 | Cutscenes (arrival, reveal, ending) and the approach | Not built. The player starts at the arena edge, and the intro is subtitles only. |
-| Each island's enemies as adds | Hermit crabs, Spark Ticks, Hubcap Armadillos and Mudpuppies |
+| Each island's own enemies in the horde | Robot versions of the creatures built so far |
 | Island outfits for the wasteland | None (no `StageTheme` yet) |
 
 ## Try it
@@ -118,25 +165,35 @@ The scene is `Scenes/Large Areas/Wasteland.unity`. Build it with **Signal Lost >
    - **Freezing sweep:** a blue wedge appears, then the beam sweeps across it. Hide behind a boulder and you take nothing. Step on the ice and you slow down.
    - **Thruster charge:** a red strip appears, then the mech dashes along it and leaves fire behind.
    - **Stomp:** stand under the mech and it stamps.
+   - **Thruster lunge:** a big red ring chases you, then locks, and the mech lands on it with a ring of fire.
+   - **Rocket barrage:** a cluster of red circles appears round you, then a second one where you ran.
+   - **From phase 2:** the coolant tidal wave (jump the blue wall as it reaches you) and the scrap magnet (sprint away from the mech, or get slammed).
+   - **Phase 3:** the napalm flyover leaves a long line of fire.
+   - Robot creatures keep coming the whole time, more of them as the fight goes on.
 5. **Reactor Core:** shoot the glowing core on its chest. It takes more damage than the body.
 6. **Shield task:**
-   - At two-thirds health the shield goes up. Raise the scanner (Q): it beeps toward the nearest conduit. Adds arrive.
+   - At two-thirds health the shield goes up. Robo-Toad, Mecha-Buzzard and Burn-Bot arrive and are listed under the boss bar. Raise the scanner (Q): it beeps toward the nearest conduit.
    - Break the three conduits. The mech staggers, and phase 2 starts.
-7. **Eugene's crew:** press G. Eugene and three cousins scuttle in and fight for 15 s, then the widget counts down 60 s.
+7. **Eugene's crew:** press G. Eugene and all ten cousins scuttle in and fight for 15 s, then the widget counts down 60 s.
 8. **Dying:** die in phase 2. You respawn at the arena's south edge, and the boss bar is back at two-thirds, not full.
 9. **The car:** with the car out (hold F), ram the mech. It explodes and hurts the mech, but the mech keeps fighting.
-10. **The end:** finish phases 2 and 3. "THE SAFEKEEPER IS DOWN!" appears, and the mech slumps, smoking.
+10. **The end:** at one-third, the Mecha-Worm, Witch-Bot and Silt-Bot arrive. Finish phases 2 and 3. "THE SAFEKEEPER IS DOWN!" appears, and the mech slumps, smoking.
 
 Checked on a disposable copy of the project in batch mode:
 
-- `tools/unity/FinaleSmoke.cs` passes. It covers everything above, plus the crew and adds resetting on a retry.
+- `tools/unity/FinaleSmoke.cs` passes. It covers everything above:
+  - each attack forced at a player standing still, and checked to land;
+  - the six robots spawning and staying up;
+  - the horde, the eleven-crab crew, the phase retry, the car and the end;
+  - no errors or exceptions anywhere in the fight.
+- On one run in about ten, phase 2 didn't start after the conduits broke; it didn't happen again in the next nine. Watch for it in play.
 - The tutorial-story and combat-rules smokes pass.
 - The core-systems smoke fails at "Bought Bigger Boom.": its "buy every tier" step predates the Mudlands' key-item upgrades. This was already the case on main.
 - Not yet hand-played in the editor; the numbers are first guesses.
 
 ## Open questions
 
-- Balance: mech health (4500), damage, attack timings and the shield thresholds all need playtesting against the 15-minute cap.
+- Balance: mech health (6000), the robots' 70% health, the horde's growth, damage, attack timings and the shield thresholds all need playtesting against the 15-minute cap.
 - The mech's look is preliminary (Adam expects to revise it).
 - Do crew pinches count for anything beyond chip damage (for example, interrupting an attack)?
 - Should the shield phases have a time limit (an enrage)?

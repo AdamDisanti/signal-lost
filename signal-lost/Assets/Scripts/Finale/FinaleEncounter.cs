@@ -15,6 +15,11 @@ namespace SignalLost.Finale
     /// Runs the final fight (docs/final-boss.md): the intro when the player walks into the arena, the shield tasks
     /// between phases, the adds, the phase checkpoint when the player dies, and the end.
     /// <list type="bullet">
+    /// <item><b>The horde (11-09):</b> Cavendish's robot creatures pour in for the whole fight, faster and more of them
+    /// the longer it goes, the later the phase, and while the shield is up.</item>
+    /// <item><b>Robot mini-bosses (11-09):</b> when the shield goes up, three of his robot copies of earlier bosses come
+    /// in (<see cref="FinaleRobots"/>): Robo-Toad, Mecha-Buzzard and Burn-Bot, then Mecha-Worm, Witch-Bot and Silt-Bot.
+    /// They keep fighting after the shield breaks.</item>
     /// <item><b>Phase 1 task (built):</b> the shield draws power from three conduits hidden in the scrap around the arena.
     /// They show on the scanner; break them all and the shield fails.</item>
     /// <item><b>Phase 2 task (PLACEHOLDER):</b> the planned "carry coolant cells to the vents" isn't built, so it reuses
@@ -45,10 +50,16 @@ namespace SignalLost.Finale
         [SerializeField] private CombatZone arena;
         [Tooltip("The fight starts when the player is this close to the arena's middle.")]
         [SerializeField, Min(5f)] private float triggerRadius = 34f;
-        [Tooltip("Creatures sent in while the shield is up (any enemy prefab; swap in each island's own as they're built).")]
+        [Tooltip("The horde: creatures Cavendish rebuilt as robots, sent in all fight (any enemy prefab; swap in each island's own as they're built).")]
         [SerializeField] private GameObject[] addPrefabs = new GameObject[0];
-        [SerializeField, Range(0, 3)] private int addWaves = 2;
-        [SerializeField, Range(1, 8)] private int addsPerWave = 3;
+        [Tooltip("Seconds between horde spawns at the start, and the shortest it gets.")]
+        [SerializeField, Min(0.5f)] private float hordeInterval = 5.5f, hordeFastest = 1f;
+        [Tooltip("Most horde creatures alive at once at the start, and the most ever.")]
+        [SerializeField, Min(1)] private int hordeCap = 6, hordeMaxCap = 26;
+        [Tooltip("The bosses the robot mini-bosses are copied from.")]
+        [SerializeField] private FinaleRobots.Sources robotSources = new FinaleRobots.Sources();
+        [Tooltip("Robot mini-bosses' health, as a share of the original's (three come at once).")]
+        [SerializeField, Range(0.2f, 1.5f)] private float robotHealth = 0.7f;
         [Tooltip("Eugene first, then his cousins: who answers the call-in.")]
         [SerializeField] private GameObject[] crewPrefabs = new GameObject[0];
 
@@ -85,11 +96,19 @@ namespace SignalLost.Finale
         public int ConduitsLeft { get; private set; }
         public int ConduitsTotal { get; private set; }
         public int Retries { get; private set; }
+        /// <summary>The robot mini-bosses sent in so far (alive or not).</summary>
+        public IReadOnlyList<FinaleRobots.Robot> Robots => robots;
+        /// <summary>Seconds of fighting so far (the horde grows with it).</summary>
+        public float FightTime => Current == State.Fighting ? Time.time - fightStart : 0f;
+        /// <summary>How many horde creatures may be alive right now (it grows with time, phase and the shield).</summary>
+        public int HordeCap => Mathf.Min(hordeMaxCap, hordeCap + 3 * (mech.Phase - 1) + Mathf.FloorToInt(FightTime / 60f * 2f) + (mech.Shielded ? 4 : 0));
 
         private PlayerLife player;
         private ShieldConduit[] task = new ShieldConduit[0];
         private Coroutine adds;
         private int retryLine;
+        private float fightStart;
+        private readonly List<FinaleRobots.Robot> robots = new List<FinaleRobots.Robot>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Adds.Clear();
@@ -109,6 +128,7 @@ namespace SignalLost.Finale
             foreach (ShieldConduit c in conduits) c.Broken += OnConduitBroken;
             foreach (ShieldConduit c in phaseTwoConduits) c.Broken += OnConduitBroken;
             FinaleHud.Ensure(this);
+            if (arena != null) mech.SetArena(transform.position, arena.Radius - 4f);
             GameplayOverlay.Instance.SetQuest("Safe Keeping", "Cavendish is waiting at the wreck.");
         }
 
@@ -130,6 +150,9 @@ namespace SignalLost.Finale
                 if (offset.magnitude <= triggerRadius) StartCoroutine(Intro());
             }
             Adds.RemoveAll(a => a.Go == null || a.Health == null || a.Health.IsDead);
+            // The robot mini-bosses' own top-of-screen bars stay hidden; the finale HUD lists them.
+            foreach (FinaleRobots.Robot robot in robots)
+                if (robot.MiniBoss != null) MiniBossHud.Unregister(robot.MiniBoss);
         }
 
         // ---------- Intro ----------
@@ -145,8 +168,16 @@ namespace SignalLost.Finale
             }
             mech.Wake();
             yield return new WaitForSeconds(2.4f);
+            BeginFighting();
+        }
+
+        private void BeginFighting()
+        {
             Current = State.Fighting;
             Crew.Enabled = true;
+            fightStart = Time.time;
+            if (adds != null) StopCoroutine(adds);
+            adds = StartCoroutine(Horde());
         }
 
         /// <summary>Skips the intro's dialogue (for tests).</summary>
@@ -154,9 +185,8 @@ namespace SignalLost.Finale
         {
             if (Current != State.Waiting && Current != State.Intro) return;
             StopAllCoroutines();
-            Current = State.Fighting;
-            Crew.Enabled = true;
             mech.Wake();
+            BeginFighting();
         }
 
         private static void Say(string line, float seconds)
@@ -184,9 +214,31 @@ namespace SignalLost.Finale
                 if (c != null && !c.IsBroken) { c.SetLive(true); ConduitsTotal++; }
             ConduitsLeft = ConduitsTotal;
             UpdateTaskText();
-            if (ConduitsLeft == 0) { mech.BreakShield(); return; }
-            if (adds != null) StopCoroutine(adds);
-            adds = StartCoroutine(SendAdds());
+            SendRobots(phase == 1 ? FinaleRobots.FirstShield : FinaleRobots.SecondShield);
+            if (ConduitsLeft == 0) mech.BreakShield();
+        }
+
+        // Three robot mini-bosses, spread round the arena on the far side from the player.
+        private void SendRobots(FinaleRobots.Kind[] kinds)
+        {
+            Vector3 centre = transform.position;
+            Vector3 fromPlayer = player != null ? centre - player.transform.position : Vector3.forward;
+            fromPlayer.y = 0f;
+            float baseAngle = Mathf.Atan2(fromPlayer.z, fromPlayer.x);
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                float a = baseAngle + (i - 1) * 1.1f;
+                Vector3 desired = centre + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 20f;
+                Vector3 point = SpawnSafety.TryPlace(desired, 8f, out Vector3 safe, 24) ? safe : desired;
+                Vector3 face = player != null ? player.transform.position - point : -fromPlayer;
+                face.y = 0f;
+                FinaleRobots.Robot robot = FinaleRobots.Spawn(kinds[i], robotSources, point, Quaternion.LookRotation(face.sqrMagnitude > 0.01f ? face : Vector3.forward), robotHealth);
+                if (robot == null) continue;
+                robots.Add(robot);
+                ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, point + Vector3.up, Vector3.up, 80, 0.2f, 10f);
+                ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, point, Vector3.up, 40, 2f, 3f);
+            }
+            Say($"Cavendish: Meet my improvements! {string.Join(", ", System.Array.ConvertAll(kinds, FinaleRobots.Name))}!", 3.5f);
         }
 
         private void OnConduitBroken(ShieldConduit conduit)
@@ -197,7 +249,6 @@ namespace SignalLost.Finale
                 if (c != null && c.Live) ConduitsLeft++;
             UpdateTaskText();
             if (ConduitsLeft > 0) return;
-            if (adds != null) StopCoroutine(adds);
             Say("Cavendish: No, no, NO! My shield!", 2.5f);
             mech.BreakShield();
         }
@@ -209,13 +260,19 @@ namespace SignalLost.Finale
                 $"{ConduitsTotal - ConduitsLeft} / {ConduitsTotal}.{placeholder}");
         }
 
-        private IEnumerator SendAdds()
+        // Robot creatures all fight long: the gap between spawns shrinks and the cap on how many are alive grows with
+        // the minutes fought and the phase, and both jump while the shield is up.
+        private IEnumerator Horde()
         {
-            for (int wave = 0; wave < addWaves; wave++)
+            while (Current == State.Fighting)
             {
-                yield return new WaitForSeconds(wave == 0 ? 3f : 14f);
-                if (!mech.Shielded) yield break;
-                for (int i = 0; i < addsPerWave; i++) SpawnAdd();
+                float minutes = FightTime / 60f;
+                int phase = mech.Phase;
+                bool shielded = mech.Shielded;
+                float gap = Mathf.Max(hordeFastest, hordeInterval - minutes * 0.5f - (phase - 1) - (shielded ? 1f : 0f));
+                int batch = Mathf.Clamp(1 + Mathf.FloorToInt(minutes / 2f) + (shielded ? 1 : 0), 1, 4);
+                for (int i = 0; i < batch && Adds.Count < HordeCap; i++) SpawnAdd();
+                yield return new WaitForSeconds(gap);
             }
         }
 
@@ -233,7 +290,8 @@ namespace SignalLost.Finale
             Vector3 face = player.transform.position - point;
             face.y = 0f;
             GameObject spawned = Instantiate(prefab, point, Quaternion.LookRotation(face.sqrMagnitude > 0.01f ? face : Vector3.forward));
-            spawned.name = prefab.name + " (add)";
+            spawned.name = "Robo " + prefab.name;
+            spawned.AddComponent<Robotify>().addParts = spawned.GetComponentInChildren<Renderer>() != null;
             if (arena != null)
                 foreach (ITerritorial enemy in spawned.GetComponentsInChildren<ITerritorial>()) enemy.Territory.Zone = arena;
             ParticleBurst.Spawn(ParticleBurst.Kind.Sand, point, Vector3.up, 30, 0.6f, 5f);
@@ -259,6 +317,9 @@ namespace SignalLost.Finale
                 if (add.Go != null) Destroy(add.Go);
             Adds.Clear();
             Crew.ResetCall();
+            foreach (FinaleRobots.Robot robot in robots)
+                if (robot.Go != null) Destroy(robot.Go);
+            robots.Clear();
             foreach (ShieldConduit c in conduits) c.ResetConduit();
             foreach (ShieldConduit c in phaseTwoConduits) c.ResetConduit();
             // Conduits of finished phases stay broken.
@@ -273,6 +334,8 @@ namespace SignalLost.Finale
         {
             yield return new WaitForSeconds(3f);
             mech.Resume();
+            fightStart = Time.time; // the horde builds up again from the retry
+            adds = StartCoroutine(Horde());
         }
 
         // ---------- The end ----------
@@ -281,6 +344,11 @@ namespace SignalLost.Finale
         {
             Current = State.Won;
             if (adds != null) StopCoroutine(adds);
+            // With their maker down, his robots power off.
+            foreach (Add add in Adds)
+                if (add.Health != null && !add.Health.IsDead) add.Health.TakeDamage(add.Health.Max * 10f, gameObject);
+            foreach (FinaleRobots.Robot robot in robots)
+                if (robot.Alive) robot.Health.TakeDamage(robot.Health.Max * 10f, gameObject);
             Crew.Enabled = false;
             StageProgress.RecoverMainPart("Reactor Core");
             StageProgress.ClearStage(StageProgress.Finale, null);

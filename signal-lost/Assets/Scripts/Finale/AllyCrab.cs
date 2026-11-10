@@ -67,15 +67,36 @@ namespace SignalLost.Finale
             return ally;
         }
 
-        // Everything but the crab's looks and its rig: no AI, health, drops, dialogue or colliders.
+        // Everything but the crab's looks and its rig: no AI, health, drops, dialogue or colliders. A component goes only
+        // once nothing left still requires it ([RequireComponent]), so Unity never refuses a removal.
         private static void Strip(GameObject crab)
         {
-            for (int pass = 0; pass < 4; pass++) // components that others depend on go on a later pass
-                foreach (Component c in crab.GetComponentsInChildren<Component>(true))
+            var doomed = new List<Component>();
+            foreach (Component c in crab.GetComponentsInChildren<Component>(true))
+                if (c != null && !(c is Transform || c is Renderer || c is MeshFilter || c is HermitCrabRig || c is NavMeshAgent) &&
+                    (c is Behaviour || c is Collider || c is Rigidbody || c is Health))
+                    doomed.Add(c);
+            for (int pass = 0; pass < 8 && doomed.Count > 0; pass++)
+                for (int i = doomed.Count - 1; i >= 0; i--)
                 {
-                    if (c == null || c is Transform || c is Renderer || c is MeshFilter || c is HermitCrabRig || c is NavMeshAgent) continue;
-                    if (c is Behaviour || c is Collider || c is Rigidbody || c is Health) DestroyImmediate(c);
+                    Component c = doomed[i];
+                    if (c == null) { doomed.RemoveAt(i); continue; }
+                    if (Required(c, doomed)) continue;
+                    DestroyImmediate(c);
+                    doomed.RemoveAt(i);
                 }
+        }
+
+        private static bool Required(Component c, List<Component> remaining)
+        {
+            foreach (Component other in remaining)
+            {
+                if (other == null || other == c || other.gameObject != c.gameObject) continue;
+                foreach (RequireComponent need in other.GetType().GetCustomAttributes(typeof(RequireComponent), true))
+                    foreach (System.Type type in new[] { need.m_Type0, need.m_Type1, need.m_Type2 })
+                        if (type != null && type.IsInstanceOfType(c)) return true;
+            }
+            return false;
         }
 
         private void Awake()

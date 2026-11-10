@@ -25,6 +25,7 @@ namespace SignalLost.Finale
             set
             {
                 progress = Mathf.Clamp01(value);
+                if (fill == null) return;
                 float p = Mathf.Max(0.001f, progress);
                 fill.localScale = shape == Shape.Strip ? new Vector3(1f, 1f, p) : new Vector3(p, 1f, p);
             }
