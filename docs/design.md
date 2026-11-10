@@ -10,6 +10,8 @@ The flask heals without a fixed use limit; excessive drinking affects visibility
 
 **Current scanner prototype:** the active in-hand scanner no longer has a directional arrow. It retains its proximity bar and audio feedback. This is an implementation change; the supplied design document's directional-scanner intent above remains unchanged.
 
+**Buried-enemy prototype:** the scanner can track an underground `EnemySignalSource`; the current burrow/emergence test is limited to one Hermit Crab scene instance. The scanner also excludes defeated enemy sources with `Health` and advances to another eligible target. See [burrow and emerge](burrow-emerge.md) and the [scanner prototype](scanner-prototype.md).
+
 | Area | Planned boss / reward |
 | --- | --- |
 | Crash site tutorial | Recover laser/flask; learn movement, scanner, combat, resources, and healing |
@@ -170,6 +172,19 @@ Amanda's fixes and changes after reviewing the world. See [Crystal Caves](crysta
 - **Not decided, so not invented:** Crystal Caves outfits and camp styling (no `StageTheme` yet, so the crew wears its Crash Meadow look), and a departure dock and voyage route (waiting on the Fog Forest).
 
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
+
+## Crystal Chameleon (11-09)
+
+Amanda's request: the Crystal Caves fodder enemy, a chameleon with crystal scales that hides among the cave's crystals. See [Crystal Chameleon](crystal-chameleon.md).
+
+- **Camouflage:** it lies buried with only its crystals showing (the cave's own crystal meshes and materials). Hidden, it can't be shot and the ordinary scanner doesn't see it.
+- **Reveal:** the scanner's camouflage-disrupting upgrade isn't built yet, so `CrystalChameleon.Disrupt()` is the hook for it. Disrupting turns its crystals red, and it rises through the shared `BurrowEmerge`.
+  - The burrow-emerge branch was merged in, as Amanda chose.
+  - `BurrowEmerge` gained an opt-out of its proximity trigger and a public `Emerge()`.
+- **Fighting:** a ranged enemy. A telegraphed tongue lick, a straight line that walls stop. Its crystals stay red while it fights and go dark when it dies.
+- **Drops:** scrap, like the other fodder.
+- **Test scene only:** its own test scene, with instances set to **Start Revealed**. It is not placed in the level yet.
+- **Not decided, so not invented:** emerging from walls (only ground is built), and whether a hit while it is camouflaged should reveal it.
 
 ## Chief Toad decisions (10-23-26)
 
