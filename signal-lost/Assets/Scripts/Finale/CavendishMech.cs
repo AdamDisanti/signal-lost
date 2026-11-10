@@ -16,8 +16,10 @@ namespace SignalLost.Finale
     /// The final boss (docs/final-boss.md): Cavendish piloting a mech built from the ship parts the player handed him.
     /// Three phases, raid style:
     /// <list type="bullet">
-    /// <item>each phase is a damage window; at its threshold (66%, then 33%) a shield goes up and the mech is immune
-    /// until the player finishes a task (<see cref="FinaleEncounter"/> runs the tasks and calls <see cref="BreakShield"/>);</item>
+    /// <item>each phase is a damage window; at its threshold (66%, then 33%) a shield goes up and the mech kneels,
+    /// hunched over, to <b>repair</b> itself (Adam, 11-10): immune and stationary, welding, sending only an occasional
+    /// light rocket volley, while the player fights the robot mini-bosses it sent in and breaks the conduits
+    /// (<see cref="FinaleEncounter"/> runs that and calls <see cref="BreakShield"/>);</item>
     /// <item>the next phase is faster and, as the fight is built out, adds weapons;</item>
     /// <item>dying restarts the current phase (<see cref="ResetToPhase"/>), not the fight.</item>
     /// </list>
@@ -84,6 +86,11 @@ namespace SignalLost.Finale
         [SerializeField] private float magnetTime = 2.4f, magnetPull = 5.6f, magnetRange = 45f, magnetCooldown = 13f;
         [SerializeField] private float slamRadius = 12f, slamDamage = 42f;
 
+        [Header("Repairing (while shielded)")]
+        [Tooltip("Seconds between the light rocket volleys it sends while it repairs.")]
+        [SerializeField, Min(2f)] private float repairVolleyEvery = 10f;
+        [SerializeField, Range(1, 12)] private int repairVolleyMissiles = 5;
+
         [Header("Engine Core: napalm flyover (phase 3)")]
         [SerializeField] private float napalmHeight = 10f, napalmSpeed = 24f, napalmLength = 64f, napalmWidth = 7f, napalmCooldown = 14f;
         [SerializeField] private FireStyle napalm = new FireStyle { damage = 10f, interval = 0.5f, duration = 18f, smoke = 0.6f, fierceness = 0.7f };
@@ -134,7 +141,9 @@ namespace SignalLost.Finale
 
         // Pose targets, eased toward each frame.
         private float crouch, lean, aim, liftR, kneel, stride, walkWeight, thrusterHeat;
-        private float crouchNow, leanNow, aimNow, liftNow, kneelNow = 1f, deadNow, waistYaw, nextSmoke, reactorBoost;
+        private float crouchNow, leanNow, aimNow, liftNow, kneelNow = 1f, deadNow, waistYaw, nextSmoke, reactorBoost, hunchNow;
+        private float nextRepairVolley, nextWeld;
+        private Light weldLight;
         private Vector3 shoveDirection;
         private float shoveRemaining;
 
@@ -157,6 +166,8 @@ namespace SignalLost.Finale
             shield.gameObject.SetActive(false);
             reactorLight = AddLight(Rig.Reactor, FinalePalette.Reactor, 9f, 2.2f);
             muzzleLight = AddLight(Rig.CannonMuzzle, FinalePalette.Coolant, 10f, 0f);
+            weldLight = AddLight(Rig.Chest, new Color(0.75f, 0.9f, 1f), 12f, 0f);
+            weldLight.transform.localPosition = new Vector3(0f, 1.6f, 3f);
             jetL = FireEffect.SpawnJet(Rig.ThrusterL, new Vector3(0f, 1.3f, 0f), Quaternion.Euler(-90f, 0f, 0f), 0.5f, 3.5f);
             jetR = FireEffect.SpawnJet(Rig.ThrusterR, new Vector3(0f, 1.3f, 0f), Quaternion.Euler(-90f, 0f, 0f), 0.5f, 3.5f);
             jetL.Strength = jetR.Strength = 0f;
@@ -202,6 +213,7 @@ namespace SignalLost.Finale
             float dt = Time.deltaTime;
             UpdateShove(dt);
             if (Current == State.Fighting) Think(dt);
+            UpdateWelding();
             if (Current == State.Defeated && Time.time >= nextSmoke)
             {
                 nextSmoke = Time.time + Random.Range(0.3f, 0.8f);
@@ -240,6 +252,9 @@ namespace SignalLost.Finale
         {
             if (!Shielded) return;
             StopAttack();
+            // The next phase begins now, not after the stagger: hits during the stagger (the player punishing it, the
+            // crew) must not count against the threshold just passed and raise the same shield again.
+            Phase = Mathf.Min(3, Phase + 1);
             Shielded = false;
             Health.Invulnerable = false;
             shield.gameObject.SetActive(false);
@@ -254,7 +269,6 @@ namespace SignalLost.Finale
             kneel = 0.6f;
             yield return new WaitForSeconds(3f);
             kneel = 0f;
-            Phase = Mathf.Min(3, Phase + 1);
             Current = State.Fighting;
             nextAttack = Time.time + 1.2f;
             PhaseStarted?.Invoke(Phase);
@@ -314,6 +328,15 @@ namespace SignalLost.Finale
 
         private void RaiseShield()
         {
+            StopAttack(); // whatever it was doing, it stops to repair, dead still
+            Halt();
+            if (agent.enabled && agent.isOnNavMesh)
+            {
+                agent.ResetPath();
+                agent.velocity = Vector3.zero;
+            }
+            kneel = 0.75f;
+            nextRepairVolley = Time.time + repairVolleyEvery * 0.6f;
             Shielded = true;
             Health.Invulnerable = true;
             shield.gameObject.SetActive(true);
@@ -393,6 +416,17 @@ namespace SignalLost.Finale
         private void Think(float dt)
         {
             if (player == null || player.IsRespawning || playerHealth == null || playerHealth.IsDead) { Halt(); return; }
+            if (Shielded)
+            {
+                // Repairing: it stays put, and only now and then sends a light volley.
+                Halt();
+                if (attack == null && Time.time >= nextRepairVolley)
+                {
+                    nextRepairVolley = Time.time + repairVolleyEvery;
+                    attack = StartCoroutine(Run(RepairVolley()));
+                }
+                return;
+            }
             if (attack != null) return;
             Transform target = PickTarget(false);
             float distance = Flat(target.position - transform.position);
@@ -797,6 +831,35 @@ namespace SignalLost.Finale
             airborne = false;
         }
 
+        // ---------- Repairing ----------
+
+        // One light volley from the shoulder pods while it kneels: a few missiles round the player.
+        private IEnumerator RepairVolley()
+        {
+            AttackName = "Rocket volley";
+            Transform target = PickTarget(true);
+            for (int i = 0; i < repairVolleyMissiles; i++)
+            {
+                Vector3 spot = i == 0 ? Lead(target, barrageWarning * 0.6f) : target.position + Flat3(Random.insideUnitSphere) * barrageSpread;
+                Transform pod = i % 2 == 0 ? Rig.ShoulderL : Rig.ShoulderR;
+                StartCoroutine(Missile(pod.position + Vector3.up * 1.6f, ClampArena(Ground(spot)), barrageWarning * 1.2f));
+                yield return new WaitForSeconds(0.12f);
+            }
+            yield return new WaitForSeconds(barrageWarning * 1.2f);
+        }
+
+        // Welding sparks and blue-white flashes from the arms working on its own chest.
+        private void UpdateWelding()
+        {
+            bool welding = Shielded && Current == State.Fighting;
+            if (weldLight != null) weldLight.intensity = welding && Random.value < 0.5f ? Random.Range(2f, 6f) : 0f;
+            if (!welding || Time.time < nextWeld) return;
+            nextWeld = Time.time + Random.Range(0.08f, 0.2f);
+            Vector3 at = Rig.Chest.TransformPoint(new Vector3(Random.Range(-1.6f, 1.6f), Random.Range(1.2f, 3.2f), 1.9f));
+            ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, at, Rig.Chest.forward + Random.onUnitSphere * 0.6f, 10, 0.12f, 6f);
+            if (Random.value < 0.15f) ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, at, Vector3.up, 3, 0.8f, 1.5f);
+        }
+
         // ---------- Flight Control Module: the rocket barrage ----------
 
         // The shoulder pods fire a volley of missiles that rain down in big circles round you; then another where you
@@ -1183,6 +1246,7 @@ namespace SignalLost.Finale
             liftNow = Mathf.Lerp(liftNow, liftR, 1f - Mathf.Exp(-12f * dt));
             kneelNow = Mathf.Lerp(kneelNow, kneel, 1f - Mathf.Exp(-2.5f * dt));
             deadNow = Mathf.Lerp(deadNow, Current == State.Defeated ? 1f : 0f, 1f - Mathf.Exp(-1.5f * dt));
+            hunchNow = Mathf.Lerp(hunchNow, Shielded && Current == State.Fighting ? 1f : 0f, 1f - Mathf.Exp(-3f * dt));
 
             float speed = agent.enabled ? new Vector2(agent.velocity.x, agent.velocity.z).magnitude : 0f;
             walkWeight = Mathf.Lerp(walkWeight, Mathf.Clamp01(speed / 2f), ease);
@@ -1207,7 +1271,7 @@ namespace SignalLost.Finale
             // The torso leans into a charge, slumps when kneeling, and twists a little with the stride.
             waistYaw = Mathf.Sin(stride) * 4f * walkWeight;
             // Beaten, it slumps forward and to one side, arms hanging.
-            Rig.Waist.localRotation = Quaternion.Euler(leanNow * 22f + kneelNow * 18f + deadNow * 22f + breathe * 20f * (1f - deadNow), waistYaw, deadNow * 14f);
+            Rig.Waist.localRotation = Quaternion.Euler(leanNow * 22f + kneelNow * 18f + deadNow * 22f + hunchNow * 26f + breathe * 20f * (1f - deadNow), waistYaw, deadNow * 14f);
 
             // Arms: the cannon arm comes up to aim; otherwise both swing with the walk.
             float armSwing = swing * 0.6f + deadNow * 25f;
@@ -1215,6 +1279,15 @@ namespace SignalLost.Finale
             Rig.ElbowL.localRotation = Quaternion.Euler(Mathf.Lerp(-12f, 0f, aimNow), 0f, 0f);
             Rig.ShoulderR.localRotation = Quaternion.Euler(-armSwing - crouchNow * 25f - kneelNow * 10f, 0f, 8f + crouchNow * 10f);
             Rig.ElbowR.localRotation = Quaternion.Euler(-20f - crouchNow * 40f, 0f, 0f);
+            if (hunchNow > 0.01f)
+            {
+                // Repairing: both arms reach in to the chest and work at it.
+                float work = Mathf.Sin(Time.time * 7f) * 8f;
+                Rig.ShoulderL.localRotation = Quaternion.Slerp(Rig.ShoulderL.localRotation, Quaternion.Euler(-62f + work, 0f, 18f), hunchNow);
+                Rig.ShoulderR.localRotation = Quaternion.Slerp(Rig.ShoulderR.localRotation, Quaternion.Euler(-58f - work, 0f, -18f), hunchNow);
+                Rig.ElbowL.localRotation = Quaternion.Slerp(Rig.ElbowL.localRotation, Quaternion.Euler(-55f, 0f, 0f), hunchNow);
+                Rig.ElbowR.localRotation = Quaternion.Slerp(Rig.ElbowR.localRotation, Quaternion.Euler(-60f, 0f, 0f), hunchNow);
+            }
 
             // The reactor throbs (faster when hurt), the dish turns, the turbine spins with the thrusters.
             float hurt = 1f - HealthFraction;

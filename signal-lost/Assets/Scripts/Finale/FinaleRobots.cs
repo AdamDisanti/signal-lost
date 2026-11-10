@@ -10,18 +10,20 @@ using Object = UnityEngine.Object;
 namespace SignalLost.Finale
 {
     /// <summary>
-    /// Cavendish's robot copies of the bosses the player beat on the way (Adam, 11-09), sent in when the mech's shield
-    /// goes up: three at the first shield, three tougher ones at the second. Each is the real boss (its own script,
-    /// moves and attacks) given a robot skin by <see cref="Robotify"/>, a robot name, and these changes for the
-    /// finale: no ship part or key item drop, no top-of-screen bar of its own (the finale HUD lists them), a wide fight
-    /// radius so it engages at once, and less health, since three come at once on top of the mech.
+    /// Cavendish's robot copies of the bosses the player beat on the way (Adam, 11-09), sent in while the mech kneels to
+    /// repair itself between phases: Burn-Bot and Witch-Bot at the first repair, Mecha-Worm and Mecha-Buzzard at the
+    /// second (Adam, 11-10: two at a time, a fair 2v1). Each is the real boss (its own script, moves and attacks) given
+    /// a robot skin by <see cref="Robotify"/>, a robot name, and these changes for the finale: no ship part or key item
+    /// drop, no top-of-screen bar of its own (the finale HUD lists them), a wide fight radius so it engages at once,
+    /// half health, and its hits on the player scaled down (<see cref="FinaleEncounter"/>). Robo-Toad and Silt-Bot are
+    /// built too but not in the line-up at the moment.
     /// </summary>
     public static class FinaleRobots
     {
         public enum Kind { RoboToad, MechaBuzzard, BurnBot, MechaWorm, WitchBot, SiltBot }
 
-        public static readonly Kind[] FirstShield = { Kind.RoboToad, Kind.MechaBuzzard, Kind.BurnBot };
-        public static readonly Kind[] SecondShield = { Kind.MechaWorm, Kind.WitchBot, Kind.SiltBot };
+        public static readonly Kind[] FirstShield = { Kind.BurnBot, Kind.WitchBot };
+        public static readonly Kind[] SecondShield = { Kind.MechaWorm, Kind.MechaBuzzard };
 
         public static string Name(Kind kind) => kind switch
         {

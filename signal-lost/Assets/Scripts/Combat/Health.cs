@@ -28,6 +28,12 @@ namespace SignalLost.Combat
 
         // Runtime protection for friendly NPCs; normal actors remain damageable by default.
         public bool Invulnerable { get; set; }
+
+        /// <summary>
+        /// Optional: rescales incoming damage by who dealt it (the final boss's robot mini-bosses hit the player at 70%).
+        /// Gets the amount and the source; returns the amount to apply. Null: damage is unchanged.
+        /// </summary>
+        public Func<float, GameObject, float> DamageModifier { get; set; }
         public float Max => maxHealth;
 
         /// <summary>Changes the maximum (upgrades), keeping the same fraction of health.</summary>
@@ -53,6 +59,11 @@ namespace SignalLost.Combat
             if (SignalLost.Core.CheatMode.Enabled && source != null && source.GetComponentInParent<SignalLost.Player.PlayerLife>() != null &&
                 GetComponentInParent<SignalLost.Player.PlayerLife>() == null)
                 amount = SignalLost.Core.CheatMode.Damage;
+            if (DamageModifier != null)
+            {
+                amount = DamageModifier(amount, source);
+                if (amount <= 0f) return false;
+            }
             if (Invulnerable)
             {
                 Blocked?.Invoke(this, amount, source);

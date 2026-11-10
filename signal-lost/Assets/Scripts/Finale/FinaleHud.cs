@@ -62,7 +62,7 @@ namespace SignalLost.Finale
             UiTheme.Stretch(shieldCover.rectTransform);
             shieldLabel = UiTheme.Label("Shielded", bar, 18f, new Color(0.05f, 0.15f, 0.15f), TextAlignmentOptions.Center, FontStyles.Bold);
             UiTheme.Stretch(shieldLabel.rectTransform);
-            shieldLabel.text = "SHIELDED: BREAK THE CONDUITS";
+            shieldLabel.text = "REPAIRING";
             attack = UiTheme.Label("Attack", p, 18f, UiTheme.Muted, TextAlignmentOptions.MidlineLeft, FontStyles.Italic);
             UiTheme.Place(attack.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(26f, 4f), new Vector2(500f, 24f));
 
@@ -135,7 +135,7 @@ namespace SignalLost.Finale
                 if (shielded)
                 {
                     shieldCover.color = new Color(ShieldColor.r, ShieldColor.g, ShieldColor.b, 0.55f + 0.25f * Mathf.Sin(Time.time * 5f));
-                    shieldLabel.text = $"SHIELDED: BREAK THE CONDUITS  {encounter.ConduitsTotal - encounter.ConduitsLeft} / {encounter.ConduitsTotal}";
+                    shieldLabel.text = $"REPAIRING: ROBOTS {encounter.RobotsTotal - encounter.RobotsLeft} / {encounter.RobotsTotal}   CONDUITS {encounter.ConduitsTotal - encounter.ConduitsLeft} / {encounter.ConduitsTotal}";
                 }
                 phase.text = mech.Current == CavendishMech.State.Defeated ? "DOWN!" : $"PHASE {mech.Phase} / 3";
                 attack.text = string.IsNullOrEmpty(mech.AttackName) ? "" : mech.AttackName + "!";

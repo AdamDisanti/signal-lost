@@ -121,19 +121,29 @@ public static class FinaleSmoke
         int earlyCap = encounter.HordeCap;
         yield return CaptureFrom("Horde", life.transform.position + Vector3.up * 6f - life.transform.forward * 6f, FinaleEncounter.Adds[0].Go.transform.position);
 
-        // ---------- Phase 1 shield: the conduits and three robot mini-bosses ----------
+        // ---------- First repair: Burn-Bot and Witch-Bot, and the conduits ----------
         mech.Health.TakeDamage(mech.Health.Max, life.gameObject);
-        Check(mech.Shielded && Mathf.Abs(mech.HealthFraction - 0.66f) < 0.005f, "At 66% the shield goes up.");
-        Check(encounter.HordeCap > earlyCap, $"The horde grows while the shield is up (cap {earlyCap} -> {encounter.HordeCap}).");
+        Check(mech.Shielded && Mathf.Abs(mech.HealthFraction - 0.66f) < 0.005f && mech.Health.Invulnerable, "At 66% the shield goes up and the mech is immune.");
+        Check(encounter.HordeCap > earlyCap, $"The horde keeps coming, faster while it repairs (cap {earlyCap} -> {encounter.HordeCap}).");
+        Vector3 kneelAt = mech.transform.position;
         yield return 3f;
+        Check(Vector3.Distance(mech.transform.position, kneelAt) < 0.5f && (mech.AttackName == "" || mech.AttackName == "Rocket volley"),
+            "It kneels in place to repair, only sending the odd light rocket volley.");
         string[] first = encounter.Robots.Select(r => r.Name).ToArray();
-        Check(first.SequenceEqual(new[] { "Robo-Toad", "Mecha-Buzzard", "Burn-Bot" }) && encounter.Robots.All(r => r.Alive && r.Go.GetComponent<Robotify>() != null),
-            "Robo-Toad, Mecha-Buzzard and Burn-Bot come in, in robot skins.");
+        Check(first.SequenceEqual(new[] { "Burn-Bot", "Witch-Bot" }) && encounter.Robots.All(r => r.Alive && r.Go.GetComponent<Robotify>() != null),
+            "Burn-Bot and Witch-Bot come in, in robot skins: " + string.Join(", ", first) + ".");
         Check(encounter.Robots.All(r => r.MiniBoss == null || !BarShown(r.MiniBoss)), "Their own boss bars stay hidden (the finale HUD lists them).");
+        life.Health.Invulnerable = false;
+        float hp = life.Health.Current;
+        life.Health.TakeDamage(20f, encounter.Robots[0].Go);
+        Check(Mathf.Abs(hp - life.Health.Current - 14f) < 0.01f, $"The robots hit the player at 70% (a 20 hit took {hp - life.Health.Current:0.#}).");
+        life.Health.Invulnerable = true;
+        life.Health.Restore();
         yield return 4f;
         foreach (FinaleRobots.Robot robot in encounter.Robots)
             yield return CaptureFrom("Robot_" + robot.Name, robot.Go.transform.position + robot.Go.transform.forward * 9f + Vector3.up * 4f, robot.Go.transform.position + Vector3.up * 1.5f);
         Check(encounter.Robots.Any(r => r.Alive), "They fight on.");
+        yield return CaptureFrom("Repairing", mech.transform.position + mech.transform.forward * 16f + Vector3.up * 5f, mech.transform.position + Vector3.up * 5f);
 
         // ---------- The whole crew ----------
         Check(encounter.Crew.Ready && encounter.Crew.Call() && AllyCrab.Live.Count == 11, $"G calls in Eugene and all ten cousins ({AllyCrab.Live.Count}).");
@@ -141,10 +151,12 @@ public static class FinaleSmoke
         yield return Capture("Crew", view);
 
         foreach (ShieldConduit c in UnityEngine.Object.FindObjectsByType<ShieldConduit>().Where(c => c.Live).ToArray()) c.GetComponent<Health>().TakeDamage(500f, life.gameObject);
+        yield return 1f;
+        Check(mech.Shielded && mech.Phase == 1, "Breaking the conduits isn't enough while a robot still stands.");
+        foreach (FinaleRobots.Robot robot in encounter.Robots) if (robot.Alive) robot.Health.TakeDamage(robot.Health.Max * 10f, life.gameObject);
         for (float t = 0f; t < 10f && !(mech.Phase == 2 && mech.Current == CavendishMech.State.Fighting); t += 0.1f) yield return 0.1f;
         Check(mech.Phase == 2 && mech.Current == CavendishMech.State.Fighting,
-            $"Breaking the conduits starts phase 2 (phase {mech.Phase}, {mech.Current}, shielded {mech.Shielded}, retries {encounter.Retries}, conduits left {encounter.ConduitsLeft}, player dead {life.Health.IsDead}).");
-        Check(encounter.Robots.Any(r => r.Alive), "The robot mini-bosses keep fighting after the shield breaks.");
+            $"With both robots beaten and the conduits broken, phase 2 starts (phase {mech.Phase}, {mech.Current}, shielded {mech.Shielded}, robots left {encounter.RobotsLeft}, conduits left {encounter.ConduitsLeft}).");
 
         // ---------- Phase 2 attacks ----------
         yield return Attack(mech, life, "Coolant tidal wave", view);
@@ -162,21 +174,22 @@ public static class FinaleSmoke
         CarBlast.Explode(mech.transform.position + mech.transform.forward * 3f + Vector3.up, 6f, 80f, 3f, life.gameObject, mech.Health);
         Check(mech.Health.Current < before && mech.Current == CavendishMech.State.Fighting, $"A car ram hurts the mech ({before - mech.Health.Current:0}) and doesn't stun it.");
 
-        // ---------- Phase 2 shield: the toughest three ----------
+        // ---------- Second repair: Mecha-Worm and Mecha-Buzzard ----------
         mech.Health.TakeDamage(mech.Health.Max, life.gameObject);
         Check(mech.Shielded && Mathf.Abs(mech.HealthFraction - 0.33f) < 0.005f, "At 33% the shield goes up again.");
         yield return 4f;
-        string[] second = encounter.Robots.Select(r => r.Name).ToArray();
-        Check(second.SequenceEqual(new[] { "Mecha-Worm", "Witch-Bot", "Silt-Bot" }), "Mecha-Worm, Witch-Bot and Silt-Bot come in: " + string.Join(", ", second) + ".");
+        string[] second = encounter.Robots.Skip(Mathf.Max(0, encounter.Robots.Count - 2)).Select(r => r.Name).ToArray();
+        Check(second.SequenceEqual(new[] { "Mecha-Worm", "Mecha-Buzzard" }), "Mecha-Worm and Mecha-Buzzard come in: " + string.Join(", ", second) + ".");
         yield return 5f;
-        Check(encounter.Robots.All(r => r.Go != null), "All three are still in the fight a few seconds later.");
+        Check(encounter.Robots.All(r => r.Go != null), "Both are still in the fight a few seconds later.");
         foreach (FinaleRobots.Robot robot in encounter.Robots.Where(r => r.Go != null))
         {
             Vector3 at = robot.Go.transform.position;
             yield return CaptureFrom("Robot_" + robot.Name, at + (life.transform.position - at).normalized * 10f + Vector3.up * 5f, at + Vector3.up * 1.5f);
         }
         foreach (ShieldConduit c in UnityEngine.Object.FindObjectsByType<ShieldConduit>().Where(c => c.Live).ToArray()) c.GetComponent<Health>().TakeDamage(500f, life.gameObject);
-        yield return WaitFor(() => mech.Phase == 3 && mech.Current == CavendishMech.State.Fighting, 6f, "Phase 3 starts.");
+        foreach (FinaleRobots.Robot robot in encounter.Robots) if (robot.Alive) robot.Health.TakeDamage(robot.Health.Max * 10f, life.gameObject);
+        yield return WaitFor(() => mech.Phase == 3 && mech.Current == CavendishMech.State.Fighting, 8f, "With both beaten and the conduits broken, phase 3 starts.");
 
         // ---------- Phase 3: the napalm flyover ----------
         // (The robots are checked; clear them so they can't knock the "standing still" player off the line.)
