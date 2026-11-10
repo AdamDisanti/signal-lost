@@ -17,6 +17,7 @@ namespace SignalLost.UI
             UpgradeSlot.Flask => "Scotch Flask",
             UpgradeSlot.Suit => "Player",
             UpgradeSlot.Supply => "Supply",
+            UpgradeSlot.Car => "Car",
             _ => "Trade"
         };
 
@@ -26,6 +27,7 @@ namespace SignalLost.UI
             UpgradeSlot.Scanner => UiTheme.SpeakerColor("Cavendish"),
             UpgradeSlot.Flask => new Color(1f, 0.78f, 0.34f),
             UpgradeSlot.Suit => new Color(0.93f, 0.48f, 0.15f),
+            UpgradeSlot.Car => new Color(0.45f, 0.82f, 0.8f),
             _ => UiTheme.Muted
         };
 
@@ -41,7 +43,7 @@ namespace SignalLost.UI
             if (upgrade.KeyItem != null)
             {
                 bool has = inventory != null && inventory.HasKeyItem(upgrade.KeyItem);
-                price.Append($"<color={UiTheme.Hex(has ? UiTheme.Good : UiTheme.Warning)}>+ {upgrade.KeyItem}</color>");
+                price.Append($"<color={UiTheme.Hex(has ? UiTheme.Good : UiTheme.Warning)}>+ {KeyItems.Name(upgrade.KeyItem)}</color>");
             }
             return price.ToString().TrimEnd();
         }

@@ -21,7 +21,8 @@ namespace SignalLost.Progression
             new Trophy { Id = "old_buzzard_feathers", Name = "Old Buzzard's Tail Feathers", Boss = "Old Buzzard" },
             new Trophy { Id = "burnout_thorns", Name = "Burnout's Thorn Crest", Boss = "Burnout" },
             new Trophy { Id = "sludge_stinger", Name = "Sludge's Stinger", Boss = "Sludge" },
-            new Trophy { Id = "core_worm_fang", Name = "Core Worm Fang", Boss = "Core Worm" }
+            new Trophy { Id = "core_worm_fang", Name = "Core Worm Fang", Boss = "Core Worm" },
+            new Trophy { Id = "clutch_aviators", Name = "Clutch's Aviators", Boss = "Clutch McCheddar" }
         };
 
         public static Trophy Find(string id)
