@@ -116,6 +116,59 @@ Lawson requested a main boss for the desert stage. See [desert stage boss](deser
 - **No friendly fire (Lawson's request):** enemies are never hurt by their own attacks or each other's: fire, blasts, the cannon shell, the worm's shrapnel and the mortar frog's goo all skip enemies (`EnemyAllegiance`). This supersedes the earlier "fire and blasts hurt fodder" notes. Hazards the player sets off still count as the player's: shooting an oil slick, a fire the player started, or a Jerry-Can Beetle the player shot or ignited.
 - **Flask in the fight (Lawson's request):** the player has the Scotch flask during the Core Worm fight, with the tutorial's healing and intoxication rules. The tutorial's blackout sends you back to the start, so here a blackout counts as going down. Whether the flask comes from the inventory once stages are linked is still open.
 
+## Crystal Caves world (11-08)
+
+Amanda's request: a new Crystal Caves level built from her design map and reference images, world only. See [Crystal Caves](crystal-caves.md).
+
+- **Size:** 480 × 480 m, which is 1.5 times Desert Dunes' 320 m.
+- **Layout (Amanda's answers):**
+  - The cave fills the island under high mountains.
+  - A walkable rocky shelf wraps along the south coast. Amanda chose this over the drawing's small ledge.
+  - The dock hangs off a cliff, with the cave mouth visible from it and no path to it.
+  - Two cave levels, the deep one about 16 m lower, joined by three ramps.
+- **Dock and boat:** no earlier level had them. Amanda chose reusable static prefabs; travel between levels is not built.
+- **Workflow:** the Desert Dunes pattern (an environment prefab that can be rebuilt, and a scene created once then edited by hand), at Amanda's choice.
+- **Look:** a bright coastal day outside. Inside, the crystals (six colours) are the only light; a scripted fade turns off the sun and sky light under the cave roof.
+- **Chosen while building (open to change):**
+  - the player spawns on the dock with all gear;
+  - Eugene is already friendly and Cavendish has small talk only;
+  - falling into the sea respawns you on the dock;
+  - a faint ambient fill in the cave so rock shapes read.
+- **Not invented:** enemies, quests, boss, level flow or travel. The fight zones are empty CombatZone markers.
+
+## Crystal Caves revisions (11-09)
+
+Amanda's fixes and changes after reviewing the world. See [Crystal Caves](crystal-caves.md).
+
+- **Roof:** part of the cave, left of the entrance, was open to the sky. The roof only covered ground north of the portal line. It now covers the whole cavern, and the terrain self-check refuses any cave ground left uncovered.
+- **Smaller outside:** the mountains now rise straight from the sea everywhere except the south-east ledge, so the only open ground is the ledge with the camp, the cove and the cave mouth.
+- **Dock:** no more staircase. A cove of low rocks steps down from the ledge to the water, and the dock starts at its foot. The cove points at the cave mouth, which stays visible from the dock (the self-check covers this).
+- **Brighter cave:** the cave fill is now bright enough that every part of the cave is easy to see. No crystals were added.
+- **Upper level only at the front and the beetles:** the back of the cave is all deep level. Nothing up there overlooks mini boss 2's or the final boss's zone: the nearest upper ground is about 90 m from mini boss 2's centre. The beetles' zone sits in a 62 m lobe, about 38 m from any drop. There are three ramps, two from the front and one from the lobe.
+- **Teammate's islands update:** the teammate's pushes (islands, docks and voyages on main; the crew sailing along, island camps and outfits on `claude/crew-voyage-outfits`) were merged into `feature/crystal-caves`. The level now uses them:
+  - the island kit's sea, deep-water rescue, arrival dock and sailboat, and a not-walkable sea floor;
+  - Cavendish and Eugene at an island camp (a base camp variant with an `IslandCamp`), set up as in the desert.
+  - These replace the level's own dock, boat, ocean and `FallRespawn`, which were removed. Eugene no longer has ambush cousins here, matching the desert camp.
+- **Nothing climbable (later on 11-09):**
+  - **The bug:** the player could reach the top of the mountains by pressing Jump over and over.
+  - **The cause:** the shared player can jump on any slope that isn't vertical.
+  - **First attempt, withdrawn:** a footing and sliding rule in the shared `FirstPersonController`. Amanda found it made ordinary ground and the ramp slip, and wanted every level to keep its original movement. The player controller is unchanged.
+  - **The fix:** vertical rock walls instead, wherever the player must not climb:
+    - the mountains' foot round the ledge;
+    - both sides of the cut to the mouth;
+    - the upper level's cliff in the cave, with a flat top back to the edge and full height where it meets the cave wall.
+  - **Getting back up:** you may jump down from the upper level, but the only way back up is one ramp, moved from near the entrance to the far side of the beetles' zone, so you find it after that fight.
+  - **Getting stuck:** Amanda got stuck on the way up to the cave. The ledge had steep spots: hard 2 m terraces, a short pad blend at the top of the cove, and a steep rise at the mountains' foot. The ledge is now soft-terraced and gentler, and the walk from the dock to the cave stays under 35°.
+  - **The check:** the terrain self-check verifies all of this.
+- **Polish (later on 11-09):**
+  - **Ramp:** the ramp still made the player slip, so it is now a long, even incline of about 12° (it was an S-curve, steepest in the middle at about 38°), and wider. The self-check holds it to 20°.
+  - **Walls:** the barrier walls looked broken (thin sheets with gaps behind them and seams at the mouth). They are now solid blocks that run back into the hillside, and the mountains' and the cut's walls are one piece.
+  - **Camp on a slope:** the camp sat on sloping ground, with some pieces floating and others sunk. The widened ease at the top of the cove had reached its pad. The camp's pad now always wins, and validation checks every camp piece stands on the ground.
+  - **Cave mouth:** looking out of the cave there was a block on one side and a wall with a hole on the other, not visible from outside. Two things caused it: the cut's walls ran 8 m into the tunnel, and the mountain wall's solid top reached out over the cut. The walls now stop at the mouth and turn into a flat face beside the opening, no top reaches over the cut, and tall props are kept out of the view in front of the mouth.
+  - **Corner right of the mouth:** a slab stuck out of the mountain wall where it turns from the cut onto the mountain foot. The wall's top had run 15 m straight back over open ledge, because the high ground there is diagonally behind the wall. Tops now reach only the nearest hillside within 8 m, in any direction behind the face, or are left off.
+  - **Camp overrides (this level only):** the supplies crate and barrel are moved clear of the tent, and Eugene sits on the ground in front of his log instead of floating on top of it.
+- **Not decided, so not invented:** Crystal Caves outfits and camp styling (no `StageTheme` yet, so the crew wears its Crash Meadow look), and a departure dock and voyage route (waiting on the Fog Forest).
+
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
 
 ## Chief Toad decisions (10-23-26)

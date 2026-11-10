@@ -1,0 +1,931 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace SignalLost.Editor
+{
+    /// <summary>
+    /// The layout and landform of the Crystal Caves level (design map, 11-08; revised 11-09). Metres, +Z north, sea level y = 0.
+    /// Two height fields on one 4 m grid make the whole island:
+    ///  * <see cref="Ground"/>: the sea floor, the rocky ledge at the south-east corner, the mountains and both cave floors.
+    ///    It is built as two meshes: the land and the sea floor beyond the coast (which is not walkable, like the other
+    ///    islands').
+    ///  * The roof: the cave ceiling (<see cref="Ceiling"/>, facing down) and the mountain top over it
+    ///    (<see cref="RoofTop"/>, facing up), closed by a wall along its edge. That wall is the rock face over the cave
+    ///    mouth; everywhere else it is buried inside the mountain.
+    /// The sea, the dock and the boat come from the shared <see cref="IslandKit"/>.
+    /// To reshape the level, change the numbers below and rebuild the environment
+    /// (Signal Lost > Crystal Caves > Rebuild Crystal Caves Environment).
+    /// </summary>
+    internal static class CrystalCavesTerrain
+    {
+        // ---------- Size: 1.5x the 320 m Desert Dunes ----------
+
+        public const float MapSize = 480f;
+        public const int Cells = 120; // 4 m facets, like the desert
+        public const float Step = MapSize / Cells;
+        public const float Origin = -MapSize * 0.5f;
+        public const float SeaLevel = 0f;
+        private const float SeaFloor = -8f;
+
+        // ---------- The island ----------
+
+        public static readonly Vector2 CaveCentre = new Vector2(-5f, 22f);
+        private const float CaveRadius = 184f;   // the cave fills the island under the mountains
+        private const float MassifRadius = 206f; // where the mountains rise
+        private const float CoastRadius = 232f;  // the cliff edge where there is ground between the mountains and the sea
+        // The only open ground is around the south-east ledge; everywhere else the mountains drop straight into the sea,
+        // so they close the outside off (degrees anticlockwise from east, around the cave's centre).
+        private const float ShelfArcStart = 278f, ShelfArcLength = 60f;
+
+        // The ledge at the south-east corner, with the camp, the cave mouth and the cove down to the dock.
+        public static readonly Vector2 LedgeCentre = new Vector2(130f, -172f);
+        private static readonly Vector2 LedgeHalfSize = new Vector2(38f, 28f);
+        public static readonly Vector2 Camp = new Vector2(150f, -166f);
+        public const float CampHeight = 11f;
+        public const float CampClearRadius = 16f; // kept open around the camp for the trophy stands of later levels
+
+        // The cove: rocks stepping down from the ledge to the water, where the dock starts. It points at the cave mouth,
+        // so the mouth can be seen from the dock up the cove.
+        public static readonly Vector2 CoveTop = new Vector2(126.7f, -180.4f), CoveBottom = new Vector2(140f, -216f);
+        private const float CoveHalfWidth = 9f, CoveTopHeight = 8f;
+        /// <summary>The way the dock runs out to sea (straight on from the cove).</summary>
+        public static Vector2 DockSeaward => (CoveBottom - CoveTop).normalized;
+
+        // ---------- The cave ----------
+
+        public const float UpperFloor = 18f, DeepFloor = 2f;
+        // The upper level is only the front of the cave (south of FrontZ) and a lobe round the beetles' fight zone. The
+        // back is all deep level, so nothing up there overlooks mini boss 2's or the final boss's zone.
+        public const float FrontZ = -55f;
+        public const float BeetleLobeRadius = 62f;
+        /// <summary>A ramp down from the upper level: where it leaves the upper edge, and the way down.</summary>
+        public struct Ramp
+        {
+            public Vector2 Edge, Down;
+            public Ramp(Vector2 edge, Vector2 down) { Edge = edge; Down = down.normalized; }
+            public Vector2 Top => Edge - Down * 4f;
+            public Vector2 Foot => Edge + Down * (RampLength + 2f);
+        }
+        // The only way down that leads back up: on the far (north) side of the beetles' zone, so it is found after the
+        // beetle fight. Everywhere else the upper level's edge is a 16 m cliff, too steep to climb; jumping down is fine.
+        // (Written out: static fields set up in order, and BeetleZone, at (-150, -42), is declared further down.)
+        public static readonly Ramp[] Ramps = { new Ramp(new Vector2(-150f, -42f + BeetleLobeRadius), Vector2.up) };
+        public const float RampHalfWidth = 14f, RampLength = 72f; // a long, even incline of about 12 degrees
+
+        // The mouth: a tunnel from the ledge, through the mountains' foot, into the upper level. Its outer stretch runs
+        // due north, so the portal lies on a grid line (z = PortalZ) and the roof ends cleanly there.
+        public static readonly Vector2[] MouthPath = { new Vector2(118f, -148f), new Vector2(118f, -128f), new Vector2(112f, -108f), new Vector2(96f, -86f) };
+        public const float PortalZ = -128f;
+        private const float MouthHalfWidth = 9f, MouthHeight = 13f, NotchHalfWidth = 11f;
+
+        // Fight zones from the design map, flattened and left empty (enemies come later).
+        public static readonly Vector2 BeetleZone = new Vector2(-150f, -42f);
+        public static readonly Vector2 MiniBossZone = new Vector2(80f, 35f);
+        public const float ZoneRadius = 24f;
+        public static readonly Vector2 FinalBossZone = new Vector2(0f, 138f);
+        public static readonly Vector2 FinalBossRadii = new Vector2(76f, 34f);
+
+        // Rises on the cave floors (x, z, radius, height) that break up the long sightlines.
+        private static readonly Vector4[] Mounds =
+        {
+            new Vector4(-60f, 60f, 18f, 7f), new Vector4(45f, 85f, 16f, 6f), new Vector4(-100f, 110f, 14f, 8f), new Vector4(100f, 90f, 16f, 7f),
+            new Vector4(-30f, 20f, 14f, 5f), new Vector4(-60f, -110f, 20f, 6f), new Vector4(20f, -120f, 16f, 5f), new Vector4(-92f, 78f, 14f, 6f),
+            new Vector4(150f, -20f, 14f, 5f)
+        };
+
+        public enum Surface { ShelfRock, ShelfMoss, CoastCliff, SeaFloor, MountainRock, MountainCliff, CaveFloor, CaveDeep, CaveSand, CaveWall, CaveCeiling }
+
+        // ---------- Maths ----------
+
+        private static float Noise(float x, float z, float scale, float seed) =>
+            (Mathf.PerlinNoise(x / scale + 37.1f + seed * 13.7f, z / scale + 71.3f + seed * 7.9f) - 0.5f) * 2f;
+
+        // Noise around a circle, so outlines wobble without a seam.
+        private static float AngleNoise(float angle, float scale, float seed) => Noise(Mathf.Cos(angle) * 100f, Mathf.Sin(angle) * 100f, scale, seed);
+
+        // Smoothstep from a to b (b may be below a).
+        private static float Smooth(float a, float b, float v)
+        {
+            float t = Mathf.Clamp01((v - a) / (b - a));
+            return t * t * (3f - 2f * t);
+        }
+
+        private static void Polar(float x, float z, out float r, out float angle)
+        {
+            float dx = x - CaveCentre.x, dz = z - CaveCentre.y;
+            r = Mathf.Sqrt(dx * dx + dz * dz);
+            angle = Mathf.Atan2(dz, dx);
+        }
+
+        // Distance to the polyline from path[first] to path[last]; along is 0..1 along it.
+        private static float DistanceToPath(Vector2 p, Vector2[] path, int first, int last, out float along)
+        {
+            float best = float.MaxValue, total = 0f, bestAt = 0f;
+            for (int i = first; i < last; i++)
+            {
+                Vector2 a = path[i], ab = path[i + 1] - a;
+                float length = ab.magnitude, t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / (length * length));
+                float d = (p - (a + ab * t)).magnitude;
+                if (d < best)
+                {
+                    best = d;
+                    bestAt = total + t * length;
+                }
+                total += length;
+            }
+            along = total > 0f ? bestAt / total : 0f;
+            return best;
+        }
+
+        private static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b, out float t)
+        {
+            Vector2 ab = b - a;
+            t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
+            return (p - (a + ab * t)).magnitude;
+        }
+
+        /// <summary>Distance from the cave mouth's centre line, from the ledge in front of it to the cave.</summary>
+        public static float DistanceToMouth(Vector2 p) => DistanceToPath(p, MouthPath, 0, MouthPath.Length - 1, out _);
+
+        /// <summary>Distance from the cove's centre line, from the top of the rocks to the water.</summary>
+        public static float DistanceToCove(Vector2 p) => DistanceToSegment(p, CoveTop, CoveBottom, out _);
+
+        // ---------- Coast and mountains ----------
+
+        private static float ShelfAmount(float angle)
+        {
+            float a = Mathf.Repeat(angle * Mathf.Rad2Deg - ShelfArcStart, 360f);
+            return Smooth(0f, 12f, a) * Smooth(ShelfArcLength, ShelfArcLength - 12f, a);
+        }
+
+        private static float CoastAt(float angle) => Mathf.Lerp(MassifRadius + 3f, CoastRadius + 4f * AngleNoise(angle, 9f, 2f), ShelfAmount(angle));
+        private static float MassifAt(float angle) => MassifRadius + 4f * AngleNoise(angle, 11f, 3f);
+
+        // Signed distance to the ledge's box (negative inside).
+        private static float LedgeDistance(float x, float z)
+        {
+            float qx = Mathf.Abs(x - LedgeCentre.x) - LedgeHalfSize.x, qz = Mathf.Abs(z - LedgeCentre.y) - LedgeHalfSize.y;
+            return new Vector2(Mathf.Max(qx, 0f), Mathf.Max(qz, 0f)).magnitude + Mathf.Min(Mathf.Max(qx, qz), 0f);
+        }
+
+        // How much of a point is the cove (1 on its rocks, 0 off them), and how far down it it is (0 top, 1 bottom).
+        private static float CoveAmount(float x, float z, out float down)
+        {
+            float d = DistanceToSegment(new Vector2(x, z), CoveTop, CoveBottom + DockSeaward * 4f, out down);
+            down *= ((CoveBottom + DockSeaward * 4f) - CoveTop).magnitude / (CoveBottom - CoveTop).magnitude;
+            return Smooth(CoveHalfWidth + 2f, CoveHalfWidth - 2f, d + 1.2f * Noise(x, z, 5f, 33f));
+        }
+
+        /// <summary>How much of a point is dry land (0 sea, 1 land) and how far it is up the mountains (0 ledge, 1 mountain).</summary>
+        public static void Coast(float x, float z, out float land, out float mountain)
+        {
+            CliffTop(x, z, out land, out mountain);
+            land = Mathf.Max(land, CoveAmount(x, z, out _));
+        }
+
+        // The same, leaving out the cove: the ledge and its sea cliffs.
+        private static void CliffTop(float x, float z, out float land, out float mountain)
+        {
+            Polar(x, z, out float r, out float angle);
+            float coast = CoastAt(angle);
+            land = Mathf.Max(Smooth(coast + 3f, coast - 3f, r + 1.5f * Noise(x, z, 7f, 4f)), Smooth(3f, -3f, LedgeDistance(x, z) + 1.2f * Noise(x, z, 6f, 9f)));
+            // The mountains rise as a steep bluff over about 10 m, too steep to stand on (or climb by jumping), from
+            // just above the ledge.
+            float massif = MassifAt(angle);
+            mountain = Smooth(massif + 6f, massif - 4f, r + 4f * Noise(x, z, 18f, 6f));
+        }
+
+        // The ledge: rocky ground rising gently from about 10 m at the sea cliffs to 13.5 m at the mountains' foot, in soft steps like
+        // stacked rock blocks, with a flat pad for the camp and lower ground at the top of the cove.
+        private static float ShelfHeight(float x, float z)
+        {
+            Polar(x, z, out float r, out float angle);
+            float inland = Smooth(CoastAt(angle), MassifAt(angle) + 10f, r);
+            float h = 9.5f + 4f * inland + 2.2f * Noise(x, z, 26f, 7f) + Noise(x, z, 9f, 8f);
+            // Soft terraces, 2 m apart: each step is a rounded rise, gentle enough to walk up anywhere.
+            float level = Mathf.Floor(h / 2f);
+            h = Mathf.Lerp(h, (level + Smooth(0.25f, 0.75f, h / 2f - level)) * 2f, 0.35f);
+            h = Pad(h, x, z, CoveTop, 8f, 36f, CoveTopHeight); // eased over a wide circle, so the ledge rises gently from the cove
+            // The camp's pad goes last, so nothing else tilts it: the whole camp stands on level ground.
+            return Pad(h, x, z, Camp, CampClearRadius - 2f, CampClearRadius + 8f, CampHeight);
+        }
+
+        // The cove's rocks: from the top of the cove (0) down to the water's edge (1), then on under the water, in low
+        // uneven steps.
+        private static float CoveHeight(float x, float z, float down)
+        {
+            float length = (CoveBottom - CoveTop).magnitude;
+            float h = Mathf.Lerp(CoveTopHeight, 0.55f, Mathf.Clamp01(down)) - Mathf.Max(0f, down - 1f) * length * 0.6f;
+            h += 0.35f * Noise(x, z, 4f, 34f);
+            return Mathf.Lerp(h, Mathf.Round(h / 0.8f) * 0.8f, 0.35f);
+        }
+
+        private static float Pad(float h, float x, float z, Vector2 centre, float inner, float outer, float height) =>
+            Mathf.Lerp(h, height, Smooth(outer, inner, (new Vector2(x, z) - centre).magnitude));
+
+        // Jagged mountains: about 60 m high where they rise from the ledge, climbing to peaks of 150 m and more toward
+        // the middle of the island (the roof keeps at least 18 m of rock over the cave wherever they would dip lower).
+        private static float MountainHeight(float x, float z)
+        {
+            Polar(x, z, out float r, out float angle);
+            float inward = MassifAt(angle) - r;
+            float ridge = 1f - Mathf.Abs(Noise(x, z, 46f, 21f));
+            return 58f + 95f * Smooth(-10f, 150f, inward) + 22f * ridge * ridge + 16f * Noise(x, z, 85f, 22f) + 6f * Noise(x, z, 9f, 23f);
+        }
+
+        // The cave mouth as seen from the foot of the cove: a sight line the ledge in between is kept under.
+        private static readonly Vector3 SightFrom = new Vector3(CoveBottom.x, 2.6f, CoveBottom.y), SightTo = new Vector3(118f, 25f, PortalZ);
+
+        // The ground without the cave: sea floor, ledge, cove and mountains, with the open cut in front of the mouth if asked.
+        private static float Outdoor(float x, float z, bool notch)
+        {
+            CliffTop(x, z, out float land, out float mountain);
+            float cove = CoveAmount(x, z, out float down);
+            float h = Mathf.Lerp(SeaFloor + 1.2f * Noise(x, z, 20f, 5f), ShelfHeight(x, z), land);
+            h = Mathf.Lerp(h, CoveHeight(x, z, down), cove); // the cove cuts down through the ledge and out into the sea
+            // Keep the ledge below the line from the dock to the cave mouth, so the mouth is in view from the dock.
+            float off = DistanceToSegment(new Vector2(x, z), new Vector2(SightFrom.x, SightFrom.z), new Vector2(SightTo.x, SightTo.z), out float t);
+            float sight = Mathf.Lerp(SightFrom.y, SightTo.y, t) - 1.5f;
+            // (Faded out toward the mouth, so it never leaves a step in the ground.)
+            h = Mathf.Lerp(h, Mathf.Min(h, sight), Smooth(10f, 5f, off) * Smooth(0.85f, 0.55f, t) * (1f - mountain));
+            h = Mathf.Lerp(h, MountainHeight(x, z), mountain);
+            h += 12f * mountain * (1f - mountain) * Noise(x, z, 7f, 24f); // crags on the faces (small, so they make no ledges)
+            if (notch && z <= PortalZ + 0.01f)
+            {
+                float d = DistanceToPath(new Vector2(x, z), MouthPath, 0, 1, out _);
+                h = Mathf.Lerp(h, MouthFloor(new Vector2(x, z)), Smooth(0f, 5f, NotchHalfWidth - d));
+            }
+            return h;
+        }
+
+        // ---------- The cave ----------
+
+        /// <summary>How far a point is inside the cavern's outer wall (negative outside it).</summary>
+        public static float CavernDepth(float x, float z)
+        {
+            Polar(x, z, out float r, out float angle);
+            return CaveRadius + 5f * AngleNoise(angle, 9f, 41f) - r;
+        }
+
+        // How far a point is inside the mouth tunnel's side walls (negative outside); with the notch, the open cut in
+        // front of the portal counts too.
+        private static float MouthDepth(Vector2 p, bool withNotch) => MouthHalfWidth - DistanceToPath(p, MouthPath, withNotch ? 0 : 1, MouthPath.Length - 1, out _);
+
+        // The mouth's floor slopes evenly from the ledge in front of it to the cave floor at its inner end.
+        private static float MouthFloor(Vector2 p)
+        {
+            DistanceToPath(p, MouthPath, 0, MouthPath.Length - 1, out float along);
+            return Mathf.Lerp(ShelfHeight(MouthPath[0].x, MouthPath[0].y), CavernFloor(MouthPath[3].x, MouthPath[3].y), along);
+        }
+
+        /// <summary>How far a point is inside the upper level's edge (negative: out over the deep level).</summary>
+        public static float UpperDistance(float x, float z) => Mathf.Max(FrontEdge(x, z), LobeEdge(x, z));
+
+        // The two parts of the upper level: the front of the cave, and the lobe round the beetles' zone.
+        private static float FrontEdge(float x, float z) => FrontZ + 4f * Noise(x, 0f, 35f, 15f) - z;
+
+        private static float LobeEdge(float x, float z)
+        {
+            Vector2 fromLobe = new Vector2(x, z) - BeetleZone;
+            return BeetleLobeRadius + 4f * AngleNoise(Mathf.Atan2(fromLobe.y, fromLobe.x), 9f, 16f) - fromLobe.magnitude;
+        }
+
+        /// <summary>1 on a ramp's centre line between the levels, fading to 0 at its sides and ends.</summary>
+        public static float RampWeight(float x, float z)
+        {
+            float weight = 0f;
+            foreach (Ramp ramp in Ramps)
+            {
+                Vector2 d = new Vector2(x, z) - ramp.Edge;
+                float along = Vector2.Dot(d, ramp.Down), across = Mathf.Abs(d.x * ramp.Down.y - d.y * ramp.Down.x);
+                weight = Mathf.Max(weight, Smooth(RampHalfWidth + 6f, RampHalfWidth, across) * Smooth(-18f, -10f, along) * Smooth(RampLength + 12f, RampLength + 4f, along));
+            }
+            return weight;
+        }
+
+        // The two levels: a 16 m cliff between them, eased into a long walkable slope at each ramp.
+        private static float BaseFloor(float x, float z)
+        {
+            float upper = UpperFloor + 2f * Noise(x, z, 45f, 11f) + 0.8f * Noise(x, z, 12f, 12f);
+            float deep = DeepFloor + 2.5f * Noise(x, z, 38f, 13f) + 0.8f * Noise(x, z, 10f, 14f);
+            float ramp = RampWeight(x, z);
+            // The cliff drops within about 3 m, so even on the 4 m terrain grid every face of it is steeper than the
+            // player's 55 degree footing limit.
+            // On the ramp the floor falls evenly (a straight incline, so no part of it is steeper than the rest).
+            float edge = UpperDistance(x, z);
+            float cliff = Smooth(-1.5f, 1.5f, edge), incline = Mathf.Clamp01((edge + RampLength) / (RampLength + 4f));
+            return Mathf.Lerp(deep, upper, Mathf.Lerp(cliff, incline, ramp));
+        }
+
+        /// <summary>The cave floor (both levels), with mounds and the fight zones flattened.</summary>
+        public static float CavernFloor(float x, float z)
+        {
+            float h = BaseFloor(x, z);
+            foreach (Vector4 mound in Mounds)
+            {
+                float d = new Vector2(x - mound.x, z - mound.y).magnitude / mound.z;
+                h += mound.w * Mathf.Exp(-d * d * 2.2f) * (1f + 0.15f * Noise(x, z, 6f, 17f));
+            }
+            var p = new Vector2(x, z);
+            h = Mathf.Lerp(h, BaseFloor(BeetleZone.x, BeetleZone.y), Smooth(ZoneRadius + 12f, ZoneRadius, Vector2.Distance(p, BeetleZone)));
+            h = Mathf.Lerp(h, BaseFloor(MiniBossZone.x, MiniBossZone.y), Smooth(ZoneRadius + 12f, ZoneRadius, Vector2.Distance(p, MiniBossZone)));
+            float boss = new Vector2((x - FinalBossZone.x) / FinalBossRadii.x, (z - FinalBossZone.y) / FinalBossRadii.y).magnitude;
+            return Mathf.Lerp(h, BaseFloor(FinalBossZone.x, FinalBossZone.y), Smooth(1.25f, 1f, boss));
+        }
+
+        private static float CaveFloor(float x, float z, float cavern, float mouth) =>
+            Mathf.Lerp(CavernFloor(x, z), MouthFloor(new Vector2(x, z)), Smooth(-4f, 4f, mouth - cavern));
+
+        /// <summary>The single ground surface: sea floor, ledge, mountains, and the cave floor with its steep walls.</summary>
+        public static float Ground(float x, float z)
+        {
+            var p = new Vector2(x, z);
+            float outside = Outdoor(x, z, true);
+            float cavern = CavernDepth(x, z), mouth = MouthDepth(p, true);
+            float inside = Mathf.Max(Smooth(0f, 10f, cavern), Smooth(0f, 4f, mouth));
+            return inside <= 0f ? outside : Mathf.Lerp(outside, CaveFloor(x, z, cavern, mouth), inside);
+        }
+
+        /// <summary>The cave's ceiling: about 32 m over the upper level, vaulting to about 70 m over the deep level, curving
+        /// down into the walls; an arch over the mouth tunnel.</summary>
+        public static float Ceiling(float x, float z)
+        {
+            var p = new Vector2(x, z);
+            float cavern = CavernDepth(x, z);
+            float floor = CaveFloor(x, z, cavern, MouthDepth(p, true));
+            float deep = 1f - Smooth(-25f, 10f, UpperDistance(x, z));
+            float vault = 50f + 22f * deep + 5f * Noise(x, z, 34f, 31f) + 3f * Noise(x, z, 11f, 32f);
+            float ceiling = Mathf.Lerp(floor, vault, Smooth(-2f, 24f, cavern));
+            float tunnel = MouthDepth(p, false);
+            if (tunnel > -2f) ceiling = Mathf.Max(ceiling, MouthFloor(p) + MouthHeight * Mathf.Sqrt(Mathf.Clamp01((tunnel + 1f) / (MouthHalfWidth + 1f))));
+            return ceiling;
+        }
+
+        /// <summary>The mountain surface over the cave (always at least 18 m of rock above the ceiling).</summary>
+        public static float RoofTop(float x, float z) => Mathf.Max(Outdoor(x, z, false), Ceiling(x, z) + 18f) - 0.6f;
+
+        /// <summary>Whether the roof covers the cell around a point: the whole cavern plus a 4 m margin buried in the
+        /// mountain, and the mouth tunnel as far out as the portal (z = PortalZ), where the rock face over the mouth is.</summary>
+        public static bool UnderRoof(float x, float z) =>
+            CavernDepth(x, z) > -4f || (z > PortalZ && MouthDepth(new Vector2(x, z), false) > -4f);
+
+        // ---------- Grids and meshes ----------
+
+        private static float[,] groundGrid, ceilingGrid, roofGrid;
+        private static bool[,] roofed;
+
+        /// <summary>Samples both height fields on the grid; call before the meshes or the exact samplers.</summary>
+        public static void Generate()
+        {
+            groundGrid = new float[Cells + 1, Cells + 1];
+            ceilingGrid = new float[Cells + 1, Cells + 1];
+            roofGrid = new float[Cells + 1, Cells + 1];
+            for (int i = 0; i <= Cells; i++)
+                for (int j = 0; j <= Cells; j++)
+                {
+                    float x = Origin + i * Step, z = Origin + j * Step;
+                    groundGrid[i, j] = Ground(x, z);
+                    ceilingGrid[i, j] = Ceiling(x, z);
+                    roofGrid[i, j] = RoofTop(x, z);
+                }
+            roofed = new bool[Cells, Cells];
+            for (int i = 0; i < Cells; i++)
+                for (int j = 0; j < Cells; j++)
+                    roofed[i, j] = UnderRoof(Origin + (i + 0.5f) * Step, Origin + (j + 0.5f) * Step);
+        }
+
+        /// <summary>Exact height of the generated ground mesh (same triangles), for standing props on it.</summary>
+        public static float GroundAt(float x, float z) => Sample(groundGrid, x, z);
+
+        /// <summary>Exact height of the generated cave ceiling, for hanging props from it.</summary>
+        public static float CeilingAt(float x, float z) => Sample(ceilingGrid, x, z);
+
+        /// <summary>Whether the generated roof covers this point.</summary>
+        public static bool Roofed(float x, float z)
+        {
+            int i = Mathf.FloorToInt((x - Origin) / Step), j = Mathf.FloorToInt((z - Origin) / Step);
+            return i >= 0 && j >= 0 && i < Cells && j < Cells && roofed[i, j];
+        }
+
+        private static bool Flip(int i, int j) => ((i + j) & 1) == 0;
+
+        private static float Sample(float[,] grid, float x, float z)
+        {
+            float fx = Mathf.Clamp((x - Origin) / Step, 0f, Cells - 0.0001f), fz = Mathf.Clamp((z - Origin) / Step, 0f, Cells - 0.0001f);
+            int i = (int)fx, j = (int)fz;
+            float u = fx - i, v = fz - j;
+            float h00 = grid[i, j], h10 = grid[i + 1, j], h01 = grid[i, j + 1], h11 = grid[i + 1, j + 1];
+            if (Flip(i, j)) return u >= v ? h00 + u * (h10 - h00) + v * (h11 - h10) : h00 + v * (h01 - h00) + u * (h11 - h01);
+            return u + v <= 1f ? h00 + u * (h10 - h00) + v * (h01 - h00) : h11 + (1f - u) * (h01 - h11) + (1f - v) * (h10 - h11);
+        }
+
+        private static Vector3 Corner(float[,] grid, int i, int j) => new Vector3(Origin + i * Step, grid[i, j], Origin + j * Step);
+
+        // Two triangles per cell, the diagonal alternating like the sampler above.
+        private static void Cell(float[,] grid, int i, int j, System.Action<Vector3, Vector3, Vector3> tri)
+        {
+            Vector3 p00 = Corner(grid, i, j), p10 = Corner(grid, i + 1, j), p01 = Corner(grid, i, j + 1), p11 = Corner(grid, i + 1, j + 1);
+            if (Flip(i, j)) { tri(p00, p11, p10); tri(p00, p01, p11); }
+            else { tri(p00, p01, p10); tri(p10, p01, p11); }
+        }
+
+        // Sea floor: a cell out past the coast whose every corner is well under the water.
+        private static bool IsSeabed(int i, int j) =>
+            !roofed[i, j] && Mathf.Max(Mathf.Max(groundGrid[i, j], groundGrid[i + 1, j]), Mathf.Max(groundGrid[i, j + 1], groundGrid[i + 1, j + 1])) < SeaLevel - 0.6f;
+
+        /// <summary>The land mesh (one submesh per surface) and the sea floor mesh beyond the coast.</summary>
+        public static Mesh BuildGroundMesh(out Surface[] surfaces, out Mesh seabed)
+        {
+            var kit = new FlatMeshKit<Surface>();
+            var floor = new FlatMeshKit<Surface>();
+            for (int i = 0; i < Cells; i++)
+                for (int j = 0; j < Cells; j++)
+                {
+                    bool covered = roofed[i, j], sea = IsSeabed(i, j);
+                    Cell(groundGrid, i, j, (a, b, c) =>
+                    {
+                        Vector3 n = Vector3.Cross(b - a, c - a).normalized;
+                        if (n.y < 0f) n = -n;
+                        if (sea) floor.Tri(a, b, c, n, Surface.SeaFloor);
+                        else kit.Tri(a, b, c, n, GroundSurface((a + b + c) / 3f, n, covered));
+                    });
+                }
+            seabed = floor.Build("CrystalCavesSeabed");
+            return Build(kit, "CrystalCavesGround", out surfaces);
+        }
+
+        private static Surface GroundSurface(Vector3 c, Vector3 n, bool covered)
+        {
+            if (covered && c.y < Ceiling(c.x, c.z) - 0.5f)
+            {
+                if (n.y < 0.62f) return Surface.CaveWall;
+                if (Noise(c.x, c.z, 16f, 51f) > 0.42f) return Surface.CaveSand;
+                return UpperDistance(c.x, c.z) < -2f ? Surface.CaveDeep : Surface.CaveFloor;
+            }
+            if (c.y < SeaLevel + 0.4f) return Surface.SeaFloor;
+            Coast(c.x, c.z, out _, out float mountain);
+            if (n.y < 0.62f) return mountain > 0.35f ? Surface.MountainCliff : Surface.CoastCliff;
+            if (mountain > 0.5f) return n.y < 0.82f ? Surface.MountainCliff : Surface.MountainRock;
+            if (n.y < 0.86f) return Surface.ShelfRock;
+            return Noise(c.x, c.z, 18f, 52f) > 0.1f ? Surface.ShelfMoss : Surface.ShelfRock;
+        }
+
+        /// <summary>The roof mesh: ceiling (facing down), mountain top (facing up) and the wall joining them along the edge.</summary>
+        public static Mesh BuildRoofMesh(out Surface[] surfaces)
+        {
+            var kit = new FlatMeshKit<Surface>();
+            for (int i = 0; i < Cells; i++)
+                for (int j = 0; j < Cells; j++)
+                {
+                    if (!roofed[i, j]) continue;
+                    Cell(ceilingGrid, i, j, (a, b, c) => kit.Tri(a, b, c, Vector3.down, Surface.CaveCeiling));
+                    Cell(roofGrid, i, j, (a, b, c) =>
+                    {
+                        Vector3 n = Vector3.Cross(b - a, c - a).normalized;
+                        kit.Tri(a, b, c, Vector3.up, Mathf.Abs(n.y) < 0.62f ? Surface.MountainCliff : Surface.MountainRock);
+                    });
+                    if (i == 0 || !roofed[i - 1, j]) Skirt(kit, i, j, i, j + 1, Vector3.left);
+                    if (i == Cells - 1 || !roofed[i + 1, j]) Skirt(kit, i + 1, j, i + 1, j + 1, Vector3.right);
+                    if (j == 0 || !roofed[i, j - 1]) Skirt(kit, i, j, i + 1, j, Vector3.back);
+                    if (j == Cells - 1 || !roofed[i, j + 1]) Skirt(kit, i, j + 1, i + 1, j + 1, Vector3.forward);
+                }
+            return Build(kit, "CrystalCavesRoof", out surfaces);
+        }
+
+        // A wall from the ceiling up to the mountain top along one roof edge, in rough bands so the rock face over the
+        // cave mouth is craggy rather than one flat slab. Its top and bottom stay on the roof's edges; the bands
+        // between are nudged by noise of their position, so neighbouring walls still meet without cracks.
+        private static void Skirt(FlatMeshKit<Surface> kit, int i0, int j0, int i1, int j1, Vector3 outward)
+        {
+            Vector3 b0 = Corner(ceilingGrid, i0, j0), b1 = Corner(ceilingGrid, i1, j1), t0 = Corner(roofGrid, i0, j0), t1 = Corner(roofGrid, i1, j1);
+            const int bands = 8; // the same for every wall, so walls sharing an edge split it alike
+            Vector3 Point(Vector3 bottom, Vector3 top, int band)
+            {
+                Vector3 p = Vector3.Lerp(bottom, top, band / (float)bands);
+                if (band == 0 || band == bands) return p;
+                return p + new Vector3(Noise(p.x + p.y, p.z, 3f, 61f), 0f, Noise(p.x, p.z - p.y, 3f, 62f)) * 1.6f;
+            }
+            for (int band = 0; band < bands; band++)
+                kit.Quad(Point(b0, t0, band), Point(b1, t1, band), Point(b1, t1, band + 1), Point(b0, t0, band + 1), outward, Surface.MountainCliff);
+        }
+
+        private static Mesh Build(FlatMeshKit<Surface> kit, string name, out Surface[] surfaces)
+        {
+            Mesh mesh = kit.Build(name);
+            surfaces = new Surface[mesh.subMeshCount];
+            for (int s = 0; s < surfaces.Length; s++) surfaces[s] = FlatMeshKit<Surface>.MaterialOf(mesh, s);
+            return mesh;
+        }
+
+        // ---------- Self-check ----------
+
+        /// <summary>Checks the generated shape (call after <see cref="Generate"/>); returns the problems found.</summary>
+        public static List<string> Check()
+        {
+            var problems = new List<string>();
+            float thinnest = float.MaxValue, lowest = float.MaxValue;
+            for (int i = 0; i <= Cells; i++)
+                for (int j = 0; j <= Cells; j++)
+                {
+                    float x = Origin + i * Step, z = Origin + j * Step;
+                    if (UnderRoof(x, z)) thinnest = Mathf.Min(thinnest, roofGrid[i, j] - ceilingGrid[i, j]);
+                    if (CavernDepth(x, z) > 30f) lowest = Mathf.Min(lowest, ceilingGrid[i, j] - groundGrid[i, j]);
+                }
+            if (thinnest < 12f) problems.Add($"Roof rock is only {thinnest:0.0} m thick somewhere.");
+            if (lowest < 15f) problems.Add($"Cave headroom drops to {lowest:0.0} m somewhere.");
+
+            // The roof covers every bit of the cave: no cell inside the cavern's walls (or the tunnel, north of the
+            // portal) may be open to the sky.
+            int open = 0;
+            for (int i = 0; i < Cells; i++)
+                for (int j = 0; j < Cells; j++)
+                {
+                    float x = Origin + (i + 0.5f) * Step, z = Origin + (j + 0.5f) * Step;
+                    bool cave = CavernDepth(x, z) > -2f || (z > PortalZ && MouthDepth(new Vector2(x, z), false) > -2f);
+                    if (cave && !roofed[i, j]) open++;
+                }
+            if (open > 0) problems.Add($"{open} cave cells are open to the sky.");
+
+            // Each ramp, walked from its top to its foot, stays gentle enough to walk (and for the NavMesh's 45 degrees).
+            foreach (Ramp ramp in Ramps)
+            {
+                float steepest = 0f;
+                for (float d = 0f; d < (ramp.Foot - ramp.Top).magnitude; d += 1f)
+                {
+                    Vector2 a = ramp.Top + ramp.Down * d, b = a + ramp.Down;
+                    steepest = Mathf.Max(steepest, Mathf.Atan2(Mathf.Abs(GroundAt(b.x, b.y) - GroundAt(a.x, a.y)), 1f) * Mathf.Rad2Deg);
+                }
+                if (steepest > 20f) problems.Add($"The ramp at ({ramp.Edge.x:0}, {ramp.Edge.y:0}) is {steepest:0} degrees steep.");
+                if (GroundAt(ramp.Top.x, ramp.Top.y) - GroundAt(ramp.Foot.x, ramp.Foot.y) < 10f) problems.Add($"The ramp at ({ramp.Edge.x:0}, {ramp.Edge.y:0}) doesn't lead down to the deep level.");
+            }
+            // The beetles' zone is on the upper level, well back from its edge, so nobody falls (or is knocked) off.
+            for (int a = 0; a < 36; a++)
+            {
+                Vector2 p = BeetleZone + new Vector2(Mathf.Cos(a * 10f * Mathf.Deg2Rad), Mathf.Sin(a * 10f * Mathf.Deg2Rad)) * (ZoneRadius + 10f);
+                if (CavernDepth(p.x, p.y) > 10f && UpperDistance(p.x, p.y) < 6f) { problems.Add("The beetles' zone comes within 10 m of the upper level's edge."); break; }
+            }
+            // No upper level overlooks mini boss 2's zone or the final boss's zone.
+            if (UpperDistance(MiniBossZone.x, MiniBossZone.y) > -(ZoneRadius + 40f)) problems.Add("The upper level comes too close to mini boss 2's zone.");
+            for (int a = 0; a < 36; a++)
+            {
+                Vector2 p = FinalBossZone + new Vector2(Mathf.Cos(a * 10f * Mathf.Deg2Rad) * FinalBossRadii.x, Mathf.Sin(a * 10f * Mathf.Deg2Rad) * FinalBossRadii.y);
+                if (UpperDistance(p.x, p.y) > -40f) { problems.Add("The upper level comes too close to the final boss's zone."); break; }
+            }
+            // Nothing can be climbed. The player can jump up any slope that isn't vertical, so only the vertical barrier
+            // walls stop them. Treating all ground as climbable and the walls as solid: from the foot of the cove no one
+            // gets up the mountains, and from the deep level no one gets back up except by the ramp.
+            var blocked = new bool[Cells, Cells];
+            foreach (Barrier wall in Barriers())
+                for (int k = 0; k < wall.Points.Count - 1; k++)
+                {
+                    BarrierPoint a = wall.Points[k], b = wall.Points[k + 1];
+                    for (int i = 0; i < Cells; i++)
+                        for (int j = 0; j < Cells; j++)
+                        {
+                            if (blocked[i, j]) continue;
+                            var c = new Vector2(Origin + (i + 0.5f) * Step, Origin + (j + 0.5f) * Step);
+                            if (Mathf.Abs(c.x - a.Foot.x) > 12f || Mathf.Abs(c.y - a.Foot.y) > 12f) continue;
+                            // A cell whose centre is within 2.9 m of the wall, or under a cliff's rock top, is wall. (2.9 m
+                            // is wider than half a cell's diagonal, so the cells along a wall leave no diagonal gaps.)
+                            blocked[i, j] = DistanceToSegment(c, a.Foot, b.Foot, out _) < 2.9f || (wall.Capped && InQuad(c, a.Foot, b.Foot, b.Back, a.Back));
+                        }
+                }
+            // Inside the cave only the open space under the ceiling counts (no walking through the roof).
+            System.Func<int, int, bool> passable = (i, j) =>
+            {
+                if (blocked[i, j] || IsSeabed(i, j)) return false;
+                if (!roofed[i, j]) return true;
+                float x = Origin + (i + 0.5f) * Step, z = Origin + (j + 0.5f) * Step;
+                return GroundAt(x, z) < CeilingAt(x, z) - 1.5f;
+            };
+            string Where((int, int) c) => $"({Origin + (c.Item1 + 0.5f) * Step:0}, {Origin + (c.Item2 + 0.5f) * Step:0})";
+            // The last few cells of the way there, so a failure shows where a wall is missing.
+            string Route((int, int) end, Dictionary<(int, int), (int, int)> from)
+            {
+                var steps = new List<string>();
+                for ((int, int) c = end; steps.Count < 8 && from.ContainsKey(c); c = from[c]) steps.Add(Where(c));
+                steps.Reverse();
+                return string.Join(" <- ", steps);
+            }
+            // The ledge tops out near 20 m and the mountains rise past 60 m: standing above this outside means climbing.
+            const float ClimbedHeight = 32f;
+            var mountainRoute = new Dictionary<(int, int), (int, int)>();
+            foreach ((int i, int j) in Flood(CoveBottom - DockSeaward * 3f, passable, mountainRoute))
+                if (!roofed[i, j] && GroundAt(Origin + (i + 0.5f) * Step, Origin + (j + 0.5f) * Step) > ClimbedHeight) { problems.Add($"The mountains can be climbed: {Route((i, j), mountainRoute)}."); break; }
+            var caveRoute = new Dictionary<(int, int), (int, int)>();
+            foreach ((int i, int j) in Flood(FinalBossZone, (i, j) => passable(i, j) && roofed[i, j] && RampWeight(Origin + (i + 0.5f) * Step, Origin + (j + 0.5f) * Step) < 0.02f, caveRoute))
+                if (UpperDistance(Origin + (i + 0.5f) * Step, Origin + (j + 0.5f) * Step) > 4f) { problems.Add($"The upper level can be climbed to from below, not by the ramp: {Route((i, j), caveRoute)}."); break; }
+
+            // The walk from the dock up to the cave mouth and through the tunnel stays gentle (the player walks up 45
+            // degrees at most), so nothing on the way catches them.
+            float steepestWalk = 0f;
+            Vector2 steepAt = default;
+            var route = new List<Vector2>();
+            for (float t = 0f; t <= 1f; t += 0.01f) route.Add(Vector2.Lerp(CoveBottom - DockSeaward * 3f, MouthPath[0], t));
+            for (float t = 0f; t <= 1f; t += 0.01f) route.Add(PointOnPath(t));
+            for (int k = 1; k < route.Count; k++)
+            {
+                float run = (route[k] - route[k - 1]).magnitude;
+                if (run < 0.01f) continue;
+                float slope = Mathf.Atan2(Mathf.Abs(GroundAt(route[k].x, route[k].y) - GroundAt(route[k - 1].x, route[k - 1].y)), run) * Mathf.Rad2Deg;
+                if (slope > steepestWalk) { steepestWalk = slope; steepAt = route[k]; }
+            }
+            if (steepestWalk > 35f) problems.Add($"The way from the dock to the cave is {steepestWalk:0} degrees steep at ({steepAt.x:0}, {steepAt.y:0}).");
+
+            // Walking headroom all the way through the mouth tunnel.
+            for (float t = 0f; t <= 1f; t += 0.05f)
+            {
+                Vector2 p = PointOnPath(t);
+                if (p.y > PortalZ + 2f && CeilingAt(p.x, p.y) - GroundAt(p.x, p.y) < 8f) problems.Add($"Mouth tunnel too low at ({p.x:0}, {p.y:0}).");
+            }
+            // The cove comes down to the water, and the dock's line of sight up it to the cave mouth is clear.
+            if (GroundAt(CoveBottom.x, CoveBottom.y) > SeaLevel + 1.2f) problems.Add("The cove doesn't reach the water.");
+            for (float t = 0.05f; t < 0.75f; t += 0.01f)
+            {
+                Vector3 p = Vector3.Lerp(SightFrom, SightTo, t);
+                if (GroundAt(p.x, p.z) > p.y - 0.5f) { problems.Add($"The cave mouth is hidden from the dock by ground at ({p.x:0}, {p.z:0})."); break; }
+            }
+            // The island stays inside the map, with sea all round.
+            foreach (Vector2 edge in new[] { new Vector2(0f, Origin + 2f), new Vector2(0f, -Origin - 2f), new Vector2(Origin + 2f, 0f), new Vector2(-Origin - 2f, 0f) })
+                if (GroundAt(edge.x, edge.y) > SeaLevel - 2f) problems.Add($"Land reaches the map edge at ({edge.x:0}, {edge.y:0}).");
+            return problems;
+        }
+
+        // The cells reachable from a point, stepping between neighbouring allowed cells; cameFrom records the way.
+        private static List<(int, int)> Flood(Vector2 from, System.Func<int, int, bool> allowed, Dictionary<(int, int), (int, int)> cameFrom)
+        {
+            var reached = new List<(int, int)>();
+            var seen = new bool[Cells, Cells];
+            var open = new Queue<(int, int)>();
+            int si = Mathf.FloorToInt((from.x - Origin) / Step), sj = Mathf.FloorToInt((from.y - Origin) / Step);
+            if (!allowed(si, sj)) return reached;
+            seen[si, sj] = true;
+            open.Enqueue((si, sj));
+            while (open.Count > 0)
+            {
+                (int i, int j) = open.Dequeue();
+                reached.Add((i, j));
+                foreach ((int ni, int nj) in new[] { (i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1) })
+                {
+                    if (ni < 0 || nj < 0 || ni >= Cells || nj >= Cells || seen[ni, nj] || !allowed(ni, nj)) continue;
+                    seen[ni, nj] = true;
+                    cameFrom[(ni, nj)] = (i, j);
+                    open.Enqueue((ni, nj));
+                }
+            }
+            return reached;
+        }
+
+        private static bool InQuad(Vector2 p, Vector2 a, Vector2 b, Vector2 c, Vector2 d) => InTriangle(p, a, b, c) || InTriangle(p, a, c, d);
+
+        private static bool InTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+        {
+            float Side(Vector2 u, Vector2 v, Vector2 w) => (u.x - w.x) * (v.y - w.y) - (v.x - w.x) * (u.y - w.y);
+            float d1 = Side(p, a, b), d2 = Side(p, b, c), d3 = Side(p, c, a);
+            return !((d1 < 0f || d2 < 0f || d3 < 0f) && (d1 > 0f || d2 > 0f || d3 > 0f));
+        }
+
+        // ---------- Climbing barriers ----------
+
+        // The player can jump up any slope that isn't vertical, so the edges they must not climb are lined with vertical
+        // rock: along the mountains' foot round the ledge, up both sides of the cut to the cave mouth, and down the face
+        // of the upper level's cliff in the cave. Each wall is a solid block with closed ends: outside, its flat top runs
+        // back into the hillside, so there is no gap behind the face; a cave cliff's top runs back to the upper level's
+        // edge, so a player who jumps down can't fall in behind it, and where it meets the cave wall its rock goes up to
+        // the ceiling, so no one climbs round it along the wall.
+        private const float MountainWallHeight = 10f;   // above the ground at the mountains' foot
+        private const float NotchWallOffset = 5.5f;     // the cut's walls, either side of its centre line
+        private const float MouthFrameWidth = 14f;      // the face beside the mouth reaches this far out, into the rock
+        private const float CliffFoot = 5f, CliffBack = 2f; // a cliff wall stands this far out over the deep level; its top reaches this far back
+
+        /// <summary>One sample along a barrier: the vertical face stands on Foot, from Bottom to Top; a cliff's rock top
+        /// runs from the face back to Back, at Cap.</summary>
+        public struct BarrierPoint
+        {
+            public Vector2 Foot, Back, Out;
+            public float Bottom, Top, Cap;
+            public bool Frame; // the flat face beside the cave mouth: no top behind it (it is all rock back there)
+        }
+
+        /// <summary>A continuous barrier wall.</summary>
+        public sealed class Barrier
+        {
+            public readonly List<BarrierPoint> Points = new List<BarrierPoint>();
+            public bool Capped, InCave;
+        }
+
+        /// <summary>All the barrier walls (call after <see cref="Generate"/>).</summary>
+        public static List<Barrier> Barriers()
+        {
+            var walls = new List<Barrier>();
+            float cutX = MouthPath[0].x;
+            // A point on the mountains' wall: its face looks out toward the ledge, away from the mountains.
+            BarrierPoint Foot(Vector2 p)
+            {
+                float g = GroundAt(p.x, p.y);
+                return new BarrierPoint
+                {
+                    Foot = p, Back = p, Out = (p - CaveCentre).normalized,
+                    Bottom = g < SeaLevel ? SeaFloor - 3f : g - 2f, Top = Mathf.Max(g, SeaLevel) + MountainWallHeight
+                };
+            }
+            // One side of the cut to the mouth, from beside the mountains' wall up to the mouth.
+            // It stops at the cave mouth and turns along it: a flat face beside the opening, up to the ceiling, so the
+            // mouth is a clean opening seen from either side, and no one climbs round the end of the wall.
+            List<BarrierPoint> CutSide(Vector2 from, float side)
+            {
+                var points = new List<BarrierPoint>();
+                float x = cutX + side * NotchWallOffset;
+                for (float z = from.y + 1f; z < PortalZ; z += 1f)
+                {
+                    float g = GroundAt(x, z);
+                    points.Add(new BarrierPoint { Foot = new Vector2(x, z), Back = new Vector2(x, z), Out = new Vector2(-side, 0f), Bottom = g - 2f, Top = g + MountainWallHeight + 1f });
+                }
+                // Only as far as there is open air between the tunnel's side and its ceiling; beyond that it is rock anyway.
+                for (float v = NotchWallOffset; v <= MouthFrameWidth; v += 1f)
+                {
+                    var foot = new Vector2(cutX + side * v, PortalZ + 0.3f);
+                    float g = GroundAt(foot.x, foot.y), ceiling = CeilingAt(foot.x, foot.y);
+                    if (g >= ceiling) break; // solid rock from here out
+                    points.Add(new BarrierPoint { Foot = foot, Out = Vector2.up, Bottom = g - 2f, Top = ceiling + 1f, Frame = true });
+                }
+                return points;
+            }
+
+            // The mountains' foot, all the way round the ledge and on into the sea at both ends. At the cut to the mouth
+            // the wall turns the corner and runs up the cut's side, then comes back down its other side, all one piece,
+            // so there is no seam.
+            Barrier current = null;
+            bool reachedCut = false, leftCut = false;
+            for (float angle = 268f; angle <= 348f; angle += 0.8f)
+            {
+                var dir = new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+                Vector2? foot = null;
+                for (float r = 280f; r > 180f; r -= 0.5f)
+                {
+                    Vector2 q = CaveCentre + dir * r;
+                    CliffTop(q.x, q.y, out _, out float mountain);
+                    if (mountain >= 0.04f) { foot = q; break; }
+                }
+                if (foot == null) { current = null; continue; }
+                Vector2 p = foot.Value;
+                if (p.y < PortalZ && Mathf.Abs(p.x - cutX) < NotchWallOffset)
+                {
+                    if (!reachedCut && current != null && current.Points.Count > 0) current.Points.AddRange(CutSide(current.Points[current.Points.Count - 1].Foot, -1f));
+                    reachedCut = true;
+                    current = null;
+                    continue;
+                }
+                if (current == null)
+                {
+                    walls.Add(current = new Barrier { Capped = true });
+                    if (reachedCut && !leftCut)
+                    {
+                        List<BarrierPoint> side = CutSide(p, 1f);
+                        side.Reverse();
+                        current.Points.AddRange(side);
+                        leftCut = true;
+                    }
+                }
+                current.Points.Add(Foot(p));
+            }
+
+            // The outside walls are solid rock: a flat top runs back from the face to the nearest hillside behind it,
+            // so there is no gap behind the face to see into.
+            foreach (Barrier wall in walls)
+                for (int k = 0; k < wall.Points.Count; k++)
+                {
+                    BarrierPoint point = wall.Points[k];
+                    if (point.Frame)
+                    {
+                        point.Back = point.Foot;
+                        point.Cap = point.Top;
+                        wall.Points[k] = point;
+                        continue;
+                    }
+                    // The nearest hillside behind the face, looking straight back and up to 60 degrees either side
+                    // (at a corner the high ground is often diagonally behind). None within reach: no top at all.
+                    Vector2 back = point.Foot;
+                    float nearest = 8f;
+                    for (int turn = -60; turn <= 60; turn += 15)
+                    {
+                        float r = turn * Mathf.Deg2Rad;
+                        Vector2 dir = new Vector2(-point.Out.x * Mathf.Cos(r) + point.Out.y * Mathf.Sin(r), -point.Out.x * Mathf.Sin(r) - point.Out.y * Mathf.Cos(r));
+                        for (float d = 0.5f; d < nearest; d += 0.5f)
+                        {
+                            Vector2 q = point.Foot + dir * d;
+                            // Never out over the cut to the mouth: a top there would stand in the opening as a block.
+                            if (q.y < PortalZ + 1f && Mathf.Abs(q.x - cutX) < NotchWallOffset + 0.5f) break;
+                            if (GroundAt(q.x, q.y) >= point.Top) { back = q; nearest = d; break; }
+                        }
+                    }
+                    point.Back = back;
+                    point.Cap = point.Top;
+                    wall.Points[k] = point;
+                }
+
+            // The upper level's cliff in the cave: along the front's edge, then round the beetles' lobe, leaving out the ramp.
+            void CliffWall(System.Func<float, (Vector2 edge, Vector2 outward, bool mine)> sample, float from, float to, float step)
+            {
+                Barrier wall = null;
+                for (float s = from; s <= to; s += step)
+                {
+                    (Vector2 edge, Vector2 outward, bool mine) = sample(s);
+                    if (!mine || CavernDepth(edge.x, edge.y) < -3f || RampWeight(edge.x, edge.y) > 0.01f) { wall = null; continue; }
+                    if (wall == null) walls.Add(wall = new Barrier { Capped = true, InCave = true });
+                    Vector2 foot = edge + outward * CliffFoot, back = edge - outward * CliffBack;
+                    float cap = GroundAt(back.x, back.y) + 0.03f;
+                    float top = CavernDepth(foot.x, foot.y) < 15f ? Mathf.Max(cap, CeilingAt(foot.x, foot.y) + 1f) : cap;
+                    wall.Points.Add(new BarrierPoint
+                    {
+                        Foot = foot, Back = back, Out = outward, Cap = cap, Top = top,
+                        Bottom = Mathf.Min(GroundAt(foot.x, foot.y), GroundAt(edge.x, edge.y)) - 2f
+                    });
+                }
+            }
+            // (Each part runs 4 m past where the other takes over, so the two overlap at the corner they share.)
+            CliffWall(x =>
+            {
+                var edge = new Vector2(x, FrontZ + 4f * Noise(x, 0f, 35f, 15f));
+                return (edge, Vector2.up, FrontEdge(edge.x, edge.y) - LobeEdge(edge.x, edge.y) > -4f);
+            }, Origin, -Origin, 1f);
+            CliffWall(a =>
+            {
+                var outward = new Vector2(Mathf.Cos(a * Mathf.Deg2Rad), Mathf.Sin(a * Mathf.Deg2Rad));
+                var edge = BeetleZone + outward * (BeetleLobeRadius + 4f * AngleNoise(a * Mathf.Deg2Rad, 9f, 16f));
+                return (edge, outward, LobeEdge(edge.x, edge.y) - FrontEdge(edge.x, edge.y) > -4f);
+            }, -180f, 180f, 1.5f);
+            return walls;
+        }
+
+        private static bool TopBehind(BarrierPoint a, BarrierPoint b)
+        {
+            bool Behind(BarrierPoint p) => (p.Back - p.Foot).magnitude > 0.4f && Vector2.Dot(p.Back - p.Foot, p.Out) < 0f;
+            return Behind(a) && Behind(b) && Vector2.Dot(a.Out, b.Out) > 0.8f;
+        }
+
+        /// <summary>The barrier walls as a mesh: rough vertical rock faces (never leaning back, so they can't be climbed),
+        /// cliff tops and the closed ends of the cliff walls.</summary>
+        public static Mesh BuildBarrierMesh(List<Barrier> walls, out Surface[] surfaces)
+        {
+            var kit = new FlatMeshKit<Surface>();
+            const int bands = 3;
+            foreach (Barrier wall in walls)
+            {
+                Surface rock = wall.InCave ? Surface.CaveWall : Surface.CoastCliff;
+                // A face point: the bands between bottom and top bulge out a little (by position, so neighbours agree).
+                Vector3 Face(BarrierPoint p, int band)
+                {
+                    float bulge = band == 0 || band == bands ? 0f : 0.3f + 0.35f * (Noise(p.Foot.x * 3f, p.Foot.y * 3f + band * 17f, 2f, 71f) + 1f);
+                    return new Vector3(p.Foot.x + p.Out.x * bulge, Mathf.Lerp(p.Bottom, p.Top, band / (float)bands), p.Foot.y + p.Out.y * bulge);
+                }
+                for (int k = 0; k < wall.Points.Count - 1; k++)
+                {
+                    BarrierPoint a = wall.Points[k], b = wall.Points[k + 1];
+                    var outward = new Vector3(a.Out.x + b.Out.x, 0f, a.Out.y + b.Out.y);
+                    for (int band = 0; band < bands; band++)
+                        kit.Quad(Face(a, band), Face(b, band), Face(b, band + 1), Face(a, band + 1), outward, rock);
+                    if (!wall.Capped || a.Frame || b.Frame) continue; // the face beside the mouth is just a face
+                    // Outside, a top only where it lies flat behind the face: not at a corner (where the two ends face
+                    // different ways), not where an end has no top, and never reaching out in front of the face.
+                    if (!wall.InCave && !TopBehind(a, b)) continue;
+                    var aCap = new Vector3(a.Foot.x, a.Cap, a.Foot.y);
+                    var bCap = new Vector3(b.Foot.x, b.Cap, b.Foot.y);
+                    kit.Quad(aCap, bCap, new Vector3(b.Back.x, b.Cap, b.Back.y), new Vector3(a.Back.x, a.Cap, a.Back.y), Vector3.up, wall.InCave ? Surface.CaveFloor : Surface.ShelfRock);
+                    // Outside, the back of the block, down into the hillside (hidden wherever the hill is higher).
+                    if (!wall.InCave)
+                        kit.Quad(new Vector3(a.Back.x, a.Cap, a.Back.y), new Vector3(b.Back.x, b.Cap, b.Back.y),
+                            new Vector3(b.Back.x, GroundAt(b.Back.x, b.Back.y) - 2f, b.Back.y), new Vector3(a.Back.x, GroundAt(a.Back.x, a.Back.y) - 2f, a.Back.y), -outward, rock);
+                    // Rock above the cliff top, up to the ceiling, near the cave walls.
+                    if (a.Top > a.Cap + 0.1f || b.Top > b.Cap + 0.1f)
+                        kit.Quad(new Vector3(a.Back.x, a.Cap, a.Back.y), new Vector3(b.Back.x, b.Cap, b.Back.y), new Vector3(b.Back.x, b.Top, b.Back.y), new Vector3(a.Back.x, a.Top, a.Back.y), -outward, rock);
+                }
+                if (!wall.Capped || wall.Points.Count < 2) continue;
+                // Close both ends of the block, so it reads as solid rock and nothing gets in under its top.
+                foreach ((BarrierPoint end, BarrierPoint next) in new[] { (wall.Points[0], wall.Points[1]), (wall.Points[wall.Points.Count - 1], wall.Points[wall.Points.Count - 2]) })
+                {
+                    var away = new Vector3(end.Foot.x - next.Foot.x, 0f, end.Foot.y - next.Foot.y);
+                    float low = Mathf.Min(end.Bottom, GroundAt(end.Back.x, end.Back.y) - 2f);
+                    kit.Quad(new Vector3(end.Foot.x, low, end.Foot.y), new Vector3(end.Foot.x, end.Top, end.Foot.y),
+                        new Vector3(end.Back.x, end.Top, end.Back.y), new Vector3(end.Back.x, low, end.Back.y), away, rock);
+                }
+            }
+            return Build(kit, "CrystalCavesBarriers", out surfaces);
+        }
+
+        /// <summary>A point along the mouth's centre line, 0 on the ledge in front of it, 1 at its inner end.</summary>
+        public static Vector2 PointOnPath(float t)
+        {
+            float total = 0f;
+            for (int i = 0; i < MouthPath.Length - 1; i++) total += (MouthPath[i + 1] - MouthPath[i]).magnitude;
+            float target = t * total;
+            for (int i = 0; i < MouthPath.Length - 1; i++)
+            {
+                float length = (MouthPath[i + 1] - MouthPath[i]).magnitude;
+                if (target <= length) return Vector2.Lerp(MouthPath[i], MouthPath[i + 1], target / length);
+                target -= length;
+            }
+            return MouthPath[MouthPath.Length - 1];
+        }
+    }
+}

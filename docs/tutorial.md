@@ -3,7 +3,7 @@
 The playable tutorial from the 10-22-26 meeting notes ("Major tutorial rework"), finished by the 10-23-26 notes ("Final tutorial tweaking"). It replaces the lunar crash-site tutorial; that scene is now **Testing Sandbox**, a free-play sandbox. New Game on the title screen loads it.
 
 - Scene: `signal-lost/Assets/Scenes/Tutorial/Tutorial Demo.unity`
-- Build order: MainMenu, Tutorial, Testing Sandbox, Desert Dunes, Prototype
+- Build order: MainMenu, Tutorial, Testing Sandbox, Desert Dunes, Crystal Caves, Prototype (set by `CoreSceneSetup.SetBuildScenes`)
 
 ## How it plays
 
