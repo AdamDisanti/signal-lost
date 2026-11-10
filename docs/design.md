@@ -478,3 +478,31 @@ Christian's request, built on `feature/mudlands`; the full design is in [The Mud
 - **New upgrade slot "Car"** with seven car upgrades, plus three general Mudlands upgrades; three use the mini-bosses' key items.
 - **Stage boss getaway:** Clutch McCheddar flees at 15% and must be rammed with the car; the chase hands out a free car, so the ability can't be on cooldown there.
 - **Open:** where the Mudlands sits in the stage order; all numbers; whether the driving HUD should move to the game's HUD style.
+
+## The Beetles mini-bosses (11-09)
+
+Amanda's request: the Crystal Caves mini-boss is four beetles who want to be a band. See [The Beetles](cave-beetles.md).
+
+- **Model:** the Jerry-Can Beetle model, without the can and the explosion, made mini-boss sized.
+  - Crystal growths on the shell.
+  - Small, stubby legs, and no antennae or mandibles, so it doesn't trigger bug phobia.
+  - A microphone pack on the back and a headset mic.
+- **Who they are:** identical apart from colour. Bug Lennon is red, Paul Arthropodney yellow, George Harrison blue and Scarab Starr green.
+- **Talking:** each talks about the band (rock and roll, underground pop and other cave genres) when hit, through the dialogue subtitles, like the merchant crab's cousins.
+- **Box-in:** they surround the player and charge together.
+  - **Warning:** they rear up, their mic lights blink amber, and a closing ring marks when to jump.
+  - **Jumped:** they slam into each other and hurt themselves.
+  - **Grounded:** only the player is hurt.
+- **Amanda's choices (11-09):**
+  - No boss bars (revised the same day, after four stacked bars covered the screen): like the crab cousins, a beetle's name and health show in the crosshair target readout while you aim at it.
+  - No on-screen text for the box-in at all: the beetles' moves, mic lights and the closing ring are the only warning, and the player works out the jump themselves.
+  - **Committed charge (Amanda's fix):** the beetles charged after a player who was outside the circle. Now:
+    - Once the ring appears, the box is fixed.
+    - The charge goes straight at the box's middle and never turns after the player.
+    - Unless a grounded player in the box takes the hit, the beetles collide, whether the player jumped or got out during the charge.
+    - Leaving the box before the charge calls the box-in off. The beetles chase again but hold their attacks for 2.5 s.
+  - Scrap drops only, no ship part.
+  - No per-beetle phase 2. The band gets angrier as members fall: faster, with more frequent box-ins and a shorter warning.
+- **Shared code:** `DesertMiniBoss` gained opt-outs of phase 2 (`HasPhaseTwo`) and of the boss bar (`ShowsBossBar`), and a protected `Engage()`. The defeat banner no longer mentions a part when there is none.
+- **Test scene only:** it is not placed in the level yet.
+

@@ -11,6 +11,7 @@
 - [Crystal Chameleon](crystal-chameleon.md): the Crystal Caves fodder that hides as a crystal batch until the scanner disrupts it, its tongue attack, test scene and the scanner hook.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
 - [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
+- [The Beetles](cave-beetles.md): the Crystal Caves band of four beetle mini-bosses, their box-in charge and jump dodge, lines, test scene and checklist.
 - [Desert stage boss](desert-boss.md): the Core Worm: exit ambush cutscene, four phases that change the arena, Engine Core drop and next-stage unlock.
 - [Desert story](desert-story.md): Cavendish's three jobs, the mini-bosses' themed arenas, the trophy rack, the Core Worm's lair, its recorded physics collapse and climbing out.
 - [The Mudlands](mudlands.md): the swamp biome and the Drunk Driving ability: layout, three quest lines, six creatures, Kart Kong, Silt the Mudbender, the Sloth Witch and Clutch McCheddar, car upgrades, how to build and test it.
