@@ -25,16 +25,26 @@ The map is **480 × 480 m**, 1.5 times Desert Dunes' 320 m, with 4 m flat-shaded
 | Area | Where (x, z) | What's there |
 | --- | --- | --- |
 | Ocean | All round | The island kit's sea. Falling or wading into deep water fades to "TOO DEEP", costs 15 health and puts you back on the nearest dry land. The sea floor is not walkable, so enemies and spawns stay on land. |
-| Mountains | All round the island | Jagged peaks rising straight from the sea everywhere except the south-east ledge, so they close the outside in. A vertical rock wall about 10 m tall runs along their foot all round the ledge, so they can't be climbed (see *Climbing barriers*); above it they climb to peaks of 150 m and more. They use the tutorial's mountain rock. |
+| Sea cliffs | All round the island | Sheer grey cliffs rising straight from the sea everywhere except the south-east ledge, so they close the outside in. Their faces are terraced stone slabs with trees and shrubs on the ledges (see *Sea cliffs* below). A vertical rock wall about 18 m tall runs along their foot all round the ledge, inside the slabs, and every slab's lowest ledge is 20 m or more above the ground or shallows in front, so they can't be climbed (see *Climbing barriers*). Their grey rock has its own materials (`GroundMountainCliff`, `GroundMountainRock`), so the tutorial's mountains are untouched. |
 | South-east ledge | Around (130, −172) | The only open ground outside: a small rocky ledge about 10–14 m above the sea, in soft steps like stacked blocks (gentle enough to walk anywhere). Columnar sea cliffs line its edge, with tumbled blocks in the surf, a few pines, bushes, grass and rocks. |
 | Cove and dock | Cove from (127, −180) down to (140, −216); dock straight on from it | Low rocks step down from the ledge to the water, with rocks along both sides. At the bottom the island kit's arrival dock (a timber jetty with a T-shaped end) runs out to sea, with the sailboat moored alongside. The cove points at the cave mouth, so the mouth can be seen from the dock. Loaded directly, the player starts at the foot of the cove, facing the mouth; arriving by boat, the voyage lands them on the dock. |
 | Cavendish's camp | (150, −166) | The base camp (fire, tent, logs, supplies, three trophy stands that remember trophies from earlier levels) as an island camp. It stands on its own level pad. Cavendish sits on his log; Eugene, a friendly trader, sits on the ground in front of the other log. Arriving by boat, they pitch it in the voyage cutscene. A 16 m clear radius is left round it for the stands of later levels. |
-| Cave mouth | Portal at (118, −128), facing south | A dark arch at the foot of the mountains, with crystal glow inside. No path leads to it. |
+| Cave mouth | Opening at (118, −150), facing south | A rough, rounded rock arch about 11 m wide and 12 m high at the foot of the cliff face, with crystal glow inside (*Cave Mouth Arch*, from `CrystalCavesTerrain.BuildMouthMesh`). The arch is set in a plate flush with the face, and a closed arched passage with vertical walls runs back into the tunnel, so the doorway is solid rock all round. The face runs straight across the mouth (`DoorFront`), and a lintel slab and the slabs either side stand behind the plate and terrace like the rest of the cliff. Over the opening the plate reaches up past the lintel's underside, so no gap shows between them. The tunnel is roofed out to the face, and its roof is the full cliff top, so there is no dip above the mouth. No path leads to it. |
 | Cave, upper level | The front of the cave (south of z ≈ −55) and a lobe round the beetles' zone | Floor about 18 m above sea level, with the ceiling about 32 m above that. The back of the cave has no upper level, so nothing up there overlooks mini boss 2 or the final boss. |
 | Cave, deep level | Everything else, out to the cave walls | Floor about 16 m below the upper level, with a vaulted ceiling about 70 m up. The upper level's edge is a 16 m cliff all round, too steep to climb. You may jump down anywhere, but the only way back up is **one ramp**, on the far (north) side of the beetles' zone, so you find it after the beetle fight. The ramp is a long, even incline (about 74 m long, 28 m wide, about 12°), so you walk up and down it without slipping. |
 | Beetles fight zone | (−150, −42), r 24 m, upper level | Flattened, empty, ringed by purple and pink crystals. It sits in the middle of a lobe 62 m in radius, so its edge is about 38 m from any drop. |
 | Mini Boss 2 fight zone | (80, 35), r 24 m, deep level | Flattened, empty, ringed by orange and pink crystals. It is about 90 m from the nearest upper ground. |
 | Final boss fight zone | (0, 138), 152 × 68 m ellipse, deep level | Flattened, empty, ringed by purple and blue crystals, at the back of the cave. |
+
+### Sea cliffs
+
+The cliffs' faces are stone slabs (*Cliff Blocks*, from `CrystalCavesTerrain.CliffBlocks`) standing side by side all round the island, unbroken over the cave mouth.
+- **Front:** every slab's front stands on one line, level with the cave mouth's arch.
+- **Terraces:** following Amanda's terraced reference (11-10), each slab steps back into the cliff in two or three terraces, up to 22 m deep and stopping short of the cave.
+  - Only the top terrace reaches the full cliff top, about 100 m; the lower ones' grassy ledges sit at varied heights.
+  - The faces are in bands, with cracks across and narrow tan steps.
+- **Plants:** pines, bushes, grass and rocks grow on the terraces and the cliff top (*Cliff Plants*, about 1,200 of them). They stand back from the edges so they show from below. The slabs over the mouth terrace and carry plants like the rest.
+- **Plateau:** behind the cliffs, the flat tops step up in great blocks 12 m apart toward the middle of the island.
 
 Each fight zone has a **CombatZone** marker under *Level Markers (placeholders)*, so enemies placed later can use it. Its rings show in the Scene view.
 
@@ -44,6 +54,7 @@ The terrain self-check runs on every build. It refuses a landform that has:
 - any cave ground open to the sky;
 - a ramp steeper than 20° anywhere, or one that doesn't reach the deep level;
 - any route up the mountains, or from the deep level back up to the upper level other than the ramp. It treats all ground as climbable (the player can jump up any slope that isn't vertical) and only the barrier walls as solid. When it finds a way up, the error lists the route, so you can see where a wall is missing;
+- ground (or wadeable water) in front of an outside wall or a cliff slab's lowest ledge that comes within 5 m of its top (the player reaches about 3.5 m up). The route check above also counts water up to the sea's wade depth (1.3 m) as walkable, so the walls' ends out in the sea are checked as the player would find them;
 - any spot steeper than 35° on the way from the dock to the cave and through the tunnel (the player can't walk up more than 45°);
 - the beetles' zone within 10 m of a drop;
 - upper ground near the boss zones;
@@ -55,13 +66,13 @@ The terrain self-check runs on every build. It refuses a landform that has:
 ## Climbing barriers
 
 The shared player can jump up any slope that isn't vertical; that's how the player moves in every level, and it isn't changed here. So wherever the player must not climb, the level has vertical rock (the *Climbing Barriers* object in the environment prefab, generated by `CrystalCavesTerrain.Barriers`):
-- **The mountains' foot:** a wall about 10 m tall all the way round the ledge, running on into the sea at both ends.
-- **The cut to the cave mouth:** walls up both sides, from the mountains' wall to the mouth. They stop there; nothing stands inside the tunnel. Beside the opening each one turns into a flat rock face up to the ceiling, so the mouth is a clean opening about 11 m wide seen from either side, and no one climbs round the end of the wall. No wall's top reaches out over the cut, and no trees or rock formations stand in front of the mouth, so the view out of the cave is clear to the sea.
+- **The sea cliffs' foot:** a wall about 18 m tall all the way round the ledge, running on into the sea at both ends. The cliff slabs stand 1.1 m or more in front of it, so it is hidden inside them; it stays as the guarantee.
+- **The cave mouth:** the mountains' wall stops either side of the doorway, inside the cliff slabs that frame it, so the slabs close the gap. Their faces are vertical, and the lintel over the opening has the tunnel's roof behind it. No wall's top reaches over the mouth, and no trees or rock formations stand in front of it, so the view out of the cave is clear to the sea.
 - **The upper level's cliff in the cave:** a vertical face from the deep floor up to the upper level, all round except at the ramp.
   - It has a flat rock top back to the edge, so a player who jumps down can't fall in behind it.
   - Where it meets the cave wall it goes up to the ceiling, so no one climbs round it along the wall.
 
-Every wall is a solid block of rock with closed ends: outside, its flat top runs back to the nearest hillside behind it (looking straight back and diagonally), so there is no gap behind the face; where no hillside is close, the wall has no top rather than a slab sticking out. The mountains' wall and the cut's walls are one continuous piece, turning the corner at the mouth with no seam. The faces bulge out a little between bands, so they read as rough rock, but they never lean back. Change the wall heights and offsets with the constants above `Barriers` in `CrystalCavesTerrain.cs`.
+Every wall is a solid block of rock with closed ends: outside, its flat top runs back to the nearest hillside behind it (looking straight back and diagonally), so there is no gap behind the face; where no hillside is close, the wall has no top rather than a slab sticking out. The terrain self-check counts the cliff slabs (but not the lintel) as solid too. The faces bulge out a little between bands, so they read as rough rock, but they never lean back. Change the wall heights and offsets with the constants above `Barriers` in `CrystalCavesTerrain.cs`.
 
 ## Cave lighting
 
@@ -69,10 +80,16 @@ Every wall is a solid block of rock with closed ends: outside, its flat top runs
 - **Fade-in:** once the camera is under the cave roof, the sun, sky light, reflections and fog fade over the first 40 m from the mouth to the cave settings.
 - **Fill light:** a bright, even fill keeps every part of the cave easy to see and navigate.
 
-**Crystal batches** (185) tint the fill with colour:
+**Crystal batches** tint the fill with colour:
 - **Placement:** they line the tunnel (on alternating walls), mark the top and foot of every ramp, ring the fight zones, and are scattered over the floors, walls and ceiling.
 - **Shapes:** three crystal shapes (spire, cluster, shard), tilted and sized differently.
 - **Colours:** six, namely dark blue, green, orange, purple, pink and cyan. Each area leans toward a few colours, and about one batch in eight is any colour.
+- **Giant crystals:** 53 structural crystals like the reference's:
+  - **Along the walls:** long rods at the foot of the cave walls, in ones to threes, leaning back into the walls.
+  - **Beams:** a few stout, angled crystals from the floor right up into the ceiling, like supports, near the walls.
+  - **Shapes:** two, `GiantCrystal` (slim) and `GiantCrystalWide`, each with its own colour from the area's palette, size, tilt and turn.
+  - **Placement:** they keep at least 26 m from the tunnel and well clear of the ramp, the upper level's cliff and the fight zones, so they never stand in the way.
+  - **Glow:** they glow like the small crystals. Each beam and each wall spot has a light (36 in all, so 211 crystal lights, inside the 220 budget). Each crystal is its own **CrystalBatch**, so you recolour it, and its light, the same way as the others.
 - **Rock:** stalagmites, stalactites, boulders and huge floor-to-ceiling columns break up the space.
 
 Crystal lights more than 70 m from the mouth switch off while you are outside. They have no shadows, so they would otherwise shine through the mountain.
@@ -167,7 +184,7 @@ The outdoor look is whatever the scene's Lighting settings are; CaveLighting rea
 | --- | --- |
 | `Editor/CrystalCavesTerrain.cs` | Layout numbers and the landform: ground, sea floor, cave ceiling and mountain top, the cove, the two cave levels and ramps, and the self-check |
 | `Editor/CrystalCavesBuilder.cs` | The environment prefab (island kit pieces, props and crystal placement), the camp prefab, and the scene (lighting, player, camp and residents, NavMesh, markers, validation) |
-| `Editor/CrystalAssetBuilder.cs` | Crystal shapes and materials, CrystalBatch prefab, cave and coast rock |
+| `Editor/CrystalAssetBuilder.cs` | Crystal shapes (including the two giant ones) and materials, CrystalBatch prefab, cave and coast rock |
 | `Scripts/Effects/CaveLighting.cs`, `CrystalBatch.cs` | Runtime cave lighting and crystal colour sync |
 | `Prefabs/Enviornment objects/CrystalCaves/` | Environment prefab, meshes, materials, crystals, rocks |
 | `Prefabs/Core/CrystalCavesCamp.prefab` | Cavendish's camp here (base camp variant with an `IslandCamp`) |
@@ -175,6 +192,36 @@ The outdoor look is whatever the scene's Lighting settings are; CaveLighting rea
 | `Scenes/Large Areas/CrystalCaves.unity`, `CrystalCavesNavMesh.asset` | The scene and its baked NavMesh (Git LFS) |
 
 ## Verification (11-09, Unity 6000.6.2f1, batch mode)
+
+**Terraced cliffs and cliff plants (11-10):**
+- **Validation:** `Validate` passed, and so did the terrain self-check. Every lowest ledge is still 20 m or more above the ground in front, so no terrace or plant can be reached.
+- **The cave is unchanged:** all 6,915 earlier cave surface samples matched.
+- **Rendered review shots:** checked from the ledge, the camp, the sea, beside the cliffs and above.
+
+**Arched cave mouth (11-10):**
+- **Validation:** `Validate` passed, including the walk from the spawn inside the mouth, and so did the terrain self-check.
+- **The cave is unchanged:** all 6,915 earlier cave surface samples still matched.
+- **Rendered review shots:** checked the arch from the front, both sides, above and inside. There are no see-through gaps, the roof's edge walls are now flat and hidden behind the slabs, and no gap shows above the mouth.
+
+**Roofed cave mouth (later on 11-09):**
+- **Validation:** `Validate` passed, including the walk from the spawn inside the mouth, and so did the terrain self-check.
+- **The cave is unchanged:** all 6,915 earlier cave surface samples matched. The 26 new ones are the newly roofed stretch of tunnel, and one tunnel crystal moved 2.4 m, from the old cut's wall onto the tunnel wall.
+- **Rendered review shots:** checked the doorway from the front, both sides, above and inside.
+
+**Stone-slab cliffs, crystal beams and glow (later on 11-09):**
+- **Validation:** after a rebuild and NavMesh re-bake, `Validate` passed with 238 crystal batches and 211 lights, and so did the terrain self-check, including the slab and wading checks.
+- **The cave is unchanged:** the same comparison as below matched again.
+- **Rendered review shots:** checked from the ledge, the cove, the sea and the cliff tops, and the giant crystals and beams inside.
+- **Not checked:** Play Mode, keyboard play and frame rate.
+
+**Sea cliffs and giant crystals (late 11-09):**
+- **Validation:** after **Rebuild Crystal Caves Environment** and a NavMesh re-bake, `CrystalCavesBuilder.Validate` passed, and so did the terrain self-check. That includes the climbing checks and the new wall-front check, which was shown to fail with a 2 m wall.
+- **The cave is unchanged:**
+  - Every floor, wall and ceiling height under the roof matches the earlier build exactly.
+  - Every rock and crystal is where it was, except three crystals by the mouth and one by a wall, which moved by less than 0.75 m.
+  - The cave now has its own random numbers (in `BuildEnvironmentPrefab`), so later changes outside can't move it.
+- **Rendered review shots:** checked from the cove, the ledge, the sea, above the cliff tops and close to the face, and the giant crystals inside.
+- **Not checked:** Play Mode, play with a real keyboard against the taller wall, and frame rate.
 
 **Climbing barriers (later on 11-09):**
 - **Validation:** **Create** passed its validation, and the terrain self-check passed, including the climbing and walking checks above. The deep level and its zones are reached through the one ramp.

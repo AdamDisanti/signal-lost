@@ -169,6 +169,36 @@ Amanda's fixes and changes after reviewing the world. See [Crystal Caves](crysta
 
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
 
+## Crystal Caves cliffs, mouth and crystals (11-09 to 11-10)
+
+Amanda's level-design changes from her reference images. See [Crystal Caves](crystal-caves.md). Through all of them the cave itself was to stay exactly as it was. Each rebuild was checked against a snapshot taken before the first change, and the cave's floors, walls and ceiling still match it.
+
+- **Sea cliffs instead of pointy mountains:**
+  - The peaks became sheer grey cliffs, about 100 m tall with flat, grassy tops.
+  - Their faces are stone slabs (`CrystalCavesTerrain.CliffBlocks`), on a single front line.
+  - Each slab steps back in two or three terraces with narrow ledges. Only the top terrace keeps the full height; the lower ledges sit at varied heights.
+  - About 1,200 pines, bushes, grass tufts and rocks grow on the ledges and the clifftop.
+  - This went through three references: smooth columns, then tall stone slabs, then terraces. Amanda asked for grey rock, so the cliffs have their own materials and the tutorial's mountains are untouched.
+- **Never climbable:**
+  - The wall at the cliffs' foot is now 18 m tall.
+  - Every slab face is vertical, and the lowest ledge is at least 20 m above the ground or shallows in front. The player reaches about 3.5 m up.
+  - The self-check now also counts water the player can wade in (down to 1.3 m deep) as walkable. It treated anything over 0.6 m deep as a barrier, which hid the low ends of the walls out in the sea.
+  - It also checks the ground in front of every wall and slab.
+- **Cave mouth:**
+  - The open cut in front of the old portal is now roofed tunnel. The cliffs stand at full height over it, and the old cut's walls are gone.
+  - The doorway is a rough, rounded rock arch about 11 m wide. It is set in a narrow plate in the cliff face, with a closed passage back into the tunnel.
+  - Amanda reported several problems with the first versions, now fixed:
+    - see-through ground at the top of the doorway;
+    - roof edge walls poking out of the face right of the mouth;
+    - a gap in the cliff over the mouth;
+    - a square hole;
+    - a flat face around the mouth that didn't match the rest of the cliff.
+- **Giant crystals:**
+  - 53 large structural crystals in two new shapes (`GiantCrystal`, `GiantCrystalWide`), in the six existing colours, varied in size, tilt and turn.
+  - Some lean against the walls; some are angled beams from the floor into the ceiling.
+  - They keep clear of the tunnel, the ramp, the cliffs and the fight zones, and they glow, with lights in the cave's budget (211 of 220).
+- **Cave layout protected:** the cave now draws its own random numbers, so reshaping the outside no longer moves its rocks or crystals.
+
 ## Chief Toad decisions (10-23-26)
 
 Lawson's request: a chief toad boss for the tutorial pond, built in its own test arena first. See [Chief Toad](chief-toad.md).
