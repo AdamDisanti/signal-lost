@@ -267,9 +267,10 @@ namespace SignalLost.Editor
 
         private static Color GroundColor(Ground ground) => ground switch
         {
-            Ground.Grass => new Color(0.27f, 0.4f, 0.22f),
-            Ground.DarkGrass => new Color(0.18f, 0.3f, 0.2f),
-            Ground.Moss => new Color(0.34f, 0.44f, 0.24f),
+            // Alien ground cover: teal grass and violet moss (matches MudPalette).
+            Ground.Grass => new Color(0.19f, 0.4f, 0.38f),
+            Ground.DarkGrass => new Color(0.13f, 0.26f, 0.3f),
+            Ground.Moss => new Color(0.38f, 0.31f, 0.5f),
             Ground.Road => new Color(0.45f, 0.34f, 0.22f),
             Ground.Mud => new Color(0.24f, 0.17f, 0.11f),
             Ground.Bed => new Color(0.16f, 0.13f, 0.1f),
@@ -484,13 +485,26 @@ namespace SignalLost.Editor
             return prop;
         }
 
+        // Boxes shaped to the model (MudModels.Solids). Rotated boxes (sloped roofs) and roof pieces go on child
+        // objects; roof pieces are left out of the NavMesh so nothing paths, spawns or drops onto a roof.
         private static void AddColliders(GameObject go, MudModels.Kind kind, float size)
         {
-            foreach ((Vector3 centre, Vector3 boxSize) in MudModels.Colliders(kind, size))
+            foreach (MudModels.Solid solid in MudModels.Solids(kind, size))
             {
-                var box = go.AddComponent<BoxCollider>();
-                box.center = centre;
-                box.size = boxSize;
+                if (solid.angles == Vector3.zero && !solid.roof)
+                {
+                    var box = go.AddComponent<BoxCollider>();
+                    box.center = solid.centre;
+                    box.size = solid.size;
+                    continue;
+                }
+                var part = new GameObject(solid.roof ? "Roof Collider" : "Collider");
+                part.layer = go.layer;
+                part.transform.SetParent(go.transform, false);
+                part.transform.localPosition = solid.centre;
+                part.transform.localRotation = Quaternion.Euler(solid.angles);
+                part.AddComponent<BoxCollider>().size = solid.size;
+                if (solid.roof) part.AddComponent<NavMeshModifier>().ignoreFromBuild = true;
             }
         }
 
@@ -1154,7 +1168,7 @@ namespace SignalLost.Editor
             MudBossEncounter clutch = Boss<ClutchMcCheddar>(gameplay, "Clutch McCheddar", Lot, 36f, 1100f, 1.1f, 2.6f, "Landing Gear", "", 0.66f, 30f);
             var neon = new GameObject("Neon").transform;
             neon.SetParent(clutch.transform, false);
-            neon.position = GroundAt(Lot + new Vector2(0f, 24f)) + new Vector3(0f, 6.6f, -3.6f);
+            neon.position = GroundAt(Lot + new Vector2(0f, 24f)) + new Vector3(0f, 6.6f, -5.95f); // the sign on the roadhouse's front gable
             foreach (float x in new[] { -2.5f, 0f, 2.5f })
             {
                 var light = new GameObject("Neon Light").AddComponent<Light>();

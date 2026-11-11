@@ -8,7 +8,8 @@ using Random = UnityEngine.Random;
 namespace SignalLost.Mudlands
 {
     /// <summary>
-    /// Heavy area denial: a grumpy snapping turtle wearing a plank barricade and road signs as its shell. It parks
+    /// Heavy area denial: a grumpy blue alien snapping turtle whose shell is riveted hull panels off the crashed ship,
+    /// stencilled and striped like a road barrier. It parks
     /// on a road, blows a whistle and waves a STOP sign, and turns slowly to keep its front to you. Bolts glance off
     /// the front of its shell (they bounce back at 30%). Up close it pulls its neck back with its eyes glinting
     /// (0.9 s) and snaps (25, 3 m). A full-charge bolt or a heavy jump smash flips it onto its back for 3 s, legs
@@ -22,8 +23,8 @@ namespace SignalLost.Mudlands
 
         private enum State { Guard, Advance, Windup, Snap, Hide, Flipped, Righting }
 
-        private static readonly Color Skin = new Color(0.36f, 0.42f, 0.3f), Plank = new Color(0.62f, 0.48f, 0.3f),
-            Stripe = new Color(0.92f, 0.45f, 0.12f), Belly = new Color(0.8f, 0.72f, 0.48f);
+        // Alien colours: deep blue skin and a pale aqua belly.
+        private static readonly Color Skin = new Color(0.2f, 0.4f, 0.55f), Belly = new Color(0.7f, 0.86f, 0.8f);
 
         private State state = State.Guard;
         private float stateTime, nextSnap, nextWhistle;
@@ -36,18 +37,26 @@ namespace SignalLost.Mudlands
             shell = MudArt.Pivot(visual, "Shell", new Vector3(0f, 0.75f, 0f));
             MudArt.Part(shell, "Barricade Shell", Vector3.zero, Quaternion.identity, "turtle_shell", k =>
             {
-                k.Ball(new Vector3(0f, -0.1f, 0f), new Vector3(0.95f, 0.55f, 1.05f), Quaternion.identity, MudPalette.DarkWood, 1);
-                // Planks nailed across, striped like a road barrier.
+                k.Ball(new Vector3(0f, -0.1f, 0f), new Vector3(0.95f, 0.55f, 1.05f), Quaternion.identity, MudPalette.HullDark, 1);
+                // Hull panels riveted on in layers, every other one in the ship's orange like a road barrier.
                 for (int i = 0; i < 4; i++)
                 {
-                    float y = -0.05f + i * 0.14f, w = 1.9f - i * 0.35f;
-                    k.Box(new Vector3(0f, y, 0.15f - i * 0.05f), new Vector3(w, 0.12f, 1.6f - i * 0.25f), Quaternion.identity, i % 2 == 0 ? Plank : Stripe);
+                    float y = -0.05f + i * 0.14f, w = 1.9f - i * 0.35f, d = 1.6f - i * 0.25f, z = 0.15f - i * 0.05f;
+                    k.Box(new Vector3(0f, y, z), new Vector3(w, 0.12f, d), Quaternion.identity, i % 2 == 0 ? MudPalette.Hull : MudPalette.HullStripe);
+                    for (int r = 0; r < 6; r++) // rivets along the front and back edges
+                        k.Ball(new Vector3(-w * 0.42f + r * w * 0.168f, y + 0.06f, z + (r % 2 == 0 ? 1f : -1f) * d * 0.46f), 0.022f, MudPalette.HullDark, 0);
                 }
                 k.Box(new Vector3(0f, -0.4f, 0f), new Vector3(1.6f, 0.18f, 1.8f), Belly);
-                // "ROAD CLOSED" plank on the front edge.
-                k.Box(new Vector3(0f, 0.05f, 0.92f), new Vector3(1.3f, 0.3f, 0.06f), Quaternion.Euler(-12f, 0f, 0f), MudPalette.White);
-                k.Box(new Vector3(0f, 0.05f, 0.95f), new Vector3(1.1f, 0.06f, 0.02f), Quaternion.Euler(-12f, 0f, 0f), new Color(0.75f, 0.12f, 0.1f));
-                k.Prism(new Vector3(0.55f, 0.42f, -0.2f), Quaternion.identity, 0.12f, 0.08f, 0.35f, 6, Stripe); // a traffic cone stuck on top
+                // A stencilled hull panel on the front edge (where the "ROAD CLOSED" plank was).
+                Quaternion front = Quaternion.Euler(-12f, 0f, 0f);
+                k.ScrapPanel(new Vector3(0f, 0.05f, 0.92f), new Vector3(1.3f, 0.3f, 0.06f), front, MudPalette.Hull);
+                foreach (float x in new[] { -0.36f, -0.22f, 0.22f, 0.36f })
+                    k.Box(new Vector3(0f, 0.02f, 0.92f) + front * new Vector3(x, 0f, 0.035f), new Vector3(0.07f, 0.12f, 0.01f), front, MudPalette.Black);
+                k.Box(new Vector3(0f, 0.02f, 0.92f) + front * new Vector3(0f, 0f, 0.035f), new Vector3(0.22f, 0.04f, 0.01f), front * Quaternion.Euler(0f, 0f, 45f), MudPalette.Black);
+                k.Box(new Vector3(0f, 0.02f, 0.92f) + front * new Vector3(0f, 0f, 0.035f), new Vector3(0.22f, 0.04f, 0.01f), front * Quaternion.Euler(0f, 0f, -45f), MudPalette.Black);
+                // A ship's warning beacon stuck on top (where the traffic cone was).
+                k.Prism(new Vector3(0.55f, 0.42f, -0.2f), Quaternion.identity, 0.12f, 0.1f, 0.12f, 8, MudPalette.HullDark);
+                k.Ball(new Vector3(0.55f, 0.56f, -0.2f), new Vector3(0.09f, 0.1f, 0.09f), Quaternion.identity, MudPalette.HullStripe, 1, 2.5f);
             });
             neck = MudArt.Pivot(visual, "Neck", new Vector3(0f, 0.6f, 0.9f));
             Head = MudArt.Pivot(neck, "Head", new Vector3(0f, 0.08f, 0.35f));
@@ -69,9 +78,11 @@ namespace SignalLost.Mudlands
             sign = MudArt.Pivot(visual, "Stop Sign", new Vector3(0.75f, 0.6f, 0.6f));
             MudArt.Part(sign, "Sign", Vector3.zero, Quaternion.identity, "turtle_sign", k =>
             {
+                // A hatch cover off the ship on a strut, with a big painted orange X: this turtle's STOP sign.
                 k.Rod(Vector3.zero, new Vector3(0f, 1.1f, 0f), 0.03f, 5, MudPalette.Metal);
-                k.Prism(new Vector3(0f, 1.3f, -0.02f), Quaternion.Euler(90f, 0f, 0f), 0.28f, 0.28f, 0.04f, 8, new Color(0.8f, 0.1f, 0.1f));
-                k.Box(new Vector3(0f, 1.3f, 0.025f), new Vector3(0.36f, 0.08f, 0.01f), MudPalette.White);
+                k.ScrapPanel(new Vector3(0f, 1.3f, 0f), new Vector3(0.52f, 0.52f, 0.04f), Quaternion.identity, MudPalette.Hull, false);
+                k.Box(new Vector3(0f, 1.3f, 0.025f), new Vector3(0.44f, 0.08f, 0.01f), Quaternion.Euler(0f, 0f, 45f), MudPalette.HullStripe);
+                k.Box(new Vector3(0f, 1.3f, 0.025f), new Vector3(0.44f, 0.08f, 0.01f), Quaternion.Euler(0f, 0f, -45f), MudPalette.HullStripe);
             });
             for (int i = 0; i < 4; i++)
             {

@@ -506,3 +506,10 @@ Amanda's request: the Crystal Caves mini-boss is four beetles who want to be a b
 - **Shared code:** `DesertMiniBoss` gained opt-outs of phase 2 (`HasPhaseTwo`) and of the boss bar (`ShowsBossBar`), and a protected `Engage()`. The defeat banner no longer mentions a part when there is none.
 - **Test scene only:** it is not placed in the level yet.
 
+## Mudlands alien reskin (11-10-26)
+
+- Feedback to Christian: the Mudlands enemies and bosses read as Earth animals, and their metal as new human gear, while the rest of the game uses goofy alien creatures built around ship junk. Decision: make the creatures alien and turn their metal into scrap from the crashed ship, changing as little as possible (colours and a few parts; no behaviour, numbers or sizes).
+- Done for the five Mudlands creatures and the world (see [Mudlands](mudlands.md), Status). Ship scrap is shown one way everywhere: off-white hull (`MudPalette.Hull`), the orange stripe, rivets (`MeshKit.ScrapPanel`).
+- Kept: clothes and props that are jokes (overalls, straw hat, vest and bow tie, moonshine barrels), and the words on signs, since the quest uses them.
+- Not done yet: the biker mice and the four bosses (suggested: salvage kart for Kart Kong, gill frills for Silt, ship running light on the witch's broom, salvage chopper for Clutch).
+- Second pass (Christian, same day): "give the world a more alien feel especially the houses, avoid the overuse of metal, ensure the collision of all buildings works". Houses became the swamp folk's own architecture (pod husk, ribs, mushroom caps, leaf roofs, root stilts, mint-glowing round windows) on their old footprints; ship salvage is kept to the test kiosk and gas pumps; every building's collision follows its shape, with roofs kept out of the NavMesh. Details in [Mudlands](mudlands.md), Status.

@@ -7,7 +7,8 @@ using Random = UnityEngine.Random;
 namespace SignalLost.Mudlands
 {
     /// <summary>
-    /// Pressure enemy: a big boar in denim overalls with a fence-post club, a show-off who flexes and kisses his
+    /// Pressure enemy: a big alien boar (lilac hide, glowing back spines, pipe-stub tusks) in denim overalls with a
+    /// club made from a bent strut off the crashed ship, a show-off who flexes and kisses his
     /// biceps when idle and argues with any other brute nearby. He paws the ground and snorts steam (1 s, aim
     /// tracking until 70%), then shoulder-charges in a line (22 and a shove); charging into mud gets him stuck for
     /// 2 s. Up close he raises the club overhead over a ring (0.75 s) and slams (18). He belly-laughs when he hurts
@@ -21,8 +22,9 @@ namespace SignalLost.Mudlands
 
         private enum State { Idle, Argue, Chase, Paw, Charge, Skid, Stuck, Raise, Slam, Laugh, Brace }
 
-        private static readonly Color Hide = new Color(0.62f, 0.45f, 0.4f), Snout = new Color(0.86f, 0.6f, 0.58f),
-            Denim = new Color(0.25f, 0.38f, 0.6f), Tusk = new Color(0.95f, 0.92f, 0.8f), Bristle = new Color(0.35f, 0.24f, 0.2f);
+        // Alien colours: lilac hide, a pink-violet snout and a row of glowing teal spines down his back.
+        private static readonly Color Hide = new Color(0.6f, 0.45f, 0.66f), Snout = new Color(0.86f, 0.62f, 0.86f),
+            Denim = new Color(0.25f, 0.38f, 0.6f), Bristle = new Color(0.3f, 0.2f, 0.36f), Spine = new Color(0.35f, 1f, 0.8f);
 
         private State state = State.Idle;
         private float stateTime, nextCharge, flex;
@@ -48,7 +50,10 @@ namespace SignalLost.Mudlands
                     k.Ball(new Vector3(x, 0.22f, 0.56f), 0.05f, MudPalette.Metal, 0);
                 }
                 k.Box(new Vector3(0.12f, -0.02f, 0.56f), new Vector3(0.2f, 0.16f, 0.02f), new Color(0.2f, 0.3f, 0.5f)); // pocket
-                for (int i = 0; i < 5; i++) k.Cone(new Vector3(-0.2f + i * 0.1f, 0.85f, -0.3f), Quaternion.Euler(-30f, 0f, 0f), 0.06f, 0.18f, 4, Bristle);
+                // Glowing spines down his back (where the bristles were), set on the curve of the body.
+                float[] spineY = { 0.82f, 0.68f, 0.52f, 0.36f, 0.2f }, spineZ = { -0.3f, -0.43f, -0.46f, -0.43f, -0.46f };
+                for (int i = 0; i < 5; i++)
+                    k.Cone(new Vector3(0f, spineY[i], spineZ[i]), Quaternion.Euler(-35f - i * 12f, 0f, 0f), 0.07f, 0.3f - Mathf.Abs(i - 1) * 0.04f, 5, Spine, 1.4f);
             });
             Head = MudArt.Pivot(torso, "Head", new Vector3(0f, 0.85f, 0.25f));
             MudArt.Part(Head, "Face", Vector3.zero, Quaternion.identity, "hog_head", k =>
@@ -57,8 +62,14 @@ namespace SignalLost.Mudlands
                 k.Prism(new Vector3(0f, -0.02f, 0.32f), Quaternion.Euler(90f, 0f, 0f), 0.17f, 0.19f, 0.2f, 8, Snout);
                 k.Cone(new Vector3(-0.26f, 0.3f, 0.02f), Quaternion.Euler(10f, 0f, 35f), 0.12f, 0.22f, 4, Hide);
                 k.Cone(new Vector3(0.26f, 0.3f, 0.02f), Quaternion.Euler(10f, 0f, -35f), 0.12f, 0.22f, 4, Hide);
+                // Tusks: two pipe stubs off the wreck, jammed into his jaw.
                 foreach (float x in new[] { -0.15f, 0.15f })
-                    k.Cone(new Vector3(x, -0.12f, 0.35f), Quaternion.Euler(-20f, 0f, x > 0 ? -20f : 20f), 0.04f, 0.2f, 5, Tusk);
+                {
+                    Vector3 root = new Vector3(x, -0.12f, 0.35f), tip = root + Quaternion.Euler(-20f, 0f, x > 0 ? -20f : 20f) * Vector3.up * 0.17f;
+                    k.Rod(root, tip, 0.035f, 6, MudPalette.Metal);
+                    k.Rod(root + (tip - root) * 0.3f, root + (tip - root) * 0.45f, 0.042f, 6, MudPalette.HullStripe);
+                    k.Ball(tip, 0.026f, MudPalette.Black, 0); // the open end
+                }
                 k.Box(new Vector3(0f, 0.2f, 0.28f), new Vector3(0.36f, 0.05f, 0.05f), Quaternion.Euler(0f, 0f, 0f), Bristle); // a single angry brow
             });
             nostrils = MudArt.Part(Head, "Nostrils", new Vector3(0f, -0.02f, 0.53f), Quaternion.identity, "hog_nose", k =>
@@ -71,11 +82,17 @@ namespace SignalLost.Mudlands
             EyeR = r;
             armL = Arm(torso, -1f);
             armR = Arm(torso, 1f);
+            // The club: a landing strut torn off the ship, bent in the middle, with a wrapped grip and a broken bracket.
             club = MudArt.Part(armR, "Club", new Vector3(0f, -0.62f, 0.08f), Quaternion.Euler(80f, 0f, 0f), "hog_club", k =>
             {
-                k.Prism(new Vector3(0f, -0.2f, 0f), Quaternion.identity, 0.07f, 0.11f, 1.3f, 6, MudPalette.GreyWood);
-                k.Box(new Vector3(0f, 0.9f, 0f), new Vector3(0.05f, 0.05f, 0.3f), MudPalette.Metal); // a nail
-                k.Box(new Vector3(0f, 0.75f, 0f), new Vector3(0.3f, 0.05f, 0.05f), MudPalette.Metal);
+                Vector3 grip = new Vector3(0f, -0.2f, 0f), bend = new Vector3(0f, 0.45f, 0f), end = new Vector3(0f, 1.05f, 0.16f);
+                k.Rod(grip, bend, 0.06f, 7, MudPalette.Hull, 0f, 0.07f);
+                k.Rod(bend, end, 0.07f, 7, MudPalette.Hull, 0f, 0.09f);
+                k.Ball(bend, 0.07f, MudPalette.Hull, 0);
+                k.Rod(grip, grip + Vector3.up * 0.32f, 0.075f, 7, MudPalette.HullDark); // tape round the grip
+                k.Rod(bend + (end - bend) * 0.35f, bend + (end - bend) * 0.5f, 0.088f, 7, MudPalette.HullStripe);
+                k.Box(end, new Vector3(0.28f, 0.1f, 0.22f), Quaternion.FromToRotation(Vector3.up, end - bend), MudPalette.HullDark); // the torn bracket
+                k.Box(end + new Vector3(0.1f, 0.06f, 0.03f), new Vector3(0.04f, 0.1f, 0.04f), MudPalette.Metal); // a sheared bolt
             });
             legL = Leg(visual, -1f);
             legR = Leg(visual, 1f);
