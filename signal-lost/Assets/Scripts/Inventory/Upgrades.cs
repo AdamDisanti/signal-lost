@@ -5,7 +5,7 @@ using UnityEngine;
 namespace SignalLost.Inventory
 {
     /// <summary>Where an upgrade goes; also how the shop and the pockets menu group them.</summary>
-    public enum UpgradeSlot { Laser, Scanner, Flask, Suit, Supply, Trade, Car }
+    public enum UpgradeSlot { Laser, Scanner, Flask, Suit, Supply, Trade, Car, Fists }
 
     /// <summary>The level whose shop sells it.</summary>
     public enum UpgradeRegion { Tutorial, DesertDunes, Mudlands }
@@ -32,6 +32,12 @@ namespace SignalLost.Inventory
         public float CarRunOverDamage, CarBlastRadius, CarBlastDamage, CarStun, ChugSeconds, CarCooldown;
         public int ChugDrinks;
         public bool CarReinforced, MudTires, SpillProof, Waders;
+
+        // Melee (docs/melee-rage.md): Gaussian Brass Knuckles and Moon Shoes, applied by PlayerUpgrades.
+        /// <summary>The knuckles' tier (the highest owned counts): 1 lunge, 2 marks, chain arcs and the pull, 3 finishers.</summary>
+        public int KnuckleTier;
+        public float MeleeDamage, FistSpeed, RunSpeed, JumpHeight;
+        public bool DoubleJump;
 
         // Supplies: what one use does.
         public int SoberUp;
@@ -172,6 +178,58 @@ namespace SignalLost.Inventory
                 Id = "spare_keys", Name = "Spare Keys", Slot = UpgradeSlot.Car, Region = UpgradeRegion.Mudlands,
                 Description = "A spare set taped under the bumper. The car is ready again after 18 s instead of 30 s.",
                 Cost = new[] { (ScrapType.ScrapMetal, 8), (ScrapType.Wiring, 4), (ScrapType.CircuitBoards, 1) }, CarCooldown = -12f
+            },
+
+            // ---------- Melee (docs/melee-rage.md, Adam 11-10): knuckles at the crash site, shoes in the desert ----------
+            // Each tier unlocks the next of the knuckles' tricks rather than only adding numbers.
+            new Upgrade
+            {
+                Id = "gaussian_knuckles", Name = "Gaussian Brass Knuckles I", Slot = UpgradeSlot.Fists, Line = "gaussian_knuckles", Tier = 1, Tiers = 3,
+                Description = "Brass knuckles with a gauss coil on the back of the hand. Punches hit 35% harder, you move 8% faster with your fists up, " +
+                              "and punching magnet-lunges you onto the enemy in your sights.",
+                Cost = new[] { (ScrapType.ScrapMetal, 10), (ScrapType.Wiring, 3), (ScrapType.CircuitBoards, 1) },
+                KnuckleTier = 1, MeleeDamage = 0.35f, FistSpeed = 0.08f
+            },
+            new Upgrade
+            {
+                Id = "gaussian_knuckles_2", Name = "Gaussian Brass Knuckles II", Slot = UpgradeSlot.Fists, Line = "gaussian_knuckles", Tier = 2, Tiers = 3,
+                Requires = "gaussian_knuckles",
+                Description = "Overcharge coils. Punches leave an overcharge mark; punching a marked enemy or killing one with your fists throws chain " +
+                              "lightning. Right click magnet-pulls an enemy to you (big ones pull you to them). Punches +20%, speed +4% (+55%, +12% in all).",
+                Cost = new[] { (ScrapType.ScrapMetal, 16), (ScrapType.Wiring, 6), (ScrapType.CircuitBoards, 3) },
+                KnuckleTier = 2, MeleeDamage = 0.2f, FistSpeed = 0.04f
+            },
+            new Upgrade
+            {
+                Id = "gaussian_knuckles_3", Name = "Gaussian Brass Knuckles III", Slot = UpgradeSlot.Fists, Line = "gaussian_knuckles", Tier = 3, Tiers = 3,
+                Requires = "gaussian_knuckles_2",
+                Description = "A capacitor bank. Finish off a glowing, staggered enemy (V) with a slam: a shockwave, chain lightning, and every overcharge " +
+                              "mark nearby goes off. Punches +20%, speed +4% (+75%, +16% in all).",
+                Cost = new[] { (ScrapType.ScrapMetal, 24), (ScrapType.Wiring, 8), (ScrapType.CircuitBoards, 5), (ScrapType.FuelCells, 2) },
+                KnuckleTier = 3, MeleeDamage = 0.2f, FistSpeed = 0.04f
+            },
+            new Upgrade
+            {
+                Id = "moon_shoes", Name = "Moon Shoes I", Slot = UpgradeSlot.Suit, Region = UpgradeRegion.DesertDunes, Line = "moon_shoes", Tier = 1, Tiers = 3,
+                Description = "Self-lacing high-tops with springy moon soles. Run 8% faster and jump 20% higher.",
+                Cost = new[] { (ScrapType.ScrapMetal, 8), (ScrapType.Wiring, 4), (ScrapType.CircuitBoards, 1) },
+                RunSpeed = 0.08f, JumpHeight = 0.2f
+            },
+            new Upgrade
+            {
+                Id = "moon_shoes_2", Name = "Moon Shoes II", Slot = UpgradeSlot.Suit, Region = UpgradeRegion.DesertDunes, Line = "moon_shoes", Tier = 2, Tiers = 3,
+                Requires = "moon_shoes",
+                Description = "Bouncier soles. Run 8% faster and jump 20% higher (+16% and +40% in all).",
+                Cost = new[] { (ScrapType.ScrapMetal, 14), (ScrapType.Wiring, 6), (ScrapType.CircuitBoards, 3) },
+                RunSpeed = 0.08f, JumpHeight = 0.2f
+            },
+            new Upgrade
+            {
+                Id = "moon_shoes_3", Name = "Moon Shoes III", Slot = UpgradeSlot.Suit, Region = UpgradeRegion.DesertDunes, Line = "moon_shoes", Tier = 3, Tiers = 3,
+                Requires = "moon_shoes_2",
+                Description = "Anti-grav heels: jump again in mid-air, launching the way you're moving. Run 6% faster and jump 15% higher (+22% and +55% in all).",
+                Cost = new[] { (ScrapType.ScrapMetal, 20), (ScrapType.Wiring, 8), (ScrapType.CircuitBoards, 4), (ScrapType.FuelCells, 2) },
+                RunSpeed = 0.06f, JumpHeight = 0.15f, DoubleJump = true
             },
 
             // ---------- Supplies ----------

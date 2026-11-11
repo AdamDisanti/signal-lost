@@ -224,8 +224,11 @@ namespace SignalLost.UI
             string[] suit = UpgradeCatalog.Installed(inventory.Upgrades).Where(u => u.Slot == UpgradeSlot.Suit).Select(u => "+ " + u.Name).ToArray();
             TextMeshProUGUI suitText = UiTheme.Label("Suit", page, 22f, UiTheme.Text, TextAlignmentOptions.TopLeft);
             UiTheme.Place(suitText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(440f, -478f), new Vector2(560f, 120f));
+            Upgrade knuckles = UpgradeCatalog.Installed(inventory.Upgrades).FirstOrDefault(u => u.Slot == UpgradeSlot.Fists);
             suitText.text = $"<b><color={UiTheme.Hex(ItemRows.SlotColor(UpgradeSlot.Suit))}>Suit</color></b>\n" +
-                (suit.Length > 0 ? string.Join("   ", suit) : $"<color={UiTheme.Hex(UiTheme.Muted)}>Standard-issue Maintenance Corps overalls.</color>");
+                (suit.Length > 0 ? string.Join("   ", suit) : $"<color={UiTheme.Hex(UiTheme.Muted)}>Standard-issue Maintenance Corps overalls.</color>") +
+                $"\n<b><color={UiTheme.Hex(ItemRows.SlotColor(UpgradeSlot.Fists))}>Fists</color></b>  " +
+                (knuckles != null ? "+ " + knuckles.Name : $"<color={UiTheme.Hex(UiTheme.Muted)}>Bare knuckles.</color>");
 
             // Supplies, with a Use button each.
             Heading(page, "Supplies", new Vector2(1030f, 0f));
@@ -264,8 +267,8 @@ namespace SignalLost.UI
                 none.text = "No upgrades installed yet. Eugene sells them at Bucket & Barter: set recipes, no tinkering in the field.";
                 return;
             }
-            // Two columns: Mining Laser and Scanner on the left, Flask, Player and Car on the right.
-            UpgradeSlot[][] columns = { new[] { UpgradeSlot.Laser, UpgradeSlot.Scanner }, new[] { UpgradeSlot.Flask, UpgradeSlot.Suit, UpgradeSlot.Car } };
+            // Two columns: Mining Laser, Fists and Scanner on the left, Flask, Player and Car on the right.
+            UpgradeSlot[][] columns = { new[] { UpgradeSlot.Laser, UpgradeSlot.Fists, UpgradeSlot.Scanner }, new[] { UpgradeSlot.Flask, UpgradeSlot.Suit, UpgradeSlot.Car } };
             for (int c = 0; c < columns.Length; c++)
             {
                 float y = 0f;
@@ -304,6 +307,7 @@ namespace SignalLost.UI
                 ("Drinks in you", flask != null ? $"{flask.DrunkStacks} / {flask.BlackoutAfterStacks}  (one wears off every 15 s)" : "-"),
                 ("Scanner critter range", scanner != null && inventory.Has(PlayerItem.Scanner) ? $"{scanner.Range:0} m" : "No scanner"),
                 ("Slide distance", movement != null ? $"{movement.SlideDistanceScale * 100f:0}%" : "-"),
+                ("Run / jump (shoes)", movement != null ? $"{ShoeRun() * 100f:0}% / {movement.JumpHeightScale * 100f:0}%" + (movement.DoubleJump ? "  double jump" : "") : "-"),
                 ("Upgrade tiers installed", $"{inventory.Upgrades.Count}")
             };
             var right = new List<(string, string)>();
@@ -317,8 +321,32 @@ namespace SignalLost.UI
                 right.Add(("Full-charge burst", $"{laser.FullChargeBlastRadius:0} m"));
             }
             else right.Add(("Mining laser", "Not found yet"));
+            var fists = inventory.GetComponent<SignalLost.Melee.PlayerFists>();
+            if (fists != null && inventory.Has(PlayerItem.MiningLaser))
+            {
+                right.Add(("Punches", string.Join(" / ", fists.ComboDamage.Select(d => (d * fists.DamageMultiplier).ToString("0")))));
+                right.Add(("Knuckles", fists.KnuckleTier switch
+                {
+                    0 => "Bare fists",
+                    1 => "Tier I: lunge",
+                    2 => "Tier II: + marks, lightning, pull",
+                    _ => "Tier III: + finishers"
+                }));
+            }
             Column(left, 0f);
             Column(right, 700f);
+        }
+
+        // The Moon Shoes' run speed on its own (the movement's speed bonus also counts rage and the knuckles).
+        private float ShoeRun()
+        {
+            float run = 1f;
+            foreach (string id in inventory.Upgrades)
+            {
+                Upgrade upgrade = UpgradeCatalog.Find(id);
+                if (upgrade != null) run += upgrade.RunSpeed;
+            }
+            return run;
         }
 
         private void Column(List<(string label, string value)> rows, float x)

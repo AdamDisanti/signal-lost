@@ -29,7 +29,7 @@ namespace SignalLost.UI
         private readonly Dictionary<Shot, Transform> pivots = new Dictionary<Shot, Transform>();
         private readonly Dictionary<string, Material> materials = new Dictionary<string, Material>();
         private readonly List<GameObject> attachments = new List<GameObject>();
-        private Transform figureLaser, figureScanner, figureFlask, torso, kneeL, kneeR;
+        private Transform figureLaser, figureScanner, figureFlask, torso, kneeL, kneeR, handL;
         private Transform showLaser, showScanner, showFlask;
         private string builtFor = "\u0000";
         private float spin;
@@ -62,6 +62,19 @@ namespace SignalLost.UI
             // One part per upgrade line, whatever its tier.
             foreach (string id in UpgradeCatalog.Installed(inventory.Upgrades).Select(u => u.ArtId))
             {
+                // The melee gear is fitted from code: the knuckles onto the free (left) glove's fingers, the shoes over the boots.
+                if (id == "gaussian_knuckles" && handL != null)
+                {
+                    foreach (GameObject part in SignalLost.Melee.MeleeGearModels.FitKnuckles(handL, -1f).parts) Keep(part);
+                    continue;
+                }
+                if (id == "moon_shoes")
+                {
+                    foreach ((Transform knee, float side) in new[] { (kneeL, -1f), (kneeR, 1f) })
+                        Keep(SignalLost.Mudlands.MudArt.Part(knee, "Moon Shoe", new Vector3(0f, -0.235f, 0.035f), Quaternion.identity,
+                            side < 0f ? "MeleeMoonShoeL" : "MeleeMoonShoeR", kit => SignalLost.Melee.MeleeGearModels.MoonShoe(kit, side)).gameObject);
+                    continue;
+                }
                 GameObject model = ItemCatalog.Model(id);
                 if (model == null) continue;
                 switch (id)
@@ -109,6 +122,7 @@ namespace SignalLost.UI
             torso = mechanic.Torso;
             kneeL = mechanic.KneeL;
             kneeR = mechanic.KneeR;
+            handL = mechanic.HandL.Root;
             // Each tool sits in the fist exactly as in first person (MechanicModel's ToolHolds); the hold is tipped down a
             // little so the laser is carried at the ready and the scanner in front of the chest.
             figureLaser = Seat(LaserModel(gear), mechanic.HandR, mechanic.ArmR, MechanicModel.LaserHold, false, new Vector3(25f, 0f, 0f), 1f, null);
@@ -228,6 +242,13 @@ namespace SignalLost.UI
                 SetLayer(part.transform);
                 attachments.Add(part);
             }
+        }
+
+        // A part built in place: on the figure's layer, and removed with the other upgrade parts.
+        private void Keep(GameObject part)
+        {
+            SetLayer(part.transform);
+            attachments.Add(part);
         }
 
         // Puts an upgrade part on an (unscaled) mount on the mechanic's body.

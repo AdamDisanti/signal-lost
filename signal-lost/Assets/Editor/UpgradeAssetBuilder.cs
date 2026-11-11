@@ -64,6 +64,7 @@ namespace SignalLost.Editor
             }
 
             entries.AddRange(MudlandsUpgradeIcons.Build()); // the Mudlands upgrades' icons
+            entries.AddRange(MeleeGearIcons.Build()); // the knuckles' and Moon Shoes' icons
             var catalog = AssetDatabase.LoadAssetAtPath<ItemCatalog>(CatalogPath);
             if (catalog == null)
             {

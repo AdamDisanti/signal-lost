@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SignalLost.Combat;
 using SignalLost.Inventory;
+using SignalLost.Melee;
 using SignalLost.Scanner;
 using SignalLost.UI;
 using UnityEngine;
@@ -10,14 +11,16 @@ namespace SignalLost.Player
 {
     /// <summary>
     /// The player's three items and what is in their right hand (meeting notes 10-22): the mining laser OR the
-    /// scanner, swapped with Q (the scanner's own toggle). The flask is drunk with the left hand (<see cref="PlayerFlask"/>).
+    /// scanner, swapped with Q (the scanner's own toggle). Once the laser is found, Q cycles laser, scanner and bare
+    /// fists (<see cref="PlayerFists"/>, Adam 11-10); the fists and the rage meter are added here at runtime. The flask
+    /// is drunk with the left hand (<see cref="PlayerFlask"/>).
     /// Other systems put the tools away while they need the hands (drinking, respawning) with <see cref="Holster"/>.
     /// Items not owned yet stay unusable; collecting one shows its "new gear" card.
     /// </summary>
     [RequireComponent(typeof(PlayerInventory))]
     public sealed class PlayerGear : MonoBehaviour
     {
-        public enum Held { Nothing, Laser, Scanner }
+        public enum Held { Nothing, Laser, Scanner, Fists }
 
         [SerializeField] private MiningLaser laser;
         [Tooltip("The ScannerRig's toggle under the camera. Q only works once the scanner is owned.")]
@@ -29,16 +32,22 @@ namespace SignalLost.Player
 
         private PlayerInventory inventory;
         private readonly HashSet<object> holsters = new HashSet<object>();
-        private bool scannerWasRaised;
+        private bool scannerWasRaised, fistsOut;
+        private PlayerFists fists;
+        private UnityEngine.InputSystem.InputAction swap; // Q, read here only while there is no scanner to read it
 
         public PlayerInventory Inventory => inventory;
         public MiningLaser Laser => laser;
         public ScannerToggle Scanner => scanner;
         public bool ScannerRaised => scanner != null && scanner.isActiveAndEnabled && scanner.IsRaised;
         public bool Holstered => holsters.Count > 0;
+        public PlayerFists Fists => fists;
+        /// <summary>Bare fists join the Q cycle once the laser is found.</summary>
+        public bool CanUseFists => fists != null && Has(PlayerItem.MiningLaser);
 
         /// <summary>What the right hand is holding right now.</summary>
-        public Held InHand => Holstered ? Held.Nothing : ScannerRaised ? Held.Scanner : Has(PlayerItem.MiningLaser) ? Held.Laser : Held.Nothing;
+        public Held InHand => Holstered ? Held.Nothing : ScannerRaised ? Held.Scanner : fistsOut && CanUseFists ? Held.Fists :
+            Has(PlayerItem.MiningLaser) ? Held.Laser : Held.Nothing;
 
         /// <summary>Raised after an item is collected (not for starting items).</summary>
         public event Action<PlayerItem> Collected;
@@ -48,8 +57,53 @@ namespace SignalLost.Player
             inventory = GetComponent<PlayerInventory>();
             if (laser == null) laser = GetComponent<MiningLaser>();
             if (scanner == null) scanner = GetComponentInChildren<ScannerToggle>(true);
+            // The fists and rage come with every player that has a laser and a life (Adam, 11-10).
+            if (laser != null && laser.InputActions != null && GetComponent<PlayerLife>() != null)
+            {
+                fists = GetComponent<PlayerFists>();
+                if (fists == null) fists = gameObject.AddComponent<PlayerFists>();
+                if (GetComponent<RageMeter>() == null) gameObject.AddComponent<RageMeter>();
+                if (GetComponent<MoonShoesFx>() == null && GetComponent<FirstPersonController>() != null) gameObject.AddComponent<MoonShoesFx>();
+                var actions = Instantiate(laser.InputActions);
+                SignalLost.Core.KeyBindings.Register(actions);
+                swap = actions.FindAction("Player/ToggleScanner", true);
+                swap.Enable();
+            }
+            if (scanner != null) scanner.SwapPressed = OnSwapPressed;
             foreach (PlayerItem item in startingItems) inventory.Add(item);
             Refresh();
+        }
+
+        private void OnDestroy()
+        {
+            if (swap != null) Destroy(swap.actionMap.asset);
+        }
+
+        /// <summary>Puts the fists up (true) or back to the laser (false), lowering the scanner.</summary>
+        public void SetFistsOut(bool up)
+        {
+            if (up && !CanUseFists) return;
+            if (up && scanner != null && scanner.IsRaised) scanner.SetRaised(false);
+            fistsOut = up;
+            Refresh();
+        }
+
+        // Q with fists: laser -> scanner -> fists -> laser. Returns true if it handled the press.
+        private bool OnSwapPressed()
+        {
+            if (!CanUseFists || Holstered) return false;
+            if (ScannerRaised) { SetFistsOut(true); return true; } // scanner -> fists
+            if (fistsOut) { SetFistsOut(false); return true; }     // fists -> laser
+            return false;                                           // laser -> scanner (the scanner raises itself)
+        }
+
+        private void Update()
+        {
+            // No scanner yet (or it can't be used): Q swaps the laser and the fists here instead.
+            bool scannerReadsQ = scanner != null && scanner.isActiveAndEnabled;
+            if (swap == null || scannerReadsQ || !CanUseFists || Holstered) return;
+            if (!Application.isFocused || Cursor.lockState != CursorLockMode.Locked) return;
+            if (swap.WasPressedThisFrame()) SetFistsOut(!fistsOut);
         }
 
         public bool Has(PlayerItem item) => inventory.Has(item);
@@ -91,7 +145,9 @@ namespace SignalLost.Player
                 if (!canScan && scanner.enabled) scanner.enabled = false; // disabling also lowers it
                 else if (canScan && !scanner.enabled) scanner.enabled = true;
             }
-            if (laser != null) laser.enabled = Has(PlayerItem.MiningLaser) && !Holstered && !ScannerRaised;
+            bool fistsUp = fistsOut && CanUseFists && !Holstered && !ScannerRaised;
+            if (laser != null) laser.enabled = Has(PlayerItem.MiningLaser) && !Holstered && !ScannerRaised && !fistsUp;
+            if (fists != null && fists.enabled != fistsUp) fists.enabled = fistsUp;
             scannerWasRaised = ScannerRaised;
         }
 
@@ -115,7 +171,7 @@ namespace SignalLost.Player
             {
                 overlay.ShowItemCard("Scanner",
                     "Sniffs out ship junk, critters and anyone with a job for you.\n" +
-                    "<b>Q</b>  swap between the scanner and the laser.\n" +
+                    "<b>Q</b>  cycle the laser, the scanner and your fists.\n" +
                     "It locks onto your current objective; the bar fills and the beeps quicken as you get close.",
                     UiTheme.SpeakerColor("Cavendish"));
             }

@@ -34,6 +34,24 @@ namespace SignalLost.Combat
         /// Gets the amount and the source; returns the amount to apply. Null: damage is unchanged.
         /// </summary>
         public Func<float, GameObject, float> DamageModifier { get; set; }
+
+        /// <summary>
+        /// Optional, for everything: rescales damage by who dealt it before <see cref="DamageModifier"/> (the player's
+        /// rage stacks make all of their hits harder). Gets the amount, the source and the target; returns the amount.
+        /// </summary>
+        public static Func<float, GameObject, Health, float> OutgoingModifier { get; set; }
+        /// <summary>Raised after damage is applied to anything (test arenas show damage numbers with it).</summary>
+        public static event Action<Health, float, GameObject> AnyDamaged;
+        /// <summary>Raised when anything dies, with what dealt the killing blow (may be null): rage counts the player's kills.</summary>
+        public static event Action<Health, GameObject> AnyKilled;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            OutgoingModifier = null;
+            AnyDamaged = null;
+            AnyKilled = null;
+        }
         public float Max => maxHealth;
 
         /// <summary>Changes the maximum (upgrades), keeping the same fraction of health.</summary>
@@ -59,6 +77,11 @@ namespace SignalLost.Combat
             if (SignalLost.Core.CheatMode.Enabled && source != null && source.GetComponentInParent<SignalLost.Player.PlayerLife>() != null &&
                 GetComponentInParent<SignalLost.Player.PlayerLife>() == null)
                 amount = SignalLost.Core.CheatMode.Damage;
+            if (OutgoingModifier != null)
+            {
+                amount = OutgoingModifier(amount, source, this);
+                if (amount <= 0f) return false;
+            }
             if (DamageModifier != null)
             {
                 amount = DamageModifier(amount, source);
@@ -73,6 +96,7 @@ namespace SignalLost.Combat
             float applied = Mathf.Min(amount, current);
             current -= applied;
             Damaged?.Invoke(this, applied, source);
+            AnyDamaged?.Invoke(this, applied, source);
             Changed?.Invoke(this);
 
             if (current <= 0f)
@@ -80,6 +104,7 @@ namespace SignalLost.Combat
                 current = 0f;
                 Died?.Invoke(this);
                 died.Invoke();
+                AnyKilled?.Invoke(this, source);
             }
             return true;
         }

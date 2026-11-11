@@ -87,7 +87,7 @@ The scene is `Scenes/Large Areas/Wasteland.unity`. Build it with **Signal Lost >
   - a boss bar with phase notches and a teal "SHIELDED" cover with the conduit count;
   - the crew widget (ready, in the fight, or cooling down).
 - **Playtest loadout** (`FinaleLoadout.cs`):
-  - every upgrade that exists, at its top tier (the tutorial's and the Mudlands');
+  - every upgrade that exists, at its top tier (the tutorial's, the Mudlands', and since 11-10 the Gaussian Brass Knuckles III and Moon Shoes III: fists, finishers and the double jump all work here, and rage from killing the horde boosts damage on the mech and the robots; see [melee](melee-rage.md));
   - the Learner's Permit, so Drunk Driving works;
   - two of each supply, and spare scrap.
   - Remove it once saves carry between scenes.

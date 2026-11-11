@@ -70,3 +70,9 @@ MonoBehaviour:
   - id: spare_keys
     model: {fileID: 2999751159897393525, guid: 697e4c13ccdcc9d488235e28ec5e4d9a, type: 3}
     icon: {fileID: 959672062103217499, guid: f33bfc82d9d76144095beb769974ddb7, type: 3}
+  - id: gaussian_knuckles
+    model: {fileID: 7134467248160234599, guid: 48e2d566f0c6446b7bb8d4917de06fe0, type: 3}
+    icon: {fileID: 2357873206869955147, guid: 1f5294c7978e543bfad31dcd166e8914, type: 3}
+  - id: moon_shoes
+    model: {fileID: 3017815619093768015, guid: 35670526d44254abc90731144f47754e, type: 3}
+    icon: {fileID: 1005312853628145832, guid: 987f1c119b82f4cc0a04400803592138, type: 3}
