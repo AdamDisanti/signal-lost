@@ -9,7 +9,9 @@ using Random = UnityEngine.Random;
 namespace SignalLost.Mudlands
 {
     /// <summary>
-    /// Support enemy: a round toad in a vest and bow tie with a banjo. In a fight it plays a tune that makes nearby
+    /// Support enemy: a round alien toad (orange, with glowing cyan spots and a throat sac that puffs up and glows on
+    /// the beat) in a vest and bow tie, with a banjo made from a riveted hull plate and a ship's antenna. In a fight it
+    /// plays a tune that makes nearby
     /// allies 25% faster and heals them 3 a second (rings pulse out on the beat, notes float up), while it keeps
     /// 9-14 m from you and tucks itself behind the biggest ally it can find. Get within 3.5 m and it winds up and
     /// twangs a shockwave (6 and a big shove), then hops away. When it dies its string snaps and the allies near it
@@ -24,13 +26,14 @@ namespace SignalLost.Mudlands
         private enum State { Idle, Play, Twang, Hop, Flee }
 
         private const float AuraRadius = 9f, HealPerSecond = 3f;
-        private static readonly Color Skin = new Color(0.42f, 0.55f, 0.28f), Belly = new Color(0.86f, 0.82f, 0.55f),
-            Vest = new Color(0.55f, 0.18f, 0.16f), BanjoWood = new Color(0.72f, 0.5f, 0.28f);
+        // Alien colours: orange skin, a pale yellow belly, and cyan spots and throat sac that glow.
+        private static readonly Color Skin = new Color(0.9f, 0.55f, 0.18f), Belly = new Color(0.98f, 0.88f, 0.6f),
+            Vest = new Color(0.55f, 0.18f, 0.16f), Glow = new Color(0.3f, 0.9f, 1f);
 
         private State state = State.Idle;
         private float stateTime, nextBeat, nextTwang, nextTune;
         private Vector3 hopTo;
-        private Transform torso, banjo, strumArm, footL, footR;
+        private Transform torso, banjo, strumArm, footL, footR, throatSac;
 
         protected override void BuildModel(Transform visual)
         {
@@ -41,27 +44,38 @@ namespace SignalLost.Mudlands
                 k.Ball(new Vector3(0f, -0.02f, 0.16f), new Vector3(0.36f, 0.3f, 0.28f), Quaternion.identity, Belly, 1);
                 k.Box(new Vector3(-0.2f, 0.05f, 0.27f), new Vector3(0.18f, 0.42f, 0.14f), Quaternion.Euler(0f, 20f, -6f), Vest);
                 k.Box(new Vector3(0.2f, 0.05f, 0.27f), new Vector3(0.18f, 0.42f, 0.14f), Quaternion.Euler(0f, -20f, 6f), Vest);
-                for (int i = 0; i < 6; i++) k.Ball(new Vector3(Random.Range(-0.35f, 0.35f), Random.Range(-0.1f, 0.3f), -0.3f), 0.05f, new Color(0.3f, 0.42f, 0.2f), 0);
+                for (int i = 0; i < 6; i++) k.Ball(new Vector3(Random.Range(-0.35f, 0.35f), Random.Range(-0.1f, 0.3f), -0.3f), 0.05f, Glow, 0, 1.2f);
             });
             Head = MudArt.Pivot(torso, "Head", new Vector3(0f, 0.35f, 0.1f));
             MudArt.Part(Head, "Face", Vector3.zero, Quaternion.identity, "toad_head", k =>
             {
                 k.Ball(new Vector3(0f, 0.02f, 0.05f), new Vector3(0.38f, 0.2f, 0.3f), Quaternion.identity, Skin, 1);
-                k.Box(new Vector3(0f, -0.07f, 0.3f), new Vector3(0.42f, 0.02f, 0.04f), Quaternion.identity, new Color(0.25f, 0.3f, 0.15f));
+                k.Box(new Vector3(0f, -0.07f, 0.3f), new Vector3(0.42f, 0.02f, 0.04f), Quaternion.identity, new Color(0.4f, 0.18f, 0.1f));
                 // A bow tie.
                 k.Cone(new Vector3(0f, -0.2f, 0.28f), Quaternion.Euler(0f, 0f, 90f), 0.06f, 0.12f, 3, new Color(0.15f, 0.15f, 0.4f));
                 k.Cone(new Vector3(0f, -0.2f, 0.28f), Quaternion.Euler(0f, 0f, -90f), 0.06f, 0.12f, 3, new Color(0.15f, 0.15f, 0.4f));
             });
+            throatSac = MudArt.Part(Head, "Throat Sac", new Vector3(0f, -0.12f, 0.25f), Quaternion.identity, "toad_sac",
+                k => k.Ball(Vector3.zero, new Vector3(0.14f, 0.07f, 0.09f), Quaternion.identity, Glow, 1, 0.8f));
             (Transform l, Transform r) = MudArt.Eyes(Head, new Vector3(0f, 0.17f, 0.12f), 0.17f, 0.075f, new Color(0.95f, 0.85f, 0.3f), MudPalette.Black, "toad");
             EyeL = l;
             EyeR = r;
             banjo = MudArt.Pivot(torso, "Banjo", new Vector3(-0.05f, 0.02f, 0.42f), Quaternion.Euler(0f, 0f, -35f));
+            // The banjo is ship salvage: a round hull plate for the drum (rivets round the rim, the orange stripe) and
+            // a whip antenna for the neck, its tip light still blinking red.
             MudArt.Part(banjo, "Banjo Model", Vector3.zero, Quaternion.identity, "toad_banjo", k =>
             {
-                k.Prism(new Vector3(0f, 0f, -0.04f), Quaternion.Euler(90f, 0f, 0f), 0.2f, 0.2f, 0.08f, 12, BanjoWood);
-                k.Prism(new Vector3(0f, 0f, 0.041f), Quaternion.Euler(90f, 0f, 0f), 0.18f, 0.18f, 0.01f, 12, MudPalette.Cream);
-                k.Box(new Vector3(-0.42f, 0f, 0.04f), new Vector3(0.55f, 0.06f, 0.04f), MudPalette.DarkWood);
-                k.Box(new Vector3(-0.72f, 0f, 0.04f), new Vector3(0.1f, 0.1f, 0.05f), MudPalette.DarkWood);
+                k.Prism(new Vector3(0f, 0f, -0.04f), Quaternion.Euler(90f, 0f, 0f), 0.2f, 0.2f, 0.08f, 12, MudPalette.HullDark);
+                k.Prism(new Vector3(0f, 0f, 0.041f), Quaternion.Euler(90f, 0f, 0f), 0.18f, 0.18f, 0.01f, 12, MudPalette.Hull);
+                k.Box(new Vector3(0.07f, 0f, 0.05f), new Vector3(0.05f, 0.33f, 0.01f), MudPalette.HullStripe);
+                for (int i = 0; i < 8; i++)
+                {
+                    float a = i * Mathf.PI / 4f + 0.2f;
+                    k.Ball(new Vector3(Mathf.Cos(a) * 0.16f, Mathf.Sin(a) * 0.16f, 0.05f), 0.013f, MudPalette.HullDark, 0);
+                }
+                k.Rod(new Vector3(-0.15f, 0f, 0.04f), new Vector3(-0.7f, 0f, 0.04f), 0.026f, 6, MudPalette.Metal, 0f, 0.018f);
+                foreach (float x in new[] { -0.3f, -0.5f, -0.66f }) k.Rod(new Vector3(x, 0f, 0.04f), new Vector3(x - 0.03f, 0f, 0.04f), 0.032f, 6, MudPalette.HullDark);
+                k.Ball(new Vector3(-0.73f, 0f, 0.04f), 0.035f, new Color(1f, 0.25f, 0.2f), 0, 3f);
                 for (int i = -1; i <= 1; i++) k.Box(new Vector3(-0.3f, i * 0.015f, 0.065f), new Vector3(0.8f, 0.004f, 0.004f), MudPalette.Metal);
             });
             strumArm = MudArt.Pivot(torso, "Strum Arm", new Vector3(0.35f, 0.1f, 0.2f));
@@ -230,6 +244,8 @@ namespace SignalLost.Mudlands
             Visual.localPosition = VisualRest + Vector3.up * hop;
             torso.localRotation = Quaternion.Euler(state == State.Twang ? -15f : 0f, 0f, playing ? Mathf.Sin(t * 6.3f) * 6f : 0f);
             banjo.localRotation = state == State.Flee ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.Euler(0f, 0f, -35f);
+            // The throat sac puffs up on the beat while it plays.
+            throatSac.localScale = Vector3.one * (playing ? 1f + 0.4f * Mathf.Abs(Mathf.Sin(t * 6.3f)) : 0.75f);
         }
 
         protected override void DeathPose(float t)
