@@ -34,7 +34,7 @@ namespace SignalLost.Melee
         private readonly List<Health> adds = new List<Health>();
         private readonly List<GameObject> extras = new List<GameObject>();
         private PlayerLife player;
-        private PlayerUpgrades upgrades;
+        private MeleeLoadout loadout;
         private CombatZone zone;
         private float started, nextSpawn;
         private bool paused;
@@ -53,7 +53,7 @@ namespace SignalLost.Melee
         private void Start()
         {
             player = FindAnyObjectByType<PlayerLife>();
-            upgrades = player != null ? player.GetComponent<PlayerUpgrades>() : null;
+
             zone = GetComponent<CombatZone>();
             started = Time.time;
             nextSpawn = Time.time + 1.5f;
@@ -172,18 +172,17 @@ namespace SignalLost.Melee
         public void SetKnuckleLimit(int tier)
         {
             knuckleLimit = tier;
-            if (upgrades == null) return;
-            upgrades.KnuckleTierLimit = tier;
-            upgrades.Apply();
+            if (Loadout != null) Loadout.KnuckleTier = tier;
         }
 
         public void SetShoeLimit(int tier)
         {
             shoeLimit = tier;
-            if (upgrades == null) return;
-            upgrades.ShoeTierLimit = tier;
-            upgrades.Apply();
+            if (Loadout != null) Loadout.ShoeTier = tier;
         }
+
+        // Added by the playtest loadout on its first frame, so looked up when needed.
+        private MeleeLoadout Loadout => loadout != null ? loadout : loadout = player != null ? player.GetComponent<MeleeLoadout>() : null;
 
         /// <summary>Removes every enemy, robot and dummy (and the horde starts over, as if just begun).</summary>
         public void ClearArena()

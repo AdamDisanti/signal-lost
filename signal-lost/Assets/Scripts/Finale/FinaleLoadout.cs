@@ -53,6 +53,8 @@ namespace SignalLost.Finale
                 pockets.Spend(type, Mathf.Max(0, pockets.Scrap(type) - keep));
             }
             foreach (Behaviour b in listeners) b.enabled = true;
+            // The melee update (11-10), kept to this level and the melee arena: fists on Q, Knuckles III, Moon Shoes III, rage.
+            if (GetComponent<SignalLost.Melee.MeleeLoadout>() == null) gameObject.AddComponent<SignalLost.Melee.MeleeLoadout>();
             var life = GetComponent<SignalLost.Player.PlayerLife>();
             if (life != null) life.Health.Restore();
         }

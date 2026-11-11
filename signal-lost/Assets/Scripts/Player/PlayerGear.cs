@@ -11,9 +11,9 @@ namespace SignalLost.Player
 {
     /// <summary>
     /// The player's three items and what is in their right hand (meeting notes 10-22): the mining laser OR the
-    /// scanner, swapped with Q (the scanner's own toggle). Once the laser is found, Q cycles laser, scanner and bare
-    /// fists (<see cref="PlayerFists"/>, Adam 11-10); the fists and the rage meter are added here at runtime. The flask
-    /// is drunk with the left hand (<see cref="PlayerFlask"/>).
+    /// scanner, swapped with Q (the scanner's own toggle). In the scenes that hand out melee gear (the final boss level
+    /// and the melee arena, <see cref="MeleeLoadout"/>), Q cycles laser, scanner and bare fists (<see cref="AddFists"/>).
+    /// The flask is drunk with the left hand (<see cref="PlayerFlask"/>).
     /// Other systems put the tools away while they need the hands (drinking, respawning) with <see cref="Holster"/>.
     /// Items not owned yet stay unusable; collecting one shows its "new gear" card.
     /// </summary>
@@ -42,7 +42,7 @@ namespace SignalLost.Player
         public bool ScannerRaised => scanner != null && scanner.isActiveAndEnabled && scanner.IsRaised;
         public bool Holstered => holsters.Count > 0;
         public PlayerFists Fists => fists;
-        /// <summary>Bare fists join the Q cycle once the laser is found.</summary>
+        /// <summary>Bare fists are in the Q cycle (where a scene added them) once the laser is found.</summary>
         public bool CanUseFists => fists != null && Has(PlayerItem.MiningLaser);
 
         /// <summary>What the right hand is holding right now.</summary>
@@ -57,20 +57,25 @@ namespace SignalLost.Player
             inventory = GetComponent<PlayerInventory>();
             if (laser == null) laser = GetComponent<MiningLaser>();
             if (scanner == null) scanner = GetComponentInChildren<ScannerToggle>(true);
-            // The fists and rage come with every player that has a laser and a life (Adam, 11-10).
-            if (laser != null && laser.InputActions != null && GetComponent<PlayerLife>() != null)
+            foreach (PlayerItem item in startingItems) inventory.Add(item);
+            Refresh();
+        }
+
+        /// <summary>
+        /// Adds bare fists to the Q cycle (laser, scanner, fists). Only <see cref="MeleeLoadout"/> calls this, so the
+        /// rest of the game keeps the plain laser/scanner swap.
+        /// </summary>
+        public void AddFists(PlayerFists added)
+        {
+            fists = added;
+            if (swap == null && laser != null && laser.InputActions != null)
             {
-                fists = GetComponent<PlayerFists>();
-                if (fists == null) fists = gameObject.AddComponent<PlayerFists>();
-                if (GetComponent<RageMeter>() == null) gameObject.AddComponent<RageMeter>();
-                if (GetComponent<MoonShoesFx>() == null && GetComponent<FirstPersonController>() != null) gameObject.AddComponent<MoonShoesFx>();
                 var actions = Instantiate(laser.InputActions);
                 SignalLost.Core.KeyBindings.Register(actions);
                 swap = actions.FindAction("Player/ToggleScanner", true);
                 swap.Enable();
             }
             if (scanner != null) scanner.SwapPressed = OnSwapPressed;
-            foreach (PlayerItem item in startingItems) inventory.Add(item);
             Refresh();
         }
 
@@ -171,7 +176,7 @@ namespace SignalLost.Player
             {
                 overlay.ShowItemCard("Scanner",
                     "Sniffs out ship junk, critters and anyone with a job for you.\n" +
-                    "<b>Q</b>  cycle the laser, the scanner and your fists.\n" +
+                    "<b>Q</b>  swap between the scanner and the laser.\n" +
                     "It locks onto your current objective; the bar fills and the beeps quicken as you get close.",
                     UiTheme.SpeakerColor("Cavendish"));
             }

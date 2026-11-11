@@ -7,7 +7,7 @@ namespace SignalLost.Melee
 {
     /// <summary>
     /// The Moon Shoes' double jump, seen and heard (Moon Shoes III): a gauss-blue shock ring and a burst of sparks
-    /// under the feet, and a springy boing. Added to the player at runtime by <see cref="PlayerGear"/>.
+    /// under the feet, and a springy boing. Added to the player at runtime by <see cref="MeleeLoadout"/>.
     /// </summary>
     [RequireComponent(typeof(FirstPersonController))]
     public sealed class MoonShoesFx : MonoBehaviour

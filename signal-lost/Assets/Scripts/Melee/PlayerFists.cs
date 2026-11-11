@@ -26,8 +26,8 @@ namespace SignalLost.Melee
     ///     <see cref="Finishable"/> (the finale's robot mini-bosses) can be finished too, from further off, with a bigger slam.
     /// Kills feed <see cref="RageMeter"/>, which makes all of this reach further.
     ///
-    /// Added to the player at runtime by <see cref="PlayerGear"/> and switched on only while the fists are out (like the
-    /// laser). The hands are posed by <see cref="FirstPersonHands"/> from <see cref="GetPose"/>. Numbers are provisional.
+    /// Added to the player at runtime by <see cref="MeleeLoadout"/> (only in the final boss level and the melee arena) and
+    /// switched on by <see cref="PlayerGear"/> only while the fists are out (like the laser). The hands are posed by <see cref="FirstPersonHands"/> from <see cref="GetPose"/>. Numbers are provisional.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class PlayerFists : MonoBehaviour
@@ -106,11 +106,11 @@ namespace SignalLost.Melee
         private readonly List<Material> glowMaterials = new List<Material>();
         private float glowFlash;
 
-        /// <summary>0 bare fists; 1-3 the Gaussian Brass Knuckles tier (set by PlayerUpgrades).</summary>
+        /// <summary>0 bare fists; 1-3 the Gaussian Brass Knuckles tier (set by MeleeLoadout).</summary>
         public int KnuckleTier { get; set; }
-        /// <summary>Punch damage multiplier from the knuckles (set by PlayerUpgrades).</summary>
+        /// <summary>Punch damage multiplier from the knuckles (set by MeleeLoadout).</summary>
         public float DamageMultiplier { get; set; } = 1f;
-        /// <summary>Run speed multiplier while the fists are up (set by PlayerUpgrades).</summary>
+        /// <summary>Run speed multiplier while the fists are up (set by MeleeLoadout).</summary>
         public float SpeedBonus { get; set; } = 1f;
 
         public bool IsBusy => move != Move.None || pullTarget != null;
@@ -155,7 +155,6 @@ namespace SignalLost.Melee
         private void Start()
         {
             rage = GetComponent<RageMeter>();
-            GetComponent<PlayerUpgrades>()?.Apply(); // this was added after the upgrades first applied
         }
 
         private void OnEnable()

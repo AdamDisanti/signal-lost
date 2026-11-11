@@ -200,9 +200,8 @@ public static class CoreSystemsSmoke
         MerchantMenuUi.Instance.ShowTab(0);
         yield return 0.3f;
         Check(MerchantMenuUi.Instance.ListingCount == 3, "The Laser filter lists tier I of the three laser upgrades.");
-        // Tabs: Laser, Fists, Scanner, Flask, Player, Car, Supplies, Trades (the Fists tab since 11-10).
-        int[] perType = Enumerable.Range(0, 5).Select(t => { MerchantMenuUi.Instance.ShowTab(t); return MerchantMenuUi.Instance.ListingCount; }).ToArray();
-        Check(perType.SequenceEqual(new[] { 3, 1, 1, 1, 2 }), "Filters by type: laser 3, fists 1 (the knuckles), scanner 1, flask 1, player 2.");
+        int[] perType = Enumerable.Range(0, 4).Select(t => { MerchantMenuUi.Instance.ShowTab(t); return MerchantMenuUi.Instance.ListingCount; }).ToArray();
+        Check(perType.SequenceEqual(new[] { 3, 1, 1, 2 }), "Filters by type: laser 3, scanner 1, flask 1, player 2.");
         MerchantMenuUi.Instance.ShowTab(0);
         yield return Capture("ShopUpgrades");
         float boltBefore = gear.Laser.MaxShotDamage, cooldownBefore = gear.Laser.ShotCooldown, stunBefore = gear.Laser.FinisherStun;
@@ -245,7 +244,7 @@ public static class CoreSystemsSmoke
         Check(pockets.Buy(UpgradeCatalog.Find("trade_wiring")) && pockets.Scrap(ScrapType.Wiring) == wiringBefore + 1, "Trades turn 5 metal into 1 wiring.");
         Check(pockets.Buy(UpgradeCatalog.Find("hangover_pills")) && pockets.Buy(UpgradeCatalog.Find("mystery_snack")) &&
               pockets.SupplyCount("hangover_pills") == 1, "Supplies stack in the pockets.");
-        MerchantMenuUi.Instance.ShowTab(5);
+        MerchantMenuUi.Instance.ShowTab(4);
         yield return 0.2f;
         yield return Capture("ShopSupplies");
         MerchantMenuUi.Instance.ShowPurchased();

@@ -36,10 +36,6 @@ Tier I keeps the old Id (`slick_kneepads`); later tiers are `slick_kneepads_2`, 
 
 Each upgrade has a generated part (`Prefabs/Items/Upgrades/`, `Editor/UpgradeAssetBuilder.cs`) that the pockets menu's mechanic wears: a copper coil, fins and a striking plate on the laser, an antenna on the scanner, iron bands on the flask, padding and kneepads on the suit.
 
-## Melee gear (11-10)
-
-The **Gaussian Brass Knuckles** (Fists slot, a new Fists filter in the shop, crash-site stock, 3 tiers) and the **Moon Shoes** (Suit slot, Desert Dunes stock, 3 tiers). Their tables are in [melee, rage and Moon Shoes](melee-rage.md). Both are fitted from code (`MeleeGearModels`): the knuckles on the gloves (first person and the pockets figure), the shoes over the figure's boots. Their icons are built by `Editor/MeleeGearIcons.cs`, which **Build Upgrade Assets** also runs.
-
 ## Mudlands upgrades
 
 The Mudlands adds a **Car** slot (a Car filter in Bucket & Barter, a Car group in the pockets) for Drunk Driving, seven car upgrades and three general ones; three need a mini-boss key item (Kart Wheel, Mudstone Bead, Witch Ember). The table is in [The Mudlands](mudlands.md#7-upgrades). They have no worn parts on the Gear-tab figure yet.
@@ -54,7 +50,7 @@ The shop shows only the current region's upgrades (`MerchantMenuUi.Region`); sup
 
 ## Menus
 
-- **Bucket & Barter** (talk to Eugene): filters by type (Laser, Fists, Scanner, Flask, Player, Car, Supplies, Trades; keys 1-8) and a **Purchased** filter at the bottom for what you own, kept out of the way. Prices are amounts with scrap icons ("10 [icon]"), red when you are short. **BUY** selects an item and previews your scrap after the purchase ("60 → 50"); **CONFIRM** buys it. A purchase shows an "upgrade installed" card. Rows say which tier they are ("Tier 2 of 3"). Up to five rows show at once; longer lists (Purchased can hold all seven upgrades) scroll with the mouse wheel or the bar on the right. Descriptions get two lines and shrink slightly rather than spill out of their row.
+- **Bucket & Barter** (talk to Eugene): filters by type (Laser, Scanner, Flask, Player, Supplies, Trades; keys 1-6) and a **Purchased** filter at the bottom for what you own, kept out of the way. Prices are amounts with scrap icons ("10 [icon]"), red when you are short. **BUY** selects an item and previews your scrap after the purchase ("60 → 50"); **CONFIRM** buys it. A purchase shows an "upgrade installed" card. Rows say which tier they are ("Tier 2 of 3"). Up to five rows show at once; longer lists (Purchased can hold all seven upgrades) scroll with the mouse wheel or the bar on the right. Descriptions get two lines and shrink slightly rather than spill out of their row.
 - **Scrap amounts everywhere** (shop, HUD toast, trades) are written as a number and the scrap's icon, using the TextMeshPro sprite asset `Resources/SignalLost/ScrapIcons` (built with the scrap assets; `ScrapInfo.Inline`).
 - **Pockets** (Tab): four tabs, 1-4.
   - **Materials:** scrap with icons and counts; key items.

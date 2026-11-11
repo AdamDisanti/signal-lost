@@ -18,7 +18,6 @@ namespace SignalLost.UI
             UpgradeSlot.Suit => "Player",
             UpgradeSlot.Supply => "Supply",
             UpgradeSlot.Car => "Car",
-            UpgradeSlot.Fists => "Fists",
             _ => "Trade"
         };
 
@@ -29,7 +28,6 @@ namespace SignalLost.UI
             UpgradeSlot.Flask => new Color(1f, 0.78f, 0.34f),
             UpgradeSlot.Suit => new Color(0.93f, 0.48f, 0.15f),
             UpgradeSlot.Car => new Color(0.45f, 0.82f, 0.8f),
-            UpgradeSlot.Fists => new Color(0.4f, 0.9f, 1f), // the knuckles' gauss glow
             _ => UiTheme.Muted
         };
 

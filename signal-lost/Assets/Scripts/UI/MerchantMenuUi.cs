@@ -26,7 +26,7 @@ namespace SignalLost.UI
 
         private static readonly (string label, UpgradeSlot slot)[] Filters =
         {
-            ("Laser", UpgradeSlot.Laser), ("Fists", UpgradeSlot.Fists), ("Scanner", UpgradeSlot.Scanner), ("Flask", UpgradeSlot.Flask),
+            ("Laser", UpgradeSlot.Laser), ("Scanner", UpgradeSlot.Scanner), ("Flask", UpgradeSlot.Flask),
             ("Player", UpgradeSlot.Suit), ("Car", UpgradeSlot.Car), ("Supplies", UpgradeSlot.Supply), ("Trades", UpgradeSlot.Trade)
         };
 
@@ -169,14 +169,9 @@ namespace SignalLost.UI
                 return inventory == null ? Enumerable.Empty<Upgrade>() : UpgradeCatalog.Installed(inventory.Upgrades).OrderBy(u => u.Slot);
             UpgradeSlot type = Filters[tab].slot;
             // Only the next tier of each upgrade: the first one not owned yet.
-            return UpgradeCatalog.All.Where(u => u.Slot == type && (u.Region == Region || !u.OneOff || DesertExtra(u)) &&
+            return UpgradeCatalog.All.Where(u => u.Slot == type && (u.Region == Region || !u.OneOff) &&
                 !(u.OneOff && inventory != null && (inventory.Owns(u.Id) || (u.Requires != null && !inventory.Owns(u.Requires)))));
         }
-
-        // The desert has no stock of its own yet: its shop sells the crash site's, plus the desert's own lines (the Moon
-        // Shoes, 11-10).
-        private bool DesertExtra(Upgrade upgrade) => upgrade.Region == UpgradeRegion.DesertDunes && Region == UpgradeRegion.Tutorial &&
-                                                     SignalLost.World.StageTheme.Current == SignalLost.World.IslandLook.Desert;
 
         private void Update()
         {
@@ -239,7 +234,7 @@ namespace SignalLost.UI
             balanceText = UiTheme.Label("Balance", panel, 28f, UiTheme.Text, TextAlignmentOptions.MidlineLeft, FontStyles.Bold);
             UiTheme.Place(balanceText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UiTheme.PadLarge, -96f), new Vector2(ListWidth, 44f));
 
-            float tabWidth = Mathf.Min(203f, (ListWidth + 16f) / Filters.Length); // eight filters since the Mudlands' Car and the Fists
+            float tabWidth = Mathf.Min(203f, (ListWidth + 16f) / Filters.Length); // seven filters since the Mudlands' Car
             for (int i = 0; i < Filters.Length; i++)
             {
                 int index = i;

@@ -8,8 +8,7 @@ namespace SignalLost.Player
 {
     /// <summary>
     /// Applies the upgrades in the player's pockets (<see cref="UpgradeCatalog"/>) to the gear: laser damage and
-    /// cooldowns, finisher, scanner range, drinks before a blackout, max health, slide distance, the fists' knuckles and
-    /// the Moon Shoes' run speed, jump height and double jump. Re-applies after
+    /// cooldowns, finisher, scanner range, drinks before a blackout, max health and slide distance. Re-applies after
     /// every purchase, from the base tuning, so nothing stacks twice. Also uses supplies, and shows an
     /// "upgrade installed" card for each new upgrade.
     /// </summary>
@@ -51,25 +50,15 @@ namespace SignalLost.Player
                 UiTheme.Accent, "UPGRADE INSTALLED");
         }
 
-        /// <summary>
-        /// Testing tool (the melee arena): only knuckle and Moon Shoe tiers up to these count, so each tier can be tried
-        /// without changing what is owned. Call <see cref="Apply"/> after changing them.
-        /// </summary>
-        public int KnuckleTierLimit { get; set; } = 3;
-        public int ShoeTierLimit { get; set; } = 3;
-
         /// <summary>Sets every stat from the base tuning plus everything owned.</summary>
         public void Apply()
         {
             float boltDamage = 1f, boltCooldown = 1f, finisherDamage = 1f, finisherStun = 0f, range = 0f, maxHealth = 0f, slide = 1f;
-            float melee = 1f, fistSpeed = 1f, run = 1f, jump = 1f;
-            int drinks = 0, knuckles = 0;
-            bool doubleJump = false;
+            int drinks = 0;
             foreach (string id in inventory.Upgrades)
             {
                 Upgrade upgrade = UpgradeCatalog.Find(id);
                 if (upgrade == null) continue;
-                if ((upgrade.Line == "gaussian_knuckles" && upgrade.Tier > KnuckleTierLimit) || (upgrade.Line == "moon_shoes" && upgrade.Tier > ShoeTierLimit)) continue;
                 boltDamage += upgrade.BoltDamage;
                 boltCooldown += upgrade.BoltCooldown;
                 finisherDamage += upgrade.FinisherDamage;
@@ -78,12 +67,6 @@ namespace SignalLost.Player
                 maxHealth += upgrade.MaxHealth;
                 slide += upgrade.SlideDistance;
                 drinks += upgrade.ExtraDrinks;
-                melee += upgrade.MeleeDamage;
-                fistSpeed += upgrade.FistSpeed;
-                run += upgrade.RunSpeed;
-                jump += upgrade.JumpHeight;
-                knuckles = Mathf.Max(knuckles, upgrade.KnuckleTier);
-                doubleJump |= upgrade.DoubleJump;
             }
             if (laser != null)
             {
@@ -94,20 +77,7 @@ namespace SignalLost.Player
             }
             if (scanner != null) scanner.RangeBonus = range;
             if (flask != null) flask.BlackoutBonus = drinks;
-            if (movement != null)
-            {
-                movement.SlideDistanceScale = slide;
-                movement.SetSpeedBonus(this, run);
-                movement.JumpHeightScale = jump;
-                movement.DoubleJump = doubleJump;
-            }
-            var fists = GetComponent<SignalLost.Melee.PlayerFists>(); // added at runtime by PlayerGear
-            if (fists != null)
-            {
-                fists.KnuckleTier = knuckles;
-                fists.DamageMultiplier = melee;
-                fists.SpeedBonus = fistSpeed;
-            }
+            if (movement != null) movement.SlideDistanceScale = slide;
             if (health != null && !Mathf.Approximately(health.Max, baseMaxHealth + maxHealth)) health.SetMax(baseMaxHealth + maxHealth);
         }
 

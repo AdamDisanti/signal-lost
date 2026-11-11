@@ -8,6 +8,8 @@ Adam's request (11-10): make clearing the adds fun and worth it. There are three
 
 There is also a test arena to try it all on a crowd of the finale's robot enemies.
 
+**Where it is on:** only the final boss level (Wasteland) and the melee test arena (Adam, 11-10: kept out of the rest of the game so it doesn't clash with the team's work). Both scenes' playtest loadout adds `MeleeLoadout`, which switches melee on and hands out Knuckles III and Moon Shoes III. Nothing is sold in a shop yet, and the shop, pockets menu, upgrade catalog and main HUD are unchanged. Everywhere else, Q still just swaps the laser and the scanner.
+
 All numbers are provisional: they haven't been playtested.
 
 ## Controls
@@ -20,17 +22,19 @@ All numbers are provisional: they haven't been playtested.
 | **V** | Finisher (Knuckles III). Rebindable as "Finisher (knuckles)". No gamepad button yet. |
 | **Space in mid-air** | Double jump (Moon Shoes III), in any hand. |
 
-When the fists are up, both hands come up in a boxer's guard. The guard pumps when you sprint. The HUD's hand panel says **FISTS** (or **GAUSS KNUCKLES**). It shows what the knuckles can do now, and the magnet pull's recharge on the bar.
+When the fists are up, both hands come up in a boxer's guard. The guard pumps when you sprint. The melee HUD lays its own panel over the status bar's hand section, saying **FISTS** (or **GAUSS KNUCKLES**). It shows what the knuckles can do now, and the magnet pull's recharge on the bar. The crosshair flashes when a punch lands.
 
-## Gaussian Brass Knuckles (crash-site shop, Fists tab)
+## Gaussian Brass Knuckles
 
-Brass dusters with a gauss coil on the back of the hand, in the mining laser's style: a dark housing, copper windings, a glowing cyan core. They are fitted onto the first-person gloves and the pockets figure, and glow brighter with each hit and with rage. Each tier unlocks the next trick (Adam's choice):
+Brass dusters with a gauss coil on the back of the hand, in the mining laser's style: a dark housing, copper windings, a glowing cyan core. They are fitted onto the first-person gloves, and glow brighter with each hit and with rage. Each tier unlocks the next trick (Adam's choice):
 
-| Tier | Unlocks | Punches | Speed with fists up | Cost |
-| --- | --- | --- | --- | --- |
-| I | **Magnet lunge.** Punching an enemy in your sights up to 9 m away flings you onto it, so you bounce from enemy to enemy. | +35% | +8% | 10 metal, 3 wiring, 1 board |
-| II | **Overcharge marks, chain lightning and the magnet pull.** See below. | +20% (+55%) | +4% (+12%) | 16 metal, 6 wiring, 3 boards |
-| III | **Finishers.** See below. | +20% (+75%) | +4% (+16%) | 24 metal, 8 wiring, 5 boards, 2 cells |
+| Tier | Unlocks | Punches | Speed with fists up |
+| --- | --- | --- | --- |
+| I | **Magnet lunge.** Punching an enemy in your sights up to 9 m away flings you onto it, so you bounce from enemy to enemy. | +35% | +8% |
+| II | **Overcharge marks, chain lightning and the magnet pull.** See below. | +55% | +12% |
+| III | **Finishers.** See below. | +75% | +16% |
+
+Both scenes give tier III. The arena's 7 key steps through the tiers.
 
 **Bare fists** (no knuckles) punch for 9 / 9 / 16, with no tricks.
 
@@ -81,19 +85,19 @@ Kills by chain lightning count as ordinary kills (+1).
 
 **HUD:** a meter just above the status bar, with ten pips, the current bonus and a bar running down to the drain.
 
-## Moon Shoes (Desert Dunes shop, Player tab)
+## Moon Shoes
 
-Back to the Future style self-lacing high-tops: silver uppers, a strap over the instep, glowing laces and soles, a light-up heel and copper springs. The mechanic wears them in the pockets menu.
+Back to the Future style self-lacing high-tops: silver uppers, a strap over the instep, glowing laces and soles, a light-up heel and copper springs. The model is built (`MeleeGearModels.MoonShoe`), ready for a shop icon and the pockets figure once the shoes are sold; you don't see your own feet in first person.
 
-| Tier | Run speed | Jump height | Extra | Cost |
-| --- | --- | --- | --- | --- |
-| I | +8% | +20% | | 8 metal, 4 wiring, 1 board |
-| II | +8% (+16%) | +20% (+40%) | | 14 metal, 6 wiring, 3 boards |
-| III | +6% (+22%) | +15% (+55%) | **Double jump** | 20 metal, 8 wiring, 4 boards, 2 cells |
+| Tier | Run speed | Jump height | Extra |
+| --- | --- | --- | --- |
+| I | +8% | +20% | |
+| II | +16% | +40% | |
+| III | +22% | +55% | **Double jump** |
+
+Both scenes give tier III. The arena's 8 key steps through the tiers.
 
 **The double jump:** one extra jump per trip into the air. It launches the way the movement keys point at that moment, at least at sprint speed, or straight up with no keys held. A cyan shock ring and a springy boing go with it.
-
-**Which shop:** the desert has no stock of its own yet, so its shop sells the crash site's lines plus the Moon Shoes. The crash-site shop doesn't sell them.
 
 ## Test arena
 
@@ -130,14 +134,14 @@ The panel at the top left lists these.
 - `Finishable`: lets a big enemy (the finale's robots) be finished.
 - `MeleeGearModels`: the knuckle and shoe models, built in code.
 - `MoonShoesFx`: the double jump's effect.
+- `MeleeLoadout`: switches it all on for the player and holds the knuckle and shoe tiers (added by the two scenes' `FinaleLoadout`).
 - Arena only: `MeleeArena`, `ArenaBossDummy` and `DamageNumbers`.
 
-`PlayerGear` adds the fists, rage and the shoe effect to every player at runtime, so no scene or prefab changed.
+`MeleeLoadout` adds the fists, rage and the shoe effect at runtime, and only those two scenes add it, so no shared scene or prefab changed.
 
 **Editor:**
 
 - `MeleeArenaBuilder`.
-- `MeleeGearIcons`: the shop icons, also part of **Build Upgrade Assets**.
 
 **Shared code touched:**
 
@@ -149,16 +153,13 @@ The panel at the top left lists these.
   - `JumpHeightScale`;
   - the double jump;
   - `Lunge`/`EndLunge`.
-- `ScannerToggle.SwapPressed`, so Q can cycle.
-- `PlayerGear`: `Held.Fists` and the cycle.
-- `FirstPersonHands`: the guard and punch poses.
-- `PlayerUpgrades`:
-  - the new effects;
-  - tier caps for the arena's testing keys.
-- `UpgradeSlot.Fists`, added at the end of the enum: a Fists tab in the shop (2nd) and in the pockets.
+- `ScannerToggle.SwapPressed`, so Q can cycle (unused unless the fists are added).
+- `PlayerGear`: `Held.Fists` and `AddFists` (the cycle, off unless a scene adds the fists).
+- `FirstPersonHands`: the guard and punch poses (only with the fists up).
 - `MiningLaser.AimOrigin`/`InputActions`, read by the fists.
-- The HUD's hand panel and crosshair.
-- Key bindings: `finisher` (V), plus relabelled Attack/Charge/Swap.
+- Key bindings: one new line, `finisher` (V).
+
+All of these are additions that do nothing outside the two scenes.
 
 **Checks:** `tools/unity/MeleeSmoke.cs` runs in batch Play mode in the arena. It covers the loadout, Q cycling, each knuckle tier, rage gain, boost, cap and drain, finishers, the double jump, the four robots and the horde.
 
@@ -169,4 +170,4 @@ The panel at the top left lists these.
 - **Gamepad:** the finisher has no gamepad button.
 - **Story weapons:** the design document calls the laser the sole story weapon and extra weapons a stretch goal. The knuckles are treated as gear for the fists, with Adam's approval.
 - **Jump smash:** should it also work with the fists up? It still needs the laser out.
-- **Desert shop:** whether it should get a stock of its own, rather than the crash site's plus the Moon Shoes.
+- **Rolling it out:** whether, and where, the knuckles and shoes get sold in the rest of the game (shops, the pockets menu, the main HUD).

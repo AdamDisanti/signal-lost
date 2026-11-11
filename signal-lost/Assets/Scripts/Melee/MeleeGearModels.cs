@@ -8,10 +8,12 @@ namespace SignalLost.Melee
     /// Code-built models for the melee gear (docs/melee-rage.md), in the mining laser's style: dark machined housings,
     /// copper coils and glowing gauss-blue cores.
     /// - Gaussian Brass Knuckles: a brass duster (four finger rings, a studded striking plate) with a gauss coil housing,
-    ///   fitted onto the mechanic's glove bones so the fingers stay in their rings as the hand closes (first person and
-    ///   the pockets figure), and as a standalone duster for the shop icon.
+    ///   fitted onto the mechanic's glove bones so the fingers stay in their rings as the hand closes (first person), and
+    ///   as a standalone duster for a shop icon.
     /// - Moon Shoes: Back to the Future style self-lacing high-tops: silver uppers, a strap over the instep, glowing
     ///   strips round the sole and a light-up heel, on copper springs.
+    /// Only the gloves' knuckles are used for now: the gear isn't sold in a shop yet (it is kept to the final boss level
+    /// and the melee arena), so the duster, the shoes and the pair are ready for its icons and the pockets figure.
     /// </summary>
     public static class MeleeGearModels
     {

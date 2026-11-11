@@ -13,7 +13,7 @@ namespace SignalLost.Melee
     /// shockwaves reach further and jump more with it. After <see cref="HoldSeconds"/> without a kill the stacks drain
     /// one at a time. Shown by <see cref="RageHud"/>.
     ///
-    /// Added to the player at runtime by <see cref="PlayerGear"/>. Numbers are provisional (not agreed balance).
+    /// Added to the player at runtime by <see cref="MeleeLoadout"/> (the final boss level and the melee arena only). Numbers are provisional (not agreed balance).
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class RageMeter : MonoBehaviour

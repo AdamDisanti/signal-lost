@@ -528,22 +528,22 @@ Adam's planning sessions; see [final boss](final-boss.md).
 
 Adam's request and answers; see [melee, rage and Moon Shoes](melee-rage.md).
 
-- **Fists:** bare fists join the Q cycle (laser → scanner → fists) once the laser is found.
-- **Gaussian Brass Knuckles:** three tiers in the crash-site shop, a new Fists slot. The tricks unlock by tier:
+- **Where:** only the final boss level and the melee test arena (Adam, same day: kept out of the rest of the game so it doesn't conflict with the team's work). Those two scenes hand out Knuckles III and Moon Shoes III; nothing is sold, and the shop, pockets, upgrade catalog and main HUD are unchanged.
+- **Fists:** bare fists join the Q cycle (laser → scanner → fists) there.
+- **Gaussian Brass Knuckles:** the tricks unlock by tier:
   - I: the magnet lunge;
   - II: overcharge marks, chain lightning and the magnet pull;
   - III: finishers on V, with a shockwave.
 - **The spreading effects (Adam's wording):** punches mark; melee kills and punches on marked enemies throw chain lightning; finishers slam a shockwave plus lightning and set off nearby marks; higher rage reaches further.
 - **Rage:** any kill +1, melee +2, finisher +3, up to 10. Each stack adds 6% to every hit the player deals (bosses included) and 3% speed. It drains after 6 s without a kill.
-- **Moon Shoes:** three tiers in the Desert Dunes shop. Tier III adds a double jump in the direction the keys point.
-- **The desert shop:** it sells the crash site's lines plus the Moon Shoes. The desert had no stock of its own (`MerchantMenuUi.Region` was never set there).
+- **Moon Shoes:** three tiers of run speed and jump height. Tier III adds a double jump in the direction the keys point.
 - **Design document:** it calls the laser the sole story weapon and extra weapons a stretch goal. The fists are treated as gear for the hands, at the lead's request.
 - **Test arena:** `MeleeArena.unity`, built on the Enemy Test box, with the finale's robot horde and testing keys.
 - **In the final boss (Adam, same day):**
   - the repair robots can be finished below a quarter of their health (`Finishable`; never the mech);
   - the horde is weighted to melee rushers and spawns closer;
   - no rebalance until playtesting.
-- **Open:** balance, whether finishers heal, a gamepad finisher button, and the jump smash with fists.
+- **Open:** balance, whether finishers heal, a gamepad finisher button, the jump smash with fists, and whether and where the gear is sold later.
 
 ## Mudlands alien reskin (11-10-26)
 

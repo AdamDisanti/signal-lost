@@ -17,7 +17,7 @@ Player components:
 
 | Component | Job |
 | --- | --- |
-| `PlayerGear` | Items (laser, scanner, flask), Q to cycle laser, scanner and fists ([melee](melee-rage.md)), holstering, starting items, "new gear" cards; adds the fists and rage at runtime |
+| `PlayerGear` | Items (laser, scanner, flask), Q to swap, holstering, starting items, "new gear" cards |
 | `PlayerFlask` | F to sip (1 s): heals 35 / 28 / 22 / 17 / 13 as you get drunker; one drink wears off every 15 s; the 6th sip blacks out ("SIGNAL LOST - BLACKOUT"). From the 3rd sip on, each one ends in a burp |
 | `PlayerLife` | Death ("SIGNAL LOST") and blackout, fade, respawn at the spawn point, short wake-up |
 | `PlayerStun` | Added when needed: a short stun (the Chief Toad's scream) with no moving, jumping, tools or flask, and a screen effect (`FirstPersonController.Stun`) |
@@ -84,7 +84,7 @@ Use **Signal Lost > Scenes**, or `CoreSceneSetup.UpgradeToCorePlayer(scene, star
 The hands stay fixed at the bottom of the screen, just above the status bar.
 
 - **Look:** pudgy gloved hands: a puffy palm, short thick two-jointed fingers and a chunky thumb, with the cream cuff and the orange suit sleeve.
-- **Right hand:** holds the laser or the scanner (Q cycles), so laser swings carry it along. With nothing out it closes into a fist. With the fists up, both hands come up in a boxer's guard and throw the punches ([melee](melee-rage.md)).
+- **Right hand:** holds the laser or the scanner (Q cycles), so laser swings carry it along. With nothing out it closes into a fist.
   - **Laser:** the fist is wrapped round the real pistol grip, index finger under the trigger guard. The laser is carried 6 cm higher and 16 cm further out than before (`gripPosition` on the Player prefab, set by `CorePrefabBuilder`), so the arm holding it shows above the status bar.
   - **Scanner:** the fist grips the scanner's right-hand side rail, wrist tipped so the arm comes up from below.
   - The grips are measured against the real models and kept in `MechanicModel.LaserHold` / `ScannerHold`; the fingers use `Hand.Wrap(radius)`, which bends each finger round a handle of that thickness. They assume the hand scale of 1.2.

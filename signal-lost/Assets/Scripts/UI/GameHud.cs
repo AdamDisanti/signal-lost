@@ -212,16 +212,9 @@ namespace SignalLost.UI
         {
             MiningLaser laser = gear != null ? gear.Laser : null;
             PlayerGear.Held held = gear != null ? gear.InHand : PlayerGear.Held.Nothing;
-            SignalLost.Melee.PlayerFists fists = held == PlayerGear.Held.Fists ? gear.Fists : null;
-            handTitle.text = held == PlayerGear.Held.Laser ? "MINING LASER" : held == PlayerGear.Held.Scanner ? "SCANNER" :
-                fists != null ? (fists.KnuckleTier > 0 ? "GAUSS KNUCKLES" : "FISTS") : "EMPTY HANDS";
-            bool canSwap = gear != null && gear.Has(PlayerItem.MiningLaser) && (gear.Has(PlayerItem.Scanner) || gear.CanUseFists);
+            handTitle.text = held == PlayerGear.Held.Laser ? "MINING LASER" : held == PlayerGear.Held.Scanner ? "SCANNER" : "EMPTY HANDS";
+            bool canSwap = gear != null && gear.Has(PlayerItem.Scanner) && gear.Has(PlayerItem.MiningLaser);
             if (canSwap) handTitle.text += $"  <size=80%><color=#A9B4CC>{KeyBindings.Hint("swap")} swap</color></size>";
-            if (fists != null)
-            {
-                UpdateFists(fists);
-                return;
-            }
 
             if (laser == null || !gear.Has(PlayerItem.MiningLaser))
             {
@@ -244,25 +237,6 @@ namespace SignalLost.UI
                 comboPips[i].color = recharging ? PipTrack : new Color(1f, 1f, 1f, 0.3f);
                 comboFills[i].color = recharging ? new Color(1f, 0.55f, 0.25f) : UiTheme.Accent;
                 SetFill(comboFills[i], recharging ? Mathf.Clamp01(left * comboPips.Count - i) : i < laser.ComboStep ? 1f : 0f, false);
-            }
-        }
-
-        // The fists: what the knuckles can do now, the magnet pull's recharge on the bar, and the combo on the pips.
-        private void UpdateFists(SignalLost.Melee.PlayerFists fists)
-        {
-            int tier = fists.KnuckleTier;
-            float pull = fists.PullCooldown > 0f ? 1f - fists.PullCooldownRemaining / fists.PullCooldown : 1f;
-            cooldownFill.rectTransform.anchorMax = new Vector2(tier >= 2 ? Mathf.Clamp01(pull) : 0f, 1f);
-            cooldownFill.color = fists.PullCooldownRemaining > 0f ? new Color(0.45f, 0.55f, 0.7f) : new Color(0.4f, 0.9f, 1f);
-            handInfo.text = tier == 0 ? "Punch combo (buy Gaussian Knuckles)" :
-                tier == 1 ? "Punch to lunge at enemies" :
-                (fists.PullCooldownRemaining > 0f ? $"Pull recharging {fists.PullCooldownRemaining:0.0}s" : $"{KeyBindings.Hint("charge")} pull ready") +
-                (tier >= 3 ? $"   {KeyBindings.Hint("finisher")} finish" : "");
-            for (int i = 0; i < comboPips.Count; i++)
-            {
-                comboPips[i].color = new Color(1f, 1f, 1f, 0.3f);
-                comboFills[i].color = new Color(0.4f, 0.9f, 1f);
-                SetFill(comboFills[i], i < fists.ComboStep ? 1f : 0f, false);
             }
         }
 
@@ -331,8 +305,7 @@ namespace SignalLost.UI
         private void UpdateCrosshair()
         {
             MiningLaser laser = gear != null && gear.InHand == PlayerGear.Held.Laser ? gear.Laser : null;
-            SignalLost.Melee.PlayerFists fists = gear != null && gear.InHand == PlayerGear.Held.Fists ? gear.Fists : null;
-            bool justHit = (laser != null && Time.time - laser.LastHitTime < 0.15f) || (fists != null && Time.time - fists.LastHitTime < 0.15f);
+            bool justHit = laser != null && Time.time - laser.LastHitTime < 0.15f;
             Color cross = justHit ? new Color(1f, 0.85f, 0.2f) : new Color(1f, 1f, 1f, 0.85f);
             crosshairH.color = crosshairV.color = cross;
             crosshair.localScale = Vector3.one * (justHit ? 1.5f : 1f);
@@ -347,7 +320,7 @@ namespace SignalLost.UI
                 chargeText.text = charge >= 1f ? "FULL CHARGE  -  BLAST" : $"CHARGE {Mathf.RoundToInt(charge * 100f)}%";
             }
 
-            Health target = laser != null ? laser.CurrentTarget : fists != null ? fists.CurrentTarget : null;
+            Health target = laser != null ? laser.CurrentTarget : null;
             targetGroup.gameObject.SetActive(target != null && !target.Invulnerable);
             if (target != null)
             {

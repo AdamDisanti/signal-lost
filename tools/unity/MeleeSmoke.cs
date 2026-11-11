@@ -9,7 +9,6 @@ using SignalLost.Finale;
 using SignalLost.Inventory;
 using SignalLost.Melee;
 using SignalLost.Player;
-using SignalLost.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -92,8 +91,10 @@ public static class MeleeSmoke
         life.Health.Invulnerable = true;
 
         // ---------- The loadout ----------
-        Check(fists != null && rage != null, "The player has fists and a rage meter (added at runtime).");
-        Check(pockets.Owns("gaussian_knuckles_3") && pockets.Owns("moon_shoes_3"), "The end-game loadout includes Gaussian Brass Knuckles III and Moon Shoes III.");
+        var loadout = life.GetComponent<MeleeLoadout>();
+        Check(loadout != null && fists != null && rage != null, "The playtest loadout switches melee on here: fists, a rage meter (added at runtime).");
+        Check(loadout.KnuckleTier == 3 && loadout.ShoeTier == 3 && !pockets.Upgrades.Any(id => id.Contains("knuckle") || id.Contains("shoe")),
+            "It hands out Gaussian Brass Knuckles III and Moon Shoes III directly (not shop upgrades).");
         Check(fists.KnuckleTier == 3 && Near(fists.DamageMultiplier, 1.75f) && Near(fists.SpeedBonus, 1.16f),
             $"Knuckles III: tier {fists.KnuckleTier}, punches x{fists.DamageMultiplier:0.00}, speed x{fists.SpeedBonus:0.00} with fists up.");
         Check(movement.DoubleJump && Near(movement.JumpHeightScale, 1.55f) && Near(movement.SpeedBonus, 1.22f),
@@ -319,17 +320,6 @@ public static class MeleeSmoke
         int kills = arena.Kills - killsBefore;
         Check(kills >= 3 && rage.Stacks >= 3, $"Brawling through the horde with the fists kills robots and builds rage ({kills} kills, {rage.Stacks} stacks).");
         yield return Capture("Horde");
-
-        // ---------- Menus ----------
-        InventoryUi.Instance.Open(1);
-        yield return 0.3f;
-        yield return Capture("Pockets");
-        InventoryUi.Instance.Close();
-        MerchantMenuUi.Instance.Open(life.transform, life.transform);
-        MerchantMenuUi.Instance.ShowPurchased();
-        yield return 0.3f;
-        yield return Capture("Shop");
-        MerchantMenuUi.Instance.Close();
 
         Check(errors.Count == 0, errors.Count == 0 ? "No errors or exceptions." : $"{errors.Count} errors, first: {errors[0]}");
     }
