@@ -182,6 +182,24 @@ namespace SignalLost.Mudlands
             Box((from + to) * 0.5f, new Vector3(width, thickness, along.magnitude), r, color);
         }
 
+        /// <summary>
+        /// A piece of the crashed ship's hull: a panel facing local +Z with an orange stripe and a rivet in each corner.
+        /// Whatever metal a Mudlands creature or building uses is salvage from the wreck, so it uses this.
+        /// </summary>
+        public void ScrapPanel(Vector3 centre, Vector3 size, Quaternion rotation, Color color, bool stripe = true)
+        {
+            Box(centre, size, rotation, color);
+            float face = size.z * 0.5f;
+            if (stripe)
+                Box(centre + rotation * new Vector3(0f, size.y * 0.27f, face), new Vector3(size.x * 1.002f, size.y * 0.16f, 0.012f), rotation, MudPalette.HullStripe);
+            float rivet = Mathf.Clamp(Mathf.Min(size.x, size.y) * 0.05f, 0.012f, 0.05f);
+            for (int i = 0; i < 4; i++)
+            {
+                var corner = new Vector3((i % 2 == 0 ? -1f : 1f) * (size.x * 0.5f - rivet * 2f), (i < 2 ? -1f : 1f) * (size.y * 0.5f - rivet * 2f), face);
+                Ball(centre + rotation * corner, rivet, MudPalette.HullDark, 0);
+            }
+        }
+
         public Mesh Build(string name)
         {
             var mesh = new Mesh { name = name };
@@ -437,15 +455,26 @@ namespace SignalLost.Mudlands
         }
     }
 
-    /// <summary>Colours for the Mudlands, picked to sit between the meadow's warmth and the references' teal dusk.</summary>
+    /// <summary>
+    /// Colours for the Mudlands, picked to sit between the meadow's warmth and the references' teal dusk. Plants are
+    /// alien teal and violet (like the desert's teal cacti), and metal is the ship's off-white hull with its orange
+    /// stripe.
+    /// </summary>
     public static class MudPalette
     {
         public static readonly Color Mud = new Color(0.33f, 0.24f, 0.16f);
         public static readonly Color WetMud = new Color(0.22f, 0.16f, 0.11f);
         public static readonly Color Road = new Color(0.47f, 0.35f, 0.22f);
-        public static readonly Color Grass = new Color(0.29f, 0.42f, 0.22f);
-        public static readonly Color DarkGrass = new Color(0.18f, 0.31f, 0.2f);
-        public static readonly Color Moss = new Color(0.32f, 0.48f, 0.26f);
+        public static readonly Color Grass = new Color(0.2f, 0.42f, 0.4f);
+        public static readonly Color DarkGrass = new Color(0.13f, 0.27f, 0.31f);
+        public static readonly Color Moss = new Color(0.4f, 0.32f, 0.54f);
+        // Salvage from the crashed ship.
+        public static readonly Color Hull = new Color(0.8f, 0.79f, 0.74f);
+        public static readonly Color HullDark = new Color(0.4f, 0.43f, 0.47f);
+        public static readonly Color HullStripe = new Color(0.93f, 0.45f, 0.12f);
+        public static readonly Color ShipGlow = new Color(0.3f, 0.95f, 0.85f);
+        // The mint glow of the swamp folk's windows and house lamps.
+        public static readonly Color Pod = new Color(0.5f, 1f, 0.75f);
         public static readonly Color Wood = new Color(0.45f, 0.33f, 0.22f);
         public static readonly Color DarkWood = new Color(0.27f, 0.2f, 0.15f);
         public static readonly Color GreyWood = new Color(0.42f, 0.42f, 0.4f);

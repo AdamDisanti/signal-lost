@@ -9,8 +9,9 @@ using Random = UnityEngine.Random;
 namespace SignalLost.Mudlands
 {
     /// <summary>
-    /// Ranged enemy that uses buildings: a possum in a straw hat, sitting on porches and roofs, swigging from a
-    /// moonshine jug, then leaning back and lobbing flaming jugs in an arc (12 and a short fire) at where you are
+    /// Ranged enemy that uses buildings: an alien possum (slate-blue fur, two tails) in a straw hat, sitting on porches
+    /// and roofs, swigging from a dented fuel canister off the crashed ship, then leaning back and lobbing flaming
+    /// canisters in an arc (12 and a short fire) at where you are
     /// going. It ducks behind the roof ridge while you aim a charged bolt at it. A good hit makes it play dead: it
     /// keels over (off the roof, if it is on one) and lies still with its tongue out for 2.5 s, taking extra damage,
     /// then scurries off. On the ground it keeps its distance. Cars: it plays dead and is too flat to hit.
@@ -23,8 +24,9 @@ namespace SignalLost.Mudlands
 
         private enum State { Idle, Aim, Throw, Duck, PlayDead, Scurry, Stunned }
 
-        private static readonly Color Fur = new Color(0.62f, 0.62f, 0.6f), Face = new Color(0.92f, 0.9f, 0.86f),
-            Nose = new Color(0.95f, 0.55f, 0.65f), Straw = new Color(0.86f, 0.74f, 0.4f), Jug = new Color(0.55f, 0.36f, 0.2f);
+        // Alien colours: slate-blue fur, a pale lavender face, and a lime nose, paws and tails.
+        private static readonly Color Fur = new Color(0.45f, 0.53f, 0.72f), Face = new Color(0.9f, 0.88f, 0.98f),
+            Nose = new Color(0.62f, 0.9f, 0.38f), Straw = new Color(0.86f, 0.74f, 0.4f);
 
         [Tooltip("Sits where it was placed (a roof or porch) instead of walking the NavMesh, until knocked off.")]
         [SerializeField] private bool perch;
@@ -69,22 +71,31 @@ namespace SignalLost.Mudlands
             });
             armR = MudArt.Pivot(torso, "Arm R", new Vector3(0.24f, 0.15f, 0.05f));
             MudArt.Part(armR, "Arm", Vector3.zero, Quaternion.identity, "possum_arm", k => k.Rod(Vector3.zero, new Vector3(0f, -0.25f, 0.05f), 0.05f, 5, Fur));
-            jug = MudArt.Part(armR, "Jug", new Vector3(0f, -0.32f, 0.08f), Quaternion.identity, "moonshine_jug", JugMesh);
+            jug = MudArt.Part(armR, "Jug", new Vector3(0f, -0.32f, 0.08f), Quaternion.identity, "fuel_canister", JugMesh);
             MudArt.Part(torso, "Arm L", new Vector3(-0.24f, 0.1f, 0.05f), Quaternion.Euler(-30f, 0f, -20f), "possum_arm", k => k.Rod(Vector3.zero, new Vector3(0f, -0.25f, 0.05f), 0.05f, 5, Fur));
             tail = MudArt.Part(visual, "Tail", new Vector3(0f, 0.15f, -0.25f), Quaternion.identity, "possum_tail",
-                k => k.Tube(new[] { Vector3.zero, new Vector3(0f, -0.05f, -0.25f), new Vector3(0.08f, 0.05f, -0.45f), new Vector3(0.15f, 0.2f, -0.5f) }, 0.03f, 5, Nose));
+                k =>
+                {
+                    // Two tails, curling out to either side.
+                    k.Tube(new[] { Vector3.zero, new Vector3(0.03f, -0.05f, -0.25f), new Vector3(0.12f, 0.05f, -0.45f), new Vector3(0.2f, 0.2f, -0.5f) }, 0.03f, 5, Nose);
+                    k.Tube(new[] { Vector3.zero, new Vector3(-0.03f, -0.04f, -0.22f), new Vector3(-0.11f, 0.08f, -0.38f), new Vector3(-0.17f, 0.24f, -0.4f) }, 0.028f, 5, Nose);
+                });
         }
 
-        /// <summary>A brown stoneware jug with a cream band and "XXX".</summary>
+        /// <summary>A dented fuel canister from the ship's wreck: hull-white with the orange stripe, a nozzle, a carry
+        /// handle and "XXX" scratched on. Same size as the old moonshine jug.</summary>
         public static void JugMesh(MeshKit k)
         {
             k.Lathe(Vector3.zero, Quaternion.identity, new[]
             {
-                new Vector2(0.0001f, -0.1f), new Vector2(0.09f, -0.1f), new Vector2(0.11f, 0f), new Vector2(0.08f, 0.1f),
-                new Vector2(0.03f, 0.13f), new Vector2(0.03f, 0.17f), new Vector2(0.0001f, 0.17f)
-            }, 8, Jug);
-            k.Prism(new Vector3(0f, -0.03f, 0f), Quaternion.identity, 0.112f, 0.112f, 0.05f, 8, MudPalette.Cream);
-            k.Box(new Vector3(0f, -0.005f, 0.113f), new Vector3(0.09f, 0.025f, 0.01f), MudPalette.Black);
+                new Vector2(0.0001f, -0.1f), new Vector2(0.095f, -0.1f), new Vector2(0.1f, -0.08f), new Vector2(0.1f, 0.08f),
+                new Vector2(0.06f, 0.12f), new Vector2(0.0001f, 0.12f)
+            }, 9, MudPalette.Hull);
+            k.Prism(new Vector3(0f, -0.04f, 0f), Quaternion.identity, 0.103f, 0.103f, 0.05f, 9, MudPalette.HullStripe);
+            k.Rod(new Vector3(0.03f, 0.11f, 0f), new Vector3(0.04f, 0.17f, 0f), 0.022f, 6, MudPalette.HullDark); // the nozzle
+            k.Tube(new[] { new Vector3(-0.06f, 0.1f, 0f), new Vector3(-0.05f, 0.16f, 0f), new Vector3(-0.01f, 0.16f, 0f), new Vector3(0f, 0.12f, 0f) }, 0.011f, 4, MudPalette.HullDark);
+            k.Ball(new Vector3(-0.07f, 0.03f, 0.06f), new Vector3(0.045f, 0.05f, 0.012f), Quaternion.Euler(0f, -50f, 0f), MudPalette.HullDark, 0); // a dent
+            k.Box(new Vector3(0f, 0.035f, 0.1f), new Vector3(0.08f, 0.022f, 0.01f), MudPalette.Black);
         }
 
         /// <summary>Set by the level builder for possums on roofs and porches.</summary>
@@ -198,7 +209,7 @@ namespace SignalLost.Mudlands
             lead.y = 0f;
             Vector3 aim = PlayerPosition + lead + Random.insideUnitSphere.Flat() * 0.8f;
             float distance = Vector3.Distance(from, aim);
-            var model = MudArt.Part(null, "Thrown Jug", Vector3.zero, Quaternion.identity, "moonshine_jug", JugMesh);
+            var model = MudArt.Part(null, "Thrown Jug", Vector3.zero, Quaternion.identity, "fuel_canister", JugMesh);
             ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, from, Vector3.up, 3, 0.2f, 0.5f);
             GameObject owner = gameObject;
             Lob.Throw(model, from, aim, Mathf.Clamp(distance / 14f, 0.7f, 1.4f), 2.5f + distance * 0.12f, at =>

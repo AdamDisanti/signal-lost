@@ -18,7 +18,9 @@ namespace SignalLost.Mudlands
 {
     /// <summary>
     /// The Mudlands' stage boss (Christian's design, docs/mudlands.md): Clutch McCheddar, president of the Swamp Rats
-    /// MC, a mouse in a leather jacket and aviators on a long chopper whose back wheel is the ship's landing gear.
+    /// MC, an alien mouse (moss-green fur, magenta skin, antennae with glowing bulbs, frilled ears, three fingers, a
+    /// glowing tail tip) in a leather jacket and aviators, on a long makeshift hovercycle (<see cref="Hoverbikes.Clutch"/>:
+    /// a swamp-log keel, bone prongs, leaf fins, purple hull plate) whose rear lift ring is the ship's landing gear.
     /// <list type="bullet">
     /// <item><b>Entrance:</b> the true Akira slide: he blasts past a camera low on the road, throws the chopper sideways
     /// and slides <i>away</i> from it in slow motion, bike laid over toward the lens, left boot braking in a fan of
@@ -58,24 +60,24 @@ namespace SignalLost.Mudlands
         [Tooltip("Solid things a ram can wipe out on (the gas pumps).")]
         [SerializeField] private Transform[] wipeOutProps = Array.Empty<Transform>();
 
-        private static readonly Color Fur = new Color(0.58f, 0.56f, 0.55f), FurLight = new Color(0.78f, 0.76f, 0.74f),
-            FurDark = new Color(0.42f, 0.4f, 0.4f), Pink = new Color(0.95f, 0.62f, 0.68f), PinkDark = new Color(0.8f, 0.45f, 0.52f),
-            Leather = new Color(0.1f, 0.09f, 0.1f), LeatherHi = new Color(0.2f, 0.18f, 0.19f), Denim = new Color(0.2f, 0.28f, 0.48f),
+        // An alien mouse: moss-green fur, pale lime cheeks, magenta skin (ears, nose, tail, fingers), mint glowing bits.
+        private static readonly Color Fur = new Color(0.47f, 0.62f, 0.42f), FurLight = new Color(0.72f, 0.85f, 0.62f),
+            FurDark = new Color(0.28f, 0.4f, 0.3f), Pink = new Color(0.84f, 0.4f, 0.8f), PinkDark = new Color(0.58f, 0.24f, 0.6f),
+            Glow = new Color(0.55f, 1f, 0.78f),
+            Leather = Hoverbikes.Clutch.Leather, LeatherHi = Hoverbikes.Clutch.LeatherHi, Denim = new Color(0.2f, 0.28f, 0.48f),
             DenimDark = new Color(0.14f, 0.2f, 0.36f), Boot = new Color(0.3f, 0.19f, 0.11f), Sole = new Color(0.08f, 0.07f, 0.07f),
             Shirt = new Color(0.85f, 0.22f, 0.18f), Bandana = new Color(0.82f, 0.14f, 0.12f), Gold = new Color(0.95f, 0.75f, 0.3f),
-            Cheese = new Color(1f, 0.82f, 0.25f), CheeseHole = new Color(0.85f, 0.6f, 0.12f), BikePaint = new Color(0.36f, 0.1f, 0.48f),
-            PaintHi = new Color(0.5f, 0.2f, 0.66f), Chrome = new Color(0.82f, 0.83f, 0.86f), Frame = new Color(0.12f, 0.12f, 0.14f),
-            FlameRed = new Color(0.95f, 0.25f, 0.1f), FlameOrange = new Color(1f, 0.55f, 0.12f), FlameYellow = new Color(1f, 0.85f, 0.25f),
-            Saddle = new Color(0.34f, 0.2f, 0.12f), Hub = new Color(0.3f, 0.85f, 1f), Nitro = new Color(0.7f, 0.35f, 1f),
-            Lamp = new Color(1f, 0.93f, 0.7f), TailRed = new Color(1f, 0.12f, 0.08f), Line = new Color(1f, 0.85f, 0.4f);
+            Cheese = Hoverbikes.Clutch.Cheese, CheeseHole = Hoverbikes.Clutch.CheeseHole, Chrome = Hoverbikes.Clutch.Chrome,
+            Nitro = new Color(0.7f, 0.35f, 1f), Lamp = Hoverbikes.Clutch.Lamp, TailRed = Hoverbikes.Clutch.TailRed, Line = new Color(1f, 0.85f, 0.4f);
 
-        // ---------- The chopper (its own frame: +Z forward, ground at y = 0, wheels on the Z axis) ----------
-        private static readonly Vector3 RearAxle = new Vector3(0f, 0.52f, -1.05f), FrontAxle = new Vector3(0f, 0.42f, 1.72f),
-            SteerHead = new Vector3(0f, 1.1f, 0.78f), Seat = new Vector3(0f, 0.86f, -0.24f), HipOnSeat = new Vector3(0f, 0.99f, -0.22f), PegAt = new Vector3(0.3f, 0.36f, 0.36f),
-            PipeEndLow = new Vector3(0.29f, 0.5f, -1.42f), PipeEndHigh = new Vector3(0.31f, 0.64f, -1.4f), TailLightAt = new Vector3(0f, 0.88f, -1.55f);
+        // ---------- The hovercycle (its own frame: +Z forward, ground at y = 0; Hoverbikes.Clutch builds it) ----------
+        private static readonly Vector3 RearAxle = Hoverbikes.Clutch.RearAxle, FrontAxle = Hoverbikes.Clutch.FrontAxle,
+            SteerHead = Hoverbikes.Clutch.SteerHead, Seat = Hoverbikes.Clutch.Seat, HipOnSeat = new Vector3(0f, 0.99f, -0.22f), PegAt = Hoverbikes.Clutch.PegAt,
+            PipeEndLow = Hoverbikes.Clutch.PipeEndLow, PipeEndHigh = Hoverbikes.Clutch.PipeEndHigh, TailLightAt = Hoverbikes.Clutch.TailLightAt;
         private static readonly Vector3 GlassesUp = new Vector3(0f, 0.25f, 0.3f), GlassesDown = new Vector3(0f, 0.19f, 0.37f);
-        private const float RearRadius = 0.52f, FrontRadius = 0.42f, RearHalfWidth = 0.19f;
-        private static Vector3 ForkAxis => (FrontAxle - SteerHead).normalized;
+        // The lift fans' idle spin (degrees a second) and how much faster they spin per m/s of speed or throttle.
+        private const float FanIdle = 540f, FanPerSpeed = 45f;
+        private static Vector3 ForkAxis => Hoverbikes.Clutch.ForkAxis;
 
         // ---------- The rider (his own frame: +Z forward, feet at y = 0) ----------
         private const float UpperArm = 0.42f, Forearm = 0.42f, Thigh = 0.44f, Shin = 0.43f, Ankle = 0.1f, StandHeight = 0.93f;
@@ -96,7 +98,7 @@ namespace SignalLost.Mudlands
         private bool flamesNitro;
 
         // The rig.
-        private Transform bike, frontEnd, frontSpin, rearSpin, gripL, gripR, headlightPivot, chainHeld, chainSpin, beltChain;
+        private Transform bike, frontEnd, frontSpin, rearSpin, rearFan, gripL, gripR, headlightPivot, chainHeld, chainSpin, beltChain;
         private Transform body, spine, head, armL, armR, elbowL, elbowR, handL, handR, legL, legR, kneeL, kneeR, footL, footR;
         private Transform glasses, toothpick, nitroCap;
         private Light headlight, tailLight, underglow;
@@ -104,7 +106,7 @@ namespace SignalLost.Mudlands
         private readonly List<Jiggle> jiggles = new List<Jiggle>();
 
         // The bike's pose (in his Visual's space): lean (+ = top to his right), pitch (+ = front up, about the rear
-        // tyre), yaw and an offset (wipe-outs), and the steering.
+        // lift ring), yaw and an offset (wipe-outs), and the steering. frontRoll and rearRoll are the lift fans' angles.
         private float bikeLean, bikePitch, bikeYaw, bikeLift, steer, frontRoll, rearRoll, bikeShake;
         private Vector3 bikeOffset;
         private bool bikeDetached;
@@ -171,11 +173,10 @@ namespace SignalLost.Mudlands
 
         private void BuildBike(Transform visual)
         {
-            bike = MudArt.Pivot(visual, "Chopper", Vector3.zero);
-            MudArt.Part(bike, "Frame", Vector3.zero, Quaternion.identity, "clutch2_frame", FrameMesh);
-            MudArt.Part(bike, "Engine", Vector3.zero, Quaternion.identity, "clutch2_engine", EngineMesh);
-            MudArt.Part(bike, "Tank", Vector3.zero, Quaternion.identity, "clutch2_tank", TankMesh);
-            MudArt.Part(bike, "Back End", Vector3.zero, Quaternion.identity, "clutch2_back", BackEndMesh);
+            bike = MudArt.Pivot(visual, "Hovercycle", Vector3.zero);
+            MudArt.Part(bike, "Body", Vector3.zero, Quaternion.identity, "clutch3_body", Hoverbikes.Clutch.Body);
+            MudArt.Part(bike, "Tank", Vector3.zero, Quaternion.identity, "clutch3_tank", Hoverbikes.Clutch.Tank);
+            MudArt.Part(bike, "Back End", Vector3.zero, Quaternion.identity, "clutch3_back", Hoverbikes.Clutch.BackEnd);
             nitroCap = MudArt.Part(bike, "Nitro Cap", new Vector3(0f, 1.17f, 0.12f), Quaternion.identity, "clutch2_nitro_cap", k =>
             {
                 k.Smooth = true;
@@ -183,21 +184,22 @@ namespace SignalLost.Mudlands
                 k.Box(new Vector3(0f, 0.012f, 0.1f), new Vector3(0.1f, 0.02f, 0.012f), MudPalette.Metal);
             });
 
-            // The landing gear: a fat aircraft tyre on a glowing hub, with its own oleo strut (the stage's main part).
-            rearSpin = MudArt.Pivot(bike, "Landing Gear", RearAxle);
-            MudArt.Part(rearSpin, "Wheel", Vector3.zero, Quaternion.identity, "clutch2_rear_wheel", RearWheelMesh);
+            // The landing gear: the fat aircraft tyre laid flat under the tail as the rear lift ring, round a fan of
+            // leaf blades on its glowing hub, hanging from its oleo struts (the stage's main part).
+            rearSpin = MudArt.Pivot(bike, "Landing Gear", Hoverbikes.Clutch.RearPod);
+            MudArt.Part(rearSpin, "Ring", Vector3.zero, Quaternion.identity, "clutch3_landing_gear", Hoverbikes.Clutch.LandingGear);
+            rearFan = MudArt.Part(rearSpin, "Fan", Vector3.zero, Quaternion.identity, "clutch3_rear_fan", Hoverbikes.Clutch.RearFan);
             ShipPart = rearSpin;
 
             frontEnd = MudArt.Pivot(bike, "Front End", SteerHead);
-            MudArt.Part(frontEnd, "Forks", Vector3.zero, Quaternion.identity, "clutch2_forks", ForksMesh);
-            frontSpin = MudArt.Pivot(frontEnd, "Front Wheel", FrontAxle - SteerHead);
-            MudArt.Part(frontSpin, "Wheel", Vector3.zero, Quaternion.identity, "clutch2_front_wheel", FrontWheelMesh);
+            MudArt.Part(frontEnd, "Steering", Vector3.zero, Quaternion.identity, "clutch3_front", Hoverbikes.Clutch.FrontEnd);
+            frontSpin = MudArt.Part(frontEnd, "Front Fan", Hoverbikes.Clutch.FrontPod - SteerHead, Quaternion.identity, "clutch3_front_fan", Hoverbikes.Clutch.FrontFan);
             gripL = MudArt.Pivot(frontEnd, "Grip L", new Vector3(-0.5f, 0.59f, -0.41f));
             gripR = MudArt.Pivot(frontEnd, "Grip R", new Vector3(0.5f, 0.59f, -0.41f));
             headlightPivot = MudArt.Pivot(frontEnd, "Headlight", new Vector3(0f, -0.1f, 0.2f));
             headlight = new GameObject("Beam").AddComponent<Light>();
             headlight.transform.SetParent(headlightPivot, false);
-            headlight.transform.localPosition = new Vector3(0f, 0f, 0.12f);
+            headlight.transform.localPosition = new Vector3(0f, 0f, 0.2f);
             headlight.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
             headlight.type = LightType.Spot;
             headlight.spotAngle = 55f;
@@ -222,7 +224,7 @@ namespace SignalLost.Mudlands
             underglow.type = LightType.Point;
             underglow.range = 4.5f;
             underglow.intensity = 0f;
-            underglow.color = Nitro;
+            underglow.color = Hoverbikes.Lift; // the lift glow under him (purple on nitro)
             underglow.shadows = LightShadows.None;
         }
 
@@ -248,232 +250,6 @@ namespace SignalLost.Mudlands
             trail.receiveShadows = false;
             trail.emitting = false;
             return trail;
-        }
-
-        private static void FrameMesh(MeshKit k)
-        {
-            k.Smooth = false;
-            // Neck, backbone, down tubes, the cradle under the engine, seat stays to the rear axle.
-            k.Rod(SteerHead + new Vector3(0f, 0.08f, 0f), SteerHead + ForkAxis * 0.12f, 0.07f, 10, Frame);
-            k.Rod(SteerHead + new Vector3(0f, -0.02f, -0.04f), new Vector3(0f, 0.9f, -0.12f), 0.05f, 8, Frame);
-            foreach (float x in new[] { -0.07f, 0.07f })
-            {
-                k.Rod(SteerHead + new Vector3(x, -0.06f, -0.03f), new Vector3(x, 0.3f, 0.42f), 0.04f, 8, Frame);
-                k.Rod(new Vector3(x, 0.3f, 0.42f), new Vector3(x * 1.4f, 0.26f, -0.42f), 0.04f, 8, Frame);
-                k.Rod(new Vector3(x * 1.4f, 0.26f, -0.42f), new Vector3(x * 2.6f, RearAxle.y, RearAxle.z), 0.035f, 8, Frame);
-                k.Rod(new Vector3(x, 0.88f, -0.14f), new Vector3(x * 2.6f, RearAxle.y + 0.04f, RearAxle.z), 0.032f, 8, Frame);
-            }
-            k.Rod(new Vector3(0f, 0.9f, -0.12f), new Vector3(0f, 0.3f, -0.44f), 0.045f, 8, Frame); // seat post
-            // Pegs (mid controls) with rubber, and the brake and shift levers.
-            foreach (float s in new[] { -1f, 1f })
-            {
-                Vector3 peg = new Vector3(PegAt.x * s, PegAt.y, PegAt.z);
-                k.Rod(new Vector3(0.08f * s, 0.3f, PegAt.z - 0.02f), peg, 0.02f, 6, Chrome);
-                k.Rod(peg, peg + new Vector3(0.1f * s, 0f, 0f), 0.034f, 8, MudPalette.Rubber);
-                k.Plank(peg + new Vector3(0f, 0.05f, 0.04f), peg + new Vector3(0.02f * s, 0.12f, 0.2f), 0.025f, 0.02f, Chrome);
-            }
-            // Kickstand, folded along the frame.
-            k.Rod(new Vector3(-0.12f, 0.26f, -0.2f), new Vector3(-0.16f, 0.22f, -0.62f), 0.018f, 6, Frame);
-        }
-
-        private static void EngineMesh(MeshKit k)
-        {
-            k.Smooth = true;
-            // Crankcase, the V-twin's two finned barrels and chrome rocker boxes, the round air cleaner (a gold cheese
-            // wedge on it), the primary cover on the left.
-            k.Ball(new Vector3(0f, 0.46f, 0.08f), new Vector3(0.15f, 0.17f, 0.24f), Quaternion.identity, MudPalette.Metal, 1);
-            foreach (float tilt in new[] { 32f, -32f })
-            {
-                Quaternion lean = Quaternion.Euler(tilt, 0f, 0f);
-                Vector3 baseAt = new Vector3(0f, 0.58f, 0.08f + Mathf.Sign(tilt) * 0.08f);
-                k.Smooth = false;
-                for (int i = 0; i < 6; i++)
-                    k.Prism(baseAt + lean * new Vector3(0f, i * 0.045f, 0f), lean, 0.115f, 0.115f, 0.022f, 14, MudPalette.DarkMetal);
-                k.Prism(baseAt, lean, 0.085f, 0.085f, 0.3f, 12, MudPalette.Metal);
-                k.Smooth = true;
-                k.Ball(baseAt + lean * new Vector3(0f, 0.31f, 0f), new Vector3(0.12f, 0.06f, 0.13f), lean, Chrome, 1);
-                k.Ball(baseAt + lean * new Vector3(0f, 0.36f, 0f), new Vector3(0.09f, 0.04f, 0.1f), lean, Chrome, 1);
-            }
-            k.Smooth = false;
-            k.Prism(new Vector3(0.14f, 0.7f, 0.08f), Quaternion.Euler(0f, 0f, -90f), 0.14f, 0.14f, 0.07f, 16, Chrome);
-            k.Prism(new Vector3(0.2f, 0.7f, 0.08f), Quaternion.Euler(0f, 0f, -90f), 0.1f, 0.1f, 0.02f, 16, MudPalette.DarkMetal);
-            Wedge(k, new Vector3(0.226f, 0.7f, 0.08f), Quaternion.Euler(0f, 90f, 0f), 0.07f, 0.02f);
-            k.Smooth = true;
-            k.Ball(new Vector3(-0.15f, 0.4f, -0.22f), new Vector3(0.05f, 0.14f, 0.3f), Quaternion.Euler(-8f, 0f, 0f), Chrome, 1); // primary
-            k.Ball(new Vector3(-0.13f, 0.48f, 0.12f), new Vector3(0.05f, 0.09f, 0.09f), Quaternion.identity, Chrome, 1); // points cover
-            // Drag pipes on the right, swept back to fishtails (where the flames come out).
-            k.Smooth = false;
-            Pipe(k, new[] { new Vector3(0.03f, 0.84f, 0.32f), new Vector3(0.2f, 0.82f, 0.36f), new Vector3(0.27f, 0.6f, 0.18f), new Vector3(0.29f, 0.5f, -0.3f), PipeEndLow });
-            Pipe(k, new[] { new Vector3(0.03f, 0.84f, -0.16f), new Vector3(0.2f, 0.8f, -0.2f), new Vector3(0.3f, 0.66f, -0.42f), PipeEndHigh });
-            foreach (Vector3 end in new[] { PipeEndLow, PipeEndHigh })
-                k.Prism(end, Quaternion.Euler(-90f, 0f, 0f), 0.05f, 0.075f, 0.16f, 12, Chrome); // fishtail flare
-            // The belt drive on the left: front pulley, belt, rear pulley.
-            k.Prism(new Vector3(-0.2f, 0.4f, -0.24f), Quaternion.Euler(0f, 0f, 90f), 0.1f, 0.1f, 0.03f, 16, MudPalette.DarkMetal);
-            k.Plank(new Vector3(-0.21f, 0.5f, -0.24f), new Vector3(-0.23f, RearAxle.y + 0.2f, RearAxle.z), 0.03f, 0.02f, MudPalette.Rubber);
-            k.Plank(new Vector3(-0.21f, 0.3f, -0.24f), new Vector3(-0.23f, RearAxle.y - 0.2f, RearAxle.z), 0.03f, 0.02f, MudPalette.Rubber);
-        }
-
-        private static void Pipe(MeshKit k, Vector3[] path)
-        {
-            for (int i = 0; i < path.Length - 1; i++) k.Rod(path[i], path[i + 1], 0.042f, 10, Chrome);
-            for (int i = 1; i < path.Length - 1; i++) k.Ball(path[i], 0.042f, Chrome, 1);
-        }
-
-        private static void TankMesh(MeshKit k)
-        {
-            k.Smooth = true;
-            // A teardrop tank in deep purple with a lighter top and hand-painted flames licking back along each side.
-            k.Ball(new Vector3(0f, 1.02f, 0.38f), new Vector3(0.18f, 0.14f, 0.34f), Quaternion.Euler(-6f, 0f, 0f), BikePaint, 2);
-            k.Ball(new Vector3(0f, 1.1f, 0.4f), new Vector3(0.12f, 0.06f, 0.26f), Quaternion.Euler(-6f, 0f, 0f), PaintHi, 1);
-            k.Prism(new Vector3(0f, 1.15f, 0.48f), Quaternion.identity, 0.035f, 0.035f, 0.02f, 12, Chrome); // filler cap
-            foreach (float s in new[] { -1f, 1f })
-            {
-                for (int i = 0; i < 4; i++)
-                {
-                    float z = 0.6f - i * 0.05f, y = 1.0f + (i % 2 == 0 ? 0.03f : -0.025f);
-                    float len = 0.2f + i * 0.04f;
-                    Quaternion lick = Quaternion.Euler(i % 2 == 0 ? -10f : 8f, 0f, 0f);
-                    k.Ball(new Vector3(0.158f * s, y, z - len * 0.5f), new Vector3(0.022f, 0.028f, len * 0.5f), lick, FlameRed, 1);
-                    k.Ball(new Vector3(0.163f * s, y, z - len * 0.45f), new Vector3(0.018f, 0.018f, len * 0.42f), lick, FlameOrange, 1);
-                    k.Ball(new Vector3(0.167f * s, y, z - len * 0.35f), new Vector3(0.014f, 0.01f, len * 0.3f), lick, FlameYellow, 1);
-                }
-            }
-            // Dash: a speedo pod on the tank, and the nitro button (red under its flip cap).
-            k.Ball(new Vector3(0f, 1.15f, 0.25f), new Vector3(0.06f, 0.03f, 0.06f), Quaternion.identity, Chrome, 1);
-            k.Ball(new Vector3(0f, 1.17f, 0.25f), new Vector3(0.045f, 0.012f, 0.045f), Quaternion.identity, MudPalette.White, 0);
-            k.Prism(new Vector3(0f, 1.13f, 0.17f), Quaternion.identity, 0.04f, 0.04f, 0.04f, 12, MudPalette.DarkMetal);
-            k.Ball(new Vector3(0f, 1.175f, 0.17f), new Vector3(0.03f, 0.015f, 0.03f), Quaternion.identity, new Color(1f, 0.15f, 0.12f), 1, 1.2f);
-        }
-
-        private static void BackEndMesh(MeshKit k)
-        {
-            k.Smooth = true;
-            // The saddle: low, tuck-and-roll, with a pillion hump; a tall sissy bar with a pad.
-            k.Ball(Seat + new Vector3(0f, -0.06f, 0f), new Vector3(0.21f, 0.07f, 0.3f), Quaternion.identity, Saddle, 1);
-            for (int i = 0; i < 4; i++)
-                k.Ball(Seat + new Vector3(0f, -0.005f, -0.18f + i * 0.12f), new Vector3(0.19f, 0.022f, 0.035f), Quaternion.identity, new Color(0.28f, 0.16f, 0.1f), 1);
-            k.Ball(new Vector3(0f, 0.86f, -0.66f), new Vector3(0.15f, 0.07f, 0.16f), Quaternion.Euler(-10f, 0f, 0f), Saddle, 1);
-            k.Smooth = false;
-            foreach (float x in new[] { -0.12f, 0.12f })
-                k.Rod(new Vector3(x, 0.84f, -0.8f), new Vector3(x * 0.8f, 1.72f, -0.98f), 0.022f, 8, Chrome);
-            k.Rod(new Vector3(-0.1f, 1.72f, -0.98f), new Vector3(0.1f, 1.72f, -0.98f), 0.022f, 8, Chrome);
-            k.Smooth = true;
-            k.Ball(new Vector3(0f, 1.25f, -0.88f), new Vector3(0.12f, 0.17f, 0.04f), Quaternion.Euler(-12f, 0f, 0f), Leather, 1);
-            // Rear fender over the landing gear, with the tail light and a plate.
-            k.Smooth = false;
-            Arc(k, RearAxle, RearRadius + 0.08f, 0.025f, 0.24f, 15f, 170f, 14, BikePaint);
-            k.Ball(TailLightAt, new Vector3(0.07f, 0.04f, 0.04f), Quaternion.identity, TailRed, 1, 2.5f);
-            k.Box(TailLightAt + new Vector3(0f, -0.12f, 0.03f), new Vector3(0.2f, 0.12f, 0.015f), Quaternion.Euler(-30f, 0f, 0f), new Color(0.95f, 0.85f, 0.2f));
-            // The landing gear's oleo strut, chrome over a dark sleeve, from the axle up to the fender.
-            k.Rod(RearAxle + new Vector3(0.27f, 0f, 0f), RearAxle + new Vector3(0.27f, 0.36f, 0.2f), 0.045f, 10, MudPalette.DarkMetal);
-            k.Rod(RearAxle + new Vector3(0.27f, 0.3f, 0.17f), RearAxle + new Vector3(0.24f, 0.62f, 0.36f), 0.03f, 10, Chrome);
-            k.Prism(RearAxle + new Vector3(0.22f, 0f, 0f), Quaternion.Euler(0f, 0f, -90f), 0.07f, 0.07f, 0.06f, 12, Chrome);
-            k.Prism(RearAxle + new Vector3(-0.28f, 0f, 0f), Quaternion.Euler(0f, 0f, -90f), 0.07f, 0.07f, 0.06f, 12, Chrome);
-            // Studded leather saddlebags with fringe.
-            foreach (float s in new[] { -1f, 1f })
-            {
-                k.Smooth = true;
-                Vector3 bag = new Vector3(0.34f * s, 0.78f, -0.78f);
-                k.Ball(bag, new Vector3(0.09f, 0.17f, 0.24f), Quaternion.identity, Leather, 1);
-                k.Ball(bag + new Vector3(0.03f * s, 0.12f, 0f), new Vector3(0.08f, 0.06f, 0.25f), Quaternion.identity, LeatherHi, 1);
-                for (int i = 0; i < 4; i++)
-                    k.Ball(bag + new Vector3(0.09f * s, 0.06f, -0.15f + i * 0.1f), 0.016f, Chrome, 0);
-                k.Smooth = false;
-                for (int i = 0; i < 7; i++)
-                {
-                    Vector3 top = bag + new Vector3(0.07f * s, -0.14f, -0.18f + i * 0.06f);
-                    k.Plank(top, top + new Vector3(0.015f * s, -0.12f, -0.02f), 0.015f, 0.006f, Leather);
-                }
-            }
-        }
-
-        private static void RearWheelMesh(MeshKit k)
-        {
-            k.Smooth = true;
-            Quaternion axle = Quaternion.Euler(0f, 0f, 90f);
-            Torus(k, Vector3.zero, axle, 0.39f, 0.13f, MudPalette.Rubber);
-            k.Smooth = false;
-            for (int i = 0; i < 16; i++) // chunky aircraft tread
-            {
-                Quaternion spin = Quaternion.Euler(i * 22.5f, 0f, 0f);
-                k.Box(spin * new Vector3(0f, 0.505f, 0f), new Vector3(0.2f, 0.04f, 0.08f), spin, MudPalette.Rubber);
-            }
-            // The landing-gear hub: a bolted aluminium disc, a glowing core, and the oleo strut on the right.
-            k.Prism(new Vector3(-0.17f, 0f, 0f), axle * Quaternion.Euler(180f, 0f, 0f), 0.3f, 0.3f, 0.34f, 18, MudPalette.Metal);
-            k.Prism(new Vector3(-0.19f, 0f, 0f), axle * Quaternion.Euler(180f, 0f, 0f), 0.12f, 0.12f, 0.38f, 12, Hub, 3f);
-            foreach (float s in new[] { -1f, 1f })
-                for (int i = 0; i < 8; i++)
-                {
-                    Quaternion a = Quaternion.Euler(i * 45f, 0f, 0f);
-                    k.Prism(new Vector3(0.18f * s, 0f, 0f) + a * new Vector3(0f, 0.2f, 0f), Quaternion.Euler(0f, 0f, -90f * s), 0.022f, 0.022f, 0.02f, 6, Chrome);
-                }
-        }
-
-        private static void FrontWheelMesh(MeshKit k)
-        {
-            k.Smooth = true;
-            Quaternion axle = Quaternion.Euler(0f, 0f, 90f);
-            Torus(k, Vector3.zero, axle, 0.36f, 0.06f, MudPalette.Rubber);
-            k.Smooth = false;
-            Torus(k, Vector3.zero, axle, 0.31f, 0.018f, Chrome);
-            k.Prism(new Vector3(-0.06f, 0f, 0f), Quaternion.Euler(0f, 0f, -90f), 0.06f, 0.06f, 0.12f, 12, Chrome);
-            for (int i = 0; i < 20; i++) // laced spokes, crossing
-            {
-                float a = i * 18f * Mathf.Deg2Rad;
-                float side = i % 2 == 0 ? -0.05f : 0.05f;
-                Vector3 rim = new Vector3(0f, Mathf.Cos(a + 0.2f) * 0.3f, Mathf.Sin(a + 0.2f) * 0.3f);
-                k.Rod(new Vector3(side, Mathf.Cos(a) * 0.05f, Mathf.Sin(a) * 0.05f), rim, 0.006f, 4, Chrome);
-            }
-        }
-
-        private static void ForksMesh(MeshKit k)
-        {
-            Vector3 axle = FrontAxle - SteerHead, axis = ForkAxis;
-            k.Smooth = false;
-            // Triple trees, long chrome springer legs (the rear legs dark), the springs, the front fender.
-            k.Box(new Vector3(0f, 0.05f, 0.02f), new Vector3(0.28f, 0.04f, 0.12f), Chrome);
-            k.Box(axis * 0.1f + new Vector3(0f, 0f, 0.02f), new Vector3(0.28f, 0.04f, 0.12f), Chrome);
-            foreach (float x in new[] { -0.11f, 0.11f })
-            {
-                k.Rod(new Vector3(x, 0.07f, 0.03f), axle + new Vector3(x * 0.85f, 0f, 0f), 0.028f, 10, Chrome);
-                k.Rod(new Vector3(x, 0.02f, -0.04f) + axis * 0.15f, axle + new Vector3(x * 0.85f, 0.06f, -0.08f), 0.016f, 8, MudPalette.DarkMetal);
-                for (int i = 0; i < 6; i++)
-                    k.Prism(new Vector3(x, 0.1f, 0.03f) + axis * (0.12f + i * 0.025f), Quaternion.FromToRotation(Vector3.up, axis), 0.035f, 0.035f, 0.012f, 10, Chrome);
-            }
-            k.Rod(axle + new Vector3(-0.1f, 0f, 0f), axle + new Vector3(0.1f, 0f, 0f), 0.02f, 6, Chrome);
-            Vector3 fenderCentre = axle;
-            k.Smooth = false;
-            Arc(k, fenderCentre, FrontRadius + 0.05f, 0.02f, 0.12f, 60f, 140f, 8, BikePaint);
-            // A little chrome mouse skull on the fender.
-            k.Smooth = true;
-            Vector3 skull = fenderCentre + new Vector3(0f, (FrontRadius + 0.08f) * Mathf.Sin(100f * Mathf.Deg2Rad), (FrontRadius + 0.08f) * Mathf.Cos(100f * Mathf.Deg2Rad));
-            k.Ball(skull, new Vector3(0.04f, 0.035f, 0.05f), Quaternion.identity, Chrome, 1);
-            foreach (float x in new[] { -0.035f, 0.035f }) k.Ball(skull + new Vector3(x, 0.035f, -0.01f), new Vector3(0.025f, 0.025f, 0.008f), Quaternion.identity, Chrome, 1);
-            // The headlight bucket and lens.
-            k.Smooth = false;
-            Vector3 lamp = new Vector3(0f, -0.1f, 0.2f);
-            k.Prism(lamp, Quaternion.Euler(90f, 0f, 0f), 0.1f, 0.14f, 0.12f, 16, Chrome);
-            k.Smooth = true;
-            k.Ball(lamp + new Vector3(0f, 0f, 0.12f), new Vector3(0.125f, 0.125f, 0.03f), Quaternion.identity, Lamp, 1, 3f);
-            k.Smooth = false;
-            k.Rod(new Vector3(-0.1f, 0.02f, 0.04f), lamp + new Vector3(-0.06f, 0f, 0f), 0.015f, 6, Chrome);
-            k.Rod(new Vector3(0.1f, 0.02f, 0.04f), lamp + new Vector3(0.06f, 0f, 0f), 0.015f, 6, Chrome);
-            // Ape-hanger bars: risers, tall uprights, back to the grips; rubber grips with leather tassels; mirrors.
-            foreach (float s in new[] { -1f, 1f })
-            {
-                Vector3 riser = new Vector3(0.09f * s, 0.06f, 0.0f), top = new Vector3(0.12f * s, 0.2f, -0.02f);
-                Vector3 up = new Vector3(0.2f * s, 0.6f, -0.3f), grip = new Vector3(0.44f * s, 0.59f, -0.41f);
-                k.Rod(riser, top, 0.03f, 8, Chrome);
-                k.Rod(top, up, 0.022f, 8, Chrome);
-                k.Ball(up, 0.022f, Chrome, 0);
-                k.Rod(up, grip, 0.022f, 8, Chrome);
-                k.Rod(grip, grip + new Vector3(0.14f * s, -0.01f, -0.01f), 0.032f, 10, MudPalette.Rubber);
-                for (int i = 0; i < 3; i++)
-                    k.Plank(grip + new Vector3((0.15f + i * 0.008f) * s, -0.01f, 0f), grip + new Vector3((0.15f + i * 0.008f) * s, -0.16f, -0.02f + i * 0.01f), 0.01f, 0.004f, Leather);
-                k.Rod(up + new Vector3(0.02f * s, 0f, 0f), up + new Vector3(0.1f * s, 0.18f, 0.02f), 0.01f, 6, Chrome);
-                k.Ball(up + new Vector3(0.1f * s, 0.22f, 0.02f), new Vector3(0.05f, 0.04f, 0.012f), Quaternion.identity, Chrome, 1);
-            }
-            k.Rod(new Vector3(-0.2f, 0.6f, -0.3f), new Vector3(0.2f, 0.6f, -0.3f), 0.018f, 8, Chrome); // cross bar
         }
 
         // ---------- The rider ----------
@@ -528,19 +304,30 @@ namespace SignalLost.Mudlands
 
         private void BuildHead()
         {
-            MudArt.Part(head, "Skull", Vector3.zero, Quaternion.identity, "clutch2_head", HeadMesh);
+            MudArt.Part(head, "Skull", Vector3.zero, Quaternion.identity, "clutch3_head", HeadMesh);
             glasses = MudArt.Part(head, "Aviators", GlassesUp, Quaternion.Euler(4f, 0f, 0f), "clutch_aviators", AviatorsMesh);
             toothpick = MudArt.Part(head, "Toothpick", new Vector3(0.07f, 0.02f, 0.37f), Quaternion.Euler(10f, 40f, 0f), "clutch2_toothpick",
                 k => k.Rod(Vector3.zero, new Vector3(0f, 0.01f, 0.16f), 0.008f, 5, new Color(0.9f, 0.8f, 0.55f)));
             foreach (float s in new[] { -1f, 1f })
             {
                 Transform ear = MudArt.Pivot(head, s < 0f ? "Ear L" : "Ear R", new Vector3(0.21f * s, 0.43f, -0.04f), Quaternion.Euler(-8f, 0f, 28f * -s));
-                MudArt.Part(ear, "Ear", Vector3.zero, Quaternion.identity, s < 0f ? "clutch2_ear_l" : "clutch2_ear_r", k =>
+                MudArt.Part(ear, "Ear", Vector3.zero, Quaternion.identity, s < 0f ? "clutch3_ear_l" : "clutch3_ear_r", k =>
                 {
                     k.Smooth = true;
-                    k.Ball(new Vector3(0f, 0.17f, 0f), new Vector3(0.19f, 0.19f, 0.045f), Quaternion.identity, Fur, 1);
-                    k.Ball(new Vector3(0f, 0.17f, 0.025f), new Vector3(0.14f, 0.14f, 0.025f), Quaternion.identity, Pink, 1);
-                    k.Ball(new Vector3(0.12f * s, 0.29f, 0.01f), new Vector3(0.03f, 0.03f, 0.05f), Quaternion.identity, Fur, 0); // notch tuft
+                    // A big alien ear: a frilled rim of scallops, glowing magenta skin inside with mint veins.
+                    k.Ball(new Vector3(0f, 0.18f, 0f), new Vector3(0.2f, 0.21f, 0.045f), Quaternion.identity, Fur, 1);
+                    for (int i = 0; i < 7; i++)
+                    {
+                        float a = (i / 6f * 200f - 10f) * Mathf.Deg2Rad;
+                        k.Ball(new Vector3(Mathf.Cos(a) * 0.19f * s, 0.18f + Mathf.Sin(a) * 0.2f, 0f), new Vector3(0.045f, 0.045f, 0.03f), Quaternion.identity, Fur, 1);
+                    }
+                    k.Ball(new Vector3(0f, 0.18f, 0.025f), new Vector3(0.145f, 0.155f, 0.025f), Quaternion.identity, Pink, 1, 0.35f);
+                    for (int i = -2; i <= 2; i++) // a soft fan of glowing veins
+                    {
+                        float a = (90f + i * 28f) * Mathf.Deg2Rad;
+                        k.Rod(new Vector3(Mathf.Cos(a) * 0.03f, 0.09f + Mathf.Sin(a) * 0.03f, 0.048f), new Vector3(Mathf.Cos(a) * 0.12f, 0.18f + Mathf.Sin(a) * 0.12f, 0.048f), 0.005f, 4, new Color(1f, 0.72f, 0.95f), 0.9f);
+                    }
+                    k.Ball(new Vector3(0.13f * s, 0.31f, 0.01f), new Vector3(0.03f, 0.03f, 0.05f), Quaternion.identity, Fur, 0); // notch tuft
                     if (s < 0f) // a gold hoop in the left ear
                     {
                         k.Smooth = false;
@@ -548,6 +335,16 @@ namespace SignalLost.Mudlands
                     }
                 });
                 jiggles.Add(new Jiggle(ear, new Vector3(0f, 0.3f, 0f), 60f, 6f, 0.5f));
+                // An antenna up through the bandana, curling back, with a glowing bulb (it bobs and sways).
+                Transform antenna = MudArt.Pivot(head, s < 0f ? "Antenna L" : "Antenna R", new Vector3(0.09f * s, 0.45f, 0.02f), Quaternion.Euler(-12f, 0f, -14f * s));
+                MudArt.Part(antenna, "Stalk", Vector3.zero, Quaternion.identity, s < 0f ? "clutch3_antenna_l" : "clutch3_antenna_r", k =>
+                {
+                    k.Smooth = true;
+                    Hoverbikes.Tusk(k, new[] { Vector3.zero, new Vector3(0.01f * s, 0.12f, 0.01f), new Vector3(0.035f * s, 0.23f, -0.03f), new Vector3(0.06f * s, 0.3f, -0.09f) }, 0.018f, 0.011f, FurDark);
+                    k.Ball(new Vector3(0.065f * s, 0.32f, -0.1f), 0.042f, Glow, 1, 2.5f);
+                    k.Ball(new Vector3(0.065f * s, 0.32f, -0.1f), new Vector3(0.05f, 0.022f, 0.05f), Quaternion.identity, PinkDark, 1); // a cuff round the bulb
+                });
+                jiggles.Add(new Jiggle(antenna, new Vector3(0.065f * s, 0.32f, -0.1f), 35f, 3.5f, 0.6f));
                 // The bandana's knot tails at the back of his head.
                 Transform tail = MudArt.Pivot(head, "Bandana Tail", new Vector3(0.07f * s, 0.34f, -0.24f), Quaternion.Euler(30f, 15f * s, 10f * s));
                 MudArt.Part(tail, "Cloth", Vector3.zero, Quaternion.identity, "clutch2_bandana_tail", k =>
@@ -586,12 +383,24 @@ namespace SignalLost.Mudlands
                 new Vector2(0.0001f, -0.02f), new Vector2(0.15f, 0.02f), new Vector2(0.14f, 0.14f), new Vector2(0.09f, 0.28f), new Vector2(0.045f, 0.34f), new Vector2(0.0001f, 0.36f)
             }, 14, Fur);
             k.Ball(new Vector3(0f, 0.09f, 0.33f), new Vector3(0.1f, 0.05f, 0.09f), Quaternion.identity, FurLight, 1); // muzzle underside
-            k.Ball(new Vector3(0f, 0.1f, 0.48f), new Vector3(0.06f, 0.05f, 0.05f), Quaternion.identity, Pink, 1); // nose
+            k.Ball(new Vector3(0f, 0.1f, 0.48f), new Vector3(0.065f, 0.05f, 0.05f), Quaternion.identity, Pink, 1); // nose
+            foreach (float s in new[] { -1f, 1f })
+            {
+                k.Ball(new Vector3(0.024f * s, 0.095f, 0.523f), new Vector3(0.012f, 0.009f, 0.006f), Quaternion.identity, Glow, 0, 2f); // glowing nostrils
+                // Glowing alien freckles on the cheeks and along the snout.
+                foreach (Vector3 f in new[] { new Vector3(0.17f, 0.15f, 0.22f), new Vector3(0.2f, 0.11f, 0.19f), new Vector3(0.15f, 0.09f, 0.24f), new Vector3(0.07f, 0.2f, 0.36f) })
+                    k.Ball(new Vector3(f.x * s, f.y, f.z), 0.011f, Glow, 0, 1.6f);
+            }
             k.Ball(new Vector3(0.015f, 0.12f, 0.51f), new Vector3(0.015f, 0.01f, 0.01f), Quaternion.identity, MudPalette.White, 0); // nose shine
             k.Smooth = false;
+            // Feelers instead of whiskers, each with a glowing bead on the end.
             foreach (float s in new[] { -1f, 1f })
                 for (int i = -1; i <= 1; i++)
-                    k.Plank(new Vector3(0.07f * s, 0.09f + i * 0.015f, 0.42f), new Vector3(0.32f * s, 0.11f + i * 0.06f, 0.4f - Mathf.Abs(i) * 0.02f), 0.007f, 0.007f, MudPalette.White);
+                {
+                    Vector3 tip = new Vector3(0.32f * s, 0.11f + i * 0.06f, 0.4f - Mathf.Abs(i) * 0.02f);
+                    k.Plank(new Vector3(0.07f * s, 0.09f + i * 0.015f, 0.42f), tip, 0.008f, 0.008f, PinkDark);
+                    k.Ball(tip, 0.013f, Glow, 0, 2f);
+                }
             k.Smooth = true;
             // The bandana: a cap over the crown down to the brow, a band round the back, white dots.
             k.Ball(new Vector3(0f, 0.32f, -0.02f), new Vector3(0.28f, 0.17f, 0.27f), Quaternion.Euler(-12f, 0f, 0f), Bandana, 2);
@@ -644,21 +453,21 @@ namespace SignalLost.Mudlands
                 k.Ball(new Vector3(0f, -Forearm + 0.02f, 0f), new Vector3(0.07f, 0.05f, 0.07f), Quaternion.identity, Fur, 1); // wrist
             });
             hand = MudArt.Pivot(elbow, "Hand", new Vector3(0f, -Forearm, 0f));
-            MudArt.Part(hand, "Glove", Vector3.zero, Quaternion.identity, side < 0f ? "clutch2_hand_l" : "clutch2_hand_r", k => HandMesh(k, side));
+            MudArt.Part(hand, "Glove", Vector3.zero, Quaternion.identity, side < 0f ? "clutch3_hand_l" : "clutch3_hand_r", k => HandMesh(k, side));
             return shoulder;
         }
 
-        // A fist in a fingerless black glove (furry fingers). Fingers curl down the hand's -Y; the palm faces +Z.
+        // A fist in a fingerless black glove (three furry fingers and a thumb). Fingers curl down the hand's -Y; the palm faces +Z.
         private static void HandMesh(MeshKit k, float side)
         {
             k.Smooth = true;
             k.Ball(new Vector3(0f, -0.07f, 0f), new Vector3(0.085f, 0.085f, 0.06f), Quaternion.identity, Leather, 1);
             k.Ball(new Vector3(0f, -0.06f, -0.045f), new Vector3(0.05f, 0.04f, 0.012f), Quaternion.identity, Chrome, 0); // knuckle stud
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 3; i++) // three fat alien fingers
             {
-                float x = (i - 1.5f) * 0.038f;
-                k.Ball(new Vector3(x, -0.14f, 0.02f), new Vector3(0.022f, 0.03f, 0.03f), Quaternion.identity, Fur, 1);
-                k.Ball(new Vector3(x, -0.13f, 0.055f), new Vector3(0.019f, 0.02f, 0.02f), Quaternion.identity, Pink, 0);
+                float x = (i - 1f) * 0.05f;
+                k.Ball(new Vector3(x, -0.14f, 0.02f), new Vector3(0.028f, 0.034f, 0.033f), Quaternion.identity, Fur, 1);
+                k.Ball(new Vector3(x, -0.13f, 0.058f), new Vector3(0.023f, 0.022f, 0.02f), Quaternion.identity, Pink, 0);
             }
             k.Ball(new Vector3(-0.07f * side, -0.08f, 0.045f), new Vector3(0.025f, 0.04f, 0.025f), Quaternion.Euler(0f, 0f, 30f * side), Fur, 1); // thumb
         }
@@ -712,12 +521,18 @@ namespace SignalLost.Mudlands
             {
                 Transform segment = MudArt.Pivot(parent, "Tail " + (i + 1), at, i == 0 ? Quaternion.Euler(10f, 0f, 0f) : Quaternion.Euler(-10f, 0f, 0f));
                 float r0 = radius, r1 = radius * 0.78f;
-                MudArt.Part(segment, "Piece", Vector3.zero, Quaternion.identity, "clutch2_tail_" + i, k =>
+                bool last = i == 3;
+                MudArt.Part(segment, "Piece", Vector3.zero, Quaternion.identity, "clutch3_tail_" + i, k =>
                 {
                     k.Smooth = true;
                     k.Rod(Vector3.zero, new Vector3(0f, 0f, -0.27f), r0, 8, Pink, 0f, r1);
                     k.Ball(new Vector3(0f, 0f, -0.27f), r1, Pink, 0);
-                    for (int j = 1; j < 3; j++) k.Ball(new Vector3(0f, 0f, -0.09f * j), new Vector3(r0 * 1.05f, r0 * 1.05f, 0.008f), Quaternion.identity, PinkDark, 0); // rings
+                    for (int j = 1; j < 3; j++) k.Ball(new Vector3(0f, 0f, -0.09f * j), new Vector3(r0 * 1.08f, r0 * 1.08f, 0.01f), Quaternion.identity, Glow, 0, 1.2f); // glowing rings
+                    if (last) // a glowing spade on the tip
+                    {
+                        k.Ball(new Vector3(0f, 0f, -0.33f), new Vector3(0.07f, 0.02f, 0.08f), Quaternion.identity, PinkDark, 1);
+                        k.Ball(new Vector3(0f, 0.012f, -0.33f), new Vector3(0.04f, 0.012f, 0.05f), Quaternion.identity, Glow, 1, 2f);
+                    }
                 });
                 jiggles.Add(new Jiggle(segment, new Vector3(0f, 0f, -0.27f), 45f - i * 6f, 4f, 0.4f));
                 parent = segment;
@@ -727,34 +542,6 @@ namespace SignalLost.Mudlands
         }
 
         // ---------- Mesh helpers ----------
-
-        private enum Plane { YZ, XY }
-
-        // A curved strip (a fender, a patch rocker): an arc round a centre, angles in degrees from +Z toward +Y (YZ plane,
-        // width along X) or from +X toward +Y (XY plane, width along Z).
-        private static void Arc(MeshKit k, Vector3 centre, float radius, float thickness, float width, float from, float to, int segments, Color color,
-            Plane plane = Plane.YZ)
-        {
-            Vector3 P(float degrees, float r, float w)
-            {
-                float a = degrees * Mathf.Deg2Rad;
-                return plane == Plane.YZ
-                    ? centre + new Vector3(w, Mathf.Sin(a) * r, Mathf.Cos(a) * r)
-                    : centre + new Vector3(Mathf.Cos(a) * r, Mathf.Sin(a) * r, w);
-            }
-            float h = width * 0.5f, ro = radius + thickness * 0.5f, ri = radius - thickness * 0.5f;
-            for (int i = 0; i < segments; i++)
-            {
-                float a0 = Mathf.Lerp(from, to, (float)i / segments), a1 = Mathf.Lerp(from, to, (float)(i + 1) / segments);
-                Vector3 mid = (P(a0, radius, 0f) + P(a1, radius, 0f)) * 0.5f;
-                Vector3 outward = (mid - centre).normalized;
-                Vector3 across = plane == Plane.YZ ? Vector3.right : Vector3.forward;
-                Side(k, P(a0, ro, -h), P(a0, ro, h), P(a1, ro, h), P(a1, ro, -h), outward, color);
-                Side(k, P(a0, ri, -h), P(a0, ri, h), P(a1, ri, h), P(a1, ri, -h), -outward, color);
-                Side(k, P(a0, ri, h), P(a0, ro, h), P(a1, ro, h), P(a1, ri, h), across, color);
-                Side(k, P(a0, ri, -h), P(a0, ro, -h), P(a1, ro, -h), P(a1, ri, -h), -across, color);
-            }
-        }
 
         // A quad wound to face a direction.
         private static void Side(MeshKit k, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 outward, Color color)
@@ -776,19 +563,9 @@ namespace SignalLost.Mudlands
             k.Lathe(centre, rotation, profile, 24, color, glow);
         }
 
-        // A gold cheese wedge with holes, facing +Z (belt buckle, air cleaner, back patch).
-        private static void Wedge(MeshKit k, Vector3 at, Quaternion rotation, float size, float depth)
-        {
-            Vector3 a = at + rotation * new Vector3(-size, -size * 0.55f, 0f), b = at + rotation * new Vector3(size, -size * 0.55f, 0f), c = at + rotation * new Vector3(-size * 0.6f, size * 0.6f, 0f);
-            Vector3 back = rotation * Vector3.back * depth, front = rotation * Vector3.forward;
-            Side(k, a, b, c, c, front, Cheese);
-            Side(k, a + back, b + back, c + back, c + back, -front, Cheese);
-            Side(k, a, b, b + back, a + back, rotation * Vector3.down, CheeseHole);
-            Side(k, b, c, c + back, b + back, rotation * new Vector3(1f, 1f, 0f), CheeseHole);
-            Side(k, c, a, a + back, c + back, rotation * Vector3.left, CheeseHole);
-            foreach (Vector3 hole in new[] { new Vector3(-0.35f, -0.15f, 0f), new Vector3(0.25f, -0.25f, 0f), new Vector3(-0.45f, 0.3f, 0f) })
-                k.Ball(at + rotation * (hole * size + Vector3.forward * 0.002f), new Vector3(size * 0.14f, size * 0.14f, size * 0.05f), rotation, CheeseHole, 0);
-        }
+        // A gold cheese wedge with holes, facing +Z (belt buckle, back patch).
+        private static void Wedge(MeshKit k, Vector3 at, Quaternion rotation, float size, float depth) =>
+            Hoverbikes.CheeseWedge(k, at, rotation, size, depth, Cheese, CheeseHole);
 
         // Chain links along -Y from the hand, alternating flat and edge-on.
         private static void ChainMesh(MeshKit k, int links, float spacing)
@@ -2190,8 +1967,9 @@ namespace SignalLost.Mudlands
             bikeLift = Mathf.Lerp(bikeLift, lift, blend);
             bikeOffset = Vector3.Lerp(bikeOffset, offset, blend);
             steer = Mathf.Lerp(steer, steerTo, 1f - Mathf.Exp(-10f * dt));
-            frontRoll = Mathf.Repeat(frontRoll + frontSpeed / FrontRadius * Mathf.Rad2Deg * dt, 360f);
-            rearRoll = Mathf.Repeat(rearRoll + rearSpeed / RearRadius * Mathf.Rad2Deg * dt, 360f);
+            // The lift fans: always turning over, faster with speed; the back one howls on a burnout or a rev.
+            frontRoll = Mathf.Repeat(frontRoll + (FanIdle + frontSpeed * FanPerSpeed) * dt, 360f);
+            rearRoll = Mathf.Repeat(rearRoll + (FanIdle + rearSpeed * FanPerSpeed) * dt, 360f);
             // The engine shakes the whole bike when it's standing still (and hard when he guns it).
             bool idling = speedNow < 2f && state != State.WipeOut;
             bikeShake = Mathf.MoveTowards(bikeShake, (idling ? 0.6f : 0.15f) + engineBlast * 2.2f, dt * 6f);
@@ -2200,18 +1978,21 @@ namespace SignalLost.Mudlands
         private void ApplyBike()
         {
             Quaternion turn = Quaternion.Euler(0f, bikeYaw, 0f), lean = Quaternion.Euler(0f, 0f, -bikeLean), pitch = Quaternion.Euler(-bikePitch, 0f, 0f);
-            // Wheelies pivot on the back tyre, stoppies on the front.
+            // Wheelies pivot on the back lift ring, stoppies on the front.
             Vector3 pivot = new Vector3(0f, 0f, bikePitch >= 0f ? RearAxle.z : FrontAxle.z);
             Vector3 pitched = pivot - pitch * pivot;
-            // Laid over, it rides on the edge of its fat back tyre (and on its side, on the bars and bags).
-            float tyre = RearHalfWidth * Mathf.Sin(Mathf.Abs(bikeLean) * Mathf.Deg2Rad);
+            // Laid over, the landing-gear ring's edge would dig in: it rises just enough to keep that edge on the
+            // ground (and on its side it lies on the ring and the bags). Upright, it bobs gently on its lift.
+            float leanRad = Mathf.Abs(bikeLean) * Mathf.Deg2Rad;
+            float tyre = Mathf.Max(0f, Hoverbikes.Clutch.SideReach * Mathf.Sin(leanRad) - Hoverbikes.Clutch.SideClearance * Mathf.Cos(leanRad));
+            float bob = IsDead || state == State.WipeOut ? 0f : (Mathf.Sin(Time.time * 2.6f) * 0.5f + 0.5f) * 0.04f * Mathf.Clamp01(1f - leanRad);
             float n = Time.time * 23f;
             Quaternion shake = Quaternion.Euler((Mathf.PerlinNoise(n, 0.3f) - 0.5f) * bikeShake, 0f, (Mathf.PerlinNoise(0.7f, n) - 0.5f) * bikeShake);
             bike.localRotation = turn * lean * pitch * shake;
-            bike.localPosition = bikeOffset + turn * (lean * pitched + Vector3.up * (tyre + bikeLift));
+            bike.localPosition = bikeOffset + turn * (lean * pitched + Vector3.up * (tyre + bikeLift + bob));
             frontEnd.localRotation = Quaternion.AngleAxis(steer, ForkAxis);
-            frontSpin.localRotation = Quaternion.Euler(frontRoll, 0f, 0f);
-            rearSpin.localRotation = Quaternion.Euler(rearRoll, 0f, 0f);
+            frontSpin.localRotation = Quaternion.Euler(0f, frontRoll, 0f);
+            rearFan.localRotation = Quaternion.Euler(0f, rearRoll, 0f);
         }
 
         // A point on the bike, in his Visual's space (wherever the bike is).
@@ -2232,7 +2013,11 @@ namespace SignalLost.Mudlands
             bool streaking = !bikeDetached && (act == Act.Slide || speedNow > 15f && (act == Act.Ride || act == Act.Fight));
             if (tailTrail != null && tailTrail.emitting != streaking) tailTrail.emitting = streaking;
             bool nitro = nitroDone && Stage == 3 && act == Act.Fight;
-            if (underglow != null) underglow.intensity = nitro ? 2.4f + Mathf.Sin(Time.time * 13f) * 0.6f : 0f;
+            if (underglow != null)
+            {
+                underglow.color = nitro ? Nitro : Hoverbikes.Lift;
+                underglow.intensity = bikeDetached || IsDead ? 0f : nitro ? 2.4f + Mathf.Sin(Time.time * 13f) * 0.6f : 0.9f;
+            }
             if (nitroCap != null)
             {
                 bool open = nitroDone || state == State.Nitro && stateTime > 0.25f;
@@ -2761,7 +2546,8 @@ namespace SignalLost.Mudlands
                 bikeLean = -85f * fall;
                 bikeLift = 0.25f * fall;
                 bikePitch = bikeYaw = 0f;
-                frontRoll += dt * 60f;
+                frontRoll += dt * 60f; // the fans wind down
+                rearRoll += dt * 90f;
                 ApplyBike();
                 Pose down = FaceDown(new Vector3(1.1f, 0f, 0.1f), Quaternion.Euler(0f, 60f, 0f), hand);
                 PoseNow(t < 0.25f ? Ride(0.6f) : down, 9f, dt);
