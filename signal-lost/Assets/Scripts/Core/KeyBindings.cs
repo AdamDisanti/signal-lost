@@ -67,6 +67,8 @@ namespace SignalLost.Core
             new Binding { Id = "drink", Label = "Drink from the flask", Action = "Player/Drink", Default = "<Keyboard>/f", Gamepad = "D-pad up" },
             new Binding { Id = "interact", Label = "Talk / pick up / next line", Action = "Player/Interact", Default = "<Keyboard>/e", Gamepad = "Y" },
             new Binding { Id = "inventory", Label = "Pockets (inventory)", Action = null, Default = "<Keyboard>/tab", Gamepad = "View" },
+            new Binding { Id = "call_crew", Label = "Call Eugene's crew (final boss)", Action = null, Default = "<Keyboard>/g", Gamepad = "-" },
+            new Binding { Id = "finisher", Label = "Finisher (knuckles: final boss, melee arena)", Action = null, Default = "<Keyboard>/v", Gamepad = "-" },
             // Testing tools (11-08).
             new Binding { Id = "cheat", Label = "Testing tool: cheat mode", Action = null, Default = "<Keyboard>/end", Gamepad = "-" },
             new Binding { Id = "stage_next", Label = "Testing tool: next stage", Action = null, Default = "<Keyboard>/rightArrow", Gamepad = "-" },

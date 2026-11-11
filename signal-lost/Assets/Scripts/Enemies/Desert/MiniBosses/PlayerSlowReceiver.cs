@@ -18,6 +18,12 @@ namespace SignalLost.Enemies.Desert
         /// <summary>The slow applied this frame (0 to 1), for UI.</summary>
         public static float CurrentSlow { get; private set; }
 
+        /// <summary>
+        /// Other slowing ground (the final boss's ice), as functions from the player's feet to a slow (0 to 1). The
+        /// strongest of these and the oil slicks applies. Add with += and remove when the ground goes away.
+        /// </summary>
+        public static event System.Func<Vector3, float> ExtraSlow;
+
         public static void Ensure()
         {
             var player = FindAnyObjectByType<FirstPersonController>();
@@ -43,6 +49,9 @@ namespace SignalLost.Enemies.Desert
             }
             Vector3 now = transform.position;
             float slow = Mathf.Max(OilSlick.SlowAt(now), FuelPool.SlowAt(now));
+            if (ExtraSlow != null)
+                foreach (System.Func<Vector3, float> extra in ExtraSlow.GetInvocationList())
+                    slow = Mathf.Max(slow, extra(now));
             CurrentSlow = slow;
             if (hasLast && slow > 0f)
             {

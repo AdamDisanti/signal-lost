@@ -506,6 +506,45 @@ Amanda's request: the Crystal Caves mini-boss is four beetles who want to be a b
 - **Shared code:** `DesertMiniBoss` gained opt-outs of phase 2 (`HasPhaseTwo`) and of the boss bar (`ShowsBossBar`), and a protected `Engage()`. The defeat banner no longer mentions a part when there is none.
 - **Test scene only:** it is not placed in the level yet.
 
+## Final level and boss (planning 11-06 and 11-09; first slice 11-09)
+
+Adam's planning sessions; see [final boss](final-boss.md).
+
+- **Supersedes, for the finale:** the design document's "Return to crash site: Cavendish in a mech / Reactor Core" stays. These are added:
+  - a wasteland theme;
+  - raid-style shield tasks;
+  - Eugene's crew call-in;
+  - an escape off the island, then the space casino.
+- **The parts:** each island's main part becomes one of the mech's weapons, and the mini-boss parts are its armour. This includes the Mudlands' Landing Gear, which wasn't in the design document's list.
+- **Built in the first slice:** see the final boss page. The rest is placeholders, listed there.
+- **Shared code touched:**
+  - a Finale stage, last in the stage-skip tool, so the right arrow in the desert now goes to the Wasteland;
+  - a `call_crew` key binding (G);
+  - `PlayerSlowReceiver.ExtraSlow`;
+  - the scene added to the build list.
+- **Open:** balance, the mech's final look, the approach and cutscenes, and the island order in between.
+
+## Melee, rage and Moon Shoes (11-10)
+
+Adam's request and answers; see [melee, rage and Moon Shoes](melee-rage.md).
+
+- **Where:** only the final boss level and the melee test arena (Adam, same day: kept out of the rest of the game so it doesn't conflict with the team's work). Those two scenes hand out Knuckles III and Moon Shoes III; nothing is sold, and the shop, pockets, upgrade catalog and main HUD are unchanged.
+- **Fists:** bare fists join the Q cycle (laser → scanner → fists) there.
+- **Gaussian Brass Knuckles:** the tricks unlock by tier:
+  - I: the magnet lunge;
+  - II: overcharge marks, chain lightning and the magnet pull;
+  - III: finishers on V, with a shockwave.
+- **The spreading effects (Adam's wording):** punches mark; melee kills and punches on marked enemies throw chain lightning; finishers slam a shockwave plus lightning and set off nearby marks; higher rage reaches further.
+- **Rage:** any kill +1, melee +2, finisher +3, up to 10. Each stack adds 6% to every hit the player deals (bosses included) and 3% speed. It drains after 6 s without a kill.
+- **Moon Shoes:** three tiers of run speed and jump height. Tier III adds a double jump in the direction the keys point.
+- **Design document:** it calls the laser the sole story weapon and extra weapons a stretch goal. The fists are treated as gear for the hands, at the lead's request.
+- **Test arena:** `MeleeArena.unity`, built on the Enemy Test box, with the finale's robot horde and testing keys.
+- **In the final boss (Adam, same day):**
+  - the repair robots can be finished below a quarter of their health (`Finishable`; never the mech);
+  - the horde is weighted to melee rushers and spawns closer;
+  - no rebalance until playtesting.
+- **Open:** balance, whether finishers heal, a gamepad finisher button, the jump smash with fists, and whether and where the gear is sold later.
+
 ## Mudlands alien reskin (11-10-26)
 
 - Feedback to Christian: the Mudlands enemies and bosses read as Earth animals, and their metal as new human gear, while the rest of the game uses goofy alien creatures built around ship junk. Decision: make the creatures alien and turn their metal into scrap from the crashed ship, changing as little as possible (colours and a few parts; no behaviour, numbers or sizes).
