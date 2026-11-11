@@ -65,10 +65,10 @@ namespace SignalLost.Mudlands
             switch (kind)
             {
                 case MudModels.Kind.StiltShack:
-                    Lamp(new Vector3(0f, 5.4f, 2.4f), MudPalette.Lantern, 7f, 1.6f);
+                    Lamp(new Vector3(0f, 3.8f, 2.3f), MudPalette.Pod, 7f, 1.6f); // the glow from its round windows and door
                     break;
                 case MudModels.Kind.Cabin:
-                    Lamp(new Vector3(0f, 1.4f, 3f), MudPalette.Lantern, 6f, 1.4f);
+                    Lamp(new Vector3(0f, 1.4f, 3f), MudPalette.Pod, 6f, 1.4f);
                     break;
                 case MudModels.Kind.LanternPost:
                     Lamp(new Vector3(0.55f, 2.7f, 0f), MudPalette.Lantern, 9f, 2.2f);
@@ -119,8 +119,8 @@ namespace SignalLost.Mudlands
         {
             (Vector3 at, float width, float fontSize, Color color) = kind switch
             {
-                MudModels.Kind.DrivingSchool => (new Vector3(0f, 4.3f, 2.97f), 5.2f, 5f, new Color(0.2f, 0.12f, 0.08f)),
-                MudModels.Kind.Roadhouse => (new Vector3(0f, 6.6f, 3.4f), 6.8f, 7f, new Color(1f, 0.35f, 0.6f)),
+                MudModels.Kind.DrivingSchool => (new Vector3(0f, 4.95f, 3.29f), 5.2f, 5f, new Color(0.2f, 0.12f, 0.08f)),
+                MudModels.Kind.Roadhouse => (new Vector3(0f, 6.6f, 5.73f), 6.8f, 7f, new Color(1f, 0.35f, 0.6f)),
                 MudModels.Kind.CountyLine => (new Vector3(0f, 4.6f, 0.13f), 9.8f, 6.5f, new Color(0.15f, 0.25f, 0.18f)),
                 MudModels.Kind.Kiosk => (new Vector3(0f, 2.15f, 0.05f), 0.85f, 2.2f, new Color(0.2f, 0.12f, 0.08f)),
                 MudModels.Kind.RoadSign => (new Vector3(0.5f, 2.2f, 0.04f), 1.3f, 1.6f, new Color(0.2f, 0.12f, 0.08f)),

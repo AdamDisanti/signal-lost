@@ -6,7 +6,7 @@ using Random = UnityEngine.Random;
 namespace SignalLost.Mudlands
 {
     /// <summary>
-    /// Weak swarm fodder: a salamander pup with frilly pink gills that lurks in the mud with only its eyes showing
+    /// Weak swarm fodder: an alien salamander pup (teal, with glowing frilly gills and eyes on short stalks) that lurks in the mud with only its eyes showing
     /// (bolts fly over it; it can't be hit), pops up with its pack when you come close, zig-zag hops in and nibbles,
     /// then hops back and often dives into its hole again. It sometimes plays dead after a hit, belly up with its
     /// tongue out, and jumps up to bite if you walk past (hit it while it fakes and it takes extra).
@@ -20,8 +20,9 @@ namespace SignalLost.Mudlands
 
         private enum State { Lurk, Emerge, Hop, Windup, Bite, Retreat, Dive, PlayDead, Panic, Tumble }
 
-        private static readonly Color Skin = new Color(0.5f, 0.42f, 0.3f), Belly = new Color(0.78f, 0.66f, 0.5f),
-            Gill = new Color(0.95f, 0.48f, 0.6f), Spot = new Color(0.32f, 0.26f, 0.18f);
+        // Alien colours: teal skin, a mint belly, violet spots and glowing magenta gills.
+        private static readonly Color Skin = new Color(0.27f, 0.52f, 0.56f), Belly = new Color(0.72f, 0.9f, 0.82f),
+            Gill = new Color(1f, 0.4f, 0.78f), Spot = new Color(0.4f, 0.26f, 0.58f);
 
         private State state = State.Lurk;
         private float stateTime, hopTime, nextZig = 1f, lurkFor, bob;
@@ -47,13 +48,15 @@ namespace SignalLost.Mudlands
             {
                 k.Ball(new Vector3(0f, 0f, 0.08f), new Vector3(0.22f, 0.15f, 0.19f), Quaternion.identity, Skin, 1);
                 k.Ball(new Vector3(0f, -0.06f, 0.1f), new Vector3(0.19f, 0.07f, 0.16f), Quaternion.identity, Belly, 1);
+                // Eye stalks: the eyes sit up on them, so a lurking pup is a pair of eyes on stalks poking out of the mud.
+                foreach (float x in new[] { -0.1f, 0.1f }) k.Rod(new Vector3(x, 0.06f, 0.12f), new Vector3(x, 0.2f, 0.14f), 0.024f, 5, Skin, 0f, 0.018f);
             });
             mouth = MudArt.Part(Head, "Smile", new Vector3(0f, -0.04f, 0.25f), Quaternion.identity, "pup_mouth",
                 k => k.Box(Vector3.zero, new Vector3(0.22f, 0.02f, 0.03f), Quaternion.identity, Spot));
             tongue = MudArt.Part(Head, "Tongue", new Vector3(0.03f, -0.07f, 0.26f), Quaternion.Euler(30f, 0f, 0f), "pup_tongue",
                 k => k.Box(new Vector3(0f, 0f, 0.05f), new Vector3(0.06f, 0.015f, 0.12f), Quaternion.identity, Gill));
             tongue.gameObject.SetActive(false);
-            (Transform l, Transform r) = MudArt.Eyes(Head, new Vector3(0f, 0.11f, 0.14f), 0.1f, 0.06f, MudPalette.White, MudPalette.Black, "pup");
+            (Transform l, Transform r) = MudArt.Eyes(Head, new Vector3(0f, 0.21f, 0.14f), 0.1f, 0.06f, MudPalette.White, MudPalette.Black, "pup");
             EyeL = l;
             EyeR = r;
             for (int i = 0; i < 6; i++)
@@ -61,7 +64,7 @@ namespace SignalLost.Mudlands
                 float side = i < 3 ? -1f : 1f;
                 int n = i % 3;
                 gills[i] = MudArt.Part(Head, "Gill " + i, new Vector3(0.17f * side, 0.05f, -0.02f), Quaternion.Euler(-40f + n * 40f, 0f, side * (50f + n * 8f)), "pup_gill",
-                    k => k.Cone(Vector3.zero, Quaternion.identity, 0.035f, 0.18f, 5, Gill));
+                    k => k.Cone(Vector3.zero, Quaternion.identity, 0.035f, 0.18f, 5, Gill, 1.2f));
             }
             for (int i = 0; i < 4; i++)
             {
