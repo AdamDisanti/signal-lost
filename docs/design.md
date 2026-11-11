@@ -513,3 +513,12 @@ Amanda's request: the Crystal Caves mini-boss is four beetles who want to be a b
 - Kept: clothes and props that are jokes (overalls, straw hat, vest and bow tie, moonshine barrels), and the words on signs, since the quest uses them.
 - Not done yet: the biker mice and the four bosses (suggested: salvage kart for Kart Kong, gill frills for Silt, ship running light on the witch's broom, salvage chopper for Clutch).
 - Second pass (Christian, same day): "give the world a more alien feel especially the houses, avoid the overuse of metal, ensure the collision of all buildings works". Houses became the swamp folk's own architecture (pod husk, ribs, mushroom caps, leaf roofs, root stilts, mint-glowing round windows) on their old footprints; ship salvage is kept to the test kiosk and gas pumps; every building's collision follows its shape, with roofs kept out of the NavMesh. Details in [Mudlands](mudlands.md), Status.
+
+## Desert boss revamp (11-10)
+
+Lawson asked for the three desert mini-bosses to be rebuilt as harder, Souls-leaning fights with 3-4 phases each. The design and his answers are in [desert-bosses.md](desert-bosses.md). Briarwing, Cindermaw and Pitchclaw replace Old Buzzard, Burnout and Sludge in the desert story; the old prefabs and scripts stay in the project, unused by the story.
+
+- **Decided:** a dodge now (Left Alt, i-frames); heavy hits (a big attack takes about 30% of the player's health); pure duels with no fodder; the stolen-ship-part frame kept with new names; a mostly grounded wyvern; smoke clouds with a glow tell; fuel that ignites; large bosses.
+- **Open, until the rewards pass:** the trophies (Old Buzzard's Tail Feathers, Burnout's Thorn Crest, Sludge's Stinger) and Cavendish's lines about them keep their old names; the post-boss upgrades and items are not designed yet.
+- **Open, until the quest pass:** the tasks before each fight (pick up what Briarwing dropped, put out Cindermaw's fires, seal the leaks round Pitchclaw's sump) are the old ones with new names. The pickups along Briarwing's trail are still the old feather props.
+- **Open:** whether the old Chop Shop prefabs (and their test scenes) should be deleted once the new fights are approved.
