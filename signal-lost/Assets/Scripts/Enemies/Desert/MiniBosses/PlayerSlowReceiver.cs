@@ -42,7 +42,7 @@ namespace SignalLost.Enemies.Desert
                 return;
             }
             Vector3 now = transform.position;
-            float slow = OilSlick.SlowAt(now);
+            float slow = Mathf.Max(OilSlick.SlowAt(now), FuelPool.SlowAt(now));
             CurrentSlow = slow;
             if (hasLast && slow > 0f)
             {

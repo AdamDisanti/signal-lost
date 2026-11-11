@@ -108,6 +108,9 @@ namespace SignalLost.Player
         public float Impairment { get; set; }
         public float MovementScale => 1f - (0.55f * 2f / 3f) * Mathf.Clamp01(Impairment);
 
+        /// <summary>The move stick or WASD right now (x = right, y = forward), for the dodge's direction.</summary>
+        public Vector2 MoveInput => move != null && enabled ? move.ReadValue<Vector2>() : Vector2.zero;
+
         /// <summary>True while stunned (see <see cref="Stun"/>): no walking or jumping, but looking and gravity still work.</summary>
         public bool IsStunned => Time.time < stunnedUntil;
 
@@ -126,6 +129,7 @@ namespace SignalLost.Player
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
+            if (GetComponent<PlayerDodge>() == null) gameObject.AddComponent<PlayerDodge>(); // Left Alt (docs/desert-bosses.md)
             if (inputActions == null || cameraPivot == null)
             {
                 Debug.LogError("FirstPersonController requires input actions and a camera pivot.", this);

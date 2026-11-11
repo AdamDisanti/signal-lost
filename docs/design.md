@@ -506,3 +506,12 @@ Amanda's request: the Crystal Caves mini-boss is four beetles who want to be a b
 - **Shared code:** `DesertMiniBoss` gained opt-outs of phase 2 (`HasPhaseTwo`) and of the boss bar (`ShowsBossBar`), and a protected `Engage()`. The defeat banner no longer mentions a part when there is none.
 - **Test scene only:** it is not placed in the level yet.
 
+## Desert boss revamp (11-10)
+
+Lawson asked for the three desert mini-bosses to be rebuilt as harder, Souls-leaning fights with 3-4 phases each. The design and his answers are in [desert-bosses.md](desert-bosses.md). Briarwing, Cindermaw and Pitchclaw replace Old Buzzard, Burnout and Sludge in the desert story; the old prefabs and scripts stay in the project, unused by the story.
+
+- **Decided:** a dodge now (Left Alt, i-frames); heavy hits (a big attack takes about 30% of the player's health); pure duels with no fodder; the stolen-ship-part frame kept with new names; a mostly grounded wyvern; smoke clouds with a glow tell; fuel that ignites; large bosses.
+- **Open, until the rewards pass:** the trophies (Old Buzzard's Tail Feathers, Burnout's Thorn Crest, Sludge's Stinger) and Cavendish's lines about them keep their old names; the post-boss upgrades and items are not designed yet.
+- **Open, until the quest pass:** the tasks before each fight (pick up what Briarwing dropped, put out Cindermaw's fires, seal the leaks round Pitchclaw's sump) are the old ones with new names. The pickups along Briarwing's trail are still the old feather props.
+- **Open:** whether the old Chop Shop prefabs (and their test scenes) should be deleted once the new fights are approved.
+

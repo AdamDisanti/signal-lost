@@ -2079,9 +2079,9 @@ namespace SignalLost.Editor
             new GameObject("Fodder Status Overlay").AddComponent<FodderStatusOverlay>();
 
             // The Chop Shop, each at home in its arena, hidden until its task is done.
-            DesertMiniBoss buzzard = PlaceBoss(DesertMiniBossBuilder.BuzzardPath, "Old Buzzard", DesertMiniBossBuilder.Theme.WreckField, Encounters[0].Center, chopShop);
-            DesertMiniBoss burnout = PlaceBoss(DesertMiniBossBuilder.BurnoutPath, "Burnout", DesertMiniBossBuilder.Theme.MesaPass, Encounters[1].Center, chopShop);
-            DesertMiniBoss sludge = PlaceBoss(DesertMiniBossBuilder.SludgePath, "Sludge", DesertMiniBossBuilder.Theme.BuriedHull, Encounters[2].Center, chopShop);
+            DesertMiniBoss buzzard = PlaceBoss(DesertDuelBossBuilder.BriarwingPath, "Briarwing", DesertMiniBossBuilder.Theme.WreckField, Encounters[0].Center, chopShop);
+            DesertMiniBoss burnout = PlaceBoss(DesertDuelBossBuilder.CindermawPath, "Cindermaw", DesertMiniBossBuilder.Theme.MesaPass, Encounters[1].Center, chopShop);
+            DesertMiniBoss sludge = PlaceBoss(DesertDuelBossBuilder.PitchclawPath, "Pitchclaw", DesertMiniBossBuilder.Theme.BuriedHull, Encounters[2].Center, chopShop);
 
             // The tasks along the way to each.
             var feathers = new[] { new Vector2(-12f, -104f), new Vector2(-30f, -92f), new Vector2(-45f, -79f) };
@@ -2150,17 +2150,17 @@ namespace SignalLost.Editor
             SerializedProperty jobs = data.FindProperty("jobs");
             jobs.arraySize = 3;
             Job(jobs.GetArrayElementAtIndex(0), "Picked Clean", buzzard, "old_buzzard_feathers", "the Wreck Field, west of camp", featherTasks,
-                "Old Buzzard has been moulting all over the dunes west of camp. Follow its trail and pick up the feathers.", "Feathers",
-                "Old Buzzard roosts in the Wreck Field, west of camp. Go and find it.",
-                "Defeat Old Buzzard. Step out of its shadow when it dives; knock it down with charged shots at its wings.");
+                "Briarwing has been shedding all over the dunes west of camp. Follow its trail and pick up what it dropped.", "Trail followed",
+                "Briarwing, the thorn wyvern, roosts in the Wreck Field, west of camp. Go and find it.",
+                "Defeat Briarwing. Dodge through its swipes, shoot its glowing throat while it barrages, and get out of its shadow when it climbs.");
             Job(jobs.GetArrayElementAtIndex(1), "Burning Rubber", burnout, "burnout_thorns", "the Scorch Raceway in the Mesa Pass, east of camp", fireTasks,
-                "Burnout set the dunes alight on its way east. Smother its fires with sand.", "Fires out",
-                "Burnout is tearing round the Scorch Raceway in the Mesa Pass, east of camp. Go and stop it.",
-                "Defeat Burnout. Sidestep late on its dashes and crash it into the pillars.");
+                "Cindermaw set the dunes alight on its way east. Smother its fires with sand.", "Fires out",
+                "Cindermaw, the ash drake, is tearing round the Scorch Raceway in the Mesa Pass, east of camp. Go and stop it.",
+                "Defeat Cindermaw. Dodge late when its thruster flares, watch the smoke for the glow, and shoot the thruster.");
             Job(jobs.GetArrayElementAtIndex(2), "Oil and Trouble", sludge, "sludge_stinger", "its fuel sump, north-west of camp", leakTasks,
-                "Seal the three leaking fuel lines round Sludge's sump, north-west of camp. That will bring it out.", "Leaks sealed",
-                "Sludge has crawled out of the sump!",
-                "Defeat Sludge. Get behind cover when it charges its cannon; hit its tank with a charged shot to backfire it.");
+                "Seal the three leaking fuel lines round Pitchclaw's sump, north-west of camp. That will bring it out.", "Leaks sealed",
+                "Pitchclaw has crawled out of the sump!",
+                "Defeat Pitchclaw. Get out of its fuel when its claws spark; a charged shot to its fuel tank staggers it.");
             SetObjects(data.FindProperty("rack"), rack);
             data.FindProperty("wormAmbush").objectReferenceValue = exit;
             data.FindProperty("lair").objectReferenceValue = lair;
