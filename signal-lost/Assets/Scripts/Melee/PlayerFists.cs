@@ -22,7 +22,8 @@ namespace SignalLost.Melee
     ///     one with your fists throws chain lightning (<see cref="ChainArcs"/>); right click yanks a small enemy to you and
     ///     pounds it (big ones and bosses pull you to them instead);
     /// III finishers: a staggered small enemy (low on health) glows; V slams it: a guaranteed kill, a shockwave, chain
-    ///     lightning, and every overcharge mark nearby goes off. You can't be hurt during a finisher.
+    ///     lightning, and every overcharge mark nearby goes off. You can't be hurt during a finisher. Big enemies marked
+    ///     <see cref="Finishable"/> (the finale's robot mini-bosses) can be finished too, from further off, with a bigger slam.
     /// Kills feed <see cref="RageMeter"/>, which makes all of this reach further.
     ///
     /// Added to the player at runtime by <see cref="PlayerGear"/> and switched on only while the fists are out (like the
@@ -59,6 +60,8 @@ namespace SignalLost.Melee
         [Tooltip("A small enemy can be finished at or below this share of its health.")]
         [SerializeField, Range(0.05f, 1f)] private float finishBelow = 0.35f;
         [SerializeField, Min(1f)] private float finishRange = 6f;
+        [Tooltip("How far V reaches for a big Finishable enemy (the lunge covers the gap).")]
+        [SerializeField, Min(1f)] private float bigFinishRange = 11f;
         [SerializeField, Min(1f)] private float shockRadius = 5f;
         [SerializeField, Min(0f)] private float shockDamage = 45f;
         [SerializeField, Min(0f)] private float markBurstDamage = 30f;
@@ -503,14 +506,35 @@ namespace SignalLost.Melee
 
         // ---------- Knuckles III: finishers ----------
 
-        public bool CanFinish(Health target) =>
-            target != null && !target.IsDead && !target.Invulnerable && MeleeTargets.IsSmall(target) && target.Current <= target.Max * finishBelow;
+        public bool CanFinish(Health target)
+        {
+            if (target == null || target.IsDead || target.Invulnerable) return false;
+            var opted = target.GetComponent<Finishable>();
+            if (opted != null) return target.Current <= target.Max * opted.Below;
+            return MeleeTargets.IsSmall(target) && target.Current <= target.Max * finishBelow;
+        }
+
+        private static bool IsBig(Health target) => target != null && target.GetComponent<Finishable>() != null;
 
         /// <summary>The finishable enemy V would go for right now (in the sights, or the nearest close by), or null.</summary>
         public Health FinisherTarget()
         {
-            Health target = MeleeTargets.InSights(eye.position, eye.forward, finishRange, 25f, transform, CanFinish);
+            Health target = MeleeTargets.InSights(eye.position, eye.forward, bigFinishRange, 25f, transform,
+                t => CanFinish(t) && (IsBig(t) || Reach(t) <= finishRange));
             if (target != null) return target;
+            // Big ones (robot mini-bosses) also count when roughly ahead, however high they are (the witch flies).
+            Vector3 ahead = Flat(eye.forward);
+            Health best = null;
+            float bestDistance = bigFinishRange;
+            foreach (Finishable big in Finishable.All)
+            {
+                Vector3 to = big.transform.position - transform.position;
+                float distance = Flat(to).sqrMagnitude > 0f ? new Vector3(to.x, 0f, to.z).magnitude : 0f;
+                if (distance > bestDistance || !CanFinish(big.Health) || Vector3.Angle(ahead, Flat(to)) > 45f) continue;
+                best = big.Health;
+                bestDistance = distance;
+            }
+            if (best != null) return best;
             foreach (Health candidate in MeleeTargets.Around(transform.position, 3f, transform, nearby))
                 if (CanFinish(candidate)) return candidate;
             return null;
@@ -537,6 +561,7 @@ namespace SignalLost.Melee
         {
             Health target = moveTarget;
             if (movement != null && movement.IsLunging) movement.EndLunge();
+            bool big = IsBig(target); // a robot mini-boss: everything bigger
             Vector3 at = target != null ? MeleeTargets.Centre(target) : transform.position + Flat(eye.forward) * 1.5f;
             if (target != null && !target.IsDead)
                 using (RageMeter.As(RageMeter.KillKind.Finisher)) target.TakeDamage(target.Current + 1f, gameObject);
@@ -544,7 +569,7 @@ namespace SignalLost.Melee
             glowFlash = 1.6f;
 
             float reach = rage != null ? rage.ReachMultiplier : 1f;
-            float radius = shockRadius * reach;
+            float radius = shockRadius * reach * (big ? 1.5f : 1f);
             Vector3 ground = target != null ? target.transform.position : transform.position;
             // The shockwave: everything around is hurt, shoved away and (if small) knocked silly.
             foreach (Health other in MeleeTargets.Around(at, radius, transform, nearby).ToArray())
@@ -556,18 +581,23 @@ namespace SignalLost.Melee
                 MeleeTargets.Shove(other, Flat(other.transform.position - at) * 2.5f * share);
                 other.GetComponentInParent<IStunnable>()?.Stun(1f);
             }
-            Chain(at, target, 1.5f);
+            Chain(at, target, big ? 2.2f : 1.5f);
             // Every overcharge mark nearby goes off.
             foreach (OverchargeMark mark in new List<OverchargeMark>(OverchargeMark.All))
                 if (mark != null && mark.Health != target && Vector3.Distance(mark.transform.position, ground) <= radius * 1.6f)
                     mark.Detonate(markBurstDamage * DamageMultiplier, markBurstReach * reach, gameObject);
 
-            GaussFx.Pop(at, Vector3.up, 2.2f, 40);
+            GaussFx.Pop(at, Vector3.up, big ? 3.6f : 2.2f, big ? 70 : 40);
             GaussFx.Ring(ground, radius, 0.45f, 0.45f);
+            if (big)
+            {
+                GaussFx.Ring(ground, radius * 0.6f, 0.6f, 0.6f);
+                ParticleBurst.Explosion(at, 3f);
+            }
             ParticleBurst.Spawn(ParticleBurst.Kind.Sand, ground, Vector3.up, 24, 0.5f, 5f, 70f, new Color(0.55f, 0.52f, 0.48f, 0.6f));
             Sfx.PlayAt("laser_blast", at, 1f, 0.7f, 40f);
             Sfx.PlayAt("bolt_impact", at, 1f, 0.55f, 40f);
-            CameraShake.Add(0.5f);
+            CameraShake.Add(big ? 0.8f : 0.5f);
             AddKick(new Vector3(7f, 0f, 0f), 1f);
             fovKick = -6f;
             Finished?.Invoke(target);
@@ -590,6 +620,9 @@ namespace SignalLost.Melee
             var keep = new HashSet<Health>();
             foreach (Health candidate in MeleeTargets.Around(transform.position, 22f, transform, nearby))
                 if (CanFinish(candidate) && candidate != moveTarget) keep.Add(candidate);
+            foreach (Finishable big in Finishable.All)
+                if (CanFinish(big.Health) && big.Health != moveTarget && (big.transform.position - transform.position).sqrMagnitude < 30f * 30f)
+                    keep.Add(big.Health);
             foreach (Health candidate in keep) ShowGlow(candidate, true);
             foreach (Health shown in new List<Health>(glows.Keys))
                 if (shown == null || !keep.Contains(shown)) ShowGlow(shown, false);

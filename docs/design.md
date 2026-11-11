@@ -539,6 +539,10 @@ Adam's request and answers; see [melee, rage and Moon Shoes](melee-rage.md).
 - **The desert shop:** it sells the crash site's lines plus the Moon Shoes. The desert had no stock of its own (`MerchantMenuUi.Region` was never set there).
 - **Design document:** it calls the laser the sole story weapon and extra weapons a stretch goal. The fists are treated as gear for the hands, at the lead's request.
 - **Test arena:** `MeleeArena.unity`, built on the Enemy Test box, with the finale's robot horde and testing keys.
+- **In the final boss (Adam, same day):**
+  - the repair robots can be finished below a quarter of their health (`Finishable`; never the mech);
+  - the horde is weighted to melee rushers and spawns closer;
+  - no rebalance until playtesting.
 - **Open:** balance, whether finishers heal, a gamepad finisher button, and the jump smash with fists.
 
 ## Mudlands alien reskin (11-10-26)

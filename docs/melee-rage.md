@@ -57,7 +57,11 @@ The pull has a 2.5 s recharge.
 - **When:** a small enemy at or below 35% health glows: a spinning white diamond and a flickering ring. "[V] FINISH …" shows under the crosshair when one is in your sights or right next to you.
 - **The move:** V lunges you onto it and both fists slam down. It always kills.
 - **Protection:** you can't be hurt during the finisher.
-- **Not on bosses:** bosses and mini-bosses can't be finished.
+- **Robot mini-bosses (11-10):** the final boss's robot copies (Burn-Bot, Witch-Bot, Mecha-Worm, Mecha-Buzzard, and the arena's Robo-Toad) can be finished below a quarter of their health.
+  - V reaches them from up to 11 m, and anywhere roughly ahead, even flying.
+  - The slam is bigger: a 1.5× shockwave, more lightning and an explosion.
+  - They opt in with a `Finishable` component.
+- **Never finished:** Cavendish's mech, and the islands' real bosses and mini-bosses.
 
 ## Rage
 
@@ -99,13 +103,13 @@ Back to the Future style self-lacing high-tops: silver uppers, a strap over the 
 
 **The player:** end-game gear (`FinaleLoadout`), so every knuckle and shoe tier is owned.
 
-**The horde:** the finale's robot creatures (crab, Spark Tick, mortar frog, Hubcap Armadillo, Mudpuppy) keep spawning around you. The rate and the cap rise over time: every 2.6 s down to 0.7 s, and from 8 alive up to 28.
+**The horde:** the finale's robot creatures keep spawning around you, in the same mix as the boss fight (weighted to the rushers: crabs 3, armadillos 2, ticks 2, Mudpuppy 1, mortar frog 1). The rate and the cap rise over time: every 2.6 s down to 0.7 s, and from 8 alive up to 28.
 
 **Damage numbers:** they float over everything you hit. White is normal, blue is rage-boosted, gold is a heavy hit.
 
 | Key | Testing tool |
 | --- | --- |
-| 1 / 2 / 3 / 4 | Burn-Bot / Witch-Bot / Mecha-Buzzard / Robo-Toad (the finale's robot mini-bosses at half health) |
+| 1 / 2 / 3 / 4 | Burn-Bot / Witch-Bot / Mecha-Buzzard / Robo-Toad (the finale's robot mini-bosses at half health; finishable below a quarter) |
 | 5 | Boss dummy: 20 000 health, never fights back, shows damage per second, biggest hit and the rage multiplier |
 | 6 | Pause or resume the horde |
 | 7 | Knuckle tier: III → off → I → II → III |
@@ -123,6 +127,7 @@ The panel at the top left lists these.
 - `RageMeter` and `RageHud`.
 - `ChainArcs`, `OverchargeMark`, `FinisherGlow` and `GaussFx`: the effects, built from LineRenderers and particles like the laser's.
 - `MeleeTargets`: who counts as an enemy, small or big.
+- `Finishable`: lets a big enemy (the finale's robots) be finished.
 - `MeleeGearModels`: the knuckle and shoe models, built in code.
 - `MoonShoesFx`: the double jump's effect.
 - Arena only: `MeleeArena`, `ArenaBossDummy` and `DamageNumbers`.

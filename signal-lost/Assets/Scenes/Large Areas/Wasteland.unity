@@ -5944,10 +5944,14 @@ MonoBehaviour:
   triggerRadius: 34
   addPrefabs:
   - {fileID: 4396611760563897212, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
-  - {fileID: 630564643572554537, guid: 289bfbdf1abcaae4b8296f349fc521b4, type: 3}
-  - {fileID: 2112816268695513050, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
+  - {fileID: 4396611760563897212, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
+  - {fileID: 4396611760563897212, guid: 02cb9d754c6d85845a4686e59f1620ee, type: 3}
   - {fileID: 5756654754262466470, guid: 622214c7f49d74247a4c628acaa09632, type: 3}
+  - {fileID: 5756654754262466470, guid: 622214c7f49d74247a4c628acaa09632, type: 3}
+  - {fileID: 630564643572554537, guid: 289bfbdf1abcaae4b8296f349fc521b4, type: 3}
+  - {fileID: 630564643572554537, guid: 289bfbdf1abcaae4b8296f349fc521b4, type: 3}
   - {fileID: 4246899798149675244, guid: 9546bb7bb94269f4797b6cadfbf89054, type: 3}
+  - {fileID: 2112816268695513050, guid: 6e352b669a9d4ad438501122e4348e15, type: 3}
   hordeInterval: 5.5
   hordeFastest: 1
   hordeCap: 6

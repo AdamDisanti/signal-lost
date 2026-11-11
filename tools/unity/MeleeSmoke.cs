@@ -284,8 +284,22 @@ public static class MeleeSmoke
         }
         yield return 3f;
         Health witch = arena.Extras.Select(x => x != null ? x.GetComponent<Health>() : null).FirstOrDefault(h => h != null && h.name == "Witch-Bot");
-        Check(witch != null && !witch.IsDead && !fists.CanFinish(witch), "Robot mini-bosses fight, and can't be finished.");
+        Check(witch != null && !witch.IsDead && !fists.CanFinish(witch), "Robot mini-bosses fight, and can't be finished while healthy.");
         yield return CaptureFrom("Robots", life.transform.position + Vector3.up * 5f - life.transform.forward * 7f, witch.transform.position);
+        witch.TakeDamage(witch.Current - witch.Max * 0.2f);
+        Teleport(witch.transform.position + Flat(life.transform.position - witch.transform.position).normalized * 7f);
+        Face(witch.transform.position);
+        yield return 0.3f;
+        Face(witch.transform.position);
+        Check(fists.CanFinish(witch), $"Below a quarter of its health a robot mini-boss can be finished ({witch.Current:0} / {witch.Max:0}).");
+        Health aimed = fists.FinisherTarget();
+        Check(aimed == witch, $"...from further off than a critter ({Flat(witch.transform.position - life.transform.position).magnitude:0.0} m; V picks {(aimed != null ? aimed.name : "nothing")}).");
+        rage.ResetStacks();
+        Invoke(fists, "TryFinisher");
+        yield return 0.25f;
+        yield return Capture("RobotFinisher");
+        yield return Settle();
+        Check(witch.IsDead && rage.Stacks >= 3, $"V lunges in and finishes it with a bigger slam ({rage.Stacks} rage).");
         arena.ClearArena();
         yield return 0.5f;
 

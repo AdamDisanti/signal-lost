@@ -42,11 +42,17 @@ namespace SignalLost.Editor
             "Moe", "Larry", "Curly", "Shemp", "Clawdius", "Sir Pinchington", "Barnacle Bob", "Crabigail", "Little Steve", "Big Steve"
         };
         private const string CousinFolder = "Assets/Prefabs/Enemies/Cousins/";
-        /// <summary>Stand-ins for the adds until each island's own enemies are built (Adam, 11-09).</summary>
-        private static readonly string[] AddPaths =
+        /// <summary>
+        /// Stand-ins for the adds until each island's own enemies are built (Adam, 11-09). A prefab listed twice spawns
+        /// twice as often: weighted to the ones that rush you (crabs, armadillos, ticks) over the mortar frog, which keeps
+        /// its distance, so brawling through the horde for rage is the natural play (Adam, 11-10).
+        /// </summary>
+        internal static readonly string[] AddPaths =
         {
-            "Assets/Prefabs/Enemies/HermitCrab.prefab", "Assets/Prefabs/Enemies/Desert/SparkTick.prefab", "Assets/Prefabs/Enemies/MortarFrog.prefab",
-            "Assets/Prefabs/Enemies/Desert/HubcapArmadillo.prefab", "Assets/Prefabs/Enemies/Mudlands/Mudpuppy.prefab"
+            "Assets/Prefabs/Enemies/HermitCrab.prefab", "Assets/Prefabs/Enemies/HermitCrab.prefab", "Assets/Prefabs/Enemies/HermitCrab.prefab",
+            "Assets/Prefabs/Enemies/Desert/HubcapArmadillo.prefab", "Assets/Prefabs/Enemies/Desert/HubcapArmadillo.prefab",
+            "Assets/Prefabs/Enemies/Desert/SparkTick.prefab", "Assets/Prefabs/Enemies/Desert/SparkTick.prefab",
+            "Assets/Prefabs/Enemies/Mudlands/Mudpuppy.prefab", "Assets/Prefabs/Enemies/MortarFrog.prefab"
         };
 
         private const float MapSize = 320f;

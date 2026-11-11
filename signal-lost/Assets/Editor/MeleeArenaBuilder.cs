@@ -30,12 +30,6 @@ namespace SignalLost.Editor
         public const string ScenePath = "Assets/Scenes/Initial Test Scenes/MeleeArena.unity";
         private const float Half = 30f;
 
-        /// <summary>The finale's adds (FinaleBuilder): one of each island's critters so far.</summary>
-        private static readonly string[] AddPaths =
-        {
-            "Assets/Prefabs/Enemies/HermitCrab.prefab", "Assets/Prefabs/Enemies/Desert/SparkTick.prefab", "Assets/Prefabs/Enemies/MortarFrog.prefab",
-            "Assets/Prefabs/Enemies/Desert/HubcapArmadillo.prefab", "Assets/Prefabs/Enemies/Mudlands/Mudpuppy.prefab"
-        };
 
         [MenuItem("Signal Lost/Melee/Build Melee Arena")]
         public static void BuildFromMenu()
@@ -147,7 +141,7 @@ namespace SignalLost.Editor
             var melee = arena.AddComponent<MeleeArena>();
             var data = new SerializedObject(melee);
             var adds = new List<Object>();
-            foreach (string path in AddPaths)
+            foreach (string path in FinaleBuilder.AddPaths) // the finale's horde, weighted the same way
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (prefab != null) adds.Add(prefab);

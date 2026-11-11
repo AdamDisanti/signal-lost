@@ -15,8 +15,9 @@ namespace SignalLost.Finale
     /// second (Adam, 11-10: two at a time, a fair 2v1). Each is the real boss (its own script, moves and attacks) given
     /// a robot skin by <see cref="Robotify"/>, a robot name, and these changes for the finale: no ship part or key item
     /// drop, no top-of-screen bar of its own (the finale HUD lists them), a wide fight radius so it engages at once,
-    /// half health, and its hits on the player scaled down (<see cref="FinaleEncounter"/>). Robo-Toad and Silt-Bot are
-    /// built too but not in the line-up at the moment.
+    /// half health, and its hits on the player scaled down (<see cref="FinaleEncounter"/>). They can be finished off
+    /// with the knuckles below a quarter of their health (Adam, 11-10; <see cref="SignalLost.Melee.Finishable"/>).
+    /// Robo-Toad and Silt-Bot are built too but not in the line-up at the moment.
     /// </summary>
     public static class FinaleRobots
     {
@@ -54,6 +55,8 @@ namespace SignalLost.Finale
         }
 
         private const float FightRadius = 48f;
+        /// <summary>Share of its health at or below which a robot can be finished with the knuckles (V).</summary>
+        public const float FinishBelow = 0.25f;
 
         public static Robot Spawn(Kind kind, Sources sources, Vector3 at, Quaternion facing, float healthScale)
         {
@@ -95,6 +98,7 @@ namespace SignalLost.Finale
                 Set(worm, "displayName", name.ToUpperInvariant());
                 Set(worm, "arena", null);
             }
+            go.AddComponent<SignalLost.Melee.Finishable>().Below = FinishBelow;
             var skin = go.AddComponent<Robotify>();
             skin.accent = kind == Kind.BurnBot || kind == Kind.MechaWorm ? FinalePalette.EngineGlow : FinalePalette.Teal;
 

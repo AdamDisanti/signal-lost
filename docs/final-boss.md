@@ -125,6 +125,8 @@ Adam found the first slice far too easy: he never dropped below half health. He 
   | **Napalm flyover** | 3 | It jets up and strafes a line through you, carpeting it with fire that burns for 18 s, so the safe ground keeps shrinking. |
 
 - **The horde.** Cavendish's robot versions of the creatures pour in for the whole fight: Robo-Crabs, Spark Ticks, Mortar Frogs, Hubcap Armadillos and Mudpuppies.
+  - **Melee pass (11-10):** the mix is weighted to the ones that rush you (crabs 3, armadillos 2, ticks 2, Mudpuppy 1, frog 1), and they spawn 12–22 m out instead of 18–28 m. Brawling through them with the knuckles builds rage, which boosts damage on the mech and the robots ([melee](melee-rage.md)).
+  - **Robot finishers (11-10):** below a quarter of their health, the repair robots glow and can be finished with V for 3 rage. The mech can't be.
   - At the start: one every 5.5 s, at most 6 alive.
   - It grows each minute and each phase, and jumps while the shield is up, up to 26 alive and one every second.
   - When Cavendish goes down, they all power off.

@@ -128,7 +128,7 @@ public static class FinaleSmoke
         Vector3 kneelAt = mech.transform.position;
         yield return 3f;
         Check(Vector3.Distance(mech.transform.position, kneelAt) < 0.5f && (mech.AttackName == "" || mech.AttackName == "Rocket volley"),
-            "It kneels in place to repair, only sending the odd light rocket volley.");
+            $"It kneels in place to repair, only sending the odd light rocket volley (moved {Vector3.Distance(mech.transform.position, kneelAt):0.00} m, attack '{mech.AttackName}').");
         string[] first = encounter.Robots.Select(r => r.Name).ToArray();
         Check(first.SequenceEqual(new[] { "Burn-Bot", "Witch-Bot" }) && encounter.Robots.All(r => r.Alive && r.Go.GetComponent<Robotify>() != null),
             "Burn-Bot and Witch-Bot come in, in robot skins: " + string.Join(", ", first) + ".");
@@ -153,6 +153,22 @@ public static class FinaleSmoke
         foreach (ShieldConduit c in UnityEngine.Object.FindObjectsByType<ShieldConduit>().Where(c => c.Live).ToArray()) c.GetComponent<Health>().TakeDamage(500f, life.gameObject);
         yield return 1f;
         Check(mech.Shielded && mech.Phase == 1, "Breaking the conduits isn't enough while a robot still stands.");
+        // Finish one robot with the knuckles (the end-game loadout has Knuckles III), the other the plain way.
+        FinaleRobots.Robot finished = encounter.Robots.First(r => r.Alive);
+        var fists = life.GetComponent<SignalLost.Melee.PlayerFists>();
+        life.GetComponent<PlayerGear>().SetFistsOut(true);
+        finished.Health.TakeDamage(finished.Health.Current - finished.Health.Max * 0.2f);
+        Vector3 robotAt = finished.Go.transform.position;
+        Teleport(life, robotAt + (life.transform.position - robotAt).normalized * 6f);
+        Vector3 toRobot = robotAt - life.transform.position;
+        toRobot.y = 0f;
+        life.transform.rotation = Quaternion.LookRotation(toRobot);
+        for (Transform t = view.transform; t != null && t != life.transform; t = t.parent) t.localRotation = Quaternion.identity;
+        yield return 0.3f;
+        Check(fists.CanFinish(finished.Health), $"Below a quarter of its health {finished.Name} can be finished with the knuckles.");
+        typeof(SignalLost.Melee.PlayerFists).GetMethod("TryFinisher", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(fists, null);
+        yield return WaitFor(() => !finished.Alive, 4f, $"V finishes {finished.Name} off.");
+        life.GetComponent<PlayerGear>().SetFistsOut(false);
         foreach (FinaleRobots.Robot robot in encounter.Robots) if (robot.Alive) robot.Health.TakeDamage(robot.Health.Max * 10f, life.gameObject);
         for (float t = 0f; t < 10f && !(mech.Phase == 2 && mech.Current == CavendishMech.State.Fighting); t += 0.1f) yield return 0.1f;
         Check(mech.Phase == 2 && mech.Current == CavendishMech.State.Fighting,

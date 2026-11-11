@@ -316,7 +316,8 @@ namespace SignalLost.Finale
             Vector3 fromCentre = player.transform.position - centre;
             fromCentre.y = 0f;
             float angle = Mathf.Atan2(fromCentre.z, fromCentre.x) + Random.Range(-1.2f, 1.2f);
-            Vector3 desired = centre + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * Random.Range(18f, 28f);
+            // Close enough that they're on you in seconds: the horde is there to be brawled through for rage (11-10).
+            Vector3 desired = centre + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * Random.Range(12f, 22f);
             if (!SpawnSafety.TryPlace(desired, 6f, out Vector3 point)) return;
             Vector3 face = player.transform.position - point;
             face.y = 0f;
