@@ -77,25 +77,25 @@ namespace SignalLost.Story
             "Ah, mechanic! Found your feet? Splendid. I had a little wander while you were sleeping off the crossing.",
             "Bad news, I'm afraid. The Engine Core isn't the only bit of your ship out here.",
             "Three local ruffians made off with the parts bolted round it. The Chop Shop, the crabs call them.",
-            "A buzzard, a lizard with a rocket where its manners should be, and a scorpion that drinks fuel.",
+            "A wyvern grown over with thorns, a drake with a rocket in its back, and a scorpion of living rock that drinks fuel.",
             "Get the parts back, and bring me a little something from each of them. I've put up a new rack by the fire for the occasion.",
-            "Start with Old Buzzard. It's been moulting all over the dunes west of here. Follow the feathers and you'll find its roost."
+            "Start with Briarwing. It's been shedding all over the dunes west of here. Follow the trail and you'll find its roost."
         };
         private static readonly string[][] Reports =
         {
             new[]
             {
                 "The tail feathers! And a wing panel off your ship. Hand that here; I'll keep it safe.",
-                "Next: Burnout. A thorny little lizard that strapped your rocket thruster to its backside.",
+                "Next: Cindermaw. An ash drake that swallowed your rocket thruster and grew round it.",
                 "It's been tearing round the Mesa Pass, east of here, and setting the dunes alight as it goes.",
                 "Put out the fires it left on its way, before the whole desert goes up, then go and have a word with it."
             },
             new[]
             {
                 "That crest! It goes beautifully with the feathers. And your thruster, only slightly singed. Safe keeping.",
-                "Last of the Chop Shop: Sludge. A scorpion the size of a shed, wearing your fuel tank.",
+                "Last of the Chop Shop: Pitchclaw. A scorpion of living rock with your fuel tank sunk in its back.",
                 "It's been draining a buried hull north-west of here into a filthy great sump, and the pipes are leaking everywhere.",
-                "Seal the three leaks round the sump. That'll bring it out. And mind its cannon: get behind something solid."
+                "Seal the three leaks round the sump. That'll bring it out. And mind its claws: when they spark, get out of the fuel."
             }
         };
         private static readonly string[] WrapUp =
@@ -211,7 +211,7 @@ namespace SignalLost.Story
                         ? new[] { "West, mechanic. Follow the feathers. Big grey ones; you can't miss them." }
                         : job == 1
                             ? new[] { "East, toward the Mesa Pass. Follow the smoke and smother those fires." }
-                            : new[] { "North-west, to the sump. Seal those leaks and Sludge will come to you." });
+                            : new[] { "North-west, to the sump. Seal those leaks and Pitchclaw will come to you." });
                 case Stage.Hunt:
                 case Stage.Fight:
                     return Remind(bubble, new[] { $"{current.boss.DisplayName} is out there in {current.where}. Off you go!" });

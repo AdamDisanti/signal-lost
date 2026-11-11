@@ -434,21 +434,82 @@ namespace SignalLost.Editor
 
         private static Vector3 OnGround(float x, float z, float sink = 0f) => new Vector3(x, Ground(x, z) - sink, z);
 
+        // The hole over the lair (11-10). The dunes are cut exactly along the gash's outline, grown by CutGrow, so the
+        // hole's edge follows the gash smoothly instead of the terrain's 4 m triangles; triangles near it are split finely
+        // first. The gash's walls (BuildShaft) start on that very edge, so nothing shows through between them.
+        private const float CutGrow = 0.6f;
+        private const int CutSplits = 8;
+
+        /// <summary>Below zero inside the hole's edge: metres from it.</summary>
+        private static float CutField(Vector3 p) => GashDistance(new Vector2(p.x, p.z) - LairCentre) - (GashHalf + CutGrow);
+
+        /// <summary>Is the dunes' sand at this point part of the sinkhole lid (the sand over the gash, which drops away)?</summary>
+        private static bool InLid(float x, float z) => CutField(new Vector3(x, 0f, z)) < 0f;
+
         /// <summary>
-        /// Is the terrain under this point part of the sinkhole lid (the sand over the lair's gash, which drops away)?
-        /// The lid is whole triangles of the terrain mesh, chosen by their middles, so its edge is jagged; this asks about
-        /// the very triangle the point is on.
+        /// One triangle of the dunes, split along the hole's edge: the pieces outside go to <paramref name="keep"/>, the ones
+        /// inside to <paramref name="drop"/>, and each stretch of the edge to <paramref name="edge"/> (world points).
         /// </summary>
-        private static bool InLid(float x, float z)
+        private static void CutTriangle(Vector3 a, Vector3 b, Vector3 c, Action<Vector3, Vector3, Vector3> keep, Action<Vector3, Vector3, Vector3> drop,
+            List<(Vector3, Vector3)> edge)
         {
+            float fa = CutField(a), fb = CutField(b), fc = CutField(c), near = MapSize / Cells * 1.5f;
+            if (Mathf.Min(fa, Mathf.Min(fb, fc)) > near) { keep(a, b, c); return; }
+            if (Mathf.Max(fa, Mathf.Max(fb, fc)) < -near) { drop(a, b, c); return; }
+            const int n = CutSplits;
+            Vector3 P(int i, int j) => a + (b - a) * (i / (float)n) + (c - a) * (j / (float)n);
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n - i; j++)
+                {
+                    ClipToCut(P(i, j), P(i + 1, j), P(i, j + 1), keep, drop, edge);
+                    if (i + j < n - 1) ClipToCut(P(i + 1, j), P(i + 1, j + 1), P(i, j + 1), keep, drop, edge);
+                }
+        }
+
+        private static void ClipToCut(Vector3 a, Vector3 b, Vector3 c, Action<Vector3, Vector3, Vector3> keep, Action<Vector3, Vector3, Vector3> drop,
+            List<(Vector3, Vector3)> edge)
+        {
+            float fa = CutField(a), fb = CutField(b), fc = CutField(c);
+            bool ia = fa < 0f, ib = fb < 0f, ic = fc < 0f;
+            if (ia == ib && ib == ic) { (ia ? drop : keep)(a, b, c); return; }
+            // Turn it so a is the corner on its own side.
+            if (ia == ib) { (a, b, c) = (c, a, b); (fa, fb, fc) = (fc, fa, fb); }
+            else if (ia == ic) { (a, b, c) = (b, c, a); (fa, fb, fc) = (fb, fc, fa); }
+            bool inside = fa < 0f;
+            Vector3 ab = Crossing(a, b, fa, fb), ac = Crossing(a, c, fa, fc);
+            (inside ? drop : keep)(a, ab, ac);
+            (inside ? keep : drop)(ab, b, c);
+            (inside ? keep : drop)(ab, c, ac);
+            edge.Add((ab, ac));
+        }
+
+        // Where the hole's edge crosses a triangle's side: the same point whichever way round the side is walked, so the
+        // pieces either side (and the wall built on the edge) meet exactly.
+        private static Vector3 Crossing(Vector3 p, Vector3 q, float fp, float fq)
+        {
+            if (p.x > q.x || (p.x == q.x && p.z > q.z)) { (p, q) = (q, p); (fp, fq) = (fq, fp); }
+            return Vector3.Lerp(p, q, fp / (fp - fq));
+        }
+
+        /// <summary>The hole's edge as the dunes are cut: every stretch of it, in world points on the sand's surface.</summary>
+        private static List<(Vector3, Vector3)> HoleEdge()
+        {
+            EnsureGrid();
+            var edge = new List<(Vector3, Vector3)>();
             float step = MapSize / Cells, origin = -MapSize * 0.5f;
-            float fx = Mathf.Clamp((x - origin) / step, 0f, Cells - 0.0001f), fz = Mathf.Clamp((z - origin) / step, 0f, Cells - 0.0001f);
-            int i = (int)fx, j = (int)fz;
-            float u = fx - i, v = fz - j;
-            Vector2 middle = FlipDiagonal(i, j)
-                ? u >= v ? new Vector2(2f / 3f, 1f / 3f) : new Vector2(1f / 3f, 2f / 3f)
-                : u + v <= 1f ? new Vector2(1f / 3f, 1f / 3f) : new Vector2(2f / 3f, 2f / 3f);
-            return InSinkhole(new Vector2(origin + (i + middle.x) * step, origin + (j + middle.y) * step));
+            Action<Vector3, Vector3, Vector3> none = (x, y, z) => { };
+            for (int i = 0; i < Cells; i++)
+                for (int j = 0; j < Cells; j++)
+                {
+                    Vector3 p00 = new Vector3(origin + i * step, heightGrid[i, j], origin + j * step);
+                    Vector3 p10 = new Vector3(origin + (i + 1) * step, heightGrid[i + 1, j], origin + j * step);
+                    Vector3 p01 = new Vector3(origin + i * step, heightGrid[i, j + 1], origin + (j + 1) * step);
+                    Vector3 p11 = new Vector3(origin + (i + 1) * step, heightGrid[i + 1, j + 1], origin + (j + 1) * step);
+                    if (Mathf.Min(Mathf.Min(CutField(p00), CutField(p10)), Mathf.Min(CutField(p01), CutField(p11))) > step * 3f) continue;
+                    if (FlipDiagonal(i, j)) { CutTriangle(p00, p11, p10, none, none, edge); CutTriangle(p00, p01, p11, none, none, edge); }
+                    else { CutTriangle(p00, p01, p10, none, none, edge); CutTriangle(p10, p01, p11, none, none, edge); }
+                }
+            return edge;
         }
 
         // =====================================================================
@@ -650,20 +711,28 @@ namespace SignalLost.Editor
             var lidSub = new[] { new List<int>(), new List<int>(), new List<int>() };
             bool under = false;
 
+            // A whole terrain triangle; near the hole it is cut along the hole's edge, its pieces keeping its own normal (and
+            // so its colour) whatever their size.
+            var unused = new List<(Vector3, Vector3)>();
             void Tri(Vector3 a, Vector3 b, Vector3 c)
             {
                 Vector3 n = Vector3.Cross(b - a, c - a).normalized;
-                if (n.y < 0f) { (b, c) = (c, b); n = -n; }
+                if (n.y < 0f) n = -n;
                 float slope = Mathf.Acos(Mathf.Clamp01(n.y)) * Mathf.Rad2Deg;
                 int kind = slope < 16f ? 0 : slope < 38f ? 1 : 2;
-                Vector3 middle = (a + b + c) / 3f;
-                bool overLair = !under && InSinkhole(new Vector2(middle.x, middle.z));
-                List<int> target = under ? floor : overLair ? lidSub[kind] : sub[kind];
-                List<Vector3> v = under ? floorVertices : overLair ? lidVertices : vertices, nn = under ? floorNormals : overLair ? lidNormals : normals;
-                int start = v.Count;
-                v.Add(a); v.Add(b); v.Add(c);
-                nn.Add(n); nn.Add(n); nn.Add(n);
-                target.Add(start); target.Add(start + 1); target.Add(start + 2);
+                void Emit(Vector3 x, Vector3 y, Vector3 z, bool overLair)
+                {
+                    if (Vector3.Cross(y - x, z - x).sqrMagnitude < 1e-10f) return;
+                    if (Vector3.Dot(Vector3.Cross(y - x, z - x), n) < 0f) (y, z) = (z, y);
+                    List<int> target = under ? floor : overLair ? lidSub[kind] : sub[kind];
+                    List<Vector3> v = under ? floorVertices : overLair ? lidVertices : vertices, nn = under ? floorNormals : overLair ? lidNormals : normals;
+                    int start = v.Count;
+                    v.Add(x); v.Add(y); v.Add(z);
+                    nn.Add(n); nn.Add(n); nn.Add(n);
+                    target.Add(start); target.Add(start + 1); target.Add(start + 2);
+                }
+                if (under) Emit(a, b, c, false);
+                else CutTriangle(a, b, c, (x, y, z) => Emit(x, y, z, false), (x, y, z) => Emit(x, y, z, true), unused);
             }
 
             for (int i = 0; i < Cells; i++)
@@ -680,7 +749,7 @@ namespace SignalLost.Editor
                     else { Tri(p00, p01, p10); Tri(p10, p01, p11); }
                 }
 
-            var mesh = new Mesh { name = "DesertDunesTerrain" };
+            var mesh = new Mesh { name = "DesertDunesTerrain", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
             mesh.SetVertices(vertices);
             mesh.SetNormals(normals);
             mesh.subMeshCount = 3;

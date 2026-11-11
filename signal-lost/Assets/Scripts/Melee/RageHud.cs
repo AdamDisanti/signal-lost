@@ -84,6 +84,10 @@ namespace SignalLost.Melee
             handsGroup.blocksRaycasts = false;
             handsTitle = UiTheme.Label("Title", fistsRect, 22f, Gauss, TextAlignmentOptions.TopLeft, FontStyles.Bold);
             UiTheme.Place(handsTitle.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(8f, -4f), new Vector2(334f, 30f));
+            handsTitle.textWrappingMode = TextWrappingModes.NoWrap;
+            handsTitle.enableAutoSizing = true;
+            handsTitle.fontSizeMin = 14f;
+            handsTitle.fontSizeMax = 22f;
             for (int i = 0; i < comboPips.Length; i++)
             {
                 comboPips[i] = UiTheme.Panel("Combo Pip", fistsRect, Track, null, 0.35f);

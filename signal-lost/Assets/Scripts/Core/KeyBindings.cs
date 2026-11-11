@@ -60,6 +60,7 @@ namespace SignalLost.Core
             new Binding { Id = "sprint", Label = "Sprint", Action = "Player/Sprint", Default = "<Keyboard>/leftShift", Gamepad = "Stick click" },
             new Binding { Id = "jump", Label = "Jump", Action = "Player/Jump", Default = "<Keyboard>/space", Gamepad = "A" },
             new Binding { Id = "crouch", Label = "Crouch / slide / jump smash", Action = "Player/Crouch", Default = "<Keyboard>/c", Gamepad = "B" },
+            new Binding { Id = "dodge", Label = "Dodge", Action = null, Default = "<Keyboard>/leftAlt", Gamepad = "-" },
             new Binding { Id = "attack", Label = "Laser combo", Action = "Player/Attack", Default = "<Mouse>/leftButton", Gamepad = "X" },
             new Binding { Id = "charge", Label = "Charge bolt (hold)", Action = "Player/ChargeShot", Default = "<Mouse>/rightButton", Gamepad = "RT" },
             new Binding { Id = "swap", Label = "Swap scanner / laser", Action = "Player/ToggleScanner", Default = "<Keyboard>/q", Gamepad = "LB" },

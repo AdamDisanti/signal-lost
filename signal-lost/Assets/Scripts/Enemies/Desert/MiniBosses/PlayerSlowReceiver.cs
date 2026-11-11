@@ -48,7 +48,7 @@ namespace SignalLost.Enemies.Desert
                 return;
             }
             Vector3 now = transform.position;
-            float slow = OilSlick.SlowAt(now);
+            float slow = Mathf.Max(OilSlick.SlowAt(now), FuelPool.SlowAt(now));
             if (ExtraSlow != null)
                 foreach (System.Func<Vector3, float> extra in ExtraSlow.GetInvocationList())
                     slow = Mathf.Max(slow, extra(now));
