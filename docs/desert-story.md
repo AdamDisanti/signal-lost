@@ -71,7 +71,13 @@ They are part of `DesertEnvironment.prefab`, so the NavMesh walks round them. Ea
 - **Walls and roof:** a boulder wall, with a lumpy rock dome over everything.
 - **Cover:** six cave pillars from floor to roof, and three slabs of swallowed hull.
 - **Light:** glowing crystal clusters with warm lights, and old bones round the walls.
-- **The gash:** a slot in the roof 17 m long and 11 m wide, running from 27 m north of the middle (its **lip**, where the climb comes out) back toward the middle. Rough rock walls rise from the roof to just under the dunes.
+- **The gash:** a slot in the roof 17 m long and 11 m wide, running from 27 m north of the middle (its **lip**, where the climb comes out) back toward the middle.
+  - **The hole in the dunes** (11-10, after Lawson saw jagged edges and gaps down to the bottom of the map) is cut exactly along the gash's outline, 0.6 m outside it. The terrain triangles near it are split into 0.5 m pieces first, so its edge is a smooth curve, not the terrain's 4 m triangles.
+  - **Its walls** start on that very edge, built from the same points the dunes are cut along, so there is no gap between sand and wall.
+    - At the top the sand rolls over a rounded brink, in the dunes' own material where it meets them (flat sand or slope).
+    - It turns to sandstone about half a metre down, then to the cavern's rock about 3 m down.
+    - From there it flares out to meet the opening in the cavern roof.
+    - Rocks bounce off the walls, and they keep the player climbing the debris inside them.
   - The lip comes out on the bowl's gently sloping floor, clear of the engine wreck; the bowl's rim is too steep to step out onto.
   - **The lid:** the patch of dunes over the gash (the environment's **Sinkhole Lid**) drops away when it gives way, leaving the gash open to the sky.
 - **The debris cone:** what the sand piles into. It is shaped like a talus cone leaning against the wall it fell from: level with the dunes at the lip, then falling away in every direction at 33°, lumpy, and held under the roof outside the gash.
@@ -79,7 +85,10 @@ They are part of `DesertEnvironment.prefab`, so the NavMesh walks round them. Ea
   - What you walk on is the smooth surface underneath, so the low stones never trip you.
   - It grows the way poured sand does: a cone under the pour whose top rises and foot spreads, over 2.6 s.
 - **The rocks:** about 220 blocks, slabs, chunks, shards and wedges (ten shapes, 0.6–3.2 m), each a squared-off lump sliced by random flat cuts. The cut faces are paler, like fresh breaks.
-  - They start packed in the gash under a cracked rock face, above where the cone's surface will be.
+  - They start packed in the gash under a cracked rock face, above where the cone's surface will be and inside its walls.
+  - **Packed in sand** (11-10, after Lawson saw rocks floating in the gash): sand fills the gash round them, so from the cavern the gash is a sandy ceiling with rocks bedded in it.
+    - Its underside follows the rocks: nowhere lower than the middle of the lowest rock near, so every rock is at least half buried and none hangs in the air.
+    - When the roof gives way it crumbles patch by patch, each patch just as the rocks in it come loose (the recording knows when). In a patch the clumps break off a moment apart, drop and crumble to nothing as they fall.
   - They come loose from the gash's far end toward the lip, the lowest first.
 - **The recording** (`CorewormCollapse.asset`, a `CollapseBake`):
   - The level builder copies the lair into a scene with its own physics and makes the rocks rigid bodies. It lets them fall onto the cone, the floor, the pillars and each other until they rest, at 60 steps a second.
@@ -161,15 +170,16 @@ On a disposable copy of the project (Unity 6000.6.2f1, batch mode):
   - A death in the lair put the player back on the surface in daylight. Walking back to the rack sprang the worm again.
   - After the worm was beaten, the core and the fang dropped. The red zone appeared, the sand poured and the rocks fell.
   - The probe left the player standing in the red zone: they were crushed and respawned on the surface, and the story moved on.
-  - The build's simulation needed three runs: 3 rocks, then 1, blocked every way up and were left out. The third run was clean, with 219 rocks and a 14 s fall.
+  - The build's simulation needed five runs, leaving out rocks that strayed into the arena's safe side. The fifth run was clean, with 164 rocks and a 14 s fall (fewer than before, since the rocks now have to fit inside the gash's walls).
   - Building it twice gave the same recording.
-  - In play, every rock ended exactly where the recording ends (0.0 mm off). 204 lay on the cone, none sunk into it, none under the floor.
+  - In play, every rock ended exactly where the recording ends (0.0 mm off). All 164 lay on the cone, none sunk into it, none under the floor.
   - No rock stood anywhere along the checked route, and the gash was open to the sky from the upper slope.
   - The player then walked the route from the foot of the cone to the dunes with the real character controller. The probe's walker hops or steps round anything in its way; in the final run it did so once.
   - The fang went on a stand, and Cavendish's wrap-up cleared the desert.
 - **Rendered shots** were reviewed:
   - the three arenas, the camp rack, the tasks and the ambush;
-  - the lair with the choked gash, the red warning, the fall, and the settled rubble with the sky through the gash;
+  - the lair with the choked gash (a sandy ceiling with the rocks bedded in it), the red warning, the sand crumbling away from below, the fall, and the settled rubble with the sky through the gash;
+  - the hole's edge from the dunes, close up: a smooth rounded brink and walls down to the rubble, with no gaps;
   - the climb, and the sinkhole from above.
 - **Not done:** hand-play in the editor. The fights' balance and feel in their new arenas, and the scanner's behaviour with physical input, still need a play-test.
 
