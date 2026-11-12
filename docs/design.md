@@ -186,6 +186,16 @@ Amanda's request: the Crystal Caves fodder enemy, a chameleon with crystal scale
 - **Test scene only:** its own test scene, with instances set to **Start Revealed**. It is not placed in the level yet.
 - **Not decided, so not invented:** emerging from walls (only ground is built), and whether a hit while it is camouflaged should reveal it.
 
+## Shard Mole (11-11)
+
+Amanda's request: the Crystal Caves mini-boss, a blind mole with glowing crystal claws and a crystal-tipped tail that hunts by sound. It's built like the desert mini-bosses (not the beetles, at her direction). See [Shard Mole](shard-mole.md).
+
+- **Hearing:** after 3 s of player silence (standing still, laser quiet) it stops and listens until it hears them again.
+- **Her moves:** the burrow ambush (a floor marker tracks it and marks where it bursts out), the tail swoop (damage and knockback) and the claw swipe.
+- **Her picks (11-11):** three phases. Phase 2 adds the claw flurry and phase 3 the ceiling shards. It drops the **antenna array** ship part plus scrap. About 4.5 m long.
+- **Test scene only:** it is not placed in the level yet.
+- **Not decided, so not invented:** a weak spot, its own sounds, and whether crouch-walking is quieter.
+
 ## Chief Toad decisions (10-23-26)
 
 Lawson's request: a chief toad boss for the tutorial pond, built in its own test arena first. See [Chief Toad](chief-toad.md).
