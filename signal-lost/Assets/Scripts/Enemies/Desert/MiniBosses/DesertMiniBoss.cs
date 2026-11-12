@@ -25,7 +25,7 @@ namespace SignalLost.Enemies.Desert
     /// It builds on <see cref="DesertFodder"/> for finding the player, line of sight, the meerkat "spotted" alert,
     /// the hit flash and the death animation. All numbers are placeholders to tune.
     /// </summary>
-    public abstract class DesertMiniBoss : DesertFodder
+    public abstract class DesertMiniBoss : DesertFodder, IBossBar
     {
         /// <summary>Hits at least this strong count as heavy: the overhead slam and charged shots past about a third.</summary>
         protected const float HeavyHit = 20f;
@@ -71,9 +71,9 @@ namespace SignalLost.Enemies.Desert
         public string DisplayName => displayName;
         public string PartName => partName;
         public float PhaseTwoAt => phaseTwoAt;
-        /// <summary>False for a mini-boss without a phase 2 (the cave beetles get angrier as a band instead).</summary>
+        /// <summary>False for a mini-boss without this two-phase system (the duel bosses run their own phases).</summary>
         public virtual bool HasPhaseTwo => true;
-        /// <summary>False to skip the top-of-screen boss bar; its health then shows only in the HUD's crosshair target readout, like the crab cousins (the four cave beetles).</summary>
+        /// <summary>False to skip its own top-of-screen boss bar (the four cave beetles share their band's bar instead).</summary>
         public virtual bool ShowsBossBar => true;
         /// <summary>Health fraction where a third phase starts, or 0 when the boss has only two (the boss bar's second notch).</summary>
         public virtual float PhaseThreeAt => 0f;
@@ -273,6 +273,7 @@ namespace SignalLost.Enemies.Desert
         protected void RelayPart(Health part, int id)
         {
             if (part == null) return;
+            part.ReadoutAs = Health; // aiming at the weak spot shows the boss's health, which is what its hits take
             part.Damaged += (h, amount, source) =>
             {
                 h.Restore();

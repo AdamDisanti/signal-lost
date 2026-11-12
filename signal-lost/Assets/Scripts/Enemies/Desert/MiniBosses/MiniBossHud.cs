@@ -3,6 +3,17 @@ using UnityEngine;
 
 namespace SignalLost.Enemies.Desert
 {
+    /// <summary>Anything with a boss bar: a mini-boss, or a group sharing one bar (the cave beetle band).</summary>
+    public interface IBossBar
+    {
+        string DisplayName { get; }
+        int DisplayPhase { get; }
+        string PhaseTitle { get; }
+        float HealthFraction { get; }
+        float[] PhaseMarks { get; }
+        bool InPhaseShift { get; }
+    }
+
     /// <summary>
     /// PLACEHOLDER mini-boss UI, drawn with IMGUI so the shared PlayerHUD prefab is untouched:
     /// - a boss health bar at the top while a mini-boss is engaged (name, health, a notch where phase 2 starts and one where phase 3 starts, if it has one);
@@ -13,7 +24,7 @@ namespace SignalLost.Enemies.Desert
     public sealed class MiniBossHud : MonoBehaviour
     {
         private static MiniBossHud instance;
-        private static readonly List<DesertMiniBoss> Engaged = new List<DesertMiniBoss>();
+        private static readonly List<IBossBar> Engaged = new List<IBossBar>();
         private static string message;
         private static Color messageColor;
         private static float messageUntil = float.NegativeInfinity;
@@ -36,13 +47,13 @@ namespace SignalLost.Enemies.Desert
             if (instance == null) instance = new GameObject("Mini-Boss HUD").AddComponent<MiniBossHud>();
         }
 
-        public static void Register(DesertMiniBoss boss)
+        public static void Register(IBossBar boss)
         {
             Ensure();
             if (boss != null && !Engaged.Contains(boss)) Engaged.Add(boss);
         }
 
-        public static void Unregister(DesertMiniBoss boss) => Engaged.Remove(boss);
+        public static void Unregister(IBossBar boss) => Engaged.Remove(boss);
 
         public static void Message(string text, Color color, float seconds = 3f)
         {
@@ -115,8 +126,8 @@ namespace SignalLost.Enemies.Desert
             float cx = Screen.width * 0.5f;
             float y0 = 14f;
             for (int i = Engaged.Count - 1; i >= 0; i--)
-                if (Engaged[i] == null) Engaged.RemoveAt(i);
-            foreach (DesertMiniBoss boss in Engaged)
+                if (Engaged[i] == null || (Engaged[i] is Object gone && gone == null)) Engaged.RemoveAt(i); // destroyed
+            foreach (IBossBar boss in Engaged)
             {
                 const float width = 460f, height = 14f;
                 var bar = new Rect(cx - width * 0.5f, y0 + 26f, width, height);

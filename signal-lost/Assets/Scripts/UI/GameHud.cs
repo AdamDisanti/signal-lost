@@ -321,6 +321,7 @@ namespace SignalLost.UI
             }
 
             Health target = laser != null ? laser.CurrentTarget : null;
+            if (target != null && target.ReadoutAs != null) target = target.ReadoutAs;
             targetGroup.gameObject.SetActive(target != null && !target.Invulnerable);
             if (target != null)
             {

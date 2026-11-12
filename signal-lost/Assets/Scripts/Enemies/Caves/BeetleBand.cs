@@ -1,31 +1,37 @@
 using System.Collections.Generic;
+using SignalLost.Combat;
 using SignalLost.Enemies.Desert;
 using SignalLost.Player;
 using SignalLost.UI;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace SignalLost.Enemies.Caves
 {
     /// <summary>
     /// The four cave beetles as one band. Put it at the centre of their fight zone and list the members.
     ///
-    /// - <b>Zone:</b> the beetles never walk out of <see cref="zoneRadius"/> around this object.
-    /// - <b>Together:</b> when one is drawn into the fight, the whole band joins in.
-    /// - <b>Turns:</b> only one beetle head-butts at a time; the others circle the player.
+    /// - <b>Zone:</b> the beetles never walk out of <see cref="zoneRadius"/> around this object, except to their places in a
+    ///   box-in, which always surround the player evenly.
+    /// - <b>Together:</b> when one is drawn into the fight, the whole band joins in, under one boss bar showing their
+    ///   combined health. The band's phases (Rehearsal, Performance, Encore) follow that combined health.
+    /// - <b>Turns:</b> only one beetle attacks at a time; the others stalk the player.
     /// - <b>Box-in:</b> every so often they surround the player (Gather), then the ring appears and the box is set: they
     ///   rear up with their mic lights blinking while the ring closes (Brace: the only warning, no on-screen text). Out of
     ///   the ring before the charge: they break off and chase again, holding their attacks for a moment. Otherwise they
     ///   charge the middle of the box, committed, never turning after the player. A grounded player in the box is hit
     ///   once and they stop short; otherwise (jumped over, or got out during the charge) they slam into each other.
     /// - <b>Anger:</b> each fallen member makes the rest faster and the box-ins more frequent, with a shorter warning.
-    ///   With three left it is a triangle, with two a pincer, and a lone survivor charges alone (and skids, dazed, if
-    ///   jumped).
+    ///   With three left it is a triangle, with two a pincer, and a lone survivor charges alone (and skids onto its back
+    ///   if jumped). Beetles that slam into each other flip onto their backs: their bellies are the weak spot.
     /// - <b>Talking:</b> a hit beetle says its next line, through the dialogue subtitles, the way the merchant crab's
     ///   cousins bark; the band also calls out its box-ins, its misses and its fallen.
     /// All numbers are placeholders.
     /// </summary>
-    public sealed class BeetleBand : MonoBehaviour
+    public sealed class BeetleBand : MonoBehaviour, IBossBar
     {
+        [Tooltip("The name on the shared boss bar and the banners.")]
+        [SerializeField] private string bandName = "The Beetles";
         private enum Formation { None, Gather, Brace, Charge }
 
         [SerializeField] private CaveBeetle[] members = new CaveBeetle[0];
@@ -42,9 +48,9 @@ namespace SignalLost.Enemies.Caves
         [Tooltip("The warning (rearing up, blinking lights, closing ring) before the charge.")]
         [SerializeField, Min(0.2f)] private float braceTime = 1.2f;
         [SerializeField, Min(0f)] private float bracePerFallen = 0.12f;
-        [SerializeField, Min(0.5f)] private float gatherTimeout = 2.5f;
+        [SerializeField, Min(0.5f)] private float gatherTimeout = 3.5f;
         [Tooltip("Damage when the box-in lands (once, however many beetles arrive).")]
-        [SerializeField, Min(0f)] private float chargeDamage = 22f;
+        [SerializeField, Min(0f)] private float chargeDamage = 30f;
         [Tooltip("Speed and attack-rate bonus per fallen member.")]
         [SerializeField, Min(0f)] private float angerPerFallen = 0.15f;
         [SerializeField] private Material ringMaterial;
@@ -65,13 +71,68 @@ namespace SignalLost.Enemies.Caves
         public float SpeedScale => 1f + angerPerFallen * Fallen;
         public int Fallen { get; private set; }
 
+        // ---------- The shared boss bar ----------
+
+        public string DisplayName => bandName;
+        /// <summary>The whole band's health: fallen members count as empty.</summary>
+        public float HealthFraction
+        {
+            get
+            {
+                float current = 0f, max = 0f;
+                foreach (CaveBeetle member in members)
+                {
+                    if (member == null) continue;
+                    var health = member.GetComponent<Health>();
+                    current += health.Current;
+                    max += health.Max;
+                }
+                return max > 0f ? current / max : 0f;
+            }
+        }
+        public int DisplayPhase
+        {
+            get
+            {
+                int phase = 1;
+                foreach (CaveBeetle member in Live(members)) phase = Mathf.Max(phase, member.DuelPhase);
+                return phase;
+            }
+        }
+        public string PhaseTitle
+        {
+            get
+            {
+                foreach (CaveBeetle member in Live(members))
+                    if (member.DuelPhase == DisplayPhase) return member.PhaseTitle;
+                return "";
+            }
+        }
+        public float[] PhaseMarks
+        {
+            get
+            {
+                foreach (CaveBeetle member in members)
+                    if (member != null) return member.PhaseMarks;
+                return System.Array.Empty<float>();
+            }
+        }
+        public bool InPhaseShift
+        {
+            get
+            {
+                foreach (CaveBeetle member in Live(members))
+                    if (member.InPhaseShift) return true;
+                return false;
+            }
+        }
+
         private readonly List<CaveBeetle> boxing = new List<CaveBeetle>();
         private readonly Dictionary<CaveBeetle, int> nextLine = new Dictionary<CaveBeetle, int>();
         private readonly Dictionary<CaveBeetle, float> slotAngle = new Dictionary<CaveBeetle, float>();
         private Formation formation = Formation.None;
-        private float formationTime, nextBoxIn = float.PositiveInfinity, nextVoice, turnSince;
+        private float formationTime, nextBoxIn = float.PositiveInfinity, nextVoice;
         private bool playerHit, opened;
-        private CaveBeetle turn;
         private FirstPersonController player;
         private GroundMarker ring;
         private Transform ringHolder; // GroundMarker pulses its own scale, so the closing shrink goes on a parent
@@ -92,7 +153,11 @@ namespace SignalLost.Enemies.Caves
 
         private void Start() => player = FindAnyObjectByType<FirstPersonController>();
 
-        private void OnDisable() => ClearRing();
+        private void OnDisable()
+        {
+            ClearRing();
+            MiniBossHud.Unregister(this);
+        }
 
         // ---------- Box-in ----------
 
@@ -189,19 +254,24 @@ namespace SignalLost.Enemies.Caves
 
         private void TrackPlayer()
         {
-            FormationCentre = KeepInZone(player.transform.position);
+            FormationCentre = player.transform.position;
             if (ringHolder != null) ringHolder.position = FormationCentre;
             foreach (CaveBeetle member in Live(boxing)) member.UpdateSlot(Slot(member));
         }
 
-        private Vector3 Slot(CaveBeetle member) =>
-            FormationCentre + Quaternion.Euler(0f, slotAngle.TryGetValue(member, out float angle) ? angle : 0f, 0f) * Vector3.forward * boxRadius;
+        // Evenly round the player (a cross with four, a triangle with three), never pulled in by the zone edge, which
+        // used to bunch them up; a slot may lie up to Box Radius outside the zone.
+        private Vector3 Slot(CaveBeetle member)
+        {
+            Vector3 at = FormationCentre + Quaternion.Euler(0f, slotAngle.TryGetValue(member, out float angle) ? angle : 0f, 0f) * Vector3.forward * boxRadius;
+            return NavMesh.SamplePosition(at, out NavMeshHit hit, 2f, NavMesh.AllAreas) ? hit.position : at;
+        }
 
         private bool AllInPlace()
         {
             foreach (CaveBeetle member in Live(boxing))
             {
-                Vector3 offset = Flat(member.transform.position) - Flat(KeepInZone(Slot(member)));
+                Vector3 offset = Flat(member.transform.position) - Flat(Slot(member));
                 if (offset.magnitude > 1.5f) return false;
             }
             return true;
@@ -231,10 +301,10 @@ namespace SignalLost.Enemies.Caves
                         CaveBeetle a = chargers[i], b = chargers[j];
                         if (a.Bumped && b.Bumped) continue;
                         Vector3 between = Flat(a.transform.position) - Flat(b.transform.position);
-                        if (between.magnitude > 1.9f) continue;
+                        if (between.magnitude > 2.2f) continue;
                         bool first = !AnyBumped();
-                        a.Bump(between, player.gameObject); // credited to the player: they made them miss
-                        b.Bump(-between, player.gameObject);
+                        a.Bump(between);
+                        b.Bump(-between);
                         if (first) Say(a.IsDead ? b : a, Pick(dodgedLines), true);
                     }
                 }
@@ -313,19 +383,37 @@ namespace SignalLost.Enemies.Caves
 
         // ---------- Turns ----------
 
-        /// <summary>Asks for the head-butt turn. Only one beetle has it at a time; a turn lasts at most 5 s.</summary>
-        public bool TryTakeTurn(CaveBeetle beetle)
+        /// <summary>
+        /// May this beetle start an attack? Only one attacks at a time, never during a box-in, and nobody starts one
+        /// once a box-in is due (so the band is free to form up).
+        /// </summary>
+        public bool MayAttack(CaveBeetle beetle)
         {
-            if (turn == beetle) return true;
-            if (turn != null && !turn.IsDead && turn.Engaged && Time.time - turnSince < 5f) return false;
-            turn = beetle;
-            turnSince = Time.time;
+            if (formation != Formation.None || Time.time >= nextBoxIn) return false;
+            foreach (CaveBeetle member in Live(members))
+                if (member != beetle && member.Attacking) return false;
             return true;
         }
 
-        public void ReleaseTurn(CaveBeetle beetle)
+        /// <summary>The living beetle nearest a point (only it pushes the player away when the band roars together).</summary>
+        public CaveBeetle Nearest(Vector3 point)
         {
-            if (turn == beetle) turn = null;
+            CaveBeetle best = null;
+            float bestDistance = float.MaxValue;
+            foreach (CaveBeetle member in Live(members))
+            {
+                float distance = (Flat(member.transform.position) - Flat(point)).sqrMagnitude;
+                if (distance < bestDistance) { bestDistance = distance; best = member; }
+            }
+            return best;
+        }
+
+        /// <summary>True while any bandmate other than this one is still alive.</summary>
+        public bool OthersAlive(CaveBeetle beetle)
+        {
+            foreach (CaveBeetle member in Live(members))
+                if (member != beetle) return true;
+            return false;
         }
 
         // ---------- Members ----------
@@ -347,6 +435,7 @@ namespace SignalLost.Enemies.Caves
                 if (member != null && member != beetle && !member.IsDead) member.JoinFight();
             if (opened) return;
             opened = true;
+            MiniBossHud.Register(this);
             nextBoxIn = Time.time + firstBoxIn;
             Say(members.Length > 0 && members[0] != null ? members[0] : beetle, Pick(openingLines), true);
         }
@@ -362,6 +451,7 @@ namespace SignalLost.Enemies.Caves
         {
             Fallen++;
             Say(beetle, beetle.LastWords, true);
+            if (!OthersAlive(beetle)) MiniBossHud.Unregister(this);
             foreach (CaveBeetle member in members)
                 if (member != null && !member.IsDead)
                 {
@@ -378,7 +468,7 @@ namespace SignalLost.Enemies.Caves
             // The whole band went home: the next fight starts with the opening line and a fresh box-in timer again.
             opened = false;
             nextBoxIn = float.PositiveInfinity;
-            turn = null;
+            MiniBossHud.Unregister(this);
         }
 
         // ---------- Talking ----------
@@ -407,7 +497,7 @@ namespace SignalLost.Enemies.Caves
             return Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg;
         }
 
-        private static IEnumerable<CaveBeetle> Live(List<CaveBeetle> list)
+        private static IEnumerable<CaveBeetle> Live(IEnumerable<CaveBeetle> list)
         {
             foreach (CaveBeetle member in list)
                 if (member != null && !member.IsDead) yield return member;

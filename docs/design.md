@@ -516,6 +516,28 @@ Amanda's request: the Crystal Caves mini-boss is four beetles who want to be a b
 - **Shared code:** `DesertMiniBoss` gained opt-outs of phase 2 (`HasPhaseTwo`) and of the boss bar (`ShowsBossBar`), and a protected `Engage()`. The defeat banner no longer mentions a part when there is none.
 - **Test scene only:** it is not placed in the level yet.
 
+### Rework to match the other mini-bosses (11-11)
+
+Amanda asked for the beetles to work like the game's other mini-bosses (the desert duel bosses and the Shard Mole). Her choices replace these 11-09 points: no boss bars, no phases, scrap only, and the code-built model. See [The Beetles](cave-beetles.md).
+
+- **Still a band of four, with the box-in:** one shared top boss bar, "The Beetles", shows their combined health, with phase notches.
+- **Three phases on the band's combined health:** Rehearsal (100–66%), Performance (66–33%) and Encore (33–0%). Each starts with all four roaring and a banner. The band still speeds up as members fall.
+- **New moves:** the drum stomp from phase 2 (a crystal shockwave to jump), and the stage dive from phase 3 (a shadow follows you, then it belly-flops on you).
+- **Weak spot:** the belly, while a beetle is flipped on its back. A box-in crash (replacing the old daze) or a missed stage dive flips it.
+- **Ship part:** the last beetle standing drops the **signal amplifier**, plus scrap as before.
+- **Model:** rebuilt in Blender with a rig and clips, on `DuelBoss`, like the Shard Mole. The look is unchanged.
+- **Numbers to the shared boss rules:** head-butt 15, box-in 30, stomp and shockwave 25, dive 28.
+- **Follow-up (11-12, Amanda):**
+  - The box-in is an even cross round the player. Its places are no longer pulled in by the zone edge, which bunched beetles together.
+  - The fight should last as long as the other mini-bosses.
+  - Crashes do no damage: they only flip the beetles, so all damage comes from the player.
+  - The hard shell ignores laser swings and fists, takes 25% of a jump smash, and full damage from charged bolts. Flipped, everything gets through, and the belly takes 2.5x.
+  - Health is 400 each (1,600 for the band).
+  - One belly hit per flip: the first hit does 2.5x, then the beetle rolls straight back over.
+  - **Loot:** only the last beetle drops anything: one 12-scrap pile and the signal amplifier, like the Mudlands mini-bosses' loot piles. The desert duel bosses drop no scrap, and the Chief Toad drops 14.
+- **Shared code (11-12):** `JumpSmash.IsLanding` is true while the smash's blast deals damage. `DuelBoss.RoarShove` sets the roar's push (only the nearest beetle pushes, 3 m).
+- **Shared code:** `DuelBoss` gained opt-in hooks (`PhaseHealth`, `RequestPhase`, `BannerName`, `TempoBonus`). `MiniBossHud` takes any `IBossBar`, so a group can share one bar. `DesertDuelBossBuilder.WeakSpot` is now `internal`.
+
 ## Final level and boss (planning 11-06 and 11-09; first slice 11-09)
 
 Adam's planning sessions; see [final boss](final-boss.md).

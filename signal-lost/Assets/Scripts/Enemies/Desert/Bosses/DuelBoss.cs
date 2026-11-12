@@ -77,7 +77,13 @@ namespace SignalLost.Enemies.Desert
         /// <summary>The attack running now (null between attacks): for tests and the HUD.</summary>
         public string CurrentMove { get; private set; }
         public bool Staggered => staggered;
-        protected float Tempo => phaseTempo.Length == 0 ? 1f : phaseTempo[Mathf.Clamp(DuelPhase - 1, 0, phaseTempo.Length - 1)];
+        protected float Tempo => (phaseTempo.Length == 0 ? 1f : phaseTempo[Mathf.Clamp(DuelPhase - 1, 0, phaseTempo.Length - 1)]) * TempoBonus;
+        /// <summary>Extra speed on top of the phase tempo (the cave beetles speed up as bandmates fall).</summary>
+        protected virtual float TempoBonus => 1f;
+        /// <summary>The health fraction its phases follow (the cave beetles follow the whole band's).</summary>
+        protected virtual float PhaseHealth => Health.Normalized;
+        /// <summary>The name on its engage and phase banners (the cave beetles show the band's).</summary>
+        protected virtual string BannerName => DisplayName;
         protected float DamageScale => damageScale;
         protected float WalkSpeed => walkSpeed;
         protected float RunSpeed => runSpeed;
@@ -126,7 +132,7 @@ namespace SignalLost.Enemies.Desert
         protected override void OnEngaged()
         {
             nextDecision = Time.time + 0.5f;
-            MiniBossHud.Message(DisplayName.ToUpperInvariant() + "\n" + SignalLost.Core.KeyBindings.Hint("dodge") + " to dodge",
+            MiniBossHud.Message(BannerName.ToUpperInvariant() + "\n" + SignalLost.Core.KeyBindings.Hint("dodge") + " to dodge",
                 new Color(1f, 0.85f, 0.5f), 3.5f);
             Run(Intro(), "Intro", null);
         }
@@ -153,7 +159,7 @@ namespace SignalLost.Enemies.Desert
             lastHit = Time.time;
             int target = 1;
             foreach (float at in phaseAt)
-                if (Health.Normalized <= at) target++;
+                if (PhaseHealth <= at) target++;
             if (target > DuelPhase) pendingPhase = Mathf.Max(pendingPhase, target);
             poiseDamage += amount * (IsMeleeHit(source) ? 1.25f : 1f);
             if (poiseDamage >= poise && !shifting && !staggered && !airborne && (running == null || !running.HyperArmor))
@@ -602,10 +608,13 @@ namespace SignalLost.Enemies.Desert
             Play("Roar", 0.2f, false);
             yield return Until("roar", 0, () => Track(90f));
             Sfx.PlayAt("kong_roar", transform.position, 1f, phaseBanner ? 0.75f : 0.85f, 90f);
-            if (Target != null && FlatDistance(Target.position) < 8f)
-                ShovePlayer(Target.position - transform.position, 4f);
+            if (Target != null && FlatDistance(Target.position) < 8f && RoarShove > 0f)
+                ShovePlayer(Target.position - transform.position, RoarShove);
             yield return Finish();
         }
+
+        /// <summary>How far its roar pushes a close player (the cave beetles share one push between four).</summary>
+        protected virtual float RoarShove => 4f;
 
         private IEnumerator PhaseShift(int phase)
         {
@@ -613,7 +622,7 @@ namespace SignalLost.Enemies.Desert
             DuelPhase = phase;
             pendingPhase = 0;
             string title = PhaseTitle;
-            MiniBossHud.Message(string.IsNullOrEmpty(title) ? DisplayName.ToUpperInvariant() : DisplayName.ToUpperInvariant() + ": " + title.ToUpperInvariant(),
+            MiniBossHud.Message(string.IsNullOrEmpty(title) ? BannerName.ToUpperInvariant() : BannerName.ToUpperInvariant() + ": " + title.ToUpperInvariant(),
                 new Color(1f, 0.55f, 0.25f), 3f);
             OnDuelPhase(phase);
             yield return Roar(true);
@@ -636,6 +645,9 @@ namespace SignalLost.Enemies.Desert
             poiseDamage = 0f;
             Run(Stagger(seconds), "Stagger", null);
         }
+
+        /// <summary>Asks for a phase change at the next safe moment; never goes back a phase.</summary>
+        protected void RequestPhase(int phase) => pendingPhase = Mathf.Max(pendingPhase, Mathf.Clamp(phase, 1, PhaseCount));
 
         /// <summary>For tests: forces the next phase change now.</summary>
         public void DebugEnterPhase(int phase) => pendingPhase = Mathf.Clamp(phase, 1, PhaseCount);
