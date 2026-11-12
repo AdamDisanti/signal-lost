@@ -186,6 +186,16 @@ Amanda's request: the Crystal Caves fodder enemy, a chameleon with crystal scale
 - **Test scene only:** its own test scene, with instances set to **Start Revealed**. It is not placed in the level yet.
 - **Not decided, so not invented:** emerging from walls (only ground is built), and whether a hit while it is camouflaged should reveal it.
 
+## Quartz Bat (11-11)
+
+Amanda's request: a small flying Crystal Caves fodder enemy, a cave bat with crystal wings and a glowing crystal in its chest. See [Quartz Bat](quartz-bat.md).
+
+- **Pattern:** it circles the player's head at a steady, predictable pace, then winds up and swoops down to bite.
+- **Damage rule:** shots only hurt it on the chest crystal; bolts glance off its wings and body. Melee hurts it anywhere, but it's only in reach while it swoops or hangs low afterwards.
+- **Drops:** scrap, like the other fodder.
+- **Test scene only:** its own test scene. It is not placed in the level yet.
+- **Not decided, so not invented:** sounds, and whether bats roost on the ceiling before they notice the player (they hover in place for now).
+
 ## Chief Toad decisions (10-23-26)
 
 Lawson's request: a chief toad boss for the tutorial pond, built in its own test arena first. See [Chief Toad](chief-toad.md).
