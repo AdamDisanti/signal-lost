@@ -79,10 +79,15 @@ namespace SignalLost.Enemies.Desert
         public virtual float PhaseThreeAt => 0f;
         /// <summary>The phase the boss bar shows: <see cref="Phase"/>, or 3 for bosses with a third phase.</summary>
         public virtual int DisplayPhase => Phase;
+        /// <summary>Health fractions where each later phase starts: one notch on the boss bar each.</summary>
+        public virtual float[] PhaseMarks => PhaseThreeAt > 0f ? new[] { PhaseTwoAt, PhaseThreeAt }
+            : HasPhaseTwo ? new[] { PhaseTwoAt } : System.Array.Empty<float>();
+        /// <summary>Shown after the name on the boss bar for the current phase ("enraged", "furious").</summary>
+        public virtual string PhaseTitle => DisplayPhase >= 3 ? "furious" : DisplayPhase == 2 ? "enraged" : "";
         public float HealthFraction => Health.Normalized;
         public int Phase { get; private set; } = 1;
         public bool Engaged { get; private set; }
-        public bool InPhaseShift => Time.time < phaseShiftUntil;
+        public virtual bool InPhaseShift => Time.time < phaseShiftUntil;
         protected float ArenaRadius => arenaRadius;
         protected float PhaseShiftElapsed => Time.time - phaseShiftStart;
         protected float PhaseShiftTime => phaseShiftTime;
@@ -94,6 +99,8 @@ namespace SignalLost.Enemies.Desert
         protected Transform ShipPart { get => shipPart; set => shipPart = value; }
         /// <summary>The stage whose part count the dropped part adds to.</summary>
         protected virtual string PartStage => StageProgress.Desert;
+        /// <summary>The stolen part rides hidden inside the boss; showing the body after a burrow must not show it.</summary>
+        protected override Transform KeepHidden => shipPart;
 
         private readonly List<Vector3> route = new List<Vector3>();
         private int routeIndex;

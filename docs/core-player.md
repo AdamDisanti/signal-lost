@@ -28,7 +28,7 @@ Player components:
 
 ## Movement
 
-- WASD, Shift to sprint, Space to jump.
+- WASD, Shift to sprint, Space to jump. (Up/down arrows also move; left/right arrows don't since 11-08, because they are the stage-skip testing tool.)
 - **C** (tap) crouches or stands (only where there is headroom).
 - **C held while sprinting** slides: a burst at 1.5× sprint speed that bleeds off; let go of C to stand up.
 - **Slide cancel:** jump during a slide to keep its speed in the air. Landing with C still held slides again, so slide-jump chains outrun sprinting.
@@ -37,9 +37,13 @@ Tuning is on `FirstPersonController` ("Crouch and slide"). Upgrades can lengthen
 
 - **Jump smash (C in mid-air, laser out):** raises the laser and dives straight down. The landing shockwave does 15 to 60 damage depending on how high you dived from (0.8 m to 8 m; capped above that). Its radius is 2.5 to 5.5 m and it shoves things back. It takes over the airborne C press, so you don't crouch. `MiningLaser` adds the `JumpSmash` component to the player at runtime; its tuning is there.
 
-## Testing cheat (End)
+## Testing tools
 
-Lawson, 11-08: press **End** to switch cheat mode on or off. A banner says which, and "CHEAT MODE" shows in the top-left corner while it is on. It is rebindable on the Controls page, as "Cheat mode (testing)".
+Two tools for testing, not part of the game (Lawson, 11-08). Both are rebindable on the Controls page, listed as "Testing tool: …", and every banner they show starts "TESTING TOOL".
+
+### Cheat mode (End)
+
+Press **End** to switch cheat mode on or off. A banner says which, and "TESTING TOOL: CHEAT MODE" shows in the top-left corner while it is on.
 
 - **9999 damage:** every hit the player lands (bolts, the laser combo, the jump smash, anything else sourced from the player) does 9999. This is applied in `Health.TakeDamage`. Other sources, and the player's own hits on themselves, are unchanged. Friendly characters such as Eugene still can't be hurt.
 - **Flying:** no gravity and no collisions.
@@ -48,6 +52,23 @@ Lawson, 11-08: press **End** to switch cheat mode on or off. A banner says which
   - Turning it off drops you from wherever you are.
 - It lasts for the play session (across scene loads) and is never saved. It is not god mode: you still take damage.
 - Code: `Core/CheatMode.cs`, the flight in `FirstPersonController.Fly`.
+
+### Stage skip (left and right arrows)
+
+**Right arrow** goes to the next stage and **left arrow** to the previous one, in the order the islands are sailed: Crash Meadow (the tutorial), then the Desert Dunes, then the Wasteland (the finale, kept last; the islands in between join the list once their order is decided).
+
+- **Earlier stages count as finished.** Arriving this way finishes every stage before the one you land in, the way playing it through would have left things:
+  - the stage is cleared, so its boat sails on;
+  - its bosses' ship parts are recovered, and its main ship part (the desert's Engine Core);
+  - its bosses' trophies are on the camp stands. Going to the desert puts the Chief Toad's crown up. The Chop Shop's three go on the desert rack (stands 4-6) and the fang on a boss stand.
+- **The stage you land in starts fresh,** with its own quests from the beginning.
+- **Going back to the tutorial** has nothing before it to finish, so it starts over (things already finished stay finished).
+- **Right arrow in the desert:** goes to the Wasteland (the finale) until the islands in between are added. **Right arrow in the Wasteland:** the ending isn't built, so it stays put with a message.
+- **Where it works:** only in a stage scene, not in test scenes or the menu.
+- **Saved:** the trophies it places are saved like real ones (New Game clears them). Everything else lasts for the play session.
+- **Not carried:** upgrades and pockets aren't carried between scenes for anyone yet, so the tool doesn't add them.
+- **The arrows:** the left and right arrows were a second set of strafe keys on `Player/Move`. They are removed from there so that walking with the arrows can't skip a stage. The up/down arrows and the UI's arrow navigation are unchanged.
+- Code: `Progression/StageSkip.cs` (the stage list and what each counts as finished), the key check in `FirstPersonController`, and `ShipPartDrop.Record`.
 
 ## Moving a scene to the shared player
 
@@ -78,6 +99,10 @@ The hands and the pockets menu's mechanic are built by the same code (`MechanicM
 - Small details (cuffs, sleeves, belt, eyes, nose, cap, badge, boots) are separate rounded shapes.
 - **Baked meshes:** the seamless meshes take a moment to build, so they are baked into `Resources/SignalLost/MechanicMeshes/` (one asset per mesh) with **Signal Lost > Models > Bake Mechanic Meshes** and loaded from there. If you change a shape in `MechanicModel.cs`, bump `MechanicModel.MeshVersion` and bake again. Without an up-to-date bake the game still works: it builds them when the scene starts (a short hitch) and warns in the Console.
 - Colours, size, poses, finger grip and curl speed are at the top of `FirstPersonHands.cs`; the shapes and the body's proportions are in `MechanicModel.cs`.
+
+## Drunk Driving (Mudlands)
+
+`Scripts/Mudlands/Driving/DrunkDriving.cs` adds itself at runtime to whichever object has the `PlayerFlask` (no prefab change). It does nothing until the pockets hold the **Learner's Permit** key item; after that, holding the drink button for 0.3 s chugs the flask dry (`FirstPersonHands` poses it with the flask's `PoseDrink` hook) and summons a car instead of sipping. While driving, the walking controller is switched off, the player is parented to the seat and hidden, made invulnerable (hits damage the car instead) and a chase camera takes over. `PlayerFlask` gained three small hooks for it: `Actions`, `CancelSip()` and `AddDrinks(n)`. Details in [The Mudlands](mudlands.md#3-drunk-driving).
 
 ## HUD and menus
 

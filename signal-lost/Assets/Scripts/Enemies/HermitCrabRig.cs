@@ -14,7 +14,7 @@ namespace SignalLost.Enemies
     /// HermitCrab drives this component by setting its public fields each frame.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class HermitCrabRig : MonoBehaviour
+    public sealed class HermitCrabRig : MonoBehaviour, IBurrowOffset
     {
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
@@ -65,6 +65,15 @@ namespace SignalLost.Enemies
         [System.NonSerialized] public bool ShellDown;
         /// <summary>True while the claw is stuck in the ground after a missed slam: it wiggles, trying to pull free.</summary>
         [System.NonSerialized] public bool ClawStuck;
+
+        // added for buried enemy logic
+        /// <summary>Vertical offset added while buried or emerging.</summary>
+        [System.NonSerialized] public float BurrowOffset;
+        float IBurrowOffset.BurrowOffset
+        {
+            get => BurrowOffset;
+            set => BurrowOffset = value;
+        }
 
         [Header("Attack warning")]
         [Tooltip("Colour the big claw heats up to while winding up an attack.")]
@@ -278,6 +287,9 @@ namespace SignalLost.Enemies
         private void AnimateVisual(float time, float deathAge)
         {
             Vector3 position = visualPosition;
+
+            // added for the enemy buried feature
+            position.y += BurrowOffset;
             Quaternion rotation = Quaternion.Euler(0f, sideAngle, 0f);
 
             // Bob while walking, hop when startled, lean back while winding up, lunge into a strike.

@@ -1,0 +1,382 @@
+{
+ "boss": "ShardMole",
+ "colorSpace": "linear",
+ "clips": [
+  {
+   "name": "Idle",
+   "length": 2.0,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Walk",
+   "length": 1.3333,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run",
+   "length": 0.8,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Roar",
+   "length": 2.3333,
+   "loop": false,
+   "events": [
+    {
+     "name": "roar",
+     "times": [
+      0.6667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Listen",
+   "length": 3.2,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Startle",
+   "length": 0.6667,
+   "loop": false,
+   "events": [
+    {
+     "name": "heard",
+     "times": [
+      0.1667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SwipeR",
+   "length": 1.2667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.6
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.4
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SwipeL",
+   "length": 1.2667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.6
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.4
+     ]
+    }
+   ]
+  },
+  {
+   "name": "ClawFlurry",
+   "length": 2.8,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.4667,
+      1.0,
+      1.9333
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.3333,
+      0.8667,
+      1.8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "TailSwoop",
+   "length": 2.0667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit_end",
+     "times": [
+      1.2333
+     ]
+    },
+    {
+     "name": "hit_start",
+     "times": [
+      0.8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "BurrowIn",
+   "length": 1.3333,
+   "loop": false,
+   "events": [
+    {
+     "name": "under",
+     "times": [
+      1.1333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "BurrowOut",
+   "length": 2.2,
+   "loop": false,
+   "events": [
+    {
+     "name": "erupt",
+     "times": [
+      0.2667
+     ]
+    },
+    {
+     "name": "recovered",
+     "times": [
+      1.8667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Quake",
+   "length": 2.4,
+   "loop": false,
+   "events": [
+    {
+     "name": "slam",
+     "times": [
+      1.2
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Stagger",
+   "length": 1.3333,
+   "loop": false,
+   "events": []
+  },
+  {
+   "name": "Death",
+   "length": 2.3333,
+   "loop": false,
+   "events": []
+  }
+ ],
+ "materials": [
+  {
+   "name": "ShardMoleFur",
+   "key": "Fur",
+   "color": [
+    0.0296,
+    0.0319,
+    0.0545
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.05
+  },
+  {
+   "name": "ShardMoleFurDark",
+   "key": "FurDark",
+   "color": [
+    0.016,
+    0.0168,
+    0.0296
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.05
+  },
+  {
+   "name": "ShardMoleBelly",
+   "key": "Belly",
+   "color": [
+    0.0648,
+    0.0685,
+    0.107
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.05
+  },
+  {
+   "name": "ShardMoleSkin",
+   "key": "Skin",
+   "color": [
+    0.6724,
+    0.2623,
+    0.2307
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.3
+  },
+  {
+   "name": "ShardMoleNose",
+   "key": "Nose",
+   "color": [
+    0.807,
+    0.2159,
+    0.2623
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.55
+  },
+  {
+   "name": "ShardMoleNail",
+   "key": "Nail",
+   "color": [
+    0.7305,
+    0.6172,
+    0.3515
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.5
+  },
+  {
+   "name": "ShardMoleEyeSlit",
+   "key": "EyeSlit",
+   "color": [
+    0.0103,
+    0.0091,
+    0.013
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.4
+  },
+  {
+   "name": "ShardMoleCrystal",
+   "key": "Crystal",
+   "color": [
+    0.0452,
+    0.5776,
+    0.7913
+   ],
+   "emission": [
+    0.0331,
+    0.7913,
+    1.0
+   ],
+   "emissionStrength": 2.5,
+   "metallic": 0.0,
+   "smoothness": 0.8
+  },
+  {
+   "name": "ShardMoleMetal",
+   "key": "Metal",
+   "color": [
+    0.305,
+    0.305,
+    0.3325
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.75,
+   "smoothness": 0.6
+  },
+  {
+   "name": "ShardMoleMetalDark",
+   "key": "MetalDark",
+   "color": [
+    0.0612,
+    0.0648,
+    0.0762
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.7,
+   "smoothness": 0.45
+  },
+  {
+   "name": "ShardMoleSignal",
+   "key": "Signal",
+   "color": [
+    1.0,
+    0.1022,
+    0.0452
+   ],
+   "emission": [
+    1.0,
+    0.0802,
+    0.0319
+   ],
+   "emissionStrength": 4.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  }
+ ]
+}

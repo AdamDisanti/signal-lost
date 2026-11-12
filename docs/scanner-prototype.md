@@ -2,7 +2,7 @@
 
 ## Scope
 
-The [`ScannerTest` scene](../signal-lost/Assets/Scenes/Initial%20Test%20Scenes/ScannerTest.unity) remains a standalone scanner test, but the `ScannerController`, `ScannerHud`, and `ScannerRig` are now used by the shared player in the Tutorial, Testing Sandbox, and Desert Dunes scenes. The active in-hand display has no directional arrow: it retains a proximity bar and audio feedback. The scanner currently detects above-ground enemy signal sources; subterranean discovery and emergence behavior are future work.
+The [`ScannerTest` scene](../signal-lost/Assets/Scenes/Initial%20Test%20Scenes/ScannerTest.unity) remains a standalone scanner test, but the `ScannerController`, `ScannerHud`, and `ScannerRig` are now used by the shared player in the Tutorial, Testing Sandbox, and Desert Dunes scenes. The active in-hand display has no directional arrow: it retains a proximity bar and audio feedback. Enemy signals can be tracked above or below ground, and defeated enemy signals with `Health` are excluded. The burrow/emergence behavior is currently integrated only into one Hermit Crab instance in the separate [BurrowEmergeTest scene](../signal-lost/Assets/Scenes/Initial%20Test%20Scenes/BurrowEmergeTest.unity); see [burrow and emerge](burrow-emerge.md).
 
 The design reference calls for a directional indicator, signal strength, and audio feedback. Removing the arrow is a current prototype change, not a revision to that design reference. Exact tuning values are provisional and should be adjusted through playtesting. See the [design summary](design.md) and [work guidelines](WORK_GUIDELINES_README.md).
 
@@ -34,7 +34,7 @@ The layout regression fails on the old oversized/depth-offset fill and passes at
 ## Components
 
 - [`TrackableTarget`](../signal-lost/Assets/Scripts/Scanner/TrackableTarget.cs) provides the signal type, strength multiplier, active state, and detected state.
-- [`EnemySignalSource`](../signal-lost/Assets/Scripts/Scanner/EnemySignalSource.cs) is the enemy-facing source component. Its `IsBuried` flag defaults to false. The signal type currently includes above-ground and under-ground values, but only above-ground sources are scanned.
+- [`EnemySignalSource`](../signal-lost/Assets/Scripts/Scanner/EnemySignalSource.cs) is the enemy-facing source component. Its `IsBuried` flag defaults to false. `SetBuried` updates both the flag and signal type; the scanner accepts buried sources marked `UnderGround`.
 - [`ScannerConfig`](../signal-lost/Assets/Scripts/Scanner/ScannerConfig.cs) is a ScriptableObject for detection, audio, and upgrade tuning. The current asset is [`ScannerConfig.asset`](../signal-lost/Assets/Settings/ScannerConfig.asset).
 - [`ScannerToggle`](../signal-lost/Assets/Scripts/Scanner/ScannerToggle.cs) handles the Q/LB toggle and visual root.
 - [`ScannerController`](../signal-lost/Assets/Scripts/Scanner/ScannerController.cs) prioritizes quest signals over enemy signals, applies the scene's effective range to enemy acquisition and signal-strength calculation, and raises `OnTargetReached` once when entering the reach radius.
@@ -56,15 +56,16 @@ Current shared-player scene overrides are:
 These are authored tuning values, not guarantees of full-map coverage. Range is measured from the scanner's scan origin; level shape, player position, and distance to the signal still matter.
 The standalone `ScannerTest` scene has no positive level override, so it uses the config's 30 m fallback. Scenes without a positive override behave the same way.
 
-The controller scans active `EnemySignalSource` objects and selects the nearest one within the effective range when it is above ground and not buried. Quest signals are checked first and remain selected at any distance, preserving their priority over enemies. The bar's signal strength still uses distance and the effective range, so a quest beyond that range can remain the selected target while showing zero strength. For an in-range target, strength uses the source/config multipliers and decreases linearly from full strength at the scan origin to zero at the effective range. The reached radius is currently 2.5 m.
+The controller scans active, eligible `EnemySignalSource` objects and selects the nearest one within effective range. Buried candidates must have the `UnderGround` signal type. Candidates with a parent `Health` component are skipped while dead; if the current enemy target dies, the controller immediately rescans and moves to the next eligible target. If none is available, it clears the target and signal strength. Sources without a parent `Health` component are not classified as defeated. Quest signals are checked first and remain selected at any distance, preserving their priority over enemies. The bar's signal strength still uses distance and the effective range, so a quest beyond that range can remain the selected target while showing zero strength. For an in-range target, strength uses the source/config multipliers and decreases linearly from full strength at the scan origin to zero at the effective range. The reached radius is currently 2.5 m.
 
-Detection currently has no line-of-sight or occlusion filtering. Subterranean signals, emergence events, combat engagement, and encounter progression are not implemented. `OnTargetReached` is an extension point and has no subscriber in this prototype.
+Detection currently has no line-of-sight or occlusion filtering. Burrow/emergence and its combat gates are implemented only for the test Hermit Crab instance; other enemies and encounter progression have not been wired to the feature. `OnTargetReached` is an extension point and has no subscriber in this prototype.
 
 ## Checks
 
 - Unity **6000.6.2f1** compilation and three consecutive isolated Play Mode entries passed with normal domain/scene reload. Synthetic Q/LB bindings, simultaneous movement/sprint input, repeated raising/lowering, imported model renderers, target acquisition, and disable/re-enable cleanup were checked using [ScannerPlayModeSmoke.cs](../tools/unity/ScannerPlayModeSmoke.cs).
 - `dotnet build signal-lost/Assembly-CSharp.csproj --no-restore` completed successfully. This checks the generated C# project; it is not a Unity Editor compile, Play Mode test, or player build.
-- The current shared-prefab arrow removal, relocated/resized bar, and per-scene overrides have not been Unity-validated in this documentation pass. Verify in Unity: target acquisition and quest priority; meter response both within and beyond the effective range; beep cadence, pitch, and volume; no enemy acquisition for buried/under-ground targets or targets beyond range; and the one-shot reached event. Check the Console and assigned Inspector references as part of those tests.
+- Feature-author Play Mode checks reported successful: the buried test crab emerges, remains a scanner target while underground, and the scanner moves off a defeated enemy to another eligible target.
+- Continue verifying in Unity: quest priority; meter response within and beyond effective range; beep cadence, pitch, and volume; buried target tracking; exclusion and handoff on enemy death; and the one-shot reached event. Check the Console and assigned Inspector references as part of those tests.
 
 ### Input-state errors when entering Play Mode
 

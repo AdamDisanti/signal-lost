@@ -63,6 +63,7 @@ namespace SignalLost.Editor
                 entries.Add(new ItemCatalog.Entry { id = upgrade.Id, model = prefab, icon = icon });
             }
 
+            entries.AddRange(MudlandsUpgradeIcons.Build()); // the Mudlands upgrades' icons
             var catalog = AssetDatabase.LoadAssetAtPath<ItemCatalog>(CatalogPath);
             if (catalog == null)
             {

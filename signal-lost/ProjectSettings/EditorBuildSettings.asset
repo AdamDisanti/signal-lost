@@ -18,8 +18,14 @@ EditorBuildSettings:
     path: Assets/Scenes/Large Areas/DesertDunes.unity
     guid: aeab396908daa834cbb997d1d71fc8ad
   - enabled: 1
+    path: Assets/Scenes/Large Areas/Mudlands.unity
+    guid: 1396bdd9c7cfb2944b16ac1615f3e332
+  - enabled: 1
     path: Assets/Scenes/Large Areas/CrystalCaves.unity
     guid: 27ea9ce5147d998429b6628b8d9b5f90
+  - enabled: 1
+    path: Assets/Scenes/Large Areas/Wasteland.unity
+    guid: ac851a099c063496fa47b74936ff76f7
   - enabled: 1
     path: Assets/Scenes/Initial Test Scenes/Prototype.unity
     guid: 99c9720ab356a0642a771bea13969a05

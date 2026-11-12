@@ -7,7 +7,9 @@ namespace SignalLost.Player
     /// First-person walking, sprinting, jumping and looking, plus crouch and slide (meeting notes 10-23):
     /// tap C to crouch or stand; hold C while sprinting to slide, a burst of speed that bleeds off. Jumping out of a
     /// slide (slide cancel) keeps its speed in the air, and landing with C still held slides again, so chaining
-    /// slide-jumps is faster than sprinting.
+    /// slide-jumps is faster than sprinting. Upgrades and rage add speed and jump height (<see cref="SetSpeedBonus"/>,
+    /// <see cref="JumpHeightScale"/>), Moon Shoes III a directional double jump, and the knuckles a magnet
+    /// <see cref="Lunge"/> onto enemies.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public sealed class FirstPersonController : MonoBehaviour
@@ -61,6 +63,55 @@ namespace SignalLost.Player
 
         /// <summary>Upgrades (Slick Kneepads) multiply how far a slide goes.</summary>
         public float SlideDistanceScale { get; set; } = 1f;
+        /// <summary>Upgrades (Moon Shoes) multiply how high a jump goes.</summary>
+        public float JumpHeightScale { get; set; } = 1f;
+        /// <summary>Moon Shoes III: one more jump in mid-air, launched the way the movement keys point.</summary>
+        public bool DoubleJump { get; set; }
+        /// <summary>Raised on a double jump, with where the feet were.</summary>
+        public event System.Action<Vector3> DoubleJumped;
+
+        private readonly System.Collections.Generic.Dictionary<object, float> speedBonuses = new System.Collections.Generic.Dictionary<object, float>();
+
+        /// <summary>Walking and sprinting speed multiplier from every bonus together (Moon Shoes, the knuckles, rage).</summary>
+        public float SpeedBonus { get; private set; } = 1f;
+
+        /// <summary>Sets one source's speed multiplier (1 removes it); they multiply together into <see cref="SpeedBonus"/>.</summary>
+        public void SetSpeedBonus(object key, float multiplier)
+        {
+            if (Mathf.Approximately(multiplier, 1f)) speedBonuses.Remove(key);
+            else speedBonuses[key] = multiplier;
+            float total = 1f;
+            foreach (float bonus in speedBonuses.Values) total *= bonus;
+            SpeedBonus = total;
+        }
+
+        private Vector3 lungeVelocity;
+        private float lungeUntil;
+        private bool airJumped;
+
+        /// <summary>True while a <see cref="Lunge"/> is carrying the player.</summary>
+        public bool IsLunging => Time.time < lungeUntil;
+
+        /// <summary>
+        /// Carries the player at <paramref name="velocity"/> for <paramref name="seconds"/> with no gravity or steering
+        /// (the knuckles' magnet lunge onto an enemy). Ends early on hitting a wall, or with <see cref="EndLunge"/>.
+        /// </summary>
+        public void Lunge(Vector3 velocity, float seconds)
+        {
+            lungeVelocity = velocity;
+            lungeUntil = Time.time + seconds;
+            sliding = false;
+            if (crouched) TryStand();
+        }
+
+        /// <summary>Stops a lunge, keeping a little of its speed so it doesn't feel like hitting glue.</summary>
+        public void EndLunge()
+        {
+            if (lungeUntil <= 0f) return;
+            lungeUntil = 0f;
+            momentum = new Vector3(lungeVelocity.x, 0f, lungeVelocity.z) * 0.25f;
+            verticalSpeed = Mathf.Min(verticalSpeed, 0f);
+        }
         public bool IsCrouched => crouched;
         public bool IsSliding => sliding;
         public bool IsGrounded => controller != null && controller.isGrounded;
@@ -108,6 +159,9 @@ namespace SignalLost.Player
         public float Impairment { get; set; }
         public float MovementScale => 1f - (0.55f * 2f / 3f) * Mathf.Clamp01(Impairment);
 
+        /// <summary>The move stick or WASD right now (x = right, y = forward), for the dodge's direction.</summary>
+        public Vector2 MoveInput => move != null && enabled ? move.ReadValue<Vector2>() : Vector2.zero;
+
         /// <summary>True while stunned (see <see cref="Stun"/>): no walking or jumping, but looking and gravity still work.</summary>
         public bool IsStunned => Time.time < stunnedUntil;
 
@@ -126,6 +180,7 @@ namespace SignalLost.Player
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
+            if (GetComponent<PlayerDodge>() == null) gameObject.AddComponent<PlayerDodge>(); // Left Alt (docs/desert-bosses.md)
             if (inputActions == null || cameraPivot == null)
             {
                 Debug.LogError("FirstPersonController requires input actions and a camera pivot.", this);
@@ -211,14 +266,16 @@ namespace SignalLost.Player
 
             bool canMove = (canControl || (menuOpen && Application.isFocused)) && !IsStunned;
 
-            // Testing cheat (End): 9999 damage and free flight.
+            // Testing tools: cheat mode (End: 9999 damage and free flight) and stage skip (arrows: next / previous stage).
             if (canControl && SignalLost.Core.KeyBindings.WasPressed("cheat"))
             {
                 SignalLost.Core.CheatMode.Toggle();
                 SignalLost.Enemies.Desert.MiniBossHud.Message(SignalLost.Core.CheatMode.Enabled
-                        ? "CHEAT MODE ON: 9999 damage, flying (" + SignalLost.Core.KeyBindings.Display("jump") + " up, " + SignalLost.Core.KeyBindings.Display("crouch") + " down)"
-                        : "CHEAT MODE OFF", new Color(1f, 0.85f, 0.3f), 2.5f);
+                        ? "TESTING TOOL: CHEAT MODE ON: 9999 damage, flying (" + SignalLost.Core.KeyBindings.Display("jump") + " up, " + SignalLost.Core.KeyBindings.Display("crouch") + " down)"
+                        : "TESTING TOOL: CHEAT MODE OFF", new Color(1f, 0.85f, 0.3f), 2.5f);
             }
+            if (canControl && SignalLost.Core.KeyBindings.WasPressed("stage_next")) SignalLost.Progression.StageSkip.Go(1);
+            else if (canControl && SignalLost.Core.KeyBindings.WasPressed("stage_previous")) SignalLost.Progression.StageSkip.Go(-1);
             if (SignalLost.Core.CheatMode.Enabled)
             {
                 Fly(canMove);
@@ -235,6 +292,8 @@ namespace SignalLost.Player
             bool grounded = controller.isGrounded;
             float dt = Time.deltaTime;
             if (grounded && verticalSpeed < 0f) verticalSpeed = -2f;
+            if (grounded) airJumped = false;
+            if (lungeUntil > 0f && !IsLunging) EndLunge();
 
             Vector2 axis = canMove ? Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f) : Vector2.zero;
             // Only stagger while moving; a drunk player can still stop safely near cliffs.
@@ -261,7 +320,7 @@ namespace SignalLost.Player
 
             if (canMove && grounded && jump.WasPressedThisFrame() && (sliding || !crouched || TryStand()))
             {
-                verticalSpeed = Mathf.Sqrt(2f * gravity * jumpHeight);
+                verticalSpeed = Mathf.Sqrt(2f * gravity * jumpHeight * JumpHeightScale);
                 if (sliding)
                 {
                     // Slide cancel: keep the slide's speed into the jump.
@@ -270,9 +329,10 @@ namespace SignalLost.Player
                     TryStand();
                 }
             }
+            else if (canMove && !grounded && jump.WasPressedThisFrame()) AirJump(wish);
             verticalSpeed -= gravity * dt;
 
-            float baseSpeed = (crouched && !sliding ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed) * MovementScale;
+            float baseSpeed = (crouched && !sliding ? crouchSpeed : (sprinting ? sprintSpeed : walkSpeed) * SpeedBonus) * MovementScale;
             Vector3 velocity;
             if (sliding)
             {
@@ -301,6 +361,12 @@ namespace SignalLost.Player
                 }
                 velocity = momentum;
             }
+            if (IsLunging)
+            {
+                momentum = new Vector3(lungeVelocity.x, 0f, lungeVelocity.z);
+                verticalSpeed = lungeVelocity.y;
+                velocity = lungeVelocity;
+            }
             velocity.y = verticalSpeed;
 
             // Eyes follow the stance smoothly.
@@ -312,6 +378,21 @@ namespace SignalLost.Player
             if ((collisions & CollisionFlags.Above) != 0 && verticalSpeed > 0f) verticalSpeed = 0f;
             if ((collisions & CollisionFlags.Below) != 0 && verticalSpeed < 0f) verticalSpeed = -2f;
             if ((collisions & CollisionFlags.Sides) != 0 && sliding && controller.velocity.magnitude < slideEndSpeed) sliding = false;
+            if ((collisions & CollisionFlags.Sides) != 0 && IsLunging && controller.velocity.magnitude < lungeVelocity.magnitude * 0.3f) EndLunge();
+        }
+
+        // Moon Shoes double jump: a fresh jump in mid-air, launched the way the movement keys point right now (straight up
+        // with none held), at least at sprinting pace. Once per trip into the air.
+        private bool AirJump(Vector3 wish)
+        {
+            if (!DoubleJump || airJumped || IsLunging || controller.isGrounded) return false;
+            airJumped = true;
+            verticalSpeed = Mathf.Sqrt(2f * gravity * jumpHeight * JumpHeightScale * 0.9f);
+            momentum = wish.sqrMagnitude > 0.01f
+                ? wish.normalized * Mathf.Max(new Vector3(momentum.x, 0f, momentum.z).magnitude, sprintSpeed * MovementScale * SpeedBonus)
+                : momentum * 0.4f;
+            DoubleJumped?.Invoke(transform.position);
+            return true;
         }
 
         private const float FlySpeed = 12f, FlySprintSpeed = 40f;
@@ -338,7 +419,7 @@ namespace SignalLost.Player
             if (!SignalLost.Core.CheatMode.Enabled) return;
             var style = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold };
             style.normal.textColor = new Color(1f, 0.85f, 0.3f);
-            GUI.Label(new Rect(12f, 8f, 420f, 24f), "CHEAT MODE (" + SignalLost.Core.KeyBindings.Display("cheat") + " to turn off)", style);
+            GUI.Label(new Rect(12f, 8f, 520f, 24f), "TESTING TOOL: CHEAT MODE (" + SignalLost.Core.KeyBindings.Display("cheat") + " to turn off)", style);
         }
 
         private void StartSlide(Vector3 wish)

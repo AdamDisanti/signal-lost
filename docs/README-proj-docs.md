@@ -8,10 +8,16 @@
 - [Islands, docks and the sea](islands.md): each stage is an island; beaches, the no-swimming rescue, docks, the boat voyage between stages, and the water shader.
 - [Desert / Dunes level](desert-dunes.md): first biome prototype, layout, how to build it, and test checklist.
 - [Crystal Caves level](crystal-caves.md): the third island's world (a small coastal ledge with Cavendish's camp and the arrival dock, and a two-level crystal-lit cave), how to build and extend it, and what was verified.
+- [Crystal Chameleon](crystal-chameleon.md): the Crystal Caves fodder that hides as a crystal batch until the scanner disrupts it, its tongue attack, test scene and the scanner hook.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
 - [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
 - [The Beetles](cave-beetles.md): the Crystal Caves band of four beetle mini-bosses, their box-in charge and jump dodge, lines, test scene and checklist.
 - [Desert stage boss](desert-boss.md): the Core Worm: exit ambush cutscene, four phases that change the arena, Engine Core drop and next-stage unlock.
+- [Desert story](desert-story.md): Cavendish's three jobs, the mini-bosses' themed arenas, the trophy rack, the Core Worm's lair, its recorded physics collapse and climbing out.
+- [The Mudlands](mudlands.md): the swamp biome and the Drunk Driving ability: layout, three quest lines, six creatures, Kart Kong, Silt the Mudbender, the Sloth Witch and Clutch McCheddar, car upgrades, how to build and test it.
+- [Melee, rage and Moon Shoes](melee-rage.md): (final boss level and melee arena only) bare fists on Q, the Gaussian Brass Knuckles (magnet lunge, overcharge marks, chain lightning, the magnet pull, finishers), rage stacks from kills, the Moon Shoes' double jump, and the melee test arena.
+- [Final boss](final-boss.md): the final level plan (the crash-site island laid waste, Cavendish's mech built from the stolen parts, a raid-style three-phase fight) and the first playable slice: the arena, the phase 1 weapons and conduit task, Eugene's crew call-in, and the playtest loadout.
+- [Cavendish as a capybara](cavendish-capybara.md): the Blender-made, low-poly capybara in a space suit and clear helmet; its prefab, builder and place in the Testing Sandbox.
 - [Chief Toad](chief-toad.md): the pond boss for the tutorial meadow (in its own test arena for now): water beam, water blades, jump slam and splash wave, stunning scream, three phases, cooling-system drop.
 - [Fire effect](fire-effect.md): the reusable particle fire (and sand/smoke/spark bursts) for stage design and gameplay.
 - [Tutorial](tutorial.md): the 10-22 tutorial: crash opening, hidden gear, the big crab and its ten cousins, the merchant's shop; how the level is generated and tested.
@@ -20,6 +26,7 @@
 - [Shared player, HUD and menus](core-player.md): the Player/GameSystems prefabs, hands, status-bar HUD, pause menu, settings and title screen, and how to move a scene onto them.
 - [Sound effects](sound-effects.md): the 66 placeholder sounds, the self-starting audio system, how to swap or regenerate a sound, and test checklist.
 - [Enemy and combat rules](enemy-rules.md): the fighting radius and leash every enemy follows, the stun rule, laser cooldowns and the full-charge burst.
+- [Burrow and emerge](burrow-emerge.md): the reusable per-instance burrow component, test-scene setup, enemy AI gates, scanner visibility, and defeated-target handoff.
 - [Tutorial core loop](tutorial-core-loop.md) (superseded by the 10-22 tutorial; now the sandbox): wake-up, two quests, dialogue UI, scanner guidance, scrap, inventory, merchant menu and the stripped shipwreck.
 - [Tutorial NPCs](tutorial-npcs.md): Cavendish quest, flask-carrying merchant crab, world dialogue, and shop preview (partly superseded by the core loop).
 - [Design](design.md): source-grounded scope and open questions.

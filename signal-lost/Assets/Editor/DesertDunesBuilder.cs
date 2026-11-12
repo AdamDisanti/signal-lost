@@ -31,7 +31,7 @@ namespace SignalLost.Editor
     /// an empty boss arena). Like the other builders it refuses to overwrite the scene; edit it in Unity afterwards.
     /// Layout is generated from a fixed seed, so rebuilding gives the same level.
     /// </summary>
-    public static class DesertDunesBuilder
+    public static partial class DesertDunesBuilder
     {
         public const string ScenePath = "Assets/Scenes/Large Areas/DesertDunes.unity";
         private const string Root = "Assets/Prefabs/Enviornment objects/DesertDunes";
@@ -68,12 +68,16 @@ namespace SignalLost.Editor
         }
 
         private static readonly Site Entrance = new Site("Biome Entrance", 0f, -122f, 14f);
+        // The three mini-boss arenas (11-08: each themed on its boss; they were 16 m hermit-crab sites).
         private static readonly Site[] Encounters =
         {
-            new Site("Encounter 1 - Wreck Field", -62f, -62f, 16f),
-            new Site("Encounter 2 - Mesa Pass", 78f, -18f, 16f),
-            new Site("Encounter 3 - Buried Hull", -58f, 62f, 16f),
+            new Site("Encounter 1 - Wreck Field", -62f, -62f, ArenaSiteRadius),
+            new Site("Encounter 2 - Mesa Pass", 78f, -18f, ArenaSiteRadius),
+            new Site("Encounter 3 - Buried Hull", -58f, 62f, ArenaSiteRadius),
         };
+        private const float ArenaSiteRadius = 24f;
+        /// <summary>Sludge's fuel sump: a dip in the Buried Hull arena.</summary>
+        private const float SumpRadius = 16f, SumpDepth = 1.4f;
         private static readonly Site BossArena = new Site("Boss Arena", 38f, 92f, 26f);
         /// <summary>Cavendish's camp (its fire), just inland of the arrival dock, beside the biome entrance.</summary>
         private static readonly Vector2 CampOrigin = new Vector2(9f, -116f);
@@ -313,9 +317,8 @@ namespace SignalLost.Editor
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<CombatDebugHud>() == 0, "Debug HUD should be removed.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<ScannerController>() == 1, "Expected one scanner.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<ScannerLaserSwap>() == 1, "Expected one ScannerLaserSwap on the player.");
-            var crabs = EnemyTestBuilder.All<HermitCrab>();
-            EnemyTestBuilder.Require(crabs.Count == 5, "Expected five hermit crabs.");
-            foreach (HermitCrab crab in crabs)
+            // (The five hermit crabs a fresh level starts with make way for the mini-bosses when the story is installed.)
+            foreach (HermitCrab crab in EnemyTestBuilder.All<HermitCrab>())
                 EnemyTestBuilder.Require(crab.GetComponent<EnemySignalSource>() != null, crab.name + " has no EnemySignalSource.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<NavMeshSurface>() == 1 && EnemyTestBuilder.Count<NavMeshBaker>() == 1,
                 "Expected one NavMeshSurface with a NavMeshBaker.");
@@ -367,6 +370,10 @@ namespace SignalLost.Editor
             // Cavendish's camp, up the beach from the arrival dock (11-08): levelled to the entrance's height.
             float pad = Vector2.Distance(new Vector2(x, z), CampOrigin + new Vector2(-0.5f, 2f));
             h = Mathf.Lerp(h, DuneHeight(Entrance.Center.x, Entrance.Center.y), 1f - SmoothStep01(9f, 15f, pad));
+
+            // Sludge's fuel sump (11-08): a shallow dip in the middle of the Buried Hull arena.
+            float sump = Vector2.Distance(new Vector2(x, z), Encounters[2].Center);
+            if (sump < SumpRadius) h -= SumpDepth * (1f - (sump / SumpRadius) * (sump / SumpRadius));
 
             // Boss arena: shallow sand bowl with a raised rim.
             float boss = Vector2.Distance(new Vector2(x, z), BossArena.Center);
@@ -427,6 +434,84 @@ namespace SignalLost.Editor
 
         private static Vector3 OnGround(float x, float z, float sink = 0f) => new Vector3(x, Ground(x, z) - sink, z);
 
+        // The hole over the lair (11-10). The dunes are cut exactly along the gash's outline, grown by CutGrow, so the
+        // hole's edge follows the gash smoothly instead of the terrain's 4 m triangles; triangles near it are split finely
+        // first. The gash's walls (BuildShaft) start on that very edge, so nothing shows through between them.
+        private const float CutGrow = 0.6f;
+        private const int CutSplits = 8;
+
+        /// <summary>Below zero inside the hole's edge: metres from it.</summary>
+        private static float CutField(Vector3 p) => GashDistance(new Vector2(p.x, p.z) - LairCentre) - (GashHalf + CutGrow);
+
+        /// <summary>Is the dunes' sand at this point part of the sinkhole lid (the sand over the gash, which drops away)?</summary>
+        private static bool InLid(float x, float z) => CutField(new Vector3(x, 0f, z)) < 0f;
+
+        /// <summary>
+        /// One triangle of the dunes, split along the hole's edge: the pieces outside go to <paramref name="keep"/>, the ones
+        /// inside to <paramref name="drop"/>, and each stretch of the edge to <paramref name="edge"/> (world points).
+        /// </summary>
+        private static void CutTriangle(Vector3 a, Vector3 b, Vector3 c, Action<Vector3, Vector3, Vector3> keep, Action<Vector3, Vector3, Vector3> drop,
+            List<(Vector3, Vector3)> edge)
+        {
+            float fa = CutField(a), fb = CutField(b), fc = CutField(c), near = MapSize / Cells * 1.5f;
+            if (Mathf.Min(fa, Mathf.Min(fb, fc)) > near) { keep(a, b, c); return; }
+            if (Mathf.Max(fa, Mathf.Max(fb, fc)) < -near) { drop(a, b, c); return; }
+            const int n = CutSplits;
+            Vector3 P(int i, int j) => a + (b - a) * (i / (float)n) + (c - a) * (j / (float)n);
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n - i; j++)
+                {
+                    ClipToCut(P(i, j), P(i + 1, j), P(i, j + 1), keep, drop, edge);
+                    if (i + j < n - 1) ClipToCut(P(i + 1, j), P(i + 1, j + 1), P(i, j + 1), keep, drop, edge);
+                }
+        }
+
+        private static void ClipToCut(Vector3 a, Vector3 b, Vector3 c, Action<Vector3, Vector3, Vector3> keep, Action<Vector3, Vector3, Vector3> drop,
+            List<(Vector3, Vector3)> edge)
+        {
+            float fa = CutField(a), fb = CutField(b), fc = CutField(c);
+            bool ia = fa < 0f, ib = fb < 0f, ic = fc < 0f;
+            if (ia == ib && ib == ic) { (ia ? drop : keep)(a, b, c); return; }
+            // Turn it so a is the corner on its own side.
+            if (ia == ib) { (a, b, c) = (c, a, b); (fa, fb, fc) = (fc, fa, fb); }
+            else if (ia == ic) { (a, b, c) = (b, c, a); (fa, fb, fc) = (fb, fc, fa); }
+            bool inside = fa < 0f;
+            Vector3 ab = Crossing(a, b, fa, fb), ac = Crossing(a, c, fa, fc);
+            (inside ? drop : keep)(a, ab, ac);
+            (inside ? keep : drop)(ab, b, c);
+            (inside ? keep : drop)(ab, c, ac);
+            edge.Add((ab, ac));
+        }
+
+        // Where the hole's edge crosses a triangle's side: the same point whichever way round the side is walked, so the
+        // pieces either side (and the wall built on the edge) meet exactly.
+        private static Vector3 Crossing(Vector3 p, Vector3 q, float fp, float fq)
+        {
+            if (p.x > q.x || (p.x == q.x && p.z > q.z)) { (p, q) = (q, p); (fp, fq) = (fq, fp); }
+            return Vector3.Lerp(p, q, fp / (fp - fq));
+        }
+
+        /// <summary>The hole's edge as the dunes are cut: every stretch of it, in world points on the sand's surface.</summary>
+        private static List<(Vector3, Vector3)> HoleEdge()
+        {
+            EnsureGrid();
+            var edge = new List<(Vector3, Vector3)>();
+            float step = MapSize / Cells, origin = -MapSize * 0.5f;
+            Action<Vector3, Vector3, Vector3> none = (x, y, z) => { };
+            for (int i = 0; i < Cells; i++)
+                for (int j = 0; j < Cells; j++)
+                {
+                    Vector3 p00 = new Vector3(origin + i * step, heightGrid[i, j], origin + j * step);
+                    Vector3 p10 = new Vector3(origin + (i + 1) * step, heightGrid[i + 1, j], origin + j * step);
+                    Vector3 p01 = new Vector3(origin + i * step, heightGrid[i, j + 1], origin + (j + 1) * step);
+                    Vector3 p11 = new Vector3(origin + (i + 1) * step, heightGrid[i + 1, j + 1], origin + (j + 1) * step);
+                    if (Mathf.Min(Mathf.Min(CutField(p00), CutField(p10)), Mathf.Min(CutField(p01), CutField(p11))) > step * 3f) continue;
+                    if (FlipDiagonal(i, j)) { CutTriangle(p00, p11, p10, none, none, edge); CutTriangle(p00, p01, p11, none, none, edge); }
+                    else { CutTriangle(p00, p01, p10, none, none, edge); CutTriangle(p10, p01, p11, none, none, edge); }
+                }
+            return edge;
+        }
+
         // =====================================================================
         // Environment prefab
         // =====================================================================
@@ -458,8 +543,9 @@ namespace SignalLost.Editor
                 AssetDatabase.LoadAssetAtPath<Material>(ScorchedHullPath) ?? mats["RockDark"],
             };
 
-            Mesh terrain = SaveMesh(BuildTerrainMesh(out Mesh seabedMesh));
+            Mesh terrain = SaveMesh(BuildTerrainMesh(out Mesh seabedMesh, out Mesh lidMesh));
             seabedMesh = SaveMesh(seabedMesh);
+            lidMesh = SaveMesh(lidMesh);
             Mesh boulder = SaveMesh(LowPolyMesh.Icosphere("DesertBoulder", 0));
             Mesh pebble = SaveMesh(LowPolyMesh.Icosphere("DesertRoundRock", 1));
             Mesh mesa6 = SaveMesh(LowPolyMesh.TaperedPrism("DesertMesa6", 6, 0.78f));
@@ -484,6 +570,14 @@ namespace SignalLost.Editor
             ground.AddComponent<MeshRenderer>().sharedMaterials = new[] { mats["Sand"], mats["Shade"], mats["Sandstone"] };
             ground.AddComponent<MeshCollider>().sharedMesh = terrain;
             GameObjectUtility.SetStaticEditorFlags(ground, StaticEditorFlags.BatchingStatic);
+
+            // The sand over the Core Worm's lair (11-08). It looks and walks like the rest of the dunes until the cavern
+            // roof caves in under it (WormLair), and isn't static so it can fall.
+            var lid = new GameObject(SinkholeLidName);
+            lid.transform.SetParent(root.transform, false);
+            lid.AddComponent<MeshFilter>().sharedMesh = lidMesh;
+            lid.AddComponent<MeshRenderer>().sharedMaterials = new[] { mats["Sand"], mats["Shade"], mats["Sandstone"] };
+            lid.AddComponent<MeshCollider>().sharedMesh = lidMesh;
 
             // The sea floor is its own object so the NavMesh leaves it out; then the sea, the docks and the islands around.
             var seabed = new GameObject("Seabed");
@@ -538,7 +632,8 @@ namespace SignalLost.Editor
                 n++;
             }
 
-            // Wreckage: a streak of ship parts from the crash, plus piles at every encounter site.
+            // Wreckage: a streak of ship parts from the crash. (The encounter sites' piles became the themed mini-boss
+            // arenas below, 11-08.)
             Transform wreckage = Group("Wreckage", root.transform);
             if (panel != null)
             {
@@ -552,17 +647,8 @@ namespace SignalLost.Editor
                     float s = Range(rng, 0.8f, 3.2f);
                     Panel(panel, "Debris " + (n + 1), wreckage, p, s, rng, wreckMats);
                 }
-                foreach (Site site in Encounters)
-                {
-                    Transform pile = Group(site.Name + " Wreck", wreckage);
-                    for (int n = 0; n < 7; n++)
-                    {
-                        float a = Range(rng, 0f, Mathf.PI * 2f), r = Range(rng, site.Radius * 0.55f, site.Radius * 0.95f);
-                        Vector2 p = site.Center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r;
-                        Panel(panel, "Hull Plate " + (n + 1), pile, p, Range(rng, 2.5f, 4.5f), rng, wreckMats);
-                    }
-                }
             }
+            BuildMiniBossArenas(root.transform, mats, wreckMats, panel);
 
             // Bones of something big: ribs arching out of the sand near the middle of the map.
             Transform bones = Group("Giant Ribcage", root.transform);
@@ -585,8 +671,8 @@ namespace SignalLost.Editor
             {
                 float a = n * Mathf.PI * 2f / 16f;
                 float deg = a * Mathf.Rad2Deg;
-                if (Mathf.Abs(Mathf.DeltaAngle(deg, 270f)) < 25f || Mathf.Abs(Mathf.DeltaAngle(deg, 180f)) < 20f) continue;
-                Vector2 p = BossArena.Center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (BossArena.Radius + Range(rng, 3f, 6f));
+                if (Mathf.Abs(Mathf.DeltaAngle(deg, 270f)) < 25f || Mathf.Abs(Mathf.DeltaAngle(deg, 180f)) < 20f) continue;                Vector2 p = BossArena.Center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (BossArena.Radius + Range(rng, 3f, 6f));
+                if (GashDistance(p - LairCentre) < 13f) continue; // (11-08) clear of the gash the lair's debris climbs out of
                 float r = Range(rng, 2.2f, 3.6f);
                 Solid(spire, "Spire " + (n + 1), arena, OnGround(p.x, p.y, 1f),
                     Quaternion.Euler(-90f + Range(rng, -6f, 6f), Range(rng, 0f, 360f), Range(rng, -6f, 6f)),
@@ -608,7 +694,9 @@ namespace SignalLost.Editor
         }
 
         // The land (three submeshes by slope) and, separately, the sea floor (one), so the floor can be left off the NavMesh.
-        private static Mesh BuildTerrainMesh(out Mesh seabed)
+        // The patch of sand over the Core Worm's lair (11-08) is a separate lid with the same three submeshes, so it can
+        // fall through when the cavern roof caves in.
+        private static Mesh BuildTerrainMesh(out Mesh seabed, out Mesh lid)
         {
             EnsureGrid();
             float step = MapSize / Cells, origin = -MapSize * 0.5f;
@@ -618,19 +706,33 @@ namespace SignalLost.Editor
             var floorVertices = new List<Vector3>();
             var floorNormals = new List<Vector3>();
             var floor = new List<int>();
+            var lidVertices = new List<Vector3>();
+            var lidNormals = new List<Vector3>();
+            var lidSub = new[] { new List<int>(), new List<int>(), new List<int>() };
             bool under = false;
 
+            // A whole terrain triangle; near the hole it is cut along the hole's edge, its pieces keeping its own normal (and
+            // so its colour) whatever their size.
+            var unused = new List<(Vector3, Vector3)>();
             void Tri(Vector3 a, Vector3 b, Vector3 c)
             {
                 Vector3 n = Vector3.Cross(b - a, c - a).normalized;
-                if (n.y < 0f) { (b, c) = (c, b); n = -n; }
+                if (n.y < 0f) n = -n;
                 float slope = Mathf.Acos(Mathf.Clamp01(n.y)) * Mathf.Rad2Deg;
-                List<int> target = under ? floor : slope < 16f ? sub[0] : slope < 38f ? sub[1] : sub[2];
-                List<Vector3> v = under ? floorVertices : vertices, nn = under ? floorNormals : normals;
-                int start = v.Count;
-                v.Add(a); v.Add(b); v.Add(c);
-                nn.Add(n); nn.Add(n); nn.Add(n);
-                target.Add(start); target.Add(start + 1); target.Add(start + 2);
+                int kind = slope < 16f ? 0 : slope < 38f ? 1 : 2;
+                void Emit(Vector3 x, Vector3 y, Vector3 z, bool overLair)
+                {
+                    if (Vector3.Cross(y - x, z - x).sqrMagnitude < 1e-10f) return;
+                    if (Vector3.Dot(Vector3.Cross(y - x, z - x), n) < 0f) (y, z) = (z, y);
+                    List<int> target = under ? floor : overLair ? lidSub[kind] : sub[kind];
+                    List<Vector3> v = under ? floorVertices : overLair ? lidVertices : vertices, nn = under ? floorNormals : overLair ? lidNormals : normals;
+                    int start = v.Count;
+                    v.Add(x); v.Add(y); v.Add(z);
+                    nn.Add(n); nn.Add(n); nn.Add(n);
+                    target.Add(start); target.Add(start + 1); target.Add(start + 2);
+                }
+                if (under) Emit(a, b, c, false);
+                else CutTriangle(a, b, c, (x, y, z) => Emit(x, y, z, false), (x, y, z) => Emit(x, y, z, true), unused);
             }
 
             for (int i = 0; i < Cells; i++)
@@ -647,7 +749,7 @@ namespace SignalLost.Editor
                     else { Tri(p00, p01, p10); Tri(p10, p01, p11); }
                 }
 
-            var mesh = new Mesh { name = "DesertDunesTerrain" };
+            var mesh = new Mesh { name = "DesertDunesTerrain", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
             mesh.SetVertices(vertices);
             mesh.SetNormals(normals);
             mesh.subMeshCount = 3;
@@ -659,6 +761,13 @@ namespace SignalLost.Editor
             seabed.SetNormals(floorNormals);
             seabed.SetTriangles(floor, 0);
             seabed.RecalculateBounds();
+
+            lid = new Mesh { name = "DesertSinkholeLid" };
+            lid.SetVertices(lidVertices);
+            lid.SetNormals(lidNormals);
+            lid.subMeshCount = 3;
+            for (int s = 0; s < 3; s++) lid.SetTriangles(lidSub[s], s);
+            lid.RecalculateBounds();
             return mesh;
         }
 
