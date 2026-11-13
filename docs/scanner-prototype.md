@@ -73,4 +73,36 @@ The reported Editor log contained `Map/Control/Binding index out of range` and `
 
 A fresh temporary session also passed with the old fast-mode settings; the exact previously corrupted Editor state was not reproduced. This is a defensive Editor-configuration fix, not a demonstrated Input System package repair. The regression check uses the same project assets/settings and runs three Play Mode cycles. To repeat, copy the harness into `Assets/Editor` of a disposable project under the system temp directory and run `Unity.exe -batchmode -nographics -projectPath <temporary-project> -executeMethod ScannerPlayModeSmoke.Start -logFile <log-path>` (omit `-quit`). `-scannerFastPlayMode` compares the old settings in that temporary project only. Test-only background/focus settings allow synthetic input in batch mode; when the application is unfocused, the harness checks action bindings and invokes the existing visual toggle directly. These are not physical keyboard/controller tests; no runtime focus restrictions are removed. Run without `-nographics` and with `-force-d3d11` to additionally capture the bar at empty/half/full values from three angles under ignored `Logs/ScannerBar_*.png`.
 
+## Crystal Disruptor upgrade
+
+The Crystal Caves scanner upgrade (see [upgrades](upgrades.md#crystal-caves-upgrade)). Owning it sets `ScannerController.DisruptsCamouflage`, which `PlayerUpgrades.Apply` does.
+
+- **Without it:** enemies disguised as crystals are skipped as scanner targets, even though their `EnemySignalSource` is on.
+- **With it:** they're ordinary targets, so the scanner beeps toward them (quest signals still come first). While the scanner is raised, each scan also checks every disguised enemy, and any whose fake crystal is within its reveal radius of the scan origin gets `Disrupt()` called.
+
+### Making an enemy disruptable (the cave axolotl)
+
+1. Implement `SignalLost.Scanner.IScannerDisruptable` on the enemy:
+   - `IsDisguised`: true while it's posing as a crystal. It can turn true again later; the axolotl re-burrows mid-fight.
+   - `DisguisePosition`: the fake crystal the player has to walk up to.
+   - `RevealRadius`: how close that is.
+   - `Disrupt()`: drop the disguise and fight. It must do nothing if it's already revealed.
+2. Give it an `EnemySignalSource`, on the same object or a child. The scanner finds disruptable enemies through their signal sources.
+3. To rise out of the ground, use the shared [BurrowEmerge](burrow-emerge.md) with **Emerge On Proximity** unticked, and call `Emerge()` from `Disrupt()`. `CrystalChameleon` is the example to copy.
+
+### Replacing the scanner model
+
+Until the upgraded model exists, the scanner looks the same before and after the upgrade.
+
+**In hand:**
+1. Import the new model and drop it into `Prefabs/Player/Scanner/ScannerRig.prefab` as a child of `ScannerVisualRoot`, beside the current model, in the same position. Keeping it under the visual root means Q still shows and hides it.
+2. On the rig's `ScannerController`, under **Crystal Disruptor upgrade**:
+   - set **Upgraded Model** to the new object;
+   - set **Standard Model** to the current model object.
+3. Untick the new object, so it starts hidden. Once the upgrade is owned, the controller switches the two. If Upgraded Model is left empty, nothing switches.
+
+**Gear tab (pockets menu):**
+1. Add `["crystal_disruptor"] = YourBuildMethod` to `Models` in `Editor/UpgradeAssetBuilder.cs`. Then run **Signal Lost > Items > Build Upgrade Assets**, which also makes the shop icon. A model that wasn't made by that builder also works if it's added as an `ItemCatalog` entry with the Id `crystal_disruptor`.
+2. `GearFigure.Refresh` already has a `crystal_disruptor` case that puts it at the centre of the scanner. Change its position there if needed.
+
 Record Unity Play Mode results and any known limitations in the pull request, following the [workflow](workflow.md). If the arrow texture is from an external or third-party source, add its attribution and license to [assets.md](assets.md).

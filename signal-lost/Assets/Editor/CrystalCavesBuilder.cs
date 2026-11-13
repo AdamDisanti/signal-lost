@@ -9,6 +9,7 @@ using SignalLost.NPC;
 using SignalLost.Player;
 using SignalLost.Progression;
 using SignalLost.Scanner;
+using SignalLost.UI;
 using SignalLost.World;
 using Unity.AI.Navigation;
 using UnityEditor;
@@ -660,6 +661,10 @@ namespace SignalLost.Editor
             scanner.FindProperty("levelRangeOverride").floatValue = 200f;
             scanner.ApplyModifiedPropertiesWithoutUndo();
             Place(CorePrefabBuilder.SystemsPath, null, Vector3.zero, Quaternion.identity, Vector3.one);
+            // Eugene sells the caves' upgrades here (the Crystal Disruptor).
+            var shop = new SerializedObject(gameplay.gameObject.AddComponent<ShopRegion>());
+            shop.FindProperty("region").enumValueIndex = (int)UpgradeRegion.CrystalCaves;
+            shop.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // Cavendish sits on his log and Eugene on the other, a friendly trader, as at the desert camp. Cavendish has small
@@ -756,6 +761,8 @@ namespace SignalLost.Editor
             }
             MerchantCrab eugene = EnemyTestBuilder.All<MerchantCrab>().SingleOrDefault();
             EnemyTestBuilder.Require(eugene != null && new SerializedObject(eugene).FindProperty("startFriendly").boolValue, "Expected one friendly Eugene.");
+            ShopRegion shopRegion = EnemyTestBuilder.All<ShopRegion>().SingleOrDefault();
+            EnemyTestBuilder.Require(shopRegion != null && shopRegion.Region == UpgradeRegion.CrystalCaves, "Expected one ShopRegion set to Crystal Caves.");
             NavMeshSurface surface = EnemyTestBuilder.All<NavMeshSurface>().Single();
             EnemyTestBuilder.Require(surface.navMeshData != null, "The NavMesh is not baked.");
 
