@@ -207,6 +207,16 @@ Amanda asked for the chameleons that hide in walls, as a separate job. See [Crys
 - **Test scene:** five hidden chameleons (two in walls). The player starts with the Crystal Disruptor, given by a testing component (`StartingUpgrades`), so nothing has to be bought.
 - **Still not in the level:** no chameleon is placed in the Crystal Caves yet.
 
+## Shard Mole (11-11)
+
+Amanda's request: the Crystal Caves mini-boss, a blind mole with glowing crystal claws and a crystal-tipped tail that hunts by sound. It's built like the desert mini-bosses (not the beetles, at her direction). See [Shard Mole](shard-mole.md).
+
+- **Hearing:** after 3 s of player silence (standing still, laser quiet) it stops and listens until it hears them again.
+- **Her moves:** the burrow ambush (a floor marker tracks it and marks where it bursts out), the tail swoop (damage and knockback) and the claw swipe.
+- **Her picks (11-11):** three phases. Phase 2 adds the claw flurry and phase 3 the ceiling shards. It drops the **antenna array** ship part plus scrap. About 4.5 m long.
+- **Test scene only:** it is not placed in the level yet.
+- **Not decided, so not invented:** a weak spot, its own sounds, and whether crouch-walking is quieter.
+
 ## Chief Toad decisions (10-23-26)
 
 Lawson's request: a chief toad boss for the tutorial pond, built in its own test arena first. See [Chief Toad](chief-toad.md).
