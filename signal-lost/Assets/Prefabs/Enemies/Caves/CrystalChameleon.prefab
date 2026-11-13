@@ -1280,6 +1280,10 @@ MonoBehaviour:
   - {fileID: 5248213949935175319}
   glow: {fileID: 6856068321051075380}
   startRevealed: 0
+  revealRadius: 4
+  hideInWall: 0
+  wallLandingDistance: 0.9
+  wallDropTime: 0.45
   moveSpeed: 3.2
   preferredRange: 5.5
   tooCloseRange: 3
