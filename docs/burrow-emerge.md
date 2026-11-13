@@ -95,7 +95,7 @@ The feature author reported successful Play Mode checks for emergence and scanne
 ## Current limits
 
 - Two enemies use it: the test Hermit Crab instance, and the [Crystal Chameleon](crystal-chameleon.md) prefab. The shared Hermit Crab prefab and other enemy types have not been modified to use the feature.
-- **Triggering from code:** untick **Emerge On Proximity** (on by default) so only a call to `Emerge()` starts the rise. The chameleon does this, because only the scanner's camouflage disruption should reveal it.
+- **Triggering from code:** untick **Emerge On Proximity** (on by default) so only a call to `Emerge()` starts the rise. The chameleon does this, because only the scanner's camouflage disruption should reveal it. The chameleon's **Hide In Wall** option reuses the same rise, sliding out along the wall instead of up; the wall move and the drop to the floor are the chameleon's own code, not BurrowEmerge's (see [Crystal Chameleon](crystal-chameleon.md)).
 - The rig must implement `IBurrowOffset` for visible emergence. Without an offset receiver, the phase still advances, but no visual rise occurs; the current component does not log a warning for a missing receiver. `visualRoot` is currently required as an Inspector reference but is not the transform used for motion.
 - The player proximity check uses horizontal distance from the enemy root; there is no line-of-sight requirement.
 - The placeholder emergence is a rig-applied vertical offset, not a dedicated animation clip.

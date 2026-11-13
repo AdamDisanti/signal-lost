@@ -10,7 +10,7 @@ The flask heals without a fixed use limit; excessive drinking affects visibility
 
 **Current scanner prototype:** the active in-hand scanner no longer has a directional arrow. It retains its proximity bar and audio feedback. This is an implementation change; the supplied design document's directional-scanner intent above remains unchanged.
 
-**Buried-enemy prototype:** the scanner can track an underground `EnemySignalSource`; the current burrow/emergence test is limited to one Hermit Crab scene instance. The scanner also excludes defeated enemy sources with `Health` and advances to another eligible target. See [burrow and emerge](burrow-emerge.md) and the [scanner prototype](scanner-prototype.md).
+**Buried-enemy prototype:** the scanner can track an underground `EnemySignalSource`; the shared burrow/emergence component (`BurrowEmerge`) is used by one test Hermit Crab instance and by the Crystal Chameleon, which can burrow into the floor or a wall and is revealed by the Crystal Disruptor scanner upgrade. The scanner also excludes defeated enemy sources with `Health` and advances to another eligible target. See [burrow and emerge](burrow-emerge.md) and the [scanner prototype](scanner-prototype.md).
 
 | Area | Planned boss / reward |
 | --- | --- |
@@ -178,13 +178,34 @@ The remaining clarifications above are unresolved questions, not permission to s
 Amanda's request: the Crystal Caves fodder enemy, a chameleon with crystal scales that hides among the cave's crystals. See [Crystal Chameleon](crystal-chameleon.md).
 
 - **Camouflage:** it lies buried with only its crystals showing (the cave's own crystal meshes and materials). Hidden, it can't be shot and the ordinary scanner doesn't see it.
-- **Reveal:** the scanner's camouflage-disrupting upgrade isn't built yet, so `CrystalChameleon.Disrupt()` is the hook for it. Disrupting turns its crystals red, and it rises through the shared `BurrowEmerge`.
+- **Reveal:** the scanner's Crystal Disruptor upgrade (see [Crystal Disruptor](#crystal-disruptor-scanner-upgrade-11-12) below) calls `CrystalChameleon.Disrupt()`. Disrupting turns its crystals red, and it rises through the shared `BurrowEmerge`.
   - The burrow-emerge branch was merged in, as Amanda chose.
   - `BurrowEmerge` gained an opt-out of its proximity trigger and a public `Emerge()`.
 - **Fighting:** a ranged enemy. A telegraphed tongue lick, a straight line that walls stop. Its crystals stay red while it fights and go dark when it dies.
 - **Drops:** scrap, like the other fodder.
-- **Test scene only:** its own test scene, with instances set to **Start Revealed**. It is not placed in the level yet.
-- **Not decided, so not invented:** emerging from walls (only ground is built), and whether a hit while it is camouflaged should reveal it.
+- **Test scene only:** its own test scene. It is not placed in the level yet.
+- **Not decided, so not invented:** whether a hit while it is camouflaged should reveal it. (Walls were decided on 11-12; see below.)
+
+## Crystal Disruptor scanner upgrade (11-12)
+
+Amanda's request for the Crystal Caves scanner upgrade, sold by Eugene. See [scanner prototype](scanner-prototype.md#crystal-disruptor-upgrade) and [upgrades](upgrades.md#crystal-caves-upgrade). Her answers to the open points:
+
+- **Lore:** it jams the crystal energy of the crystals sitting on buried enemies, which turns red. Ordinary crystals are unaffected.
+- **Trigger:** the scanner has to be raised (Q) and the player near the enemy's crystal. Owning the upgrade alone isn't enough.
+- **Pointing:** with the upgrade, the scanner also beeps toward hidden enemies. Without it, they stay invisible to it. Quest signals still come first.
+- **Cost:** scrap only, a one-off buy, priced like the Mudlands one-offs (placeholder: 8 wiring, 4 circuit boards, 1 fuel cell). No mini-boss key item, because the final boss needs it.
+- **Final boss:** the cave axolotl will burrow and pose as a crystal several times in its fight, so any enemy can opt in through `IScannerDisruptable` and may re-hide. The axolotl itself is not built yet.
+- **Model:** the new scanner art doesn't exist. The in-hand scanner has an empty "Upgraded Model" slot and the Gear tab has a placeholder part. Replacement steps are in the scanner doc.
+- **Shop:** the shop only lists the current region's upgrades, so the caves scene sets its region with a `ShopRegion` component.
+
+## Wall chameleons (11-12)
+
+Amanda asked for the chameleons that hide in walls, as a separate job. See [Crystal Chameleon](crystal-chameleon.md).
+
+- **Behaviour:** a **Hide In Wall** toggle on the same prefab. It clings to a wall with only its crystals showing. When revealed it slides out of the wall, drops to the floor below, and fights there like a floor chameleon. It does not stay on the wall.
+- **Placement:** any height on the wall, chosen per chameleon in the scene, always with floor below.
+- **Test scene:** five hidden chameleons (two in walls). The player starts with the Crystal Disruptor, given by a testing component (`StartingUpgrades`), so nothing has to be bought.
+- **Still not in the level:** no chameleon is placed in the Crystal Caves yet.
 
 ## Chief Toad decisions (10-23-26)
 

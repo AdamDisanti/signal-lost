@@ -2,7 +2,7 @@
 
 The third biome, from Amanda's 11-08 design map and reference images (sea cliffs, low-poly caves lit by crystals), revised on 11-09. The design document calls it **Crystal Caverns** (boss: Crystal-infused Cave Beast, reward: Flight Control Module).
 
-This is the **world only**: landscape, camp, dock and lighting. Enemies, quests and level flow come later, and the places for them are marked but empty.
+This is the **world only**: landscape, camp, dock and lighting. Enemies, quests and level flow come later, and the places for them are marked but empty. The one gameplay addition is Eugene's shop stock: the [Crystal Disruptor](upgrades.md#crystal-caves-upgrade) scanner upgrade, for the camouflaged crystal enemies (the [chameleon](crystal-chameleon.md) now, the cave axolotl later).
 
 It is one of the [islands](islands.md): it uses the shared island kit for the sea, the dock, the boat and the deep-water rescue, and Cavendish's island camp. All art is generated in code, in the same style as the tutorial and the desert; no asset packs were imported.
 
