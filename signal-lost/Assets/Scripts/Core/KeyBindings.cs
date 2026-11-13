@@ -60,13 +60,19 @@ namespace SignalLost.Core
             new Binding { Id = "sprint", Label = "Sprint", Action = "Player/Sprint", Default = "<Keyboard>/leftShift", Gamepad = "Stick click" },
             new Binding { Id = "jump", Label = "Jump", Action = "Player/Jump", Default = "<Keyboard>/space", Gamepad = "A" },
             new Binding { Id = "crouch", Label = "Crouch / slide / jump smash", Action = "Player/Crouch", Default = "<Keyboard>/c", Gamepad = "B" },
+            new Binding { Id = "dodge", Label = "Dodge", Action = null, Default = "<Keyboard>/leftAlt", Gamepad = "-" },
             new Binding { Id = "attack", Label = "Laser combo", Action = "Player/Attack", Default = "<Mouse>/leftButton", Gamepad = "X" },
             new Binding { Id = "charge", Label = "Charge bolt (hold)", Action = "Player/ChargeShot", Default = "<Mouse>/rightButton", Gamepad = "RT" },
             new Binding { Id = "swap", Label = "Swap scanner / laser", Action = "Player/ToggleScanner", Default = "<Keyboard>/q", Gamepad = "LB" },
             new Binding { Id = "drink", Label = "Drink from the flask", Action = "Player/Drink", Default = "<Keyboard>/f", Gamepad = "D-pad up" },
             new Binding { Id = "interact", Label = "Talk / pick up / next line", Action = "Player/Interact", Default = "<Keyboard>/e", Gamepad = "Y" },
             new Binding { Id = "inventory", Label = "Pockets (inventory)", Action = null, Default = "<Keyboard>/tab", Gamepad = "View" },
-            new Binding { Id = "cheat", Label = "Cheat mode (testing)", Action = null, Default = "<Keyboard>/end", Gamepad = "-" }
+            new Binding { Id = "call_crew", Label = "Call Eugene's crew (final boss)", Action = null, Default = "<Keyboard>/g", Gamepad = "-" },
+            new Binding { Id = "finisher", Label = "Finisher (knuckles: final boss, melee arena)", Action = null, Default = "<Keyboard>/v", Gamepad = "-" },
+            // Testing tools (11-08).
+            new Binding { Id = "cheat", Label = "Testing tool: cheat mode", Action = null, Default = "<Keyboard>/end", Gamepad = "-" },
+            new Binding { Id = "stage_next", Label = "Testing tool: next stage", Action = null, Default = "<Keyboard>/rightArrow", Gamepad = "-" },
+            new Binding { Id = "stage_previous", Label = "Testing tool: previous stage", Action = null, Default = "<Keyboard>/leftArrow", Gamepad = "-" }
         };
 
         /// <summary>Raised after any binding changes (rebind, reset, import).</summary>

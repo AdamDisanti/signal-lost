@@ -1,0 +1,477 @@
+{
+ "boss": "Briarwing",
+ "colorSpace": "linear",
+ "clips": [
+  {
+   "name": "Idle",
+   "length": 2.0,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Walk",
+   "length": 1.3333,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run",
+   "length": 0.8,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Roar",
+   "length": 2.2,
+   "loop": false,
+   "events": [
+    {
+     "name": "roar",
+     "times": [
+      0.6667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SwipeL",
+   "length": 1.1333,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.5333
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.4333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SwipeR",
+   "length": 1.1333,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.5333
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.4333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Slam",
+   "length": 1.8667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      1.0333
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.9
+     ]
+    }
+   ]
+  },
+  {
+   "name": "TailLash",
+   "length": 1.7333,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit_end",
+     "times": [
+      0.9333
+     ]
+    },
+    {
+     "name": "hit_start",
+     "times": [
+      0.6667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Lunge",
+   "length": 1.6667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.9
+     ]
+    },
+    {
+     "name": "move_end",
+     "times": [
+      0.9
+     ]
+    },
+    {
+     "name": "move_start",
+     "times": [
+      0.6333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Barrage",
+   "length": 3.2,
+   "loop": false,
+   "events": [
+    {
+     "name": "flare",
+     "times": [
+      0.6
+     ]
+    },
+    {
+     "name": "volley",
+     "times": [
+      1.2,
+      1.8,
+      2.4
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Hop",
+   "length": 0.8,
+   "loop": false,
+   "events": [
+    {
+     "name": "launch",
+     "times": [
+      0.5
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Hover",
+   "length": 0.6,
+   "loop": true,
+   "events": [
+    {
+     "name": "flap",
+     "times": [
+      0.3
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SpinDive",
+   "length": 1.0,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "SpinRecover",
+   "length": 2.6667,
+   "loop": false,
+   "events": [
+    {
+     "name": "recovered",
+     "times": [
+      2.2
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Takeoff",
+   "length": 1.5333,
+   "loop": false,
+   "events": [
+    {
+     "name": "launch",
+     "times": [
+      0.5
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Plunge",
+   "length": 0.4667,
+   "loop": false,
+   "events": []
+  },
+  {
+   "name": "Impact",
+   "length": 2.4,
+   "loop": false,
+   "events": [
+    {
+     "name": "free",
+     "times": [
+      1.9333
+     ]
+    },
+    {
+     "name": "hit",
+     "times": [
+      0.0
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Stagger",
+   "length": 1.3333,
+   "loop": false,
+   "events": []
+  },
+  {
+   "name": "Death",
+   "length": 2.3333,
+   "loop": false,
+   "events": []
+  }
+ ],
+ "materials": [
+  {
+   "name": "BriarwingHide",
+   "key": "Hide",
+   "color": [
+    0.0612,
+    0.0369,
+    0.0252
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.15
+  },
+  {
+   "name": "BriarwingBelly",
+   "key": "Belly",
+   "color": [
+    0.2307,
+    0.15,
+    0.0802
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.15
+  },
+  {
+   "name": "BriarwingScute",
+   "key": "Scute",
+   "color": [
+    0.117,
+    0.1384,
+    0.0844
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.2
+  },
+  {
+   "name": "BriarwingThorn",
+   "key": "Thorn",
+   "color": [
+    0.4342,
+    0.4678,
+    0.2623
+   ],
+   "emission": [
+    0.1878,
+    1.0,
+    0.1022
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.4
+  },
+  {
+   "name": "BriarwingMembrane",
+   "key": "Membrane",
+   "color": [
+    0.305,
+    0.107,
+    0.0395
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.1
+  },
+  {
+   "name": "BriarwingMembraneDark",
+   "key": "MembraneDark",
+   "color": [
+    0.1384,
+    0.0482,
+    0.0232
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.1
+  },
+  {
+   "name": "BriarwingHull",
+   "key": "Hull",
+   "color": [
+    0.4342,
+    0.4678,
+    0.5029
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.7,
+   "smoothness": 0.65
+  },
+  {
+   "name": "BriarwingLash",
+   "key": "Lash",
+   "color": [
+    0.0273,
+    0.0176,
+    0.0116
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.1
+  },
+  {
+   "name": "BriarwingClaw",
+   "key": "Claw",
+   "color": [
+    0.0176,
+    0.0144,
+    0.013
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.5
+  },
+  {
+   "name": "BriarwingTeeth",
+   "key": "Teeth",
+   "color": [
+    0.7913,
+    0.7157,
+    0.5271
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.5
+  },
+  {
+   "name": "BriarwingMaw",
+   "key": "Maw",
+   "color": [
+    0.0612,
+    0.008,
+    0.0103
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.2
+  },
+  {
+   "name": "BriarwingEye",
+   "key": "Eye",
+   "color": [
+    0.2623,
+    1.0,
+    0.1274
+   ],
+   "emission": [
+    0.2623,
+    1.0,
+    0.1274
+   ],
+   "emissionStrength": 4.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  },
+  {
+   "name": "BriarwingGlow",
+   "key": "Glow",
+   "color": [
+    0.1878,
+    1.0,
+    0.1022
+   ],
+   "emission": [
+    0.1878,
+    1.0,
+    0.1022
+   ],
+   "emissionStrength": 3.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  }
+ ]
+}

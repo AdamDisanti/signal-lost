@@ -113,6 +113,7 @@ The outdoor look is whatever the scene's Lighting settings are; CaveLighting rea
 
 - **Player and UI:** the shared **Player** (laser, scanner, flask; all three from the start) and **GameSystems** (status-bar HUD, dialogue, pause and settings menus) from `Prefabs/Core`, the same as in every level.
 - **Scanner:** level range 200 m, like the tutorial.
+- **Shop:** a `ShopRegion` (Crystal Caves) on the Gameplay object stocks Eugene's shop with the caves' upgrade, the [Crystal Disruptor](upgrades.md#crystal-caves-upgrade).
 - **Island kit** (`Editor/IslandKit.cs`; see [islands](islands.md)):
   - the sea, with the `Ocean` component and its sea mask;
   - the deep-water rescue, which the sea adds to the player at runtime;

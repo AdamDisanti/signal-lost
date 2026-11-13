@@ -274,6 +274,11 @@ namespace SignalLost.Combat
         private float smashStruckAt = float.NegativeInfinity;
         private const float SmashStrikeTime = 0.35f;
 
+        /// <summary>Where aim comes from (the player camera); the fists aim from here too.</summary>
+        public Transform AimOrigin => aimOrigin;
+        /// <summary>The shared input actions asset (the fists make their own copy of it).</summary>
+        public InputActionAsset InputActions => inputActions;
+
         /// <summary>The laser energy colour, for effects that match it.</summary>
         public Color EnergyColor => energyColor;
 

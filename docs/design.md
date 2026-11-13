@@ -66,6 +66,7 @@ The source proposes an eight-week sequence: foundation/prototype (weeks 1–3), 
 ## Desert / Dunes decisions
 
 - The first biome prototype is [Desert / Dunes](desert-dunes.md): open low-poly dunes with a crash-debris streak, three encounter sites with hermit crabs that the scanner can detect, and an empty boss arena with a half-buried ship engine, all closed in by unclimbable perimeter dunes. The player respawns at the biome entrance, as the source document says. No encounter counting, boss unlock, boss, merchant, quest, scrap or biome exit was invented; those are marked as placeholders. Confirm level-design ownership with Lawson.
+- Superseded for the encounters, boss, quests and exit by [the desert story (11-08)](#the-desert-story-11-08): the three encounter sites are now the mini-bosses' arenas, the hermit crabs there are gone, and the boss is placed in the level.
 
 ## Desert fodder decisions
 
@@ -78,6 +79,7 @@ The source proposes an eight-week sequence: foundation/prototype (weeks 1–3), 
 - Lawson requested the three desert mini-bosses as a themed gang, each with two phases and with its stolen ship part built into its design and moves. They are implemented as placeholders in [desert mini-bosses](desert-minibosses.md): Burnout (thorny-devil lizard, rocket-thruster dashes), Old Buzzard (vulture with ship wing panels: flying, then grounded after a wing is shot off) and Sludge (scorpion with the fuel tank: oil slicks it ignites, and a tank weak spot that backfires).
 - At Lawson's request, each one patrols a set area while fodder keeps spawning around it during the fight. Phase 2 starts at half health. Leaving the arena or dying resets the mini-boss. On defeat the stolen part drops as a placeholder pickup.
 - Not decided, so not invented: whether the parts count toward progression, the boss becoming scannable after three defeats, placement in the Desert Dunes scene, scanner priority, and death persistence.
+  - Placement, and what follows the three defeats, are now set by [the desert story (11-08)](#the-desert-story-11-08). Scanner priority and death persistence are still open.
 
 ### Mini-boss polish pass
 
@@ -376,6 +378,55 @@ Lawson asked for three things (see [islands](islands.md)):
   - Eugene's shop works, but inventory and upgrades still don't carry between scenes (see above).
   - Nicole owns the Desert Dunes scene: the camp install removed the two placeholders and added the camp, the residents and a `StageTheme`.
 
+## The desert story (11-08)
+
+Lawson asked for the desert to be set up with a short series of quests. See [desert story](desert-story.md).
+- Each quest has a task, then one of the three mini-bosses in its own themed arena, which works as a proper arena.
+- Placing the final trophy on its stand springs the Core Worm. It captures the player and takes them to a large underground arena.
+- After the worm is beaten and its trophy collected, the ceiling falls in and the player emerges above ground.
+
+- **Built:**
+  - **Cavendish's three jobs, in order:**
+    - Old Buzzard: pick up its feathers, then its Roost in the Wreck Field.
+    - Burnout: put out its fires, then the Scorch Raceway in the Mesa Pass.
+    - Sludge: seal the sump's leaks, then its Fuel Sump at the Buried Hull.
+  - **Each mini-boss** appears only once its task is done. It drops its part and a new trophy, which goes on a new three-stand Chop Shop rack at the desert camp.
+  - **The Core Worm:**
+    - The third trophy on the rack springs the worm at camp, and it drags the player into its lair, a cavern 22 m under its old sand bowl.
+    - The Engine Core plus a new fang trophy bring the roof down.
+    - Redesigned three times at Lawson's request. His last brief (11-09): it should always play out the same, with physics-faithful interactions between the rubble, look natural, and leave an opening to climb out.
+      - A gash in the roof, choked with broken rock you can see from the start, gives way.
+      - The floor where it lands flashes red first; staying there gets you crushed.
+      - Sand pours in as a debris cone, and about 220 angular rocks tumble down it.
+      - The fall is a physics simulation run once when the level is built, and recorded. The game plays the recording, so it is identical every time.
+      - The build checks the settled rocks leave a walking route out, and re-runs the fall without any that block it.
+      - The gash stays open to the sky and the player climbs the rubble out. It all stays, so both areas connect.
+    - The fang goes home on a stand, and Cavendish wraps up.
+- **This settles, for the desert:**
+  - **Placement:** the mini-bosses and the boss are now placed in the Desert Dunes level.
+  - **What counts as the three encounters:** the three mini-bosses.
+  - **When the boss comes:** after all three, via their trophies.
+  - **The parts:** the mini-boss parts are recovered as before, and handed to Cavendish "for safe keeping" as in the tutorial.
+- **My calls (open to change):**
+  - the fixed job order;
+  - the tasks;
+  - an extra rack rather than sharing the three boss stands;
+  - the fang as the worm's trophy;
+  - the ambush at the camp rather than at the stage exit;
+  - removing the old hermit-crab encounters.
+- **Open:**
+  - Nicole owns the Desert Dunes scene and environment; this regenerated both. The site radii grew from 16 m to 24 m, which reshuffled where some rocks and cacti landed.
+  - Saving the story's progress: only the trophies persist today.
+  - Balance of each fight in its new arena.
+  - Whether the tutorial camp should also show stands 4-6.
+
+## Testing tools (11-08)
+
+Lawson asked to mark the End-key cheat as a testing tool, and for a second tool: the left and right arrows go to the next or previous stage. All quests of the stages before the one you land in count as done. See [testing tools](core-player.md#testing-tools).
+- **What "done" means here (my call):** the stage is cleared, its ship parts and main part are recovered, and its boss trophies are on the stands. The stage you land in starts fresh.
+- **Arrow keys:** removed from strafing (`Player/Move`) so that walking with them can't skip a stage.
+- **Open:** whether the tools should be compiled out of release builds.
+
 ## Upgrade tiers, spawn safety, key bindings and title cycle (11-07)
 
 - **Upgrade tiers.** Each upgrade is a line of small tiers (I, II, III), each dearer than the last; see [upgrades](upgrades.md). Totals at max tier match or slightly beat the old one-off upgrades: bolts +30%, health +30, two extra sips. Open: final costs need play-testing against how much scrap the tutorial actually hands out.
@@ -417,3 +468,96 @@ Christian's direction, as built. Still built in code, with no art assets.
   - "More natural drinking, a big swig, easily turned into hold to chug": the flask comes up from below to the mouth with its bottom tipped up and the head tipped back, with two gulps; the pose is driven by `raise` and `gulps` so a hold-to-chug can stretch the swig. **Open:** the hold-to-chug mechanic itself (not built).
 - **Open:** whether the gloves should stay or become bare hands like the reference (`FirstPersonHands` glove colour), and whether the player should get a world body later.
 
+## The Mudlands and Drunk Driving (11-08-26)
+
+Christian's request, built on `feature/mudlands`; the full design is in [The Mudlands](mudlands.md).
+
+- **A new biome after the desert**, not in the original document's list. Same loop as before: camp, Cavendish's quest lines (three, in any order), a mini-boss at the end of each, then a stage boss. Built by a code builder like the tutorial and desert.
+- **Drunk Driving** is the area's ability, unlocked by the Learner's Permit key item from the first quest line and kept after. It reuses the flask button: holding it chugs the scotch flask dry (2 drinks, no healing) and summons a car for 14 s. Small creatures and wooden things get run over; anything big or solid head-on makes it explode (area damage and stun) and you are thrown clear. 30 s cooldown; refused when too drunk, at camp, or with no room.
+- **Exception to the 10-22 stun rule:** the car's explosion stuns, including on mini-bosses, because the boss designs ask for it (Kart Kong's kart breaks, Silt walls it off). **Open.**
+- **New upgrade slot "Car"** with seven car upgrades, plus three general Mudlands upgrades; three use the mini-bosses' key items.
+- **Stage boss getaway:** Clutch McCheddar flees at 15% and must be rammed with the car; the chase hands out a free car, so the ability can't be on cooldown there.
+- **Open:** where the Mudlands sits in the stage order; all numbers; whether the driving HUD should move to the game's HUD style.
+
+## The Beetles mini-bosses (11-09)
+
+Amanda's request: the Crystal Caves mini-boss is four beetles who want to be a band. See [The Beetles](cave-beetles.md).
+
+- **Model:** the Jerry-Can Beetle model, without the can and the explosion, made mini-boss sized.
+  - Crystal growths on the shell.
+  - Small, stubby legs, and no antennae or mandibles, so it doesn't trigger bug phobia.
+  - A microphone pack on the back and a headset mic.
+- **Who they are:** identical apart from colour. Bug Lennon is red, Paul Arthropodney yellow, George Harrison blue and Scarab Starr green.
+- **Talking:** each talks about the band (rock and roll, underground pop and other cave genres) when hit, through the dialogue subtitles, like the merchant crab's cousins.
+- **Box-in:** they surround the player and charge together.
+  - **Warning:** they rear up, their mic lights blink amber, and a closing ring marks when to jump.
+  - **Jumped:** they slam into each other and hurt themselves.
+  - **Grounded:** only the player is hurt.
+- **Amanda's choices (11-09):**
+  - No boss bars (revised the same day, after four stacked bars covered the screen): like the crab cousins, a beetle's name and health show in the crosshair target readout while you aim at it.
+  - No on-screen text for the box-in at all: the beetles' moves, mic lights and the closing ring are the only warning, and the player works out the jump themselves.
+  - **Committed charge (Amanda's fix):** the beetles charged after a player who was outside the circle. Now:
+    - Once the ring appears, the box is fixed.
+    - The charge goes straight at the box's middle and never turns after the player.
+    - Unless a grounded player in the box takes the hit, the beetles collide, whether the player jumped or got out during the charge.
+    - Leaving the box before the charge calls the box-in off. The beetles chase again but hold their attacks for 2.5 s.
+  - Scrap drops only, no ship part.
+  - No per-beetle phase 2. The band gets angrier as members fall: faster, with more frequent box-ins and a shorter warning.
+- **Shared code:** `DesertMiniBoss` gained opt-outs of phase 2 (`HasPhaseTwo`) and of the boss bar (`ShowsBossBar`), and a protected `Engage()`. The defeat banner no longer mentions a part when there is none.
+- **Test scene only:** it is not placed in the level yet.
+
+## Final level and boss (planning 11-06 and 11-09; first slice 11-09)
+
+Adam's planning sessions; see [final boss](final-boss.md).
+
+- **Supersedes, for the finale:** the design document's "Return to crash site: Cavendish in a mech / Reactor Core" stays. These are added:
+  - a wasteland theme;
+  - raid-style shield tasks;
+  - Eugene's crew call-in;
+  - an escape off the island, then the space casino.
+- **The parts:** each island's main part becomes one of the mech's weapons, and the mini-boss parts are its armour. This includes the Mudlands' Landing Gear, which wasn't in the design document's list.
+- **Built in the first slice:** see the final boss page. The rest is placeholders, listed there.
+- **Shared code touched:**
+  - a Finale stage, last in the stage-skip tool, so the right arrow in the desert now goes to the Wasteland;
+  - a `call_crew` key binding (G);
+  - `PlayerSlowReceiver.ExtraSlow`;
+  - the scene added to the build list.
+- **Open:** balance, the mech's final look, the approach and cutscenes, and the island order in between.
+
+## Melee, rage and Moon Shoes (11-10)
+
+Adam's request and answers; see [melee, rage and Moon Shoes](melee-rage.md).
+
+- **Where:** only the final boss level and the melee test arena (Adam, same day: kept out of the rest of the game so it doesn't conflict with the team's work). Those two scenes hand out Knuckles III and Moon Shoes III; nothing is sold, and the shop, pockets, upgrade catalog and main HUD are unchanged.
+- **Fists:** bare fists join the Q cycle (laser → scanner → fists) there.
+- **Gaussian Brass Knuckles:** the tricks unlock by tier:
+  - I: the magnet lunge;
+  - II: overcharge marks, chain lightning and the magnet pull;
+  - III: finishers on V, with a shockwave.
+- **The spreading effects (Adam's wording):** punches mark; melee kills and punches on marked enemies throw chain lightning; finishers slam a shockwave plus lightning and set off nearby marks; higher rage reaches further.
+- **Rage:** any kill +1, melee +2, finisher +3, up to 10. Each stack adds 6% to every hit the player deals (bosses included) and 3% speed. It drains after 6 s without a kill.
+- **Moon Shoes:** three tiers of run speed and jump height. Tier III adds a double jump in the direction the keys point.
+- **Design document:** it calls the laser the sole story weapon and extra weapons a stretch goal. The fists are treated as gear for the hands, at the lead's request.
+- **Test arena:** `MeleeArena.unity`, built on the Enemy Test box, with the finale's robot horde and testing keys.
+- **In the final boss (Adam, same day):**
+  - the repair robots can be finished below a quarter of their health (`Finishable`; never the mech);
+  - the horde is weighted to melee rushers and spawns closer;
+  - no rebalance until playtesting.
+- **Open:** balance, whether finishers heal, a gamepad finisher button, the jump smash with fists, and whether and where the gear is sold later.
+
+## Mudlands alien reskin (11-10-26)
+
+- Feedback to Christian: the Mudlands enemies and bosses read as Earth animals, and their metal as new human gear, while the rest of the game uses goofy alien creatures built around ship junk. Decision: make the creatures alien and turn their metal into scrap from the crashed ship, changing as little as possible (colours and a few parts; no behaviour, numbers or sizes).
+- Done for the five Mudlands creatures and the world (see [Mudlands](mudlands.md), Status). Ship scrap is shown one way everywhere: off-white hull (`MudPalette.Hull`), the orange stripe, rivets (`MeshKit.ScrapPanel`).
+- Kept: clothes and props that are jokes (overalls, straw hat, vest and bow tie, moonshine barrels), and the words on signs, since the quest uses them.
+- Not done yet: the biker mice and the four bosses (suggested: salvage kart for Kart Kong, gill frills for Silt, ship running light on the witch's broom, salvage chopper for Clutch).
+- Second pass (Christian, same day): "give the world a more alien feel especially the houses, avoid the overuse of metal, ensure the collision of all buildings works". Houses became the swamp folk's own architecture (pod husk, ribs, mushroom caps, leaf roofs, root stilts, mint-glowing round windows) on their old footprints; ship salvage is kept to the test kiosk and gas pumps; every building's collision follows its shape, with roofs kept out of the NavMesh. Details in [Mudlands](mudlands.md), Status.
+
+## Desert boss revamp (11-10)
+
+Lawson asked for the three desert mini-bosses to be rebuilt as harder, Souls-leaning fights with 3-4 phases each. The design and his answers are in [desert-bosses.md](desert-bosses.md). Briarwing, Cindermaw and Pitchclaw replace Old Buzzard, Burnout and Sludge in the desert story; the old prefabs and scripts stay in the project, unused by the story.
+
+- **Decided:** a dodge now (Left Alt, i-frames); heavy hits (a big attack takes about 30% of the player's health); pure duels with no fodder; the stolen-ship-part frame kept with new names; a mostly grounded wyvern; smoke clouds with a glow tell; fuel that ignites; large bosses.
+- **Open, until the rewards pass:** the trophies (Old Buzzard's Tail Feathers, Burnout's Thorn Crest, Sludge's Stinger) and Cavendish's lines about them keep their old names; the post-boss upgrades and items are not designed yet.
+- **Open, until the quest pass:** the tasks before each fight (pick up what Briarwing dropped, put out Cindermaw's fires, seal the leaks round Pitchclaw's sump) are the old ones with new names. The pickups along Briarwing's trail are still the old feather props.
+- **Open:** whether the old Chop Shop prefabs (and their test scenes) should be deleted once the new fights are approved.

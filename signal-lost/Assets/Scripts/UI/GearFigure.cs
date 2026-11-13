@@ -70,6 +70,8 @@ namespace SignalLost.UI
                     case "quickcool_fins": OnTool(model, figureLaser, showLaser, b => new Vector3(b.center.x, b.max.y, b.center.z - b.size.z * 0.1f), Vector3.zero); break;
                     case "heavy_slam": OnTool(model, figureLaser, showLaser, b => new Vector3(b.center.x, b.center.y + b.extents.y * 0.25f, b.max.z + 0.01f), Vector3.zero); break;
                     case "longnose_antenna": OnTool(model, figureScanner, showScanner, b => new Vector3(b.max.x - b.size.x * 0.2f, b.max.y - 0.01f, b.center.z), Vector3.zero); break;
+                    // No art yet: ItemCatalog has no model, so this is skipped until UpgradeAssetBuilder makes one.
+                    case "crystal_disruptor": OnTool(model, figureScanner, showScanner, b => b.center, Vector3.zero); break;
                     case "castiron_liver": OnTool(model, figureFlask, showFlask, b => b.center, Vector3.zero); break;
                     case "padded_overalls": Attach(model, torso, new Vector3(0f, 0.05f, 0.17f), Vector3.zero, 1f); break;
                     case "slick_kneepads":

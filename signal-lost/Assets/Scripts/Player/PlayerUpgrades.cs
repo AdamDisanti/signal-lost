@@ -55,6 +55,7 @@ namespace SignalLost.Player
         {
             float boltDamage = 1f, boltCooldown = 1f, finisherDamage = 1f, finisherStun = 0f, range = 0f, maxHealth = 0f, slide = 1f;
             int drinks = 0;
+            bool disrupts = false;
             foreach (string id in inventory.Upgrades)
             {
                 Upgrade upgrade = UpgradeCatalog.Find(id);
@@ -67,6 +68,7 @@ namespace SignalLost.Player
                 maxHealth += upgrade.MaxHealth;
                 slide += upgrade.SlideDistance;
                 drinks += upgrade.ExtraDrinks;
+                disrupts |= upgrade.DisruptsCamouflage;
             }
             if (laser != null)
             {
@@ -75,7 +77,11 @@ namespace SignalLost.Player
                 laser.FinisherDamageMultiplier = finisherDamage;
                 laser.FinisherStunBonus = finisherStun;
             }
-            if (scanner != null) scanner.RangeBonus = range;
+            if (scanner != null)
+            {
+                scanner.RangeBonus = range;
+                scanner.DisruptsCamouflage = disrupts;
+            }
             if (flask != null) flask.BlackoutBonus = drinks;
             if (movement != null) movement.SlideDistanceScale = slide;
             if (health != null && !Mathf.Approximately(health.Max, baseMaxHealth + maxHealth)) health.SetMax(baseMaxHealth + maxHealth);
