@@ -46,7 +46,7 @@ The Mudlands adds a **Car** slot (a Car filter in Bucket & Barter, a Car group i
 | --- | --- | --- | --- |
 | Crystal Disruptor (`crystal_disruptor`) | Scanner | The scanner beeps at enemies disguised as crystals. Raising it within reach of one (4 m for a chameleon) makes it burst out to fight. | 8 wiring, 4 boards, 1 cell (placeholder) |
 
-It's a one-off upgrade, sold only in the caves, with no key item. It's needed for the cave axolotl final boss. The caves scene has a `ShopRegion` set to Crystal Caves, so Eugene stocks it there. The scanner side is in [scanner-prototype.md](scanner-prototype.md#crystal-disruptor-upgrade). It has no worn part or icon yet; see that section for how to add one. To try it without buying it, put `StartingUpgrades` (a testing component) on the player with the Id `crystal_disruptor`; the chameleon test scene does.
+It's a one-off upgrade, sold only in the caves, with no key item. It's required for the [cave axolotl](cave-axolotl.md) stage boss: its fight won't start without it, since the axolotl hides as a crystal many times and only this upgrade brings it back up. The caves scene has a `ShopRegion` set to Crystal Caves, so Eugene stocks it there. The scanner side is in [scanner-prototype.md](scanner-prototype.md#crystal-disruptor-upgrade). It has no worn part or icon yet; see that section for how to add one. To try it without buying it, put `StartingUpgrades` (a testing component) on the player with the Id `crystal_disruptor`; the chameleon and axolotl test scenes do.
 
 ## Adding upgrades (desert and later)
 

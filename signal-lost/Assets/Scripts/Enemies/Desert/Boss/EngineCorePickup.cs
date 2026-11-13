@@ -17,6 +17,7 @@ namespace SignalLost.Enemies.Desert
 
         private string partName = "Engine Core";
         private string unlocks;
+        private string stage = StageProgress.Desert;
         private Transform display; // the core, centred and scaled to the shared collectable size (GroundItem)
         private Vector3 near, from, rest;
         private Quaternion fromRotation;
@@ -30,12 +31,14 @@ namespace SignalLost.Enemies.Desert
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Recovered = null;
 
-        /// <summary>Turns an object into the floating pickup near a point.</summary>
-        public static EngineCorePickup Create(Transform part, string name, Vector3 near, string unlocksStage = "NextStage")
+        /// <summary>Turns an object into the floating pickup near a point. <paramref name="clearsStage"/>: the stage it clears (the cave axolotl's is the Crystal Caves).</summary>
+        public static EngineCorePickup Create(Transform part, string name, Vector3 near, string unlocksStage = "NextStage",
+            string clearsStage = StageProgress.Desert)
         {
             var pickup = part.gameObject.AddComponent<EngineCorePickup>();
             pickup.partName = name;
             pickup.unlocks = unlocksStage;
+            pickup.stage = clearsStage;
             pickup.near = near;
             pickup.fromRotation = part.rotation;
             return pickup;
@@ -83,7 +86,7 @@ namespace SignalLost.Enemies.Desert
             if (offset.magnitude > pickupRadius) return;
 
             StageProgress.RecoverMainPart(partName);
-            StageProgress.ClearStage(StageProgress.Desert, unlocks);
+            StageProgress.ClearStage(stage, unlocks);
             MiniBossHud.Message($"RECOVERED: {partName.ToUpperInvariant()}  (main ship part)", new Color(0.55f, 1f, 0.6f), 4f);
             Recovered?.Invoke(partName);
             Destroy(display.gameObject);

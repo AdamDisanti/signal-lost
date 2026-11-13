@@ -81,7 +81,7 @@ The Crystal Caves scanner upgrade (see [upgrades](upgrades.md#crystal-caves-upgr
 - **Without it:** enemies disguised as crystals are skipped as scanner targets, even though their `EnemySignalSource` is on.
 - **With it:** they're ordinary targets, so the scanner beeps toward them (quest signals still come first). While the scanner is raised, each scan also checks every disguised enemy, and any whose fake crystal is within its reveal radius of the scan origin gets `Disrupt()` called.
 
-### Making an enemy disruptable (the cave axolotl)
+### Making an enemy disruptable (the chameleon and the cave axolotl)
 
 1. Implement `SignalLost.Scanner.IScannerDisruptable` on the enemy:
    - `IsDisguised`: true while it's posing as a crystal. It can turn true again later; the axolotl re-burrows mid-fight.
@@ -90,6 +90,7 @@ The Crystal Caves scanner upgrade (see [upgrades](upgrades.md#crystal-caves-upgr
    - `Disrupt()`: drop the disguise and fight. It must do nothing if it's already revealed.
 2. Give it an `EnemySignalSource`, on the same object or a child. The scanner finds disruptable enemies through their signal sources.
 3. To rise out of the ground, use the shared [BurrowEmerge](burrow-emerge.md) with **Emerge On Proximity** unticked, and call `Emerge()` from `Disrupt()`. `CrystalChameleon` is the example to copy.
+   - **The cave axolotl** is the example of an enemy that hides again and again. It doesn't use `BurrowEmerge` (that only rises once): it burrows and comes up through its own clips, sets `IsDisguised` while hidden, and shows a real `CrystalBatch` as its fake crystal. See [cave-axolotl.md](cave-axolotl.md#hiding-and-the-crystal-disruptor).
 
 ### Replacing the scanner model
 

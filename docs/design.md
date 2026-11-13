@@ -207,6 +207,27 @@ Amanda asked for the chameleons that hide in walls, as a separate job. See [Crys
 - **Test scene:** five hidden chameleons (two in walls). The player starts with the Crystal Disruptor, given by a testing component (`StartingUpgrades`), so nothing has to be bought.
 - **Still not in the level:** no chameleon is placed in the Crystal Caves yet.
 
+## Cave Axolotl (11-12)
+
+Amanda's request: the Crystal Caves stage boss, an axolotl covered in crystals like the other cave enemies. See [Cave Axolotl](cave-axolotl.md).
+
+- **Her moves:**
+  - a tail swipe with crystals;
+  - a telegraphed roll with its path shown, untouchable while rolling;
+  - a ring of back shards to jump;
+  - a hide as a crystal that only the raised Crystal Disruptor brings up. It comes up harmlessly, with a small shove.
+- **Her picks (11-12):**
+  - Core Worm-style: an entrance cutscene, four phases that change the arena, and a main part that clears the stage, built on the Shard Mole's kit;
+  - the phases: Still Pool, Crystal Bloom (spires), Cave-In (falling crystals), and Frenzy (no flood);
+  - it hides at every phase change and every 25 s from phase 2;
+  - each hide recolours its crystals to the batch it hides beside;
+  - the fight starts in its deep chamber, once both cave mini-boss parts are in hand **and** the player owns the Crystal Disruptor (it never starts without it);
+  - it drops the **Flight Control Module** plus scrap;
+  - its gills are the weak spot, and a roll into a wall dazes it.
+- **Branch:** `feature/cave-axolotl`, from `feature/crystal-chameleon` with `feature/shard-mole` merged in.
+- **Test scene only:** it is not placed in the level yet.
+- **Not decided, so not invented:** its own sounds and the stage exit after it.
+
 ## Shard Mole (11-11)
 
 Amanda's request: the Crystal Caves mini-boss, a blind mole with glowing crystal claws and a crystal-tipped tail that hunts by sound. It's built like the desert mini-bosses (not the beetles, at her direction). See [Shard Mole](shard-mole.md).
