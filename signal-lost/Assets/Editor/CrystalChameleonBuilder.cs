@@ -5,6 +5,7 @@ using SignalLost.Enemies;
 using SignalLost.Enemies.Caves;
 using SignalLost.Inventory;
 using SignalLost.Player;
+using SignalLost.Progression;
 using SignalLost.Scanner;
 using Unity.AI.Navigation;
 using UnityEditor;
@@ -73,24 +74,32 @@ namespace SignalLost.Editor
             CaveEnemyKit.PlaceRock(room, "CaveBoulderRound", new Vector3(6f, 0.4f, -6f), 0f, new Vector3(1.3f, 1.1f, 1.3f));
             CaveEnemyKit.PlaceRock(room, "Stalagmite", new Vector3(3f, 0f, 9f), 0f, new Vector3(0.7f, 2.6f, 0.7f));
 
-            // Three chameleons, already revealed (there is no scanner disruption yet), each copying a nearby colour.
-            (Vector3 at, float yaw, CrystalColor color)[] chameleons =
+            // Five hidden chameleons, each copying a nearby colour: three in the floor and two in the walls (one high on
+            // the west wall, one low on the east), facing out of the wall. The player starts with the Crystal Disruptor,
+            // so raising the scanner (Q) near one reveals it.
+            (Vector3 at, float yaw, CrystalColor color, bool wall)[] chameleons =
             {
-                (new Vector3(-7f, 0f, 12f), 160f, CrystalColor.Purple), (new Vector3(7f, 0f, 14f), 200f, CrystalColor.Cyan),
-                (new Vector3(0f, 0f, 6f), 180f, CrystalColor.Green),
+                (new Vector3(-7f, 0f, 12f), 160f, CrystalColor.Purple, false), (new Vector3(7f, 0f, 14f), 200f, CrystalColor.Cyan, false),
+                (new Vector3(0f, 0f, 6f), 180f, CrystalColor.Green, false),
+                (new Vector3(-18f, 2.2f, -4f), 90f, CrystalColor.Green, true), (new Vector3(18f, 0.6f, 10f), 270f, CrystalColor.Purple, true),
             };
             for (int i = 0; i < chameleons.Length; i++)
             {
                 var item = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
-                item.name = "Crystal Chameleon " + (i + 1);
+                item.name = (chameleons[i].wall ? "Wall Crystal Chameleon " : "Crystal Chameleon ") + (i + 1);
                 item.transform.SetPositionAndRotation(chameleons[i].at, Quaternion.Euler(0f, chameleons[i].yaw, 0f));
                 var data = new SerializedObject(item.GetComponent<CrystalChameleon>());
                 data.FindProperty("crystalMaterial").objectReferenceValue = CrystalAssetBuilder.CrystalMaterial(chameleons[i].color);
-                data.FindProperty("startRevealed").boolValue = true;
+                data.FindProperty("hideInWall").boolValue = chameleons[i].wall;
                 data.ApplyModifiedPropertiesWithoutUndo();
             }
 
-            CaveEnemyKit.AddCorePlayer(scene, new Vector3(0f, 0.05f, -20f), 0f);
+            GameObject player = CaveEnemyKit.AddCorePlayer(scene, new Vector3(0f, 0.05f, -20f), 0f);
+            var loadout = new SerializedObject(player.AddComponent<StartingUpgrades>());
+            SerializedProperty ids = loadout.FindProperty("upgradeIds");
+            ids.arraySize = 1;
+            ids.GetArrayElementAtIndex(0).stringValue = "crystal_disruptor";
+            loadout.ApplyModifiedPropertiesWithoutUndo();
             CaveEnemyKit.CaveLight();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -114,6 +123,7 @@ namespace SignalLost.Editor
             Require(data.FindProperty("crystals").arraySize > 0 && data.FindProperty("legs").arraySize == 4 && data.FindProperty("eyes").arraySize == 2,
                 "CrystalChameleon needs its crystals, four legs and two eyes.");
             Require(!data.FindProperty("startRevealed").boolValue, "The prefab must start camouflaged; only test instances start revealed.");
+            Require(!data.FindProperty("hideInWall").boolValue, "The prefab hides in the floor; wall chameleons tick Hide In Wall per instance.");
             var burrow = new SerializedObject(prefab.GetComponent<BurrowEmerge>());
             Require(!burrow.FindProperty("emergeOnProximity").boolValue, "The chameleon must only emerge when disrupted, not by proximity.");
             Require(burrow.FindProperty("visualRoot").objectReferenceValue != null && burrow.FindProperty("bodyColliders").arraySize > 0,
@@ -126,7 +136,15 @@ namespace SignalLost.Editor
             Require(Count<GameSystems>() == 1 && Count<PlayerSpawnPoint>() >= 1, ScenePath + ": expected GameSystems and a spawn point.");
             Require(Count<Camera>() == 1 && Count<AudioListener>() == 1, ScenePath + ": expected one camera and listener.");
             Require(Count<NavMeshSurface>() == 1 && Count<NavMeshBaker>() == 1, ScenePath + ": expected one NavMeshSurface with a NavMeshBaker.");
-            Require(Count<CrystalChameleon>() == 3, ScenePath + ": expected three chameleons.");
+            Require(Count<CrystalChameleon>() == 5, ScenePath + ": expected five chameleons.");
+            int walls = 0;
+            foreach (CrystalChameleon item in All<CrystalChameleon>())
+                if (new SerializedObject(item).FindProperty("hideInWall").boolValue) walls++;
+            Require(walls == 2, ScenePath + ": expected two wall chameleons, found " + walls + ".");
+            StartingUpgrades loadout = All<StartingUpgrades>().Count == 1 ? All<StartingUpgrades>()[0] : null;
+            SerializedProperty ids = loadout != null ? new SerializedObject(loadout).FindProperty("upgradeIds") : null;
+            Require(ids != null && ids.arraySize == 1 && ids.GetArrayElementAtIndex(0).stringValue == "crystal_disruptor",
+                ScenePath + ": the player should start with the Crystal Disruptor (StartingUpgrades).");
             foreach (GameObject root in SceneManager.GetActiveScene().GetRootGameObjects())
                 foreach (Transform item in root.GetComponentsInChildren<Transform>(true))
                     Require(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(item.gameObject) == 0, ScenePath + ": missing script on " + item.name);

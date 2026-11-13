@@ -11,7 +11,8 @@ namespace SignalLost.Enemies.Caves
     /// buried with only those crystals showing, so it looks exactly like any other crystal batch: no colliders, no
     /// scanner signal (until the player owns the Crystal Disruptor), no AI. <see cref="Disrupt"/> (called by that scanner upgrade)
     /// turns its crystals red and it rises out of the ground through the shared <see cref="BurrowEmerge"/>; after the
-    /// emerge grace it fights. Its crystals stay red while it is active and go dark when it dies.
+    /// emerge grace it fights. Its crystals stay red while it is active and go dark when it dies. With Hide In Wall it
+    /// clings to a wall instead, slides out along the wall's facing, then drops to the floor below to fight.
     ///
     /// It is a ranged enemy: it keeps a few metres away and flicks its tongue at the player. The wind-up (head
     /// pulls back, mouth opens, throat swells, crystals pulse) is the warning; the aim locks shortly before the
@@ -40,6 +41,13 @@ namespace SignalLost.Enemies.Caves
         [SerializeField] private bool startRevealed;
         [Tooltip("How close the raised, upgraded scanner has to get to its crystals to reveal it.")]
         [SerializeField, Min(0.5f)] private float revealRadius = 4f;
+
+        [Header("Wall hiding")]
+        [Tooltip("Hide in a wall instead of the floor. Place it on the wall at any height, rotated so its forward (blue arrow) points out of the wall. Revealed, it slides out, drops to the floor below and fights there.")]
+        [SerializeField] private bool hideInWall;
+        [Tooltip("How far out from the wall it lands.")]
+        [SerializeField, Min(0.3f)] private float wallLandingDistance = 0.9f;
+        [SerializeField, Min(0.05f)] private float wallDropTime = 0.45f;
 
         [Header("Movement")]
         [SerializeField, Min(0.1f)] private float moveSpeed = 3.2f;
@@ -83,7 +91,7 @@ namespace SignalLost.Enemies.Caves
 
         // IScannerDisruptable: the scanner hides it until the upgrade, and the upgrade reveals it up close.
         public bool IsDisguised => IsCamouflaged && !IsDead;
-        public Vector3 DisguisePosition => transform.position;
+        public Vector3 DisguisePosition => hideInWall ? wallPoint : transform.position;
         public float RevealRadius => revealRadius;
 
         /// <summary>IBurrowOffset: BurrowEmerge's rise, added to the visual's height.</summary>
@@ -101,6 +109,10 @@ namespace SignalLost.Enemies.Caves
         private MaterialPropertyBlock crystalBlock;
         private Color disruptedGlow = Color.red;
         private float glowIntensity;
+        // Wall hiding: where it clings, the way out of the wall, and the drop to the floor (0 on the wall, 1 landed).
+        private Vector3 wallPoint, wallNormal;
+        private float wallDrop;
+        private bool OnWall => hideInWall && wallDrop < 1f;
 
         private void OnValidate() => ApplyCrystalMaterial(crystalMaterial);
 
@@ -120,6 +132,26 @@ namespace SignalLost.Enemies.Caves
             if (disruptedMaterial != null) disruptedGlow = CrystalBatch.GlowColor(disruptedMaterial);
             ApplyCrystalMaterial(crystalMaterial);
             SetTongue(0f);
+            if (hideInWall) MoveRootBelowWall();
+        }
+
+        // The body stays on the wall; the root (NavMeshAgent, colliders, AI) waits on the floor below, where it lands.
+        private void MoveRootBelowWall()
+        {
+            wallPoint = transform.position;
+            wallNormal = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            if (wallNormal.sqrMagnitude < 0.5f) wallNormal = Vector3.forward;
+            Vector3 above = wallPoint + wallNormal * wallLandingDistance + Vector3.up * 0.2f;
+            Vector3 floor = new Vector3(above.x, wallPoint.y, above.z);
+            float nearest = float.MaxValue;
+            foreach (RaycastHit hit in Physics.RaycastAll(above, Vector3.down, 30f, sightMask, QueryTriggerInteraction.Ignore))
+                if (!hit.collider.transform.IsChildOf(transform) && hit.distance < nearest)
+                {
+                    nearest = hit.distance;
+                    floor = hit.point;
+                }
+            transform.SetPositionAndRotation(floor, Quaternion.LookRotation(wallNormal));
+            Home = floor;
         }
 
         protected override void OnStarted()
@@ -160,7 +192,9 @@ namespace SignalLost.Enemies.Caves
                     break;
                 case State.Emerging:
                     Halt();
-                    if (burrow == null || !burrow.IsBuried) Enter(State.Stalk);
+                    if (burrow != null && burrow.IsBuried) break;
+                    if (OnWall) wallDrop = Mathf.MoveTowards(wallDrop, 1f, dt / wallDropTime);
+                    else Enter(State.Stalk);
                     break;
                 case State.Stalk: UpdateStalk(); break;
                 case State.WindUp: UpdateWindUp(); break;
@@ -359,8 +393,23 @@ namespace SignalLost.Enemies.Caves
             float lick = state == State.Lick ? 1f : 0f;
             float sway = Mathf.Sin(Time.time * 4f) * Mathf.Clamp01(speed) * 4f;
             Vector3 shake = state == State.Emerging ? UnityEngine.Random.insideUnitSphere * 0.02f : Vector3.zero;
-            Visual.localPosition = VisualRest + Vector3.up * BurrowOffset + shake;
-            Visual.localRotation = VisualRestRotation * Quaternion.Euler(0f, 0f, sway);
+            if (OnWall)
+            {
+                // Belly to the wall, head up, crystals facing out; BurrowEmerge's offset slides it out of the wall,
+                // then it falls (speeding up) and turns upright onto its spot on the floor.
+                Vector3 cling = wallPoint + wallNormal * BurrowOffset + shake;
+                Quaternion clingRotation = Quaternion.LookRotation(Vector3.up, wallNormal);
+                Vector3 landed = transform.TransformPoint(VisualRest);
+                Quaternion landedRotation = transform.rotation * VisualRestRotation;
+                float k = wallDrop;
+                Visual.SetPositionAndRotation(Vector3.Lerp(cling, landed, k * k) + wallNormal * (0.25f * Mathf.Sin(k * Mathf.PI)),
+                    Quaternion.Slerp(clingRotation, landedRotation, k));
+            }
+            else
+            {
+                Visual.localPosition = VisualRest + Vector3.up * BurrowOffset + shake;
+                Visual.localRotation = VisualRestRotation * Quaternion.Euler(0f, 0f, sway);
+            }
 
             if (head != null) head.localPosition = headRest + Vector3.back * (0.08f * windUp) + Vector3.forward * (0.05f * lick);
             if (jaw != null) jaw.localRotation = jawRest * Quaternion.Euler(28f * Mathf.Max(windUp, lick), 0f, 0f);
