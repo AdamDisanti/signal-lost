@@ -216,7 +216,7 @@ namespace SignalLost.Editor
                 lights.Add(light);
             }
 
-            var data = DesertDuelBossBuilder.Common(boss, root, model, table, "The Cave Axolotl", CaveAxolotl.MainPart, null, 1200f, 2.6f, 6f,
+            var data = DesertDuelBossBuilder.Common(boss, root, model, table, "The Cave Axolotl", CaveAxolotl.MainPart, null, 960f, 2.6f, 6f,
                 new[] { 0.75f, 0.5f, 0.25f }, new[] { "Still Pool", "Crystal Bloom", "Cave-In", "Frenzy" }, new[] { "Chest", "Head" }, 1.4f, Root);
             data.FindProperty("arenaRadius").floatValue = ArenaRadius;
             data.FindProperty("patrolRadius").floatValue = 0f; // it waits at home under its crystal

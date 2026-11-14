@@ -57,11 +57,11 @@ namespace SignalLost.Enemies.Caves
         [SerializeField, Min(0f)] private float dazedGillMultiplier = 2f;
 
         [Header("Damage dealt")]
-        [SerializeField, Min(0f)] private float swipeDamage = 22f;
+        [SerializeField, Min(0f)] private float swipeDamage = 30f;
         [SerializeField, Min(0f)] private float swipeKnockback = 3.5f;
-        [SerializeField, Min(0f)] private float rollDamage = 26f;
-        [SerializeField, Min(0f)] private float shardDamage = 16f;
-        [SerializeField, Min(0f)] private float caveInDamage = 20f;
+        [SerializeField, Min(0f)] private float rollDamage = 34f;
+        [SerializeField, Min(0f)] private float shardDamage = 20f;
+        [SerializeField, Min(0f)] private float caveInDamage = 30f;
 
         [Header("Hiding")]
         [Tooltip("How close the raised, upgraded scanner has to get to its fake crystal.")]

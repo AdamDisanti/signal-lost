@@ -274,7 +274,7 @@ namespace SignalLost.Editor
             agent.stoppingDistance = 0.2f;
             agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
             var health = new SerializedObject(root.GetComponent<Health>());
-            health.FindProperty("maxHealth").floatValue = 40f;
+            health.FindProperty("maxHealth").floatValue = 55f;
             health.ApplyModifiedPropertiesWithoutUndo();
 
             var signal = root.AddComponent<EnemySignalSource>();

@@ -65,7 +65,7 @@ namespace SignalLost.Enemies.Caves
         [SerializeField, Min(0.02f)] private float extendTime = 0.12f;
         [SerializeField, Min(0f)] private float holdTime = 0.1f;
         [SerializeField, Min(0.02f)] private float retractTime = 0.3f;
-        [SerializeField, Min(0f)] private float tongueDamage = 10f;
+        [SerializeField, Min(0f)] private float tongueDamage = 15f;
         [Tooltip("How close the tongue has to pass to the player's body to hit.")]
         [SerializeField, Min(0.05f)] private float tongueHitRadius = 0.3f;
         [SerializeField, Min(0f)] private float attackCooldown = 1.6f;
