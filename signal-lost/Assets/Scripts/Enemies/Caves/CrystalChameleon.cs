@@ -65,10 +65,12 @@ namespace SignalLost.Enemies.Caves
         [SerializeField, Min(0.02f)] private float extendTime = 0.12f;
         [SerializeField, Min(0f)] private float holdTime = 0.1f;
         [SerializeField, Min(0.02f)] private float retractTime = 0.3f;
-        [SerializeField, Min(0f)] private float tongueDamage = 10f;
+        [SerializeField, Min(0f)] private float tongueDamage = 15f;
         [Tooltip("How close the tongue has to pass to the player's body to hit.")]
         [SerializeField, Min(0.05f)] private float tongueHitRadius = 0.3f;
         [SerializeField, Min(0f)] private float attackCooldown = 1.6f;
+        [Tooltip("Damage scale for the player's melee (laser swing, fists). 0 = immune. Finishers still kill.")]
+        [SerializeField, Range(0f, 1f)] private float meleeDamageScale = 0.25f;
 
         [Header("Rig")]
         [SerializeField] private Transform head;
@@ -114,11 +116,21 @@ namespace SignalLost.Enemies.Caves
         private float wallDrop;
         private bool OnWall => hideInWall && wallDrop < 1f;
 
+        // Fists, the laser and its bolts all report the player as the source, so melee is told apart by what's mid-swing.
+        private bool IsMeleeHit(GameObject source)
+        {
+            if (source == null) return false;
+            if (TargetLaser != null && source == TargetLaser.gameObject && TargetLaser.IsSwinging) return true;
+            var fists = source.GetComponent<SignalLost.Melee.PlayerFists>();
+            return fists != null && fists.IsBusy && !fists.IsFinishing;
+        }
+
         private void OnValidate() => ApplyCrystalMaterial(crystalMaterial);
 
         protected override void Awake()
         {
             base.Awake();
+            Health.DamageModifier = (amount, source) => IsMeleeHit(source) ? amount * meleeDamageScale : amount;
             burrow = GetComponent<BurrowEmerge>();
             crystalBlock = new MaterialPropertyBlock();
             if (head != null) headRest = head.localPosition;

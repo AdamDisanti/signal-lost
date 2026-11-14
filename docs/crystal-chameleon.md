@@ -38,10 +38,10 @@ Menu **Signal Lost > Crystal Caves Enemies > Chameleon**:
 | **Wall drop** | A wall one slides straight out of the wall (the same BurrowEmerge rise, along the wall's facing), then falls to its spot on the floor while turning upright (0.45 s). From then on it fights like a floor one. |
 | **Grace** | Risen: it can move but not attack for 0.8 s (BurrowEmerge's grace). |
 | **Stalking** | It keeps 3–5.5 m from the player, closes in when it can't see them, and backs off if they get within 3 m. It has a 14 m territory with the shared leash and heal rule, like all fodder. |
-| **Tongue** | **Wind-up (0.65 s), the warning:** it stops, pulls its head back, opens its mouth, swells its throat and pulses its red crystals. The aim follows the player for the first 75%, then locks. **Lick:** the tongue shoots out in a straight line, up to 8 m, in 0.12 s, holds, and retracts. If it passes within 0.3 m of the player's body, it deals 10 damage. Walls stop it. Then a 1.6 s cooldown. |
+| **Tongue** | **Wind-up (0.65 s), the warning:** it stops, pulls its head back, opens its mouth, swells its throat and pulses its red crystals. The aim follows the player for the first 75%, then locks. **Lick:** the tongue shoots out in a straight line, up to 8 m, in 0.12 s, holds, and retracts. If it passes within 0.3 m of the player's body, it deals 15 damage. Walls stop it. Then a 1.6 s cooldown. |
 | **Death** | Its crystals switch off (dull grey), the glow goes out, and it drops scrap: 1–2 scrap metal and 0–1 wiring. |
 
-- **Health:** 40.
+- **Health:** 55. Melee (laser swing, fists) deals 25% (`meleeDamageScale`); finishers still kill.
 - **Movement:** 3.2 m/s.
 - **Stun:** the laser's combo finisher stuns it, like all fodder ([enemy rules](enemy-rules.md)).
 - **Eyes:** each eye turret swivels on its own, then both lock onto the player once it is revealed.
@@ -82,7 +82,7 @@ To place chameleons in the level:
 2. Raise the scanner (**Q**). It beeps toward the nearest hidden one. Walk up to a floor cluster: within 4 m its crystals turn red and it rises out of the floor.
 3. Walk up to a wall cluster (west wall, high; east wall, low): it turns red, slides out of the wall, drops to the floor and turns to face you.
 4. Lower the scanner and walk up to another one: it stays hidden.
-5. Fight one. A chameleon stops, pulls its head back, swells its throat and pulses its crystals, then flicks its tongue. Standing still: 10 damage and a HUD flash. Sidestepping after the aim locks: it misses.
+5. Fight one. A chameleon stops, pulls its head back, swells its throat and pulses its crystals, then flicks its tongue. Standing still: 15 damage and a HUD flash. Sidestepping after the aim locks: it misses.
 6. Stand behind a rock: the tongue stops at the rock.
 7. Get within 3 m: it backs away. Walk far away: it gives up, walks home and heals.
 8. Kill one: its crystals go dull grey, its light goes out, scrap pops out, and the body flops and sinks.
