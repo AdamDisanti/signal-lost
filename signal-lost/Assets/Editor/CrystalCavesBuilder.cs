@@ -59,7 +59,7 @@ namespace SignalLost.Editor
             (new Vector2(-150f, 110f), new[] { CrystalColor.DarkBlue, CrystalColor.Purple, CrystalColor.Cyan }),
             (new Vector2(165f, 40f), new[] { CrystalColor.Green, CrystalColor.Cyan, CrystalColor.Orange }),
             (new Vector2(0f, 60f), new[] { CrystalColor.Green, CrystalColor.Cyan, CrystalColor.Orange }),
-            (T.MiniBossZone, new[] { CrystalColor.Orange, CrystalColor.Pink, CrystalColor.Orange }),
+            (new Vector2(80f, 35f), new[] { CrystalColor.Orange, CrystalColor.Pink, CrystalColor.Orange }),
             (T.FinalBossZone, new[] { CrystalColor.Purple, CrystalColor.DarkBlue, CrystalColor.Pink })
         };
 
@@ -454,7 +454,7 @@ namespace SignalLost.Editor
             if (T.RampWeight(p.x, p.y) > 0.01f) return false;
             float edge = T.UpperDistance(p.x, p.y);
             if (edge > -8f - pad && edge < 4f + pad) return false; // the cliff and its barrier wall
-            if (Vector2.Distance(p, T.BeetleZone) < T.ZoneRadius + pad || Vector2.Distance(p, T.MiniBossZone) < T.ZoneRadius + pad) return false;
+            if (new[] { T.BeetleZone, T.MoleZone, T.BearZone }.Any(zone => Vector2.Distance(p, zone) < T.ZoneRadius + pad)) return false;
             Vector2 boss = new Vector2((p.x - T.FinalBossZone.x) / (T.FinalBossRadii.x + pad), (p.y - T.FinalBossZone.y) / (T.FinalBossRadii.y + pad));
             return boss.magnitude >= 1f;
         }
@@ -505,7 +505,7 @@ namespace SignalLost.Editor
                     }
             }
             // Rings around the fight zones so each reads as a lit arena.
-            foreach ((Vector2 centre, Vector2 radii, int count) in new[] { (T.BeetleZone, Vector2.one * (T.ZoneRadius + 3f), 6), (T.MiniBossZone, Vector2.one * (T.ZoneRadius + 3f), 6), (T.FinalBossZone, T.FinalBossRadii * 1.1f, 10) })
+            foreach ((Vector2 centre, Vector2 radii, int count) in new[] { (T.BeetleZone, Vector2.one * (T.ZoneRadius + 3f), 6), (T.MoleZone, Vector2.one * (T.ZoneRadius + 3f), 6), (T.BearZone, Vector2.one * (T.ZoneRadius + 3f), 6), (T.FinalBossZone, T.FinalBossRadii * 1.1f, 10) })
                 for (int i = 0; i < count; i++)
                 {
                     float angle = (i + Range(rng, -0.2f, 0.2f)) * Mathf.PI * 2f / count;
@@ -861,8 +861,9 @@ namespace SignalLost.Editor
         {
             var markers = new GameObject("Level Markers (placeholders)").transform;
             Zone(markers, "Beetles Fight Zone", T.BeetleZone, T.ZoneRadius);
-            Zone(markers, "Mini Boss 2 Fight Zone", T.MiniBossZone, T.ZoneRadius);
-            Zone(markers, "Final Boss Fight Zone", T.FinalBossZone, T.FinalBossRadii.y * 1.4f);
+            Zone(markers, "Shard Mole Fight Zone", T.MoleZone, T.ZoneRadius);
+            Zone(markers, "Geode Bear Fight Zone", T.BearZone, T.ZoneRadius);
+            Zone(markers, "Cave Axolotl Fight Zone", T.FinalBossZone, T.FinalBossRadii.y * 1.4f);
         }
 
         private static void Zone(Transform parent, string name, Vector2 centre, float radius)
@@ -916,7 +917,7 @@ namespace SignalLost.Editor
             var goals = new List<(string name, Vector3 at)>
             {
                 ("the end of the dock", dock.Landing.position), ("the camp", Ground(T.Camp + new Vector2(0f, -9f))), ("inside the cave mouth", Ground(T.PointOnPath(0.85f))),
-                ("the beetles' zone", Ground(T.BeetleZone)), ("mini boss 2's zone", Ground(T.MiniBossZone)), ("the final boss's zone", Ground(T.FinalBossZone))
+                ("the beetles' zone", Ground(T.BeetleZone)), ("the mole's zone", Ground(T.MoleZone)), ("the bear's zone", Ground(T.BearZone)), ("the final boss's zone", Ground(T.FinalBossZone))
             };
             foreach (T.Ramp ramp in T.Ramps) goals.Add(($"the foot of the ramp at ({ramp.Edge.x:0}, {ramp.Edge.y:0})", Ground(ramp.Foot)));
             EnemyTestBuilder.Require(NavMesh.SamplePosition(start, out NavMeshHit from, 3f, NavMesh.AllAreas), "The spawn is off the NavMesh.");

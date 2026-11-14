@@ -81,7 +81,8 @@ namespace SignalLost.Editor
 
         // Fight zones from the design map, flattened and left empty (enemies come later).
         public static readonly Vector2 BeetleZone = new Vector2(-150f, -42f);
-        public static readonly Vector2 MiniBossZone = new Vector2(80f, 35f);
+        public static readonly Vector2 MoleZone = new Vector2(15f, 12f);  // mini boss 2, the Shard Mole: the middle of the deep level
+        public static readonly Vector2 BearZone = new Vector2(134f, 64f); // mini boss 3, the Geode Bear: east, by the cave wall
         public const float ZoneRadius = 24f;
         public static readonly Vector2 FinalBossZone = new Vector2(0f, 138f);
         public static readonly Vector2 FinalBossRadii = new Vector2(76f, 34f);
@@ -354,7 +355,8 @@ namespace SignalLost.Editor
             }
             var p = new Vector2(x, z);
             h = Mathf.Lerp(h, BaseFloor(BeetleZone.x, BeetleZone.y), Smooth(ZoneRadius + 12f, ZoneRadius, Vector2.Distance(p, BeetleZone)));
-            h = Mathf.Lerp(h, BaseFloor(MiniBossZone.x, MiniBossZone.y), Smooth(ZoneRadius + 12f, ZoneRadius, Vector2.Distance(p, MiniBossZone)));
+            h = Mathf.Lerp(h, BaseFloor(MoleZone.x, MoleZone.y), Smooth(ZoneRadius + 12f, ZoneRadius, Vector2.Distance(p, MoleZone)));
+            h = Mathf.Lerp(h, BaseFloor(BearZone.x, BearZone.y), Smooth(ZoneRadius + 12f, ZoneRadius, Vector2.Distance(p, BearZone)));
             float boss = new Vector2((x - FinalBossZone.x) / FinalBossRadii.x, (z - FinalBossZone.y) / FinalBossRadii.y).magnitude;
             return Mathf.Lerp(h, BaseFloor(FinalBossZone.x, FinalBossZone.y), Smooth(1.25f, 1f, boss));
         }
@@ -595,8 +597,10 @@ namespace SignalLost.Editor
                 Vector2 p = BeetleZone + new Vector2(Mathf.Cos(a * 10f * Mathf.Deg2Rad), Mathf.Sin(a * 10f * Mathf.Deg2Rad)) * (ZoneRadius + 10f);
                 if (CavernDepth(p.x, p.y) > 10f && UpperDistance(p.x, p.y) < 6f) { problems.Add("The beetles' zone comes within 10 m of the upper level's edge."); break; }
             }
-            // No upper level overlooks mini boss 2's zone or the final boss's zone.
-            if (UpperDistance(MiniBossZone.x, MiniBossZone.y) > -(ZoneRadius + 40f)) problems.Add("The upper level comes too close to mini boss 2's zone.");
+            // No upper level overlooks the mole's, the bear's or the final boss's zone.
+            if (UpperDistance(MoleZone.x, MoleZone.y) > -(ZoneRadius + 40f)) problems.Add("The upper level comes too close to the mole's zone.");
+            if (UpperDistance(BearZone.x, BearZone.y) > -(ZoneRadius + 40f)) problems.Add("The upper level comes too close to the bear's zone.");
+            if (CavernDepth(BearZone.x, BearZone.y) < ZoneRadius + 10f) problems.Add("The bear's zone comes too close to the cave wall.");
             for (int a = 0; a < 36; a++)
             {
                 Vector2 p = FinalBossZone + new Vector2(Mathf.Cos(a * 10f * Mathf.Deg2Rad) * FinalBossRadii.x, Mathf.Sin(a * 10f * Mathf.Deg2Rad) * FinalBossRadii.y);
