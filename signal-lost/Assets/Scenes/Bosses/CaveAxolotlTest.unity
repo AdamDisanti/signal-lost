@@ -1538,7 +1538,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Enemies.Caves.AxolotlLair
   axolotl: {fileID: 239854168}
   triggerRadius: 6
-  requiredParts: 2
+  requiredParts: 3
   assumePartsCollected: 1
   title: THE CAVE AXOLOTL
   subtitle: It's guarding the ship's Flight Control Module

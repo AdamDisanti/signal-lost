@@ -221,7 +221,7 @@ Amanda's request: the Crystal Caves stage boss, an axolotl covered in crystals l
   - the phases: Still Pool, Crystal Bloom (spires), Cave-In (falling crystals), and Frenzy (no flood);
   - it hides at every phase change and every 25 s from phase 2;
   - each hide recolours its crystals to the batch it hides beside;
-  - the fight starts in its deep chamber, once both cave mini-boss parts are in hand **and** the player owns the Crystal Disruptor (it never starts without it);
+  - the fight starts in its deep chamber, once all three cave mini-boss parts are in hand (Amanda, 11-14: the Geode Bear's power cell is the third) **and** the player owns the Crystal Disruptor (it never starts without it);
   - it drops the **Flight Control Module** plus scrap;
   - its gills are the weak spot, and a roll into a wall dazes it.
 - **Branch:** `feature/cave-axolotl`, from `feature/crystal-chameleon` with `feature/shard-mole` merged in.

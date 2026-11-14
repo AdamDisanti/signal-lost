@@ -13,8 +13,8 @@ namespace SignalLost.Enemies.Caves
     /// <see cref="DesertStageExit"/> (docs/cave-axolotl.md).
     ///
     /// 1. The axolotl waits under a crystal in the middle of its chamber, switched off.
-    /// 2. Walk into the chamber (within Trigger Radius of this object) with both cave mini-boss parts (the Shard Mole's
-    ///    antenna array and the Beetles' signal amplifier) and the Crystal Disruptor scanner upgrade, and the entrance plays: the cave rumbles, the crystal
+    /// 2. Walk into the chamber (within Trigger Radius of this object) with all three cave mini-boss parts (the Shard Mole's
+    ///    antenna array, the Beetles' signal amplifier and the Geode Bear's power cell) and the Crystal Disruptor scanner upgrade, and the entrance plays: the cave rumbles, the crystal
     ///    shakes, it bursts out and roars, and its name card shows. Space skips (the shared <see cref="BossEntrance"/>).
     /// 3. Die, or run out of the chamber, and it resets and goes back under its crystal; walk in again to retry.
     /// 4. Beat it and pick up the Flight Control Module: the Crystal Caves is cleared (EngineCorePickup records it).
@@ -25,8 +25,8 @@ namespace SignalLost.Enemies.Caves
 
         [SerializeField] private CaveAxolotl axolotl;
         [SerializeField, Min(1f)] private float triggerRadius = 6f;
-        [Tooltip("Cave mini-boss parts needed first (the antenna array and the signal amplifier).")]
-        [SerializeField, Min(0)] private int requiredParts = 2;
+        [Tooltip("Cave mini-boss parts needed first (the antenna array, the signal amplifier and the power cell).")]
+        [SerializeField, Min(0)] private int requiredParts = 3;
         [Tooltip("Testing only: act as if the parts were already collected.")]
         [SerializeField] private bool assumePartsCollected;
         [SerializeField] private string title = "THE CAVE AXOLOTL";
