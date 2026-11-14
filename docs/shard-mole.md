@@ -34,7 +34,7 @@ Menu **Signal Lost > Crystal Caves Enemies > Shard Mole**:
 - **Engage:** walking into its **18 m** arena, or hitting it, starts the fight. It roars, and the boss bar appears with a notch for each phase. Cave chambers are smaller than the desert arenas, which use 24 m.
 - **Leash and reset:** if you go past twice the arena radius, or die, it goes home at full health and phase 1, like every mini-boss.
 - **No adds:** it fights alone, like the desert duels.
-- **Poise:** if it takes 120 damage in a short time, it staggers out of an attack (not the tail swoop or the burrow).
+- **Poise:** if it takes 180 damage in a short time, it staggers out of an attack (not the tail swoop or the burrow).
 
 ### Hearing (it's blind)
 
@@ -47,11 +47,11 @@ Menu **Signal Lost > Crystal Caves Enemies > Shard Mole**:
 
 | Phase | Move | What happens | Counter |
 | --- | --- | --- | --- |
-| 1-3 | **Claw swipe** | Close in front. It draws the nearer hand out and back (the claws flare), then rakes it across the front. 18 damage and a small shove. | Back off on the draw. |
-| 1-3 | **Tail swoop** | Up to 6 m, and more likely when you're beside or behind it. It crouches and coils with the blade raised (the warning), then spins right round so the crystal blade scythes a full circle low. 22 damage and a **5 m knockback**. Afterwards it's dizzy and takes 1.2x damage. | Jump it, or get out of reach on the coil. |
-| 1-3 | **Burrow ambush** | When you're 7 m or more away. It digs in snout-first and disappears (it can't be hit). A **dirt mound with its crystal blade poking out** travels along the floor toward where it heard you, trailing dust. When it gets there, a glowing cyan **ring** (3 m) marks the spot for 1 s, then it bursts out: 30 damage and a shove to anyone in the ring. It lands dazed and takes 1.3x damage until it recovers. | Watch the mound. Step out of the ring when it appears, then punish. |
-| 2-3 | **Claw flurry** | Right swipe, left swipe (16 each), then both hands raised high and **held**, which catches an early dodge, then a two-handed rake down the middle (26, a 4 m shove). | Dodge the rake late. |
-| 3 | **Ceiling shards** | It rears up and slams both claws into the floor. Five cyan rings appear: the first where you're heading, the rest within 6 m of you. Each ring gets a crystal falling from the ceiling 1.3 s later (22 damage within 1.6 m). They land in quick succession. The aimed shard lands wherever you are; the others stay inside the arena. | Keep moving out of the rings. |
+| 1-3 | **Claw swipe** | Close in front. It draws the nearer hand out and back (the claws flare), then rakes it across the front. 24 damage and a small shove. | Back off on the draw. |
+| 1-3 | **Tail swoop** | Up to 6 m, and more likely when you're beside or behind it. It crouches and coils with the blade raised (the warning), then spins right round so the crystal blade scythes a full circle low. 28 damage and a **5 m knockback**. Afterwards it's dizzy and takes 1.2x damage. | Jump it, or get out of reach on the coil. |
+| 1-3 | **Burrow ambush** | When you're 7 m or more away. It digs in snout-first and disappears (it can't be hit). A **dirt mound with its crystal blade poking out** travels along the floor toward where it heard you, trailing dust. When it gets there, a glowing cyan **ring** (3 m) marks the spot for 1 s, then it bursts out: 36 damage and a shove to anyone in the ring. It lands dazed and takes 1.3x damage until it recovers. | Watch the mound. Step out of the ring when it appears, then punish. |
+| 2-3 | **Claw flurry** | Right swipe, left swipe (20 each), then both hands raised high and **held**, which catches an early dodge, then a two-handed rake down the middle (34, a 4 m shove). | Dodge the rake late. |
+| 3 | **Ceiling shards** | It rears up and slams both claws into the floor. Five cyan rings appear: the first where you're heading, the rest within 6 m of you. Each ring gets a crystal falling from the ceiling 1.3 s later (26 damage within 1.6 m). They land in quick succession. The aimed shard lands wherever you are; the others stay inside the arena. | Keep moving out of the rings. |
 
 | Phase | Health | Title | What changes |
 | --- | --- | --- | --- |
@@ -59,7 +59,7 @@ Menu **Signal Lost > Crystal Caves Enemies > Shard Mole**:
 | 2 | 66-33% | Restless | Adds the claw flurry. The claws glow brighter. A little faster (the shared phase tempo). |
 | 3 | 33-0% | Shattering | Adds the ceiling shards. The claws glow brightest. Faster again. |
 
-- **Health:** 1,100. All numbers are serialized fields on the prefab, placeholders to tune.
+- **Health:** 1,630. All numbers are serialized fields on the prefab, placeholders to tune.
 - **Defeat:** the antenna array drops as a glowing pickup ("RECOVERED: Antenna array"). It counts under the stage `CrystalCaves`, since the Crystal Caves has no stage constant yet. It also drops scrap like the cave beetles, the other cave mini-boss: 3–5 scrap metal, 1–2 wiring and 1–2 circuit boards.
 
 ## How it's built
@@ -92,7 +92,7 @@ Menu **Signal Lost > Crystal Caves Enemies > Shard Mole**:
     - it engages when the player walks in;
     - it starts listening about 4 s after the player goes quiet (3 s of silence plus the end of the move it was in) and doesn't attack while listening;
     - footsteps end the listening;
-    - every move damages a player standing in it: swipe 18, tail swoop 22, flurry 58 (all three hits), ceiling shards 22–44 (more than one shard can land on a player who stands still), burrow 30;
+    - every move damages a player standing in it: swipe 24, tail swoop 28, flurry 74 (all three hits), ceiling shards 26–52 (more than one shard can land on a player who stands still), burrow 36;
     - the burrow goes underground, and the hidden antenna stays hidden when it comes back up;
     - phase 3 starts;
     - it drops scrap and the antenna array.

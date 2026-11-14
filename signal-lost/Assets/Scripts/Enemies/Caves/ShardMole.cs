@@ -42,13 +42,13 @@ namespace SignalLost.Enemies.Caves
         [SerializeField] private Material moundMaterial;
         [SerializeField] private Light[] clawLights = new Light[0];
         [SerializeField] private Color dustColor = new Color(0.42f, 0.43f, 0.5f);
-        [SerializeField, Min(0f)] private float swipeDamage = 18f;
-        [SerializeField, Min(0f)] private float flurryDamage = 16f;
-        [SerializeField, Min(0f)] private float rakeDamage = 26f;
-        [SerializeField, Min(0f)] private float swoopDamage = 22f;
+        [SerializeField, Min(0f)] private float swipeDamage = 24f;
+        [SerializeField, Min(0f)] private float flurryDamage = 20f;
+        [SerializeField, Min(0f)] private float rakeDamage = 34f;
+        [SerializeField, Min(0f)] private float swoopDamage = 28f;
         [SerializeField, Min(0f)] private float swoopKnockback = 5f;
-        [SerializeField, Min(0f)] private float eruptDamage = 30f;
-        [SerializeField, Min(0f)] private float shardDamage = 22f;
+        [SerializeField, Min(0f)] private float eruptDamage = 36f;
+        [SerializeField, Min(0f)] private float shardDamage = 26f;
 
         [Header("Burrow")]
         [SerializeField, Min(1f)] private float tunnelSpeed = 7f;

@@ -170,10 +170,10 @@ namespace SignalLost.Editor
                 lights.Add(light);
             }
 
-            var data = DesertDuelBossBuilder.Common(boss, root, model, table, "The Shard Mole", "Antenna array", part, 1100f, 2.8f, 6.5f,
+            var data = DesertDuelBossBuilder.Common(boss, root, model, table, "The Shard Mole", "Antenna array", part, 1630f, 2.8f, 6.5f,
                 new[] { 0.66f, 0.33f }, new[] { "Listening", "Restless", "Shattering" }, new[] { "Chest", "Head" }, 1.4f, Root);
             data.FindProperty("arenaRadius").floatValue = ArenaRadius; // cave chambers are smaller than the desert arenas
-            data.FindProperty("poise").floatValue = 120f;
+            data.FindProperty("poise").floatValue = 180f;
             data.FindProperty("stalkDistance").floatValue = 5f;
             data.FindProperty("markerMaterial").objectReferenceValue = CaveEnemyKit.Glowing("ShardMoleWarning", glow, 2.2f);
             data.FindProperty("crystalMaterial").objectReferenceValue = crystal;
