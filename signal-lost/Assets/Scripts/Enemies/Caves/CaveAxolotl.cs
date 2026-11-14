@@ -73,6 +73,10 @@ namespace SignalLost.Enemies.Caves
         [SerializeField, Min(1f)] private float emergeShoveReach = 5f;
         [Tooltip("It hides at least this far from the player when it can.")]
         [SerializeField, Min(0f)] private float hideAwayFromPlayer = 8f;
+        [Tooltip("HP it regains per second while hidden, so the player hunts it down fast.")]
+        [SerializeField, Min(0f)] private float hideHealPerSecond = 1f;
+        [Tooltip("Most HP it can regain in one hiding.")]
+        [SerializeField, Min(0f)] private float hideHealCap = 20f;
 
         [Header("Roll")]
         [SerializeField, Min(1f)] private float rollSpeed = 15f;
@@ -103,6 +107,7 @@ namespace SignalLost.Enemies.Caves
 
         /// <summary>True while it's underground posing as a crystal (mid-fight).</summary>
         public bool IsHiding => hidden;
+        public override bool Regenerating => hidden && !IsDead && hideHealed < hideHealCap && Health.Current < Health.Max;
         public bool IsRolling => rolling;
         public bool IsDazed => dazed;
         /// <summary>Waiting under its crystal before the fight (see <see cref="AxolotlLair"/>).</summary>
@@ -118,6 +123,7 @@ namespace SignalLost.Enemies.Caves
         private float nextHideAt = float.PositiveInfinity, nextCaveIn = float.PositiveInfinity, spin, glowBoost = 1f, flare;
         private float[] lightBase = new float[0];
         private CrystalBatch lastHideBatch;
+        private float hideHealed;
         private readonly List<Coroutine> caveIns = new List<Coroutine>();
         private readonly List<GameObject> caveInBits = new List<GameObject>();
 
@@ -261,10 +267,13 @@ namespace SignalLost.Enemies.Caves
             disrupted = false;
             hidden = true;
             MiniBossHud.Message("THE AXOLOTL IS HIDING AMONG THE CRYSTALS\nRaise the scanner " + SignalLost.Core.KeyBindings.Hint("swap") + " and find it",
-                new Color(1f, 0.6f, 0.85f), 4f);
+                new Color(1f, 0.6f, 0.85f), 4f, "It heals while it hides");
+            hideHealed = 0f;
             while (!disrupted)
             {
                 Halt();
+                float heal = Mathf.Min(hideHealPerSecond * Time.deltaTime, hideHealCap - hideHealed);
+                if (heal > 0f && Health.Heal(heal)) hideHealed += heal;
                 yield return null;
             }
             hidden = false;
