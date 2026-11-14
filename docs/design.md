@@ -194,6 +194,8 @@ Amanda's request: a small flying Crystal Caves fodder enemy, a cave bat with cry
 - **Damage rule:** shots only hurt it on the chest crystal; bolts glance off its wings and body. Melee hurts it anywhere, but it's only in reach while it swoops or hangs low afterwards.
 - **Drops:** scrap, like the other fodder.
 - **Test scene only:** its own test scene. It is not placed in the level yet.
+- **Health and role (11-13):** Amanda lowered it from 30 to **14 HP** and made it the Caves' swarm type, so the Caves' fodder sits between the desert's and the Mudlands' by rank (Spark Tick 8, Mudpuppy 20).
+- **Pack rules (11-13):** no flocking. Each bat circles on its own ring, and at most two can dive at once (**Max Divers**), so a pack takes turns instead of stacking.
 - **Not decided, so not invented:** sounds, and whether bats roost on the ceiling before they notice the player (they hover in place for now).
 
 ## Chief Toad decisions (10-23-26)

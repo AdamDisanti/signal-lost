@@ -232,7 +232,7 @@ namespace SignalLost.Editor
             agent.stoppingDistance = 0.1f;
             agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
             var health = new SerializedObject(root.GetComponent<Health>());
-            health.FindProperty("maxHealth").floatValue = 30f;
+            health.FindProperty("maxHealth").floatValue = 14f;
             health.ApplyModifiedPropertiesWithoutUndo();
 
             root.AddComponent<EnemySignalSource>(); // the scanner can find it

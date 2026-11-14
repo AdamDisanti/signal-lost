@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SignalLost.Combat;
 using SignalLost.Enemies.Desert;
 using SignalLost.Player;
@@ -25,6 +26,9 @@ namespace SignalLost.Enemies.Caves
 
         private enum State { Hover, Circle, WindUp, Swoop, Hang, Climb }
 
+        // Bats winding up, swooping or hanging low right now, shared by every bat so a pack takes turns diving.
+        private static readonly List<QuartzBat> Diving = new List<QuartzBat>();
+
         [Header("Flight")]
         [Tooltip("Height it circles at, above the ground. Keep it out of melee reach (the laser reaches 2.1 m).")]
         [SerializeField, Min(1f)] private float cruiseHeight = 3.3f;
@@ -33,10 +37,16 @@ namespace SignalLost.Enemies.Caves
         [SerializeField, Min(5f)] private float circleSpeed = 65f;
         [SerializeField, Min(0.5f)] private float flySpeed = 5f;
         [SerializeField, Min(0.5f)] private float climbSpeed = 2.4f;
+        [Tooltip("Each bat circles up to this much nearer or farther, so a pack doesn't share one ring.")]
+        [SerializeField, Min(0f)] private float radiusSpread = 0.6f;
+        [Tooltip("Each bat circles up to this much higher or lower. Keep cruise height minus this out of melee reach.")]
+        [SerializeField, Min(0f)] private float heightSpread = 0.4f;
 
         [Header("Swoop and bite")]
         [Tooltip("Seconds of circling between swoops.")]
         [SerializeField, Min(0.5f)] private float swoopInterval = 3.5f;
+        [Tooltip("Most bats that may wind up, swoop or hang low at once; the rest keep circling until one finishes.")]
+        [SerializeField, Range(1, 4)] private int maxDivers = 2;
         [Tooltip("The warning: it stops, raises its wings and its crystal pulses.")]
         [SerializeField, Min(0.1f)] private float windUpTime = 0.6f;
         [SerializeField, Min(1f)] private float swoopSpeed = 7.5f;
@@ -81,6 +91,9 @@ namespace SignalLost.Enemies.Caves
         {
             base.Awake();
             Health.DamageModifier = FilterDamage;
+            // Each bat gets its own ring, so a pack doesn't stack while circling.
+            circleRadius += Random.Range(-radiusSpread, radiusSpread);
+            cruiseHeight += Random.Range(-heightSpread, heightSpread);
             height = cruiseHeight;
             wingRest = new Quaternion[wings.Length];
             for (int i = 0; i < wings.Length; i++) wingRest[i] = wings[i] != null ? wings[i].localRotation : Quaternion.identity;
@@ -98,8 +111,25 @@ namespace SignalLost.Enemies.Caves
             Halt();
         }
 
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            Diving.Remove(this);
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Diving.Clear();
+
+        /// <summary>How many bats are winding up, swooping or hanging low right now.</summary>
+        public static int DivingCount => Diving.Count;
+
         private void Enter(State next)
         {
+            if (next == State.WindUp || next == State.Swoop || next == State.Hang)
+            {
+                if (!Diving.Contains(this)) Diving.Add(this);
+            }
+            else Diving.Remove(this);
             state = next;
             stateTime = 0f;
         }
@@ -153,7 +183,7 @@ namespace SignalLost.Enemies.Caves
             orbitAngle += orbitDirection * circleSpeed * dt;
             Chase(OrbitPoint(orbitAngle + orbitDirection * 25f), flySpeed); // aim a little ahead so it never stalls
             // No CanSee: it looks from the ground under the bat, so a rock would stop every swoop. The swoop follows the NavMesh, so walls still do.
-            if (Time.time >= nextSwoop && FlatDistance(Target.position) <= circleRadius * 3f) Enter(State.WindUp);
+            if (Time.time >= nextSwoop && FlatDistance(Target.position) <= circleRadius * 3f && Diving.Count < maxDivers) Enter(State.WindUp);
         }
 
         private Vector3 OrbitPoint(float degrees)
@@ -251,6 +281,7 @@ namespace SignalLost.Enemies.Caves
 
         protected override void OnDeath()
         {
+            Diving.Remove(this); // a dead bat frees its swoop turn
             deathHeight = height;
             if (crystal != null && spentMaterial != null)
             {

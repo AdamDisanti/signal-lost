@@ -4187,7 +4187,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1af0f1d27e774297b8beb763d2317c41, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SignalLost.Combat.Health
-  maxHealth: 30
+  maxHealth: 14
   died:
     m_PersistentCalls:
       m_Calls: []
