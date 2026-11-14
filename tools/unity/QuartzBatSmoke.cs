@@ -71,6 +71,7 @@ public static class QuartzBatSmoke
                 minHeight = Mathf.Min(minHeight, item.Height);
                 sawSwoop |= item.IsSwooping;
             }
+            Require(QuartzBat.DivingCount <= 2, QuartzBat.DivingCount + " bats diving at once; at most 2 may take a turn.");
 
             if (stage == 0 && t > 2f)
             {
