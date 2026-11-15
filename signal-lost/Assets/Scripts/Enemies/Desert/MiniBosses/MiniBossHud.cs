@@ -58,7 +58,23 @@ namespace SignalLost.Enemies.Desert
             Ensure();
             sandLength = Mathf.Max(0.1f, seconds);
             sandUntil = Mathf.Max(sandUntil, Time.time + seconds);
+            hazeColor = SandColor;
         }
+
+        /// <summary>
+        /// Clouds the screen like <see cref="SandBlind"/> but in any colour, for as long as it's called (Cindermaw's smoke
+        /// while the player stands in it: call it every frame with a short duration).
+        /// </summary>
+        public static void Haze(Color color, float seconds)
+        {
+            Ensure();
+            sandLength = Mathf.Max(0.1f, seconds);
+            sandUntil = Mathf.Max(sandUntil, Time.time + seconds);
+            hazeColor = color;
+        }
+
+        private static readonly Color SandColor = new Color(0.86f, 0.72f, 0.5f, 0.92f);
+        private static Color hazeColor = SandColor;
 
         private void Awake()
         {
@@ -87,7 +103,7 @@ namespace SignalLost.Enemies.Desert
             float sand = Mathf.Clamp01((sandUntil - Time.time) / sandLength);
             if (sand > 0f)
             {
-                Fill(new Rect(0, 0, Screen.width, Screen.height), new Color(0.86f, 0.72f, 0.5f, 0.92f * Mathf.Sqrt(sand)));
+                Fill(new Rect(0, 0, Screen.width, Screen.height), new Color(hazeColor.r, hazeColor.g, hazeColor.b, hazeColor.a * Mathf.Sqrt(sand)));
                 for (int i = 0; i < 40; i++) // drifting grit
                 {
                     float x = Mathf.Repeat(i * 97.3f + Time.time * (60f + i * 7f), Screen.width);
@@ -105,15 +121,17 @@ namespace SignalLost.Enemies.Desert
                 const float width = 460f, height = 14f;
                 var bar = new Rect(cx - width * 0.5f, y0 + 26f, width, height);
                 int phase = boss.DisplayPhase;
-                string name = phase == 3 ? boss.DisplayName + "  (furious)" : phase == 2 ? boss.DisplayName + "  (enraged)" : boss.DisplayName;
+                string phaseTitle = boss.PhaseTitle;
+                string name = string.IsNullOrEmpty(phaseTitle) ? boss.DisplayName : boss.DisplayName + "  (" + phaseTitle + ")";
                 Label(new Rect(cx - 300f, y0, 600f, 26f), name, title, Color.white);
                 Fill(new Rect(bar.x - 2f, bar.y - 2f, bar.width + 4f, bar.height + 4f), new Color(0f, 0f, 0f, 0.7f));
-                Color fill = phase == 3 ? new Color(0.9f, 0.12f, 0.12f) : phase == 2 ? new Color(1f, 0.35f, 0.15f) : new Color(0.9f, 0.6f, 0.15f);
+                Color fill = phase >= 4 ? new Color(0.75f, 0.08f, 0.2f) : phase == 3 ? new Color(0.9f, 0.12f, 0.12f)
+                    : phase == 2 ? new Color(1f, 0.35f, 0.15f) : new Color(0.9f, 0.6f, 0.15f);
                 if (boss.InPhaseShift && Mathf.Sin(Time.time * 30f) > 0f) fill = Color.white;
                 Fill(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(boss.HealthFraction), bar.height), fill);
-                Fill(new Rect(bar.x + bar.width * boss.PhaseTwoAt - 1f, bar.y - 3f, 2f, bar.height + 6f), new Color(1f, 1f, 1f, 0.8f));
-                if (boss.PhaseThreeAt > 0f)
-                    Fill(new Rect(bar.x + bar.width * boss.PhaseThreeAt - 1f, bar.y - 3f, 2f, bar.height + 6f), new Color(1f, 1f, 1f, 0.8f));
+                foreach (float mark in boss.PhaseMarks)
+                    if (mark > 0f && mark < 1f)
+                        Fill(new Rect(bar.x + bar.width * mark - 1f, bar.y - 3f, 2f, bar.height + 6f), new Color(1f, 1f, 1f, 0.8f));
                 y0 += 52f;
             }
 

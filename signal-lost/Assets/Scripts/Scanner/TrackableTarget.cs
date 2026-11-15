@@ -18,6 +18,7 @@ namespace SignalLost.Scanner
         public bool IsDetected { get; private set; }
 
         public void SetDetected(bool detected) => IsDetected = detected;
+        public void SetSignalType(SignalType type) => signalType = type;
         protected virtual void OnDisable() => IsDetected = false;
     }
 }

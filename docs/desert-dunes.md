@@ -21,11 +21,13 @@ The map is 320 × 320 m, the same footprint as the tutorial crash site, made of 
 | --- | --- | --- |
 | Biome Entrance | South canyon, around (0, −130) | Player spawn and respawn point. Cavendish stands nearby; an empty Merchant Spot marker is next to him |
 | Crash streak | South-west to north-east across the middle | About 48 hull plates and chips scattered along the path the ship's debris flew, leading the eye toward the boss arena |
-| Encounter 1: Wreck Field | West, (−62, −62) | Flat ground ringed by hull plates, 1 hermit crab |
-| Encounter 2: Mesa Pass | East, (78, −18) | 2 hermit crabs among wreckage |
-| Encounter 3: Buried Hull | North-west, (−58, 62) | 2 hermit crabs among wreckage |
+| Encounter 1: Wreck Field | West, (−62, −62) | Old Buzzard's Roost (11-08, see [desert story](desert-story.md)) |
+| Encounter 2: Mesa Pass | East, (78, −18) | Burnout's Scorch Raceway |
+| Encounter 3: Buried Hull | North-west, (−58, 62) | Sludge's Fuel Sump, a 1.4 m dip |
 | Giant Ribcage | Center-south, (22, −48) | Bleached ribs arching out of the sand. A landmark only |
-| Boss Arena | North, (38, 92) | Sand bowl ringed by tall spires, open to the south and west, with a half-buried ship engine. Boss Spawn and Engine Core Drop markers, no boss yet |
+| Boss Arena | North, (38, 92) | Sand bowl ringed by tall spires, open to the south and west, with a half-buried ship engine. The Core Worm's lair is 22 m beneath it; a patch of the bowl (the sinkhole lid) drops through when the lair's rock-choked roof gives way, leaving a gash 17 m long with a rubble slope to climb up and down |
+
+The three encounter sites were 16 m hermit-crab sites until 11-08. They are now 24 m themed mini-boss arenas, and the story install removes their crabs.
 | Perimeter | All round | A beach into the sea (11-07; it was a wall of unclimbable dunes). Deep water puts the player back on land; see [islands](islands.md) |
 
 Scattered across the dunes are 12 flat-topped mesas (long-range landmarks), 70 boulders (cover) and 34 goofy alien cacti (teal stems, pink bulbs). Lighting is a warm, high sun with a procedural sky and linear dust haze (45–260 m) so far areas fade out. This is the biome's own lighting and fog, as the design doc's Artistic Differentiation asks.
@@ -49,11 +51,15 @@ The flask and drinking are **not** in this level. They live in `TutorialPlayer`,
 8. Walk into the Boss Arena through the south or west gap: the bowl, spires and buried engine are there, with no boss.
 9. Check that big rocks, mesas, cacti and large hull plates block you, and that small debris chips don't.
 
+## The story (11-08)
+
+**Signal Lost > Desert > Install Desert Story** puts the quests, the three mini-bosses, the Core Worm and its lair into this level. See [desert story](desert-story.md). The test checklist above predates it: the crabs it mentions are gone, and Cavendish now gives quests.
+
 ## Open questions
 
 - **Ownership:** Lawson owns level design in the team roster. Confirm with him that Nicole builds the Desert, or whether this should be his layout with her art.
-- **Encounters:** what counts as one of the three mini encounters (a site, a creature, a quest?). The crabs here are ordinary hermit crabs, and nothing counts kills or unlocks the boss signal yet.
-- **Death reset:** Lawson's tutorial rule resets stage enemies on death. These crabs stay dead after the player respawns, because the placeholder respawn doesn't reset them.
-- **Boss, merchant, quests, exit:** the Tech-Enhanced Hermit Crab, the merchant crab, Cavendish's quest and the exit to the Fog Forest don't exist yet, so they're empty markers only.
+- **Encounters:** settled on 11-08. The three encounters are the three mini-bosses, and the Core Worm comes after all three (see [desert story](desert-story.md)).
+- **Death reset:** the mini-bosses and the worm reset on death by their own rules. Nothing else in the level resets.
+- **Exit:** the Fog Forest doesn't exist yet, so the north dock's boat stops at a message.
 - **Scrap:** the design says enemies drop scrap. There's no scrap system yet.
 - **Art pass:** swap the placeholder meshes for real low-poly desert assets once the team picks a pack (record sources in [assets.md](assets.md)).

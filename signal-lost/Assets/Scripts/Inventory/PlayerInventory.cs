@@ -90,7 +90,7 @@ namespace SignalLost.Inventory
         {
             if (upgrade.OneOff && Owns(upgrade.Id)) return "Owned";
             if (upgrade.Requires != null && !Owns(upgrade.Requires)) return "Needs " + UpgradeCatalog.Find(upgrade.Requires)?.Name;
-            if (upgrade.KeyItem != null && !HasKeyItem(upgrade.KeyItem)) return "Needs " + upgrade.KeyItem;
+            if (upgrade.KeyItem != null && !HasKeyItem(upgrade.KeyItem)) return "Needs " + SignalLost.Inventory.KeyItems.Name(upgrade.KeyItem);
             foreach ((ScrapType type, int amount) in upgrade.Cost)
                 if (Scrap(type) < amount) return "Not enough scrap";
             return null;

@@ -37,8 +37,8 @@ Lawson, 11-08:
   - The same base camp (fire, tent, two logs, supplies, three trophy stands, all in the same places), themed for the island.
   - It stands just inland of the arrival dock.
   - Arriving by boat, it starts packed away and goes up in the cutscene. Loaded any other way, it is already up, with Cavendish and Eugene sitting by the fire.
-  - Cavendish makes small talk. Eugene runs his shop.
-  - The stands show your saved trophies.
+  - Cavendish gives the desert's quests (11-08, see [desert story](desert-story.md)) and makes small talk between them. Eugene runs his shop.
+  - The stands show your saved trophies. The desert camp also has the Chop Shop rack, three more stands for its mini-bosses' trophies.
 - **Island outfits.**
   - **Crash Meadow** is the look everyone starts in.
   - **Desert Dunes:**

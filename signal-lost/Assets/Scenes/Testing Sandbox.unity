@@ -2512,6 +2512,26 @@ PrefabInstance:
       propertyPath: 'startingItems.Array.data[2]'
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 7994514912207921909, guid: 1e7521a3051194bcbb2bf5d71fc9c175, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8550103601198523388, guid: 1e7521a3051194bcbb2bf5d71fc9c175, type: 3}
+      propertyPath: strideRate
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8550103601198523388, guid: 1e7521a3051194bcbb2bf5d71fc9c175, type: 3}
+      propertyPath: armSwingLoop
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8550103601198523388, guid: 1e7521a3051194bcbb2bf5d71fc9c175, type: 3}
+      propertyPath: armSwingReach
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8550103601198523388, guid: 1e7521a3051194bcbb2bf5d71fc9c175, type: 3}
+      propertyPath: armSwingAcross
+      value: 15
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -7861,6 +7881,63 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7037899841150834812, guid: 07d4ec8eed2794efcb1f5ffd150f1d9e, type: 3}
   m_PrefabInstance: {fileID: 549789763}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &556187839
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2203098575103158283, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_Name
+      value: Cavendish (Capybara)
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 42.764908
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.0141944885
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4.09018
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.99998623
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.0052508498
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7025379592100344737, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 54bc4f1e2c76f2748a5013b5c0a275b9, type: 3}
 --- !u!1001 &559013047
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17397,6 +17474,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1256950775}
   - component: {fileID: 1256950776}
+  - component: {fileID: 1256950777}
   m_Layer: 0
   m_Name: Glint
   m_TagString: Untagged
@@ -17484,6 +17562,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1256950777
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1256950774}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &1257818667
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -31864,3 +31971,4 @@ SceneRoots:
   - {fileID: 1503095397}
   - {fileID: 1409712689}
   - {fileID: 1219458834}
+  - {fileID: 556187839}

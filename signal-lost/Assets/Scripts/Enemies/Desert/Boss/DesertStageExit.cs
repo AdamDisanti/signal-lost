@@ -21,6 +21,10 @@ namespace SignalLost.Enemies.Desert
     ///    unlocks the next one. The next stage doesn't exist yet: set Next Stage Scene once it does.
     /// The player is given the Scotch flask (<see cref="PlayerGear"/>, F to drink via <see cref="PlayerFlask"/>) when the
     /// fight starts, if they don't have it yet. During the cutscenes their movement is off and their tools holstered.
+    ///
+    /// In the Desert Dunes level (11-08) a story drives it instead: it sits at the camp's trophy rack, Wait For Arming
+    /// is on (the desert's story arms it when the last Chop Shop trophy goes on the rack) and Return After Core is off
+    /// (the lair's roof caves in instead). The worm hides under the exit's own sand even when its arena is far below.
     /// </summary>
     public sealed class DesertStageExit : MonoBehaviour
     {
@@ -41,7 +45,30 @@ namespace SignalLost.Enemies.Desert
         [SerializeField] private string nextStageScene = "";
         [SerializeField] private string nextStageName = "NextStage";
 
+        [Header("Story control (the Desert Dunes level)")]
+        [Tooltip("Off: walking up springs the ambush (the test scene). On: nothing happens until a story calls Arm().")]
+        [SerializeField] private bool waitForArming;
+        [Tooltip("Off: after the Engine Core the story takes over (the desert's lair collapses instead).")]
+        [SerializeField] private bool returnAfterCore = true;
+        [SerializeField] private string ambushLine = "Time to get these parts back to the ship...";
+        [SerializeField] private string waitingMessage = "The Coreworm got you. It's waiting at the exit...";
+
         private Stage stage = Stage.Waiting;
+        private bool armed;
+
+        /// <summary>Raised when the fight begins (after the ambush cutscene).</summary>
+        public event System.Action FightStarted;
+        /// <summary>Raised when the player dies in the fight and the worm goes back into hiding.</summary>
+        public event System.Action FightLost;
+
+        public bool IsArmed => armed || !waitForArming;
+        public bool InCutsceneOrFight => stage == Stage.Cutscene || stage == Stage.Fighting;
+        public Coreworm Worm => worm;
+        public CorewormArena Arena => arena;
+        public Vector3 EruptPosition => EruptAt;
+
+        /// <summary>From now on, walking up to it springs the ambush (stories that wait for arming).</summary>
+        public void Arm() => armed = true;
         private Transform player;
         private CharacterController playerBody;
         private Health playerHealth;
@@ -72,7 +99,7 @@ namespace SignalLost.Enemies.Desert
             }
             if (worm != null)
             {
-                worm.HideAt(EruptAt);
+                HideUnderExit();
                 worm.Defeated += OnWormDefeated;
             }
             EngineCorePickup.Recovered += OnCoreRecovered;
@@ -87,16 +114,24 @@ namespace SignalLost.Enemies.Desert
 
         private Vector3 EruptAt => eruptPoint != null ? eruptPoint.position : transform.position;
 
+        // The worm lies in wait under the exit's own sand, which may be far above (or below) its arena's floor.
+        private void HideUnderExit()
+        {
+            worm.UseGroundHeight(EruptAt.y);
+            worm.HideAt(EruptAt);
+        }
+
         private void Update()
         {
             if (player == null || stage == Stage.Cutscene || stage == Stage.Fighting) return;
+            if (!IsArmed) return;
             Vector3 offset = player.position - transform.position;
             offset.y = 0f;
             if (offset.magnitude > triggerRadius) return;
 
             if (stage == Stage.Cleared)
             {
-                LeaveStage();
+                if (returnAfterCore) LeaveStage();
                 return;
             }
             if (stage == Stage.Defeated) return;
@@ -118,10 +153,11 @@ namespace SignalLost.Enemies.Desert
             stage = Stage.Cutscene;
             SetControls(false);
             BeginCutsceneCamera();
-            CorewormHud.Subtitle("Time to get these parts back to the ship...", 2f);
+            if (!string.IsNullOrEmpty(ambushLine)) CorewormHud.Subtitle(ambushLine, 2f);
 
             // The ground starts to shake around the exit.
             Vector3 erupt = EruptAt;
+            worm.UseGroundHeight(erupt.y);
             float t = 0f, nextPuff = 0f;
             while (t < 1.8f)
             {
@@ -152,6 +188,7 @@ namespace SignalLost.Enemies.Desert
             // Dragged under the dunes to its arena.
             CorewormHud.Subtitle("Dragged beneath the dunes...", 2f);
             if (arena != null) arena.ResetArena();
+            worm.UseGroundHeight(null);
             worm.HideAt(arena != null ? arena.Centre : erupt);
             Transform drop = arena != null ? arena.PlayerDrop : null;
             Vector3 landing = drop != null ? drop.position : erupt;
@@ -177,6 +214,7 @@ namespace SignalLost.Enemies.Desert
             if (gear != null && gear.Collect(PlayerItem.Flask))
                 CorewormHud.Subtitle("You've still got the Scotch flask: press F to drink and heal.", 3.5f);
             worm.BeginFight();
+            FightStarted?.Invoke();
         }
 
         // ---------- After the fight ----------
@@ -185,10 +223,12 @@ namespace SignalLost.Enemies.Desert
         {
             if (stage != Stage.Fighting) return;
             // Respawning puts the player back at the stage start; the worm lies in wait under the exit again.
+            worm.UseGroundHeight(EruptAt.y);
             worm.ResetFight(EruptAt);
             if (arena != null) arena.ResetArena();
             stage = Stage.Waiting;
-            MiniBossHud.Message("The Coreworm got you. It's waiting at the exit...", new Color(1f, 0.6f, 0.5f), 4f);
+            MiniBossHud.Message(waitingMessage, new Color(1f, 0.6f, 0.5f), 4f);
+            FightLost?.Invoke();
         }
 
         private void OnWormDefeated()
@@ -196,7 +236,11 @@ namespace SignalLost.Enemies.Desert
             stage = Stage.Defeated;
         }
 
-        private void OnCoreRecovered(string part) => StartCoroutine(ReturnToExit());
+        private void OnCoreRecovered(string part)
+        {
+            if (returnAfterCore) StartCoroutine(ReturnToExit());
+            else stage = Stage.Cleared;
+        }
 
         private IEnumerator ReturnToExit()
         {

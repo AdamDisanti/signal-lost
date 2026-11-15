@@ -39,7 +39,7 @@ namespace SignalLost.Editor
         private const string ShipPanelMeshPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Meshes/BentShipPanel.asset";
         private const string HullMaterialPath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Materials/DamagedRocketHull.mat";
 
-        private enum Theme { MesaPass, WreckField, BuriedHull }
+        internal enum Theme { MesaPass, WreckField, BuriedHull }
 
         private readonly struct BossTest
         {
@@ -106,6 +106,40 @@ namespace SignalLost.Editor
             AssetDatabase.SaveAssets();
             Validate();
             Debug.Log($"DESERT_MINIBOSS_TEST_SCENES_CREATED_AND_VALIDATED ({created} new)");
+        }
+
+        /// <summary>
+        /// One boss test scene: the themed arena, the boss 6 m in from the middle, its fodder spawner, and the test
+        /// player 27 m south. Used by the revamped bosses too (DesertDuelBossBuilder). Returns false if the scene exists.
+        /// </summary>
+        internal static bool CreateArenaTestScene(Theme theme, string prefabPath, string label, string scenePath)
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) != null) return false;
+            var playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
+            var input = AssetDatabase.LoadAssetAtPath<InputActionAsset>(InputPath);
+            var beam = AssetDatabase.LoadAssetAtPath<Material>(BeamMaterialPath);
+            var scannerRig = AssetDatabase.LoadAssetAtPath<GameObject>(DesertFodderBuilder.ScannerRigPath);
+            var hudPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(DesertFodderBuilder.HudPrefabPath);
+            if (playerPrefab == null || input == null || beam == null || scannerRig == null || hudPrefab == null)
+                throw new InvalidOperationException("Player, input actions, laser beam, ScannerRig or PlayerHUD prefab missing.");
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            BuildArena(theme);
+            var boss = (GameObject)PrefabUtility.InstantiatePrefab(DesertFodderBuilder.Load(prefabPath));
+            boss.name = label;
+            boss.transform.SetPositionAndRotation(new Vector3(0f, 0f, 6f), Quaternion.Euler(0f, 180f, 0f));
+            FodderSpawner spawner = BuildSpawner(theme, boss.GetComponent<Health>());
+            var bossData = new SerializedObject(boss.GetComponent<DesertMiniBoss>());
+            bossData.FindProperty("fodderSpawner").objectReferenceValue = spawner;
+            bossData.ApplyModifiedPropertiesWithoutUndo();
+            DesertFodderBuilder.BuildTestPlayer(playerPrefab, input, beam, scannerRig, hudPrefab);
+            GameObject player = Object.FindAnyObjectByType<MiningLaser>().gameObject;
+            player.transform.SetPositionAndRotation(new Vector3(0f, 0.1f, -27f), Quaternion.identity);
+            DesertFodderBuilder.SetObjective("Walk into the arena to fight " + label);
+            new GameObject("Fodder Status Overlay").AddComponent<FodderStatusOverlay>();
+            new GameObject("Mini-Boss HUD").AddComponent<MiniBossHud>();
+            DesertFodderBuilder.BuildDesertLighting();
+            EditorSceneManager.SaveScene(scene, scenePath);
+            return true;
         }
 
         [MenuItem("Signal Lost/Desert Mini-Bosses/Regenerate Prefabs")]
@@ -823,7 +857,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>The boss's fodder: off until the boss engages (the boss switches it on), stops when the boss dies.</summary>
-        private static FodderSpawner BuildSpawner(Theme theme, Health boss)
+        internal static FodderSpawner BuildSpawner(Theme theme, Health boss)
         {
             var go = new GameObject("Fodder Spawner");
             var spawner = go.AddComponent<FodderSpawner>();

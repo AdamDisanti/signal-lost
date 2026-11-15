@@ -15,6 +15,11 @@ namespace SignalLost.Scanner
         public bool IsRaised { get; private set; }
         /// <summary>The scanner model and display shown while raised (hands attach here).</summary>
         public GameObject Visual => scannerVisual;
+        /// <summary>
+        /// Asked first when the swap key (Q) is pressed; returning true means the press was handled (PlayerGear cycles
+        /// laser, scanner and fists with it) and the scanner doesn't toggle itself.
+        /// </summary>
+        public System.Func<bool> SwapPressed { get; set; }
 
         private void Awake()
         {
@@ -55,13 +60,13 @@ namespace SignalLost.Scanner
             {
                 return;
             }
-            if (toggleScanner.WasPressedThisFrame())
+            if (toggleScanner.WasPressedThisFrame() && (SwapPressed == null || !SwapPressed()))
             {
                 SetRaised(!IsRaised);
             }
         }
 
-        private void SetRaised(bool raised)
+        public void SetRaised(bool raised)
         {
             IsRaised = raised;
             if (scannerVisual != null)

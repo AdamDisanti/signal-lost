@@ -7,7 +7,8 @@ namespace SignalLost.Player
     /// <summary>
     /// The mechanic's hands, always on screen (meeting notes 10-22): the right hand holds whatever
     /// <see cref="PlayerGear"/> has out (the mining laser or the scanner) and moves with it, so laser swings carry the
-    /// hand along; with nothing out it rests as a fist. The left hand rests at the bottom left and, when
+    /// hand along; with nothing out it rests as a fist. With the fists up (<see cref="SignalLost.Melee.PlayerFists"/>)
+    /// both hands come up into a boxer's guard and throw the punches the fists pose them in. The left hand rests at the bottom left and, when
     /// <see cref="PlayerFlask"/> takes a sip, fetches the flask from the hip, raises it to the mouth and takes a big
     /// swig with the bottom tipped up and the head tipped back, then puts it away.
     /// The hands are pudgy gloves with orange suit sleeves, built at runtime by <see cref="MechanicModel"/> (the same
@@ -145,12 +146,44 @@ namespace SignalLost.Player
         {
             // Sprinting pumps the arms, except with the scanner up or while the laser charges or swings.
             var laser = gear.InHand == PlayerGear.Held.Laser ? gear.Laser : null;
+            var fists = gear.InHand == PlayerGear.Held.Fists ? gear.Fists : null;
             bool running = runner != null && runner.IsRunning && gear.InHand != PlayerGear.Held.Scanner &&
-                           (laser == null || (!laser.IsCharging && !laser.IsSwinging));
+                           (laser == null || (!laser.IsCharging && !laser.IsSwinging)) && (fists == null || !fists.IsBusy);
             runWeight = Mathf.MoveTowards(runWeight, running ? 1f : 0f, Time.deltaTime * (running ? 4f : 7f));
+            if (fists != null && (flask == null || flask.DrinkProgress <= 0f))
+            {
+                PoseFists(fists);
+                TiltHead(0f);
+                return;
+            }
             PoseRightHand();
-            float swig = PoseLeftHand(flask != null ? flask.DrinkProgress : 0f);
-            TiltHead(swig * swigHeadTilt);
+            if (driving == null) driving = GetComponent<SignalLost.Mudlands.DrunkDriving>(); // added at runtime
+            bool chugging = driving != null && driving.ChugActive;
+            float swig = chugging ? PoseChug() : PoseLeftHand(flask != null ? flask.DrinkProgress : 0f);
+            TiltHead(swig * (chugging ? swigHeadTilt * 2.2f : swigHeadTilt));
+        }
+
+        // ---------- Fists up ----------
+
+        // Both hands where the fists put them (a guard, or a punch), as fists; the guard pumps with the run.
+        private void PoseFists(SignalLost.Melee.PlayerFists fists)
+        {
+            if (rightAnchor != view)
+            {
+                rightAnchor = view;
+                rightHand.SetParent(view, false);
+                rightHand.localScale = Vector3.one * handScale;
+            }
+            PoseRightSleeve(view);
+            SetLeftHolding(false);
+            foreach ((float side, Transform hand, MechanicModel.Hand glove) in new[] { (1f, rightHand, right), (-1f, leftHand, left) })
+            {
+                bool busy = fists.GetPose(side, out Vector3 at, out Quaternion turn);
+                if (!busy) RunPose(side, at, turn, out at, out turn);
+                hand.localPosition = at;
+                hand.localRotation = turn;
+                glove.Curl(Mathf.MoveTowards(glove.Grip < 0f ? 0.6f : glove.Grip, FistGrip, curlSpeed * 2f * Time.deltaTime));
+            }
         }
 
         // ---------- Right hand ----------
@@ -276,6 +309,18 @@ namespace SignalLost.Player
             else if (t < SwigEnd) { raise = 1f; gulps = GulpsPerSip * (t - RaiseEnd) / (SwigEnd - RaiseEnd); }
             else raise = 1f - (t - SwigEnd) / (LowerEnd - SwigEnd);
             return PoseDrink(raise, gulps);
+        }
+
+        // ---------- The Mudlands chug (hold F with the Learner's Permit) ----------
+
+        private SignalLost.Mudlands.DrunkDriving driving;
+
+        // The same drinking pose with the same flask, driven by the chug instead of the timed sip: raised and held
+        // bottoms-up until it is drained.
+        private float PoseChug()
+        {
+            SetLeftHolding(true);
+            return PoseDrink(driving.ChugRaise, driving.ChugGulps);
         }
 
         /// <summary>

@@ -3,7 +3,8 @@ using System;
 namespace SignalLost.Core
 {
     /// <summary>
-    /// A testing cheat (Lawson, 11-08), toggled with End (the "cheat" key binding). While it is on:
+    /// TESTING TOOL (Lawson, 11-08): a cheat for testing, toggled with End (the "cheat" key binding). The other testing
+    /// tool is <see cref="SignalLost.Progression.StageSkip"/> (the arrow keys). While it is on:
     /// <list type="bullet">
     /// <item>every hit the player lands (laser bolts, the laser combo, slams, anything sourced from the player) does
     /// <see cref="Damage"/>, applied in <c>Health.TakeDamage</c>;</item>

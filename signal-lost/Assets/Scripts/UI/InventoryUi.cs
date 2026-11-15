@@ -168,7 +168,7 @@ namespace SignalLost.UI
             string[] keys = inventory.KeyItems.ToArray();
             TextMeshProUGUI list = UiTheme.Label("Key Items", page, 24f, keys.Length > 0 ? UiTheme.Text : UiTheme.Muted, TextAlignmentOptions.TopLeft);
             UiTheme.Place(list.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(900f, -44f), new Vector2(480f, 400f));
-            list.text = keys.Length > 0 ? string.Join("\n", keys.Select(k => "- " + (SignalLost.Progression.Trophy.Find(k)?.Name ?? k))) :
+            list.text = keys.Length > 0 ? string.Join("\n", keys.Select(k => "- " + KeyItems.Name(k))) :
                 "<i>None yet. Mini-bosses drop rare parts that some upgrades need.</i>";
         }
 
@@ -264,8 +264,8 @@ namespace SignalLost.UI
                 none.text = "No upgrades installed yet. Eugene sells them at Bucket & Barter: set recipes, no tinkering in the field.";
                 return;
             }
-            // Two columns: Mining Laser and Scanner on the left, Flask and Player on the right.
-            UpgradeSlot[][] columns = { new[] { UpgradeSlot.Laser, UpgradeSlot.Scanner }, new[] { UpgradeSlot.Flask, UpgradeSlot.Suit } };
+            // Two columns: Mining Laser and Scanner on the left, Flask, Player and Car on the right.
+            UpgradeSlot[][] columns = { new[] { UpgradeSlot.Laser, UpgradeSlot.Scanner }, new[] { UpgradeSlot.Flask, UpgradeSlot.Suit, UpgradeSlot.Car } };
             for (int c = 0; c < columns.Length; c++)
             {
                 float y = 0f;

@@ -1,0 +1,509 @@
+{
+ "boss": "Pitchclaw",
+ "colorSpace": "linear",
+ "clips": [
+  {
+   "name": "Idle",
+   "length": 2.0,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Walk",
+   "length": 1.0667,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run",
+   "length": 0.5333,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Roar",
+   "length": 2.4667,
+   "loop": false,
+   "events": [
+    {
+     "name": "roar",
+     "times": [
+      0.7333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SnapL",
+   "length": 1.3333,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.6333
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.5
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SnapR",
+   "length": 1.3333,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.6333
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.5
+     ]
+    }
+   ]
+  },
+  {
+   "name": "PincerCombo",
+   "length": 3.6667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.5333,
+      1.2,
+      2.0667,
+      2.8
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.4,
+      1.0667,
+      1.9333,
+      2.6667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "TailLash",
+   "length": 1.8667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit_end",
+     "times": [
+      1.1
+     ]
+    },
+    {
+     "name": "hit_start",
+     "times": [
+      0.6667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Stab",
+   "length": 2.2,
+   "loop": false,
+   "events": [
+    {
+     "name": "free",
+     "times": [
+      1.7333
+     ]
+    },
+    {
+     "name": "hit",
+     "times": [
+      1.0
+     ]
+    }
+   ]
+  },
+  {
+   "name": "StingerBarrage",
+   "length": 3.0,
+   "loop": false,
+   "events": [
+    {
+     "name": "free",
+     "times": [
+      2.4667
+     ]
+    },
+    {
+     "name": "hit",
+     "times": [
+      0.8,
+      1.3333,
+      1.8667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "TailSnare",
+   "length": 2.0667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.8333
+     ]
+    },
+    {
+     "name": "pull_end",
+     "times": [
+      1.4667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SnareCrush",
+   "length": 2.4,
+   "loop": false,
+   "events": [
+    {
+     "name": "crush",
+     "times": [
+      0.6667,
+      1.1333
+     ]
+    },
+    {
+     "name": "throw",
+     "times": [
+      1.6667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Spew",
+   "length": 3.2,
+   "loop": false,
+   "events": [
+    {
+     "name": "spew_end",
+     "times": [
+      2.5333
+     ]
+    },
+    {
+     "name": "spew_start",
+     "times": [
+      0.8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "FuelRain",
+   "length": 2.4,
+   "loop": false,
+   "events": [
+    {
+     "name": "rain_end",
+     "times": [
+      1.7333
+     ]
+    },
+    {
+     "name": "rain_start",
+     "times": [
+      0.7333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Scrape",
+   "length": 2.2,
+   "loop": false,
+   "events": [
+    {
+     "name": "sparks_end",
+     "times": [
+      1.5333
+     ]
+    },
+    {
+     "name": "sparks_start",
+     "times": [
+      0.6667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "BurrowIn",
+   "length": 1.3333,
+   "loop": false,
+   "events": [
+    {
+     "name": "under",
+     "times": [
+      1.2
+     ]
+    }
+   ]
+  },
+  {
+   "name": "BurrowOut",
+   "length": 1.6667,
+   "loop": false,
+   "events": [
+    {
+     "name": "erupt",
+     "times": [
+      0.2
+     ]
+    },
+    {
+     "name": "slam",
+     "times": [
+      0.8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "LeapCrush",
+   "length": 1.9333,
+   "loop": false,
+   "events": [
+    {
+     "name": "land",
+     "times": [
+      1.1
+     ]
+    },
+    {
+     "name": "launch",
+     "times": [
+      0.5333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "InfernoSpin",
+   "length": 2.8667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit_end",
+     "times": [
+      2.0
+     ]
+    },
+    {
+     "name": "hit_start",
+     "times": [
+      0.5333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Stagger",
+   "length": 1.4,
+   "loop": false,
+   "events": []
+  },
+  {
+   "name": "Death",
+   "length": 2.3333,
+   "loop": false,
+   "events": []
+  }
+ ],
+ "materials": [
+  {
+   "name": "PitchclawRock",
+   "key": "Rock",
+   "color": [
+    0.4125,
+    0.1946,
+    0.0802
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.05
+  },
+  {
+   "name": "PitchclawRockDark",
+   "key": "RockDark",
+   "color": [
+    0.1946,
+    0.0887,
+    0.0423
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.05
+  },
+  {
+   "name": "PitchclawBasalt",
+   "key": "Basalt",
+   "color": [
+    0.0612,
+    0.0452,
+    0.0423
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.15
+  },
+  {
+   "name": "PitchclawShard",
+   "key": "Shard",
+   "color": [
+    0.305,
+    0.1384,
+    0.0612
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.3
+  },
+  {
+   "name": "PitchclawOil",
+   "key": "Oil",
+   "color": [
+    0.006,
+    0.0044,
+    0.0044
+   ],
+   "emission": [
+    1.0,
+    0.2623,
+    0.0212
+   ],
+   "emissionStrength": 1.2,
+   "metallic": 0.2,
+   "smoothness": 0.92
+  },
+  {
+   "name": "PitchclawObsidian",
+   "key": "Obsidian",
+   "color": [
+    0.008,
+    0.006,
+    0.0103
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.85
+  },
+  {
+   "name": "PitchclawTank",
+   "key": "Tank",
+   "color": [
+    0.6724,
+    0.6445,
+    0.5776
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.5,
+   "smoothness": 0.55
+  },
+  {
+   "name": "PitchclawStripe",
+   "key": "Stripe",
+   "color": [
+    0.8228,
+    0.1559,
+    0.013
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.3,
+   "smoothness": 0.5
+  },
+  {
+   "name": "PitchclawEye",
+   "key": "Eye",
+   "color": [
+    1.0,
+    0.4564,
+    0.0452
+   ],
+   "emission": [
+    1.0,
+    0.402,
+    0.0319
+   ],
+   "emissionStrength": 4.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  },
+  {
+   "name": "PitchclawDrip",
+   "key": "Drip",
+   "color": [
+    0.013,
+    0.007,
+    0.0044
+   ],
+   "emission": [
+    1.0,
+    0.2623,
+    0.0212
+   ],
+   "emissionStrength": 0.6,
+   "metallic": 0.0,
+   "smoothness": 0.95
+  }
+ ]
+}
