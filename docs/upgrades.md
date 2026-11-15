@@ -40,13 +40,21 @@ Each upgrade has a generated part (`Prefabs/Items/Upgrades/`, `Editor/UpgradeAss
 
 The Mudlands adds a **Car** slot (a Car filter in Bucket & Barter, a Car group in the pockets) for Drunk Driving, seven car upgrades and three general ones; three need a mini-boss key item (Kart Wheel, Mudstone Bead, Witch Ember). The table is in [The Mudlands](mudlands.md#7-upgrades). They have no worn parts on the Gear-tab figure yet.
 
+## Crystal Caves upgrade
+
+| Upgrade | Fits | Effect | Cost |
+| --- | --- | --- | --- |
+| Crystal Disruptor (`crystal_disruptor`) | Scanner | The scanner beeps at enemies disguised as crystals. Raising it within reach of one (4 m for a chameleon) makes it burst out to fight. | 8 wiring, 4 boards, 1 cell (placeholder) |
+
+It's a one-off upgrade, sold only in the caves, with no key item. It's needed for the cave axolotl final boss. The caves scene has a `ShopRegion` set to Crystal Caves, so Eugene stocks it there. The scanner side is in [scanner-prototype.md](scanner-prototype.md#crystal-disruptor-upgrade). It has no worn part or icon yet; see that section for how to add one.
+
 ## Adding upgrades (desert and later)
 
 1. Add a tiered line with `Line(...)` in `UpgradeCatalog.Build` (`Scripts/Inventory/Upgrades.cs`): a new, never-reused Id, the effect text and field, and one (value, cost) pair per tier, each dearer than the last. A single-tier line is fine. For a one-off item, append an `Upgrade` instead, with a `Region`, a `Cost` and its effect fields. Set `KeyItem` for a mini-boss recipe; `PlayerInventory.AddKeyItem` gives the item.
 2. For a new kind of effect, add a field to `Upgrade` and apply it in `PlayerUpgrades.Apply`.
 3. Add a model to `UpgradeAssetBuilder.Models` and a placement in `GearFigure.Refresh`, then rebuild the assets.
 
-The shop shows only the current region's upgrades (`MerchantMenuUi.Region`); supplies and trades are sold everywhere.
+The shop shows only the current region's upgrades (`MerchantMenuUi.Region`); supplies and trades are sold everywhere. A level picks its region with a `ShopRegion` component in the scene (the Mudlands sets it from `MudlandsStory` instead).
 
 ## Menus
 

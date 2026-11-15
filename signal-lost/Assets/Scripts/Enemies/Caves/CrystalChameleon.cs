@@ -9,7 +9,7 @@ namespace SignalLost.Enemies.Caves
     /// <summary>
     /// Crystal Caves fodder: a chameleon whose back is a cluster of the cave's own crystals. Camouflaged, it lies
     /// buried with only those crystals showing, so it looks exactly like any other crystal batch: no colliders, no
-    /// scanner signal, no AI. <see cref="Disrupt"/> (meant for the scanner's future camouflage-disrupting upgrade)
+    /// scanner signal (until the player owns the Crystal Disruptor), no AI. <see cref="Disrupt"/> (called by that scanner upgrade)
     /// turns its crystals red and it rises out of the ground through the shared <see cref="BurrowEmerge"/>; after the
     /// emerge grace it fights. Its crystals stay red while it is active and go dark when it dies.
     ///
@@ -20,7 +20,7 @@ namespace SignalLost.Enemies.Caves
     /// Builds on <see cref="DesertFodder"/> like every other small enemy (territory, leash and heal, hit flash,
     /// combo stun, death). Without a BurrowEmerge component it simply skips the rise. All numbers are placeholders.
     /// </summary>
-    public sealed class CrystalChameleon : DesertFodder, IBurrowOffset
+    public sealed class CrystalChameleon : DesertFodder, IBurrowOffset, IScannerDisruptable
     {
         private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
 
@@ -38,6 +38,8 @@ namespace SignalLost.Enemies.Caves
         [SerializeField] private Light glow;
         [Tooltip("Test scenes: reveal straight away on Start instead of waiting to be disrupted.")]
         [SerializeField] private bool startRevealed;
+        [Tooltip("How close the raised, upgraded scanner has to get to its crystals to reveal it.")]
+        [SerializeField, Min(0.5f)] private float revealRadius = 4f;
 
         [Header("Movement")]
         [SerializeField, Min(0.1f)] private float moveSpeed = 3.2f;
@@ -79,12 +81,16 @@ namespace SignalLost.Enemies.Caves
         public bool IsCamouflaged => state == State.Camouflaged;
         public Material CrystalMaterial => crystalMaterial;
 
+        // IScannerDisruptable: the scanner hides it until the upgrade, and the upgrade reveals it up close.
+        public bool IsDisguised => IsCamouflaged && !IsDead;
+        public Vector3 DisguisePosition => transform.position;
+        public float RevealRadius => revealRadius;
+
         /// <summary>IBurrowOffset: BurrowEmerge's rise, added to the visual's height.</summary>
         public float BurrowOffset { get; set; }
 
         private State state = State.Camouflaged;
         private BurrowEmerge burrow;
-        private EnemySignalSource signal;
         private float stateTime, nextAttack, nextRepath, tongueLength, tongueReach;
         private bool tongueHit;
         private Vector3 aim;
@@ -102,8 +108,6 @@ namespace SignalLost.Enemies.Caves
         {
             base.Awake();
             burrow = GetComponent<BurrowEmerge>();
-            signal = GetComponent<EnemySignalSource>();
-            if (signal != null) signal.enabled = false; // hidden from the ordinary scanner until disrupted
             crystalBlock = new MaterialPropertyBlock();
             if (head != null) headRest = head.localPosition;
             if (throat != null) throatRest = throat.localScale;
@@ -126,15 +130,14 @@ namespace SignalLost.Enemies.Caves
 
         /// <summary>
         /// Breaks its camouflage: the crystals turn red and it rises out of the ground, then attacks. This is the hook
-        /// for the scanner's camouflage-disrupting upgrade. Does nothing once it is already revealed or dead.
+        /// for the Crystal Disruptor scanner upgrade. Does nothing once it is already revealed or dead.
         /// </summary>
-        [ContextMenu("Disrupt")] // testing until the scanner upgrade exists
+        [ContextMenu("Disrupt")] // testing without the scanner
         public void Disrupt()
         {
             if (state != State.Camouflaged || IsDead) return;
             ApplyCrystalMaterial(disruptedMaterial);
             if (glow != null) glow.color = disruptedGlow;
-            if (signal != null) signal.enabled = true;
             LastSeen = Time.time;
             Enter(State.Emerging);
             if (burrow != null) burrow.Emerge();
