@@ -41,6 +41,8 @@ namespace SignalLost.Combat
         private System.Func<bool> hook;
 
         public bool IsDiving { get; private set; }
+        /// <summary>True only while the landing blast deals its damage.</summary>
+        public bool IsLanding { get; private set; }
         public float FullPowerHeight => fullPowerHeight;
         public float MinHeight => minHeight;
         /// <summary>Raised on landing with the drop height, its power (0-1), and how many things it hurt.</summary>
@@ -115,7 +117,9 @@ namespace SignalLost.Combat
             float damage = DamageFor(height) * bonus;
             float radius = RadiusFor(height);
             float knockback = Mathf.Lerp(minKnockback, maxKnockback, power);
+            IsLanding = true; // lets targets tell the smash's blast from the player's other hits (the cave beetles' shells)
             int hurt = AreaBlast.Explode(feet + Vector3.up * 0.4f, radius, damage, edgeDamage, knockback, gameObject, null, null);
+            IsLanding = false;
             if (laser != null) laser.SmashLanded(power);
             Effects(feet, radius, power);
             Landed?.Invoke(height, power, hurt);

@@ -2,6 +2,7 @@
 # skeleton, animation clips, the FBX for Unity, the clip timing table, the .blend and preview renders.
 #   blender --background --python tools/blender/cave_bosses.py -- mole
 #   blender --background --python tools/blender/cave_bosses.py -- axolotl
+#   blender --background --python tools/blender/cave_bosses.py -- mole beetle
 # Set SIGNAL_LOST_REPO to the repo root if it isn't the default below.
 import sys, os, importlib, traceback
 
@@ -13,7 +14,7 @@ if HERE not in sys.path:
 OUT = os.path.join(REPO, "signal-lost", "Assets", "Prefabs", "Enemies", "Caves", "Bosses")
 ART = os.path.join(REPO, "art", "cave-bosses")
 PREVIEWS = os.environ.get("BOSS_PREVIEWS", ART)
-NAMES = {"mole": ("cave_shard_mole", "ShardMole"), "axolotl": ("cave_axolotl", "CaveAxolotl")}
+NAMES = {"mole": ("cave_shard_mole", "ShardMole"), "axolotl": ("cave_axolotl", "CaveAxolotl"), "beetle": ("cave_beetle", "CaveBeetle")}
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 wanted = [a for a in argv if a in NAMES] or globals().get("BOSSES") or list(NAMES)

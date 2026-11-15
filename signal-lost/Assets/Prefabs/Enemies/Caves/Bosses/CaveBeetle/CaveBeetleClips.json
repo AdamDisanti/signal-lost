@@ -1,0 +1,333 @@
+{
+ "boss": "CaveBeetle",
+ "colorSpace": "linear",
+ "clips": [
+  {
+   "name": "Idle",
+   "length": 2.0,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Walk",
+   "length": 1.3333,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run",
+   "length": 0.6667,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Roar",
+   "length": 2.3333,
+   "loop": false,
+   "events": [
+    {
+     "name": "roar",
+     "times": [
+      0.7333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Headbutt",
+   "length": 1.2,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.6667
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.5333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Brace",
+   "length": 0.4,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Charge",
+   "length": 0.4,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "FlipOver",
+   "length": 0.7333,
+   "loop": false,
+   "events": [
+    {
+     "name": "flipped",
+     "times": [
+      0.4333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "OnBack",
+   "length": 1.0,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "FlipUp",
+   "length": 1.2,
+   "loop": false,
+   "events": [
+    {
+     "name": "up",
+     "times": [
+      0.8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Stomp",
+   "length": 1.8667,
+   "loop": false,
+   "events": [
+    {
+     "name": "slam",
+     "times": [
+      1.1333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Dive",
+   "length": 2.1333,
+   "loop": false,
+   "events": [
+    {
+     "name": "land",
+     "times": [
+      1.3333
+     ]
+    },
+    {
+     "name": "launch",
+     "times": [
+      0.4667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Stagger",
+   "length": 1.3333,
+   "loop": false,
+   "events": []
+  },
+  {
+   "name": "Death",
+   "length": 2.3333,
+   "loop": false,
+   "events": []
+  }
+ ],
+ "materials": [
+  {
+   "name": "CaveBeetleShell",
+   "key": "Shell",
+   "color": [
+    0.5711,
+    0.0176,
+    0.0137
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.82
+  },
+  {
+   "name": "CaveBeetleBelly",
+   "key": "Belly",
+   "color": [
+    0.1559,
+    0.0212,
+    0.0176
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.35
+  },
+  {
+   "name": "CaveBeetleCrystal",
+   "key": "Crystal",
+   "color": [
+    0.7913,
+    0.1878,
+    0.1878
+   ],
+   "emission": [
+    1.0,
+    0.2623,
+    0.2623
+   ],
+   "emissionStrength": 2.0,
+   "metallic": 0.0,
+   "smoothness": 0.85
+  },
+  {
+   "name": "CaveBeetleSeam",
+   "key": "Seam",
+   "color": [
+    0.013,
+    0.0116,
+    0.0103
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.5
+  },
+  {
+   "name": "CaveBeetleEyeWhite",
+   "key": "EyeWhite",
+   "color": [
+    0.8879,
+    0.8469,
+    0.7084
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.85
+  },
+  {
+   "name": "CaveBeetlePupil",
+   "key": "Pupil",
+   "color": [
+    0.0024,
+    0.0024,
+    0.003
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.9
+  },
+  {
+   "name": "CaveBeetleLeg",
+   "key": "Leg",
+   "color": [
+    0.0137,
+    0.0116,
+    0.0103
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.45
+  },
+  {
+   "name": "CaveBeetlePack",
+   "key": "Pack",
+   "color": [
+    0.0222,
+    0.0242,
+    0.0296
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.6,
+   "smoothness": 0.55
+  },
+  {
+   "name": "CaveBeetleStrap",
+   "key": "Strap",
+   "color": [
+    0.0103,
+    0.0103,
+    0.0116
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  },
+  {
+   "name": "CaveBeetleFoam",
+   "key": "Foam",
+   "color": [
+    0.0048,
+    0.0048,
+    0.006
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.05
+  },
+  {
+   "name": "CaveBeetleMicLight",
+   "key": "MicLight",
+   "color": [
+    0.0319,
+    1.0,
+    0.1022
+   ],
+   "emission": [
+    0.0319,
+    1.0,
+    0.1022
+   ],
+   "emissionStrength": 3.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  }
+ ]
+}

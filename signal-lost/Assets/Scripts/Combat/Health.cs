@@ -29,6 +29,9 @@ namespace SignalLost.Combat
         // Runtime protection for friendly NPCs; normal actors remain damageable by default.
         public bool Invulnerable { get; set; }
 
+        /// <summary>Shown in this one's place on the crosshair readout: a boss's weak spot shows the boss's own health.</summary>
+        public Health ReadoutAs { get; set; }
+
         /// <summary>
         /// Optional: rescales incoming damage by who dealt it (the final boss's robot mini-bosses hit the player at 70%).
         /// Gets the amount and the source; returns the amount to apply. Null: damage is unchanged.
