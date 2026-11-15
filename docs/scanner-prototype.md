@@ -2,7 +2,7 @@
 
 ## Scope
 
-The [`ScannerTest` scene](../signal-lost/Assets/Scenes/Initial%20Test%20Scenes/ScannerTest.unity) remains a standalone scanner test, but the `ScannerController`, `ScannerHud`, and `ScannerRig` are now used by the shared player in the Tutorial, Testing Sandbox, and Desert Dunes scenes. The active in-hand display has no directional arrow: it retains a proximity bar and audio feedback. Enemy signals can be tracked above or below ground, and defeated enemy signals with `Health` are excluded. The burrow/emergence behavior is currently integrated only into one Hermit Crab instance in the separate [BurrowEmergeTest scene](../signal-lost/Assets/Scenes/Initial%20Test%20Scenes/BurrowEmergeTest.unity); see [burrow and emerge](burrow-emerge.md).
+The [`ScannerTest` scene](../signal-lost/Assets/Scenes/Initial%20Test%20Scenes/ScannerTest.unity) remains a standalone scanner test, but the `ScannerController`, `ScannerHud`, and `ScannerRig` are now used by the shared player in the Tutorial, Testing Sandbox, and Desert Dunes scenes. The active in-hand display has no directional arrow: it retains a proximity bar and audio feedback. Enemy signals can be tracked above or below ground, and defeated enemy signals with `Health` are excluded. The shared burrow/emergence behavior is used by one Hermit Crab instance in the separate [BurrowEmergeTest scene](../signal-lost/Assets/Scenes/Initial%20Test%20Scenes/BurrowEmergeTest.unity) and by the Crystal Chameleon, which the Crystal Disruptor upgrade reveals; see [burrow and emerge](burrow-emerge.md) and [Crystal Disruptor upgrade](#crystal-disruptor-upgrade).
 
 The design reference calls for a directional indicator, signal strength, and audio feedback. Removing the arrow is a current prototype change, not a revision to that design reference. Exact tuning values are provisional and should be adjusted through playtesting. See the [design summary](design.md) and [work guidelines](WORK_GUIDELINES_README.md).
 
@@ -43,7 +43,7 @@ The layout regression fails on the old oversized/depth-offset fill and passes at
 
 ## Current tuning and behavior
 
-The config asset currently uses a 30 m maximum range, a 0.2 s scan interval, far/close beep intervals of 1.0/0.15 s, pitch range 0.8-1.4, and volume range 0.2-0.8. Range, strength, and audio upgrade multipliers are all 1.0 placeholders; they are not connected to an upgrade system. A positive `levelRangeOverride` on the scene's `ScannerRig` replaces the config range before applying the range-upgrade multiplier; zero or a negative value falls back to the config's 30 m maximum.
+The config asset currently uses a 30 m maximum range, a 0.2 s scan interval, far/close beep intervals of 1.0/0.15 s, pitch range 0.8-1.4, and volume range 0.2-0.8. Range, strength, and audio upgrade multipliers in this config are all 1.0 placeholders and are not connected to an upgrade system. Upgrades reach the scanner a different way: the shop's upgrades set properties on `ScannerController` through `PlayerUpgrades.Apply`. The Long-Nose Antenna sets `RangeBonus`, and the Crystal Disruptor (Crystal Caves, 11-12) sets `DisruptsCamouflage`; see [Crystal Disruptor upgrade](#crystal-disruptor-upgrade). A positive `levelRangeOverride` on the scene's `ScannerRig` replaces the config range before applying the range-upgrade multiplier; zero or a negative value falls back to the config's 30 m maximum.
 
 Current shared-player scene overrides are:
 
@@ -65,6 +65,7 @@ Detection currently has no line-of-sight or occlusion filtering. Burrow/emergenc
 - Unity **6000.6.2f1** compilation and three consecutive isolated Play Mode entries passed with normal domain/scene reload. Synthetic Q/LB bindings, simultaneous movement/sprint input, repeated raising/lowering, imported model renderers, target acquisition, and disable/re-enable cleanup were checked using [ScannerPlayModeSmoke.cs](../tools/unity/ScannerPlayModeSmoke.cs).
 - `dotnet build signal-lost/Assembly-CSharp.csproj --no-restore` completed successfully. This checks the generated C# project; it is not a Unity Editor compile, Play Mode test, or player build.
 - Feature-author Play Mode checks reported successful: the buried test crab emerges, remains a scanner target while underground, and the scanner moves off a defeated enemy to another eligible target.
+- Crystal Disruptor (11-12): a Play Mode smoke check in a disposable copy ([CrystalChameleonSmoke.cs](../tools/unity/CrystalChameleonSmoke.cs)) passed. Without the upgrade the raised scanner ignores a hidden chameleon. With it, the scanner selects it from 8 m, and at 2 m reveals it (red crystals, emerges, fights, drops scrap). Not checked by hand: the feel of the 4 m reveal distance, a reveal sound or hint (none exists), and the model swap (no upgraded model exists yet).
 - Continue verifying in Unity: quest priority; meter response within and beyond effective range; beep cadence, pitch, and volume; buried target tracking; exclusion and handoff on enemy death; and the one-shot reached event. Check the Console and assigned Inspector references as part of those tests.
 
 ### Input-state errors when entering Play Mode
