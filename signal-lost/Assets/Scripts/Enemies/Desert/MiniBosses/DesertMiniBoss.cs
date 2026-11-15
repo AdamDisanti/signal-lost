@@ -99,6 +99,8 @@ namespace SignalLost.Enemies.Desert
         protected Transform ShipPart { get => shipPart; set => shipPart = value; }
         /// <summary>The stage whose part count the dropped part adds to.</summary>
         protected virtual string PartStage => StageProgress.Desert;
+        /// <summary>The stolen part rides hidden inside the boss; showing the body after a burrow must not show it.</summary>
+        protected override Transform KeepHidden => shipPart;
 
         private readonly List<Vector3> route = new List<Vector3>();
         private int routeIndex;

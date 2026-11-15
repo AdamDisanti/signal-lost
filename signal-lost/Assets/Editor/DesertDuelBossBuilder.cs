@@ -39,7 +39,7 @@ namespace SignalLost.Editor
         private const string RocketEnginePath = "Assets/Prefabs/Enviornment objects/TutorialCrashSite/Upgrades/RocketEngine.prefab";
         private const string TankMeshPath = "Assets/Prefabs/Enemies/Desert/Meshes/SludgeTankShell.asset";
 
-        private sealed class Hitbox
+        internal sealed class Hitbox
         {
             public string Bone;
             public float Radius;
@@ -171,14 +171,16 @@ namespace SignalLost.Editor
         // ---------- Shared steps ----------
 
         /// <summary>Imports the model, makes its materials and animator, and starts the prefab root with the model under "Visual".</summary>
-        private static GameObject Begin(string name, out Transform model, out BossClipTable table, out Dictionary<string, Material> mats)
+        internal static GameObject Begin(string name, out Transform model, out BossClipTable table, out Dictionary<string, Material> mats,
+            string folderRoot = Root, Action<Dictionary<string, Material>> adjustMaterials = null)
         {
-            string folder = Root + "/" + name;
+            string folder = folderRoot + "/" + name;
             string fbx = folder + "/" + name + ".fbx";
             var tableAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(folder + "/" + name + "Clips.json");
             if (tableAsset == null) throw new InvalidOperationException($"{name}Clips.json missing: run tools/blender/desert_bosses.py.");
             table = BossClipTable.Parse(tableAsset);
             mats = Materials(folder, table);
+            adjustMaterials?.Invoke(mats); // the Shard Mole swaps in the cave's own crystal material
             Import(fbx, table, mats);
             AnimatorController controller = Controller(folder, name, fbx);
 
@@ -350,8 +352,9 @@ namespace SignalLost.Editor
             return controller;
         }
 
-        private static SerializedObject Common(DuelBoss boss, GameObject root, Transform model, BossClipTable table, string displayName, string partName,
-            Transform part, float health, float walk, float run, float[] phaseAt, string[] titles, string[] lookBones, float agentRadius)
+        internal static SerializedObject Common(DuelBoss boss, GameObject root, Transform model, BossClipTable table, string displayName, string partName,
+            Transform part, float health, float walk, float run, float[] phaseAt, string[] titles, string[] lookBones, float agentRadius,
+            string folderRoot = Root)
         {
             var agent = root.GetComponent<NavMeshAgent>();
             agent.enabled = false; // switched on in Start, once the NavMesh exists
@@ -367,7 +370,7 @@ namespace SignalLost.Editor
             healthData.ApplyModifiedPropertiesWithoutUndo();
             root.AddComponent<EnemySignalSource>();
 
-            string folder = Root + "/" + boss.GetType().Name;
+            string folder = folderRoot + "/" + boss.GetType().Name;
             var data = new SerializedObject(boss);
             data.FindProperty("visual").objectReferenceValue = root.transform.Find("Visual");
             data.FindProperty("displayName").stringValue = displayName;
@@ -414,7 +417,7 @@ namespace SignalLost.Editor
         private static Material FxFlame() => DesertFodderBuilder.Unlit("BossFlame", new Color(1f, 0.55f, 0.12f));
 
         /// <summary>Sphere hitboxes riding on bones: bolts and the laser hit these and damage the boss.</summary>
-        private static void Hitboxes(Transform model, IEnumerable<Hitbox> boxes)
+        internal static void Hitboxes(Transform model, IEnumerable<Hitbox> boxes)
         {
             foreach (Hitbox box in boxes)
             {
@@ -447,7 +450,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>The stolen part, hidden inside the boss until it is defeated (then it drops as a pickup).</summary>
-        private static Transform HiddenPart(GameObject root, Transform model, string bone, string label, Action<GameObject> build)
+        internal static Transform HiddenPart(GameObject root, Transform model, string bone, string label, Action<GameObject> build)
         {
             var go = new GameObject(label);
             go.transform.SetParent(root.transform, false);
@@ -458,7 +461,7 @@ namespace SignalLost.Editor
             return go.transform;
         }
 
-        private static void AddMesh(GameObject go, Mesh mesh, Material material, Vector3 position, Quaternion rotation, Vector3 scale)
+        internal static void AddMesh(GameObject go, Mesh mesh, Material material, Vector3 position, Quaternion rotation, Vector3 scale)
         {
             var child = new GameObject("Mesh");
             child.transform.SetParent(go.transform, false);
@@ -497,7 +500,7 @@ namespace SignalLost.Editor
             return null;
         }
 
-        private static GameObject Save(GameObject root, string path)
+        internal static GameObject Save(GameObject root, string path)
         {
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);

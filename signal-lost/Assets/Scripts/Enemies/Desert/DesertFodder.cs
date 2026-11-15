@@ -326,10 +326,14 @@ namespace SignalLost.Enemies.Desert
                 if (item != null && item != except) item.enabled = on;
         }
 
+        /// <summary>Renderers under this stay hidden when <see cref="SetRenderersVisible"/> shows the body again (a mini-boss's stolen part, shown only when it drops).</summary>
+        protected virtual Transform KeepHidden => null;
+
         protected void SetRenderersVisible(bool on)
         {
+            Transform hidden = on ? KeepHidden : null;
             foreach (Renderer item in renderers)
-                if (item != null) item.enabled = on;
+                if (item != null && (hidden == null || !item.transform.IsChildOf(hidden))) item.enabled = on;
         }
 
         /// <summary>Kills it through Health, so death events and the spawner see it like any other kill.</summary>
