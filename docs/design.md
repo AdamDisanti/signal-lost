@@ -263,6 +263,14 @@ Amanda's request: the Crystal Caves mini-boss, a blind mole with glowing crystal
 - **Test scene only:** it is not placed in the level yet.
 - **Not decided, so not invented:** a weak spot, its own sounds, and whether crouch-walking is quieter.
 
+## Geode Bear (11-14)
+
+Amanda's request: a third Crystal Caves mini-boss, Grumble the Geode Bear, built like the Shard Mole. See [Geode Bear](geode-bear.md).
+
+- **Her picks (11-14):** it drops the **power cell**. The yawn slows and clouds the screen. It's tuned a step above Pitchclaw (1,850 HP, poise 200), since the Crystal Caves come after the Desert and before the Mudlands. The colours follow the design doc (cool grey-brown).
+- **Test scene only:** it is not placed in the level yet.
+- **Not decided, so not invented:** whether the Axolotl's gate needs a third part, and its own sounds.
+
 ## Chief Toad decisions (10-23-26)
 
 Lawson's request: a chief toad boss for the tutorial pond, built in its own test arena first. See [Chief Toad](chief-toad.md).
