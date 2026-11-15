@@ -432,7 +432,7 @@ namespace SignalLost.Editor
         }
 
         /// <summary>A weak spot: its own collider and a never-emptying Health whose hits the boss relays (with a bonus).</summary>
-        private static Health WeakSpot(Transform model, string bone, string toward, float t, float radius, string name, Vector3 offset = default)
+        internal static Health WeakSpot(Transform model, string bone, string toward, float t, float radius, string name, Vector3 offset = default)
         {
             Transform parent = FindDeep(model, bone);
             Vector3 at = parent.position;

@@ -88,6 +88,8 @@ namespace SignalLost.Enemies.Desert
         public int Phase { get; private set; } = 1;
         public bool Engaged { get; private set; }
         public virtual bool InPhaseShift => Time.time < phaseShiftUntil;
+        /// <summary>True while it is healing; the HUD bar pulses green.</summary>
+        public virtual bool Regenerating => false;
         protected float ArenaRadius => arenaRadius;
         protected float PhaseShiftElapsed => Time.time - phaseShiftStart;
         protected float PhaseShiftTime => phaseShiftTime;

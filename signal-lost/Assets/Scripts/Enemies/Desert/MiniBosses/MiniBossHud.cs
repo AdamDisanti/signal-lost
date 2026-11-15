@@ -14,7 +14,7 @@ namespace SignalLost.Enemies.Desert
     {
         private static MiniBossHud instance;
         private static readonly List<DesertMiniBoss> Engaged = new List<DesertMiniBoss>();
-        private static string message;
+        private static string message, messageBelow;
         private static Color messageColor;
         private static float messageUntil = float.NegativeInfinity;
         private static float sandUntil = float.NegativeInfinity, sandLength = 1f;
@@ -44,10 +44,12 @@ namespace SignalLost.Enemies.Desert
 
         public static void Unregister(DesertMiniBoss boss) => Engaged.Remove(boss);
 
-        public static void Message(string text, Color color, float seconds = 3f)
+        /// <param name="below">Optional extra line in its own box under the message, so long text doesn't clip.</param>
+        public static void Message(string text, Color color, float seconds = 3f, string below = null)
         {
             Ensure();
             message = text;
+            messageBelow = below;
             messageColor = color;
             messageUntil = Time.time + seconds;
         }
@@ -127,6 +129,7 @@ namespace SignalLost.Enemies.Desert
                 Fill(new Rect(bar.x - 2f, bar.y - 2f, bar.width + 4f, bar.height + 4f), new Color(0f, 0f, 0f, 0.7f));
                 Color fill = phase >= 4 ? new Color(0.75f, 0.08f, 0.2f) : phase == 3 ? new Color(0.9f, 0.12f, 0.12f)
                     : phase == 2 ? new Color(1f, 0.35f, 0.15f) : new Color(0.9f, 0.6f, 0.15f);
+                if (boss.Regenerating) fill = Color.Lerp(fill, new Color(0.2f, 0.95f, 0.4f), 0.5f + 0.5f * Mathf.Sin(Time.time * 6f));
                 if (boss.InPhaseShift && Mathf.Sin(Time.time * 30f) > 0f) fill = Color.white;
                 Fill(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(boss.HealthFraction), bar.height), fill);
                 foreach (float mark in boss.PhaseMarks)
@@ -140,6 +143,9 @@ namespace SignalLost.Enemies.Desert
                 float alpha = Mathf.Clamp01((messageUntil - Time.time) / 0.5f);
                 Label(new Rect(cx - 360f, Screen.height * 0.3f, 720f, 70f), message, banner,
                     new Color(messageColor.r, messageColor.g, messageColor.b, alpha));
+                if (!string.IsNullOrEmpty(messageBelow))
+                    Label(new Rect(cx - 360f, Screen.height * 0.3f + 80f, 720f, 40f), messageBelow, banner,
+                        new Color(messageColor.r, messageColor.g, messageColor.b, alpha));
             }
         }
 

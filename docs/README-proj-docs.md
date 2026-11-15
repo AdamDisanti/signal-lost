@@ -9,6 +9,7 @@
 - [Desert / Dunes level](desert-dunes.md): first biome prototype, layout, how to build it, and test checklist.
 - [Crystal Caves level](crystal-caves.md): the third island's world (a small coastal ledge with Cavendish's camp and the arrival dock, and a two-level crystal-lit cave), how to build and extend it, and what was verified.
 - [Crystal Chameleon](crystal-chameleon.md): the Crystal Caves fodder that hides as a crystal batch, in the floor or a wall, until the scanner's Crystal Disruptor reveals it, its tongue attack, test scene and how to place one.
+- [Cave Axolotl](cave-axolotl.md): the Crystal Caves stage boss: a crystal-crusted axolotl with a Core Worm-style entrance, four phases, tail swipe, telegraphed roll, shard ring, and hiding as a crystal that only the Crystal Disruptor finds; drops the Flight Control Module. Test scene and checklist.
 - [Desert fodder enemies](desert-fodder.md): five desert fodder enemies, their spawner/alert/jamming systems, test scene and checklist.
 - [Desert mini-bosses](desert-minibosses.md): Burnout, Old Buzzard and Sludge, their two-phase fights, test scenes and checklist.
 - [The Beetles](cave-beetles.md): the Crystal Caves band of four beetle mini-bosses, their box-in charge and jump dodge, lines, test scene and checklist.
