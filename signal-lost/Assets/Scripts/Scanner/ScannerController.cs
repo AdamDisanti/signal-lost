@@ -49,6 +49,10 @@ namespace SignalLost.Scanner
         }
         private bool disruptsCamouflage;
 
+        /// <summary>No signals at all while set (raised, it stays silent with an empty bar). The Crystal Caves story sets it
+        /// until the first talk with Cavendish.</summary>
+        public bool Silenced { get; set; }
+
         public event Action<TrackableTarget> OnTargetReached;
 
         public void Awake()
@@ -62,7 +66,7 @@ namespace SignalLost.Scanner
 
         private void Update()
         {
-            if (!scannerToggle.IsRaised)
+            if (!scannerToggle.IsRaised || Silenced)
             {
                 SetCurrentTarget(null);
                 signalStrength01 = 0f;
@@ -98,7 +102,7 @@ namespace SignalLost.Scanner
             foreach (EnemySignalSource candidate in FindObjectsByType<EnemySignalSource>())
             {
                 IScannerDisruptable hider = Disguised(candidate);
-                if (hider != null && !IsDefeated(candidate) &&
+                if (hider != null && candidate.IsActive && !IsDefeated(candidate) &&
                     (hider.DisguisePosition - scanOrigin.position).sqrMagnitude <= hider.RevealRadius * hider.RevealRadius)
                     hider.Disrupt();
             }
@@ -109,7 +113,8 @@ namespace SignalLost.Scanner
             QuestSignalSource quest = QuestSignalSource.Nearest(scanOrigin.position);
             if (quest != null)
             {
-                SetCurrentTarget(quest);
+                // Except a hidden route chameleon close by, once the Crystal Disruptor is owned (no tell: same beeps).
+                SetCurrentTarget(disruptsCamouflage ? (TrackableTarget)NearestQuestOverride() ?? quest : quest);
                 return;
             }
 
@@ -144,6 +149,24 @@ namespace SignalLost.Scanner
             }
 
             SetCurrentTarget(bestTarget);
+        }
+
+        private EnemySignalSource NearestQuestOverride()
+        {
+            EnemySignalSource best = null;
+            float bestSquared = float.MaxValue;
+            foreach (EnemySignalSource candidate in FindObjectsByType<EnemySignalSource>())
+            {
+                IScannerDisruptable hider = Disguised(candidate);
+                if (hider == null || hider.QuestOverrideRadius <= 0f || !candidate.IsActive || IsDefeated(candidate)) continue;
+                float squared = (hider.DisguisePosition - scanOrigin.position).sqrMagnitude;
+                if (squared <= hider.QuestOverrideRadius * hider.QuestOverrideRadius && squared < bestSquared)
+                {
+                    bestSquared = squared;
+                    best = candidate;
+                }
+            }
+            return best;
         }
 
         private void UpdateSignal()

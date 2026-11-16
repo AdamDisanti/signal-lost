@@ -15,7 +15,7 @@ The Crystal Caves mini-boss fight. Amanda asked for it on 11-09: four beetles wh
 | **George Harrison** | blue |
 | **Scarab Starr** | green |
 
-It lives only in its own test scene for now. It is **not placed in the Crystal Caves level** (the level has an empty beetle fight zone waiting at (−150, −42)); that waits until Amanda asks. All numbers are placeholders to tune.
+It has its own test scene, and is placed in the Crystal Caves level by **Install Crystal Caves Story** (11-15). All numbers are placeholders to tune.
 
 ## Open it
 

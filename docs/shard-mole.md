@@ -2,7 +2,7 @@
 
 The Crystal Caves mini-boss, from Amanda's 11-11 request: a blind cave mole with glowing crystal claws and a crystal-bladed tail that hunts by sound. It's built the same way as the desert mini-bosses ([desert bosses](desert-bosses.md)): a Blender model with animation clips, the `DuelBoss` base, a boss bar with phases, poise and staggers, the leash and reset, and a ship part dropped on defeat.
 
-It lives only in its own test scene for now. It is **not placed in the Crystal Caves level**; that waits until Amanda asks.
+It has its own test scene, and is placed in the Crystal Caves level by **Install Crystal Caves Story** (11-15).
 
 ## Look
 

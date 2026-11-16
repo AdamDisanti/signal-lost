@@ -156,18 +156,7 @@ namespace SignalLost.Editor
                 item.transform.SetPositionAndRotation(centre + spots[i], Quaternion.Euler(0f, 180f, 0f));
                 beetles[i] = item.GetComponent<CaveBeetle>();
             }
-            var data = new SerializedObject(band);
-            SerializedProperty list = data.FindProperty("members");
-            list.arraySize = beetles.Length;
-            for (int i = 0; i < beetles.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = beetles[i];
-            data.FindProperty("zoneRadius").floatValue = zone;
-            data.FindProperty("ringMaterial").objectReferenceValue = RingMaterial();
-            SetLines(data.FindProperty("openingLines"), "An audience! Just like the Cavern Club! Places, everyone!", "Our first gig since the Cavern Club! Somebody check the mics!");
-            SetLines(data.FindProperty("boxInLines"), "From the top, lads! Five, six, seven, EIGHT!", "Box formation! Like we rehearsed!", "Big finish! Everybody in!", "Harmonies, boys! Close ranks!");
-            SetLines(data.FindProperty("dodgedLines"), "OW! Who was on tempo?!", "That's why we need a manager!", "My SHELL! My beautiful shell!", "Who choreographed this?!");
-            SetLines(data.FindProperty("landedLines"), "Nailed the landing! Encore!", "And THAT'S how you hit the big note!", "Did you see that? We were tight!");
-            SetLines(data.FindProperty("memberDownLines"), "We're down a member! The show must go on!", "Keep playing! Keep PLAYING!", "No! The band's breaking up!");
-            data.ApplyModifiedPropertiesWithoutUndo();
+            ConfigureBand(band, beetles, zone);
 
             CaveEnemyKit.AddCorePlayer(scene, new Vector3(0f, 0.05f, -30f), 0f);
             new GameObject("Mini-Boss HUD").AddComponent<MiniBossHud>();
@@ -219,6 +208,34 @@ namespace SignalLost.Editor
                 foreach (Transform item in root.GetComponentsInChildren<Transform>(true))
                     Require(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(item.gameObject) == 0, ScenePath + ": missing script on " + item.name);
             Debug.Log("CAVE_BEETLES_VALIDATED");
+        }
+
+        /// <summary>The four members' names and prefabs, Bug Lennon first (he gets the opening line).</summary>
+        internal static (string Name, string PrefabPath)[] MemberPrefabs
+        {
+            get
+            {
+                var result = new (string, string)[Members.Length];
+                for (int i = 0; i < Members.Length; i++) result[i] = (Members[i].Name, Members[i].PrefabPath);
+                return result;
+            }
+        }
+
+        /// <summary>Lists the members, sets the zone, the box-in ring and the band's lines (test scene and level).</summary>
+        internal static void ConfigureBand(BeetleBand band, CaveBeetle[] beetles, float zone)
+        {
+            var data = new SerializedObject(band);
+            SerializedProperty list = data.FindProperty("members");
+            list.arraySize = beetles.Length;
+            for (int i = 0; i < beetles.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = beetles[i];
+            data.FindProperty("zoneRadius").floatValue = zone;
+            data.FindProperty("ringMaterial").objectReferenceValue = RingMaterial();
+            SetLines(data.FindProperty("openingLines"), "An audience! Just like the Cavern Club! Places, everyone!", "Our first gig since the Cavern Club! Somebody check the mics!");
+            SetLines(data.FindProperty("boxInLines"), "From the top, lads! Five, six, seven, EIGHT!", "Box formation! Like we rehearsed!", "Big finish! Everybody in!", "Harmonies, boys! Close ranks!");
+            SetLines(data.FindProperty("dodgedLines"), "OW! Who was on tempo?!", "That's why we need a manager!", "My SHELL! My beautiful shell!", "Who choreographed this?!");
+            SetLines(data.FindProperty("landedLines"), "Nailed the landing! Encore!", "And THAT'S how you hit the big note!", "Did you see that? We were tight!");
+            SetLines(data.FindProperty("memberDownLines"), "We're down a member! The show must go on!", "Keep playing! Keep PLAYING!", "No! The band's breaking up!");
+            data.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SetLines(SerializedProperty property, params string[] lines)

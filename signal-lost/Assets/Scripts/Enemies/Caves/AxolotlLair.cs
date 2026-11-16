@@ -31,11 +31,21 @@ namespace SignalLost.Enemies.Caves
         [SerializeField] private bool assumePartsCollected;
         [SerializeField] private string title = "THE CAVE AXOLOTL";
         [SerializeField] private string subtitle = "It's guarding the ship's Flight Control Module";
+        [Header("Chamber chameleons")]
+        [Tooltip("Hidden in the chamber's floor; they rise on their own when phase 2 starts, a few at a time. The scanner never sees them.")]
+        [SerializeField] private CrystalChameleon[] chamberChameleons = new CrystalChameleon[0];
+        [SerializeField, Min(1)] private int risePerWave = 2;
+        [SerializeField, Min(0.5f)] private float riseEvery = 4f;
 
         private Stage stage = Stage.Waiting;
         private Transform player;
         private ScannerController scanner;
         private float nextNag;
+        private bool chameleonsRising;
+
+        /// <summary>Counts the parts that open the chamber. Unset (the test scene): the parts the player has picked up.
+        /// The level's story sets it to the parts handed to Cavendish.</summary>
+        public System.Func<int> PartCount { get; set; }
 
         public bool InCutsceneOrFight => stage == Stage.Cutscene || stage == Stage.Fighting;
         public bool Cleared => stage == Stage.Cleared;
@@ -65,27 +75,26 @@ namespace SignalLost.Enemies.Caves
                 MiniBossHud.Message("The Cave Axolotl sank back under its crystal...", new Color(1f, 0.6f, 0.8f), 4f);
                 return;
             }
+            if (stage == Stage.Fighting && !chameleonsRising && axolotl.DuelPhase >= 2) StartCoroutine(RaiseChameleons());
             if (stage != Stage.Waiting) return;
             Vector3 offset = player.position - transform.position;
             offset.y = 0f;
             if (offset.magnitude > triggerRadius) return;
 
-            int have = ShipPartDrop.CountFor(CaveAxolotl.Stage);
-            if (!assumePartsCollected && have < requiredParts)
-            {
-                if (Time.time < nextNag) return;
-                nextNag = Time.time + 4f;
-                MiniBossHud.Message($"Something big is sleeping down here. Find the other ship parts first ({have}/{requiredParts}).",
-                    new Color(1f, 0.85f, 0.5f), 3f);
-                return;
-            }
+            int have = PartCount != null ? PartCount() : ShipPartDrop.CountFor(CaveAxolotl.Stage);
+            bool partsMissing = !assumePartsCollected && have < requiredParts;
             // Without the Crystal Disruptor the player could never find it once it hides (Amanda, 11-12).
-            if (scanner == null || !scanner.DisruptsCamouflage)
+            bool disruptorMissing = scanner == null || !scanner.DisruptsCamouflage;
+            if (partsMissing || disruptorMissing)
             {
                 if (Time.time < nextNag) return;
                 nextNag = Time.time + 4f;
-                MiniBossHud.Message("One of these crystals is alive, but your scanner can't see through it.\nEugene sells the Crystal Disruptor upgrade.",
-                    new Color(1f, 0.85f, 0.5f), 4f);
+                string parts = PartCount != null
+                    ? $"Cavendish needs all three ship parts before you take this on ({have}/{requiredParts} handed in)."
+                    : $"Something big is sleeping down here. Find the other ship parts first ({have}/{requiredParts}).";
+                const string disruptor = "One of these crystals is alive, but your scanner can't see through it. Eugene sells the Crystal Disruptor upgrade.";
+                if (partsMissing && disruptorMissing) MiniBossHud.Message(parts, new Color(1f, 0.85f, 0.5f), 4f, disruptor);
+                else MiniBossHud.Message(partsMissing ? parts : disruptor, new Color(1f, 0.85f, 0.5f), 4f);
                 return;
             }
             StartCoroutine(Entrance());
@@ -118,6 +127,19 @@ namespace SignalLost.Enemies.Caves
             while (axolotl.CurrentMove == "Intro" && !shot.Tick()) yield return null;
             shot.End();
             stage = Stage.Fighting;
+        }
+
+        // Phase 2 (Crystal Bloom): every chamber chameleon rises, a few at a time, however fast the fight moves on.
+        private IEnumerator RaiseChameleons()
+        {
+            chameleonsRising = true;
+            int risen = 0;
+            foreach (CrystalChameleon chameleon in chamberChameleons)
+            {
+                if (chameleon == null || !chameleon.IsDisguised) continue;
+                chameleon.Disrupt();
+                if (++risen % risePerWave == 0) yield return new WaitForSeconds(riseEvery);
+            }
         }
 
         private static IEnumerator Rumble(Vector3 at, float seconds)

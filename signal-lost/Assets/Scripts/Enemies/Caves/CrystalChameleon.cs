@@ -41,6 +41,10 @@ namespace SignalLost.Enemies.Caves
         [SerializeField] private bool startRevealed;
         [Tooltip("How close the raised, upgraded scanner has to get to its crystals to reveal it.")]
         [SerializeField, Min(0.5f)] private float revealRadius = 4f;
+        [Tooltip("Route chameleons (Crystal Caves, docs/crystal-caves-flow.md): with the Crystal Disruptor, the scanner follows this one instead of a quest signal while it is hidden and within this many metres. 0: never.")]
+        [SerializeField, Min(0f)] private float questOverrideRadius;
+        [Tooltip("The Axolotl chamber's chameleons: no scanner signal at all (they rise on their own in the fight).")]
+        [SerializeField] private bool scannerIgnores;
 
         [Header("Wall hiding")]
         [Tooltip("Hide in a wall instead of the floor. Place it on the wall at any height, rotated so its forward (blue arrow) points out of the wall. Revealed, it slides out, drops to the floor below and fights there.")]
@@ -95,6 +99,7 @@ namespace SignalLost.Enemies.Caves
         public bool IsDisguised => IsCamouflaged && !IsDead;
         public Vector3 DisguisePosition => hideInWall ? wallPoint : transform.position;
         public float RevealRadius => revealRadius;
+        public float QuestOverrideRadius => questOverrideRadius;
 
         /// <summary>IBurrowOffset: BurrowEmerge's rise, added to the visual's height.</summary>
         public float BurrowOffset { get; set; }
@@ -130,6 +135,7 @@ namespace SignalLost.Enemies.Caves
         protected override void Awake()
         {
             base.Awake();
+            if (scannerIgnores) foreach (EnemySignalSource signal in GetComponentsInChildren<EnemySignalSource>(true)) signal.enabled = false;
             Health.DamageModifier = (amount, source) => IsMeleeHit(source) ? amount * meleeDamageScale : amount;
             burrow = GetComponent<BurrowEmerge>();
             crystalBlock = new MaterialPropertyBlock();

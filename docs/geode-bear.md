@@ -2,7 +2,7 @@
 
 A Crystal Caves mini-boss, from Amanda's 11-13 idea, built 11-14. It's made the same way as the [Shard Mole](shard-mole.md): a Blender model with animation clips, the `DuelBoss` base, a boss bar with phases, poise and staggers, the leash and reset, and a ship part dropped on defeat.
 
-It lives only in its own test scene for now. It is **not placed in the Crystal Caves level**. That waits until Amanda asks.
+It has its own test scene, and is placed in the Crystal Caves level by **Install Crystal Caves Story** (11-15).
 
 ## Concept
 
@@ -75,7 +75,7 @@ Menu **Signal Lost > Crystal Caves Enemies > Geode Bear**:
 | 3 | **Hibernate attempt** | At most twice a fight, when it's hurt. It curls up and snores ("Grumble is dozing off... hit the power cell!"), its eyes shut, and crystals grow out of its crest while it heals. Over 5 s it regains up to 15% of its health. A hit on the sparking power cell jolts it awake: it stops healing, the grown crystals shatter, and it's dazed (1.3x damage). If nobody wakes it, it gets the full heal ("Grumble feels refreshed."). | Hit the power cell fast. |
 
 - **Health:** 1,850. All numbers are serialized fields on the prefab, placeholders to tune.
-- **Defeat:** the power cell drops as a glowing pickup ("RECOVERED: Power cell"). It counts under the stage `CrystalCaves`, like the Shard Mole's antenna array. It also drops scrap, between the Shard Mole and the Cave Axolotl stage boss: 4–6 scrap metal, 1–3 wiring and 1–2 circuit boards.
+- **Defeat:** the power cell drops as a glowing pickup ("RECOVERED: Power cell"). It counts under the stage `CrystalCaves`, like the Shard Mole's antenna array. It also drops scrap: 4–6 scrap metal, 4–5 wiring, 1–2 circuit boards and 1 fuel cell. With the Beetles' and the Shard Mole's drops, that is always enough for the Crystal Disruptor (8 wiring, 4 circuit boards, 1 fuel cell) (Amanda, 11-16; it was 1–3 wiring and no fuel cell).
 
 ### Against the desert duels
 

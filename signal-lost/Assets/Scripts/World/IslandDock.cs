@@ -29,6 +29,8 @@ namespace SignalLost.World
         [SerializeField] private Transform boarding;
 
         [Header("Departure")]
+        [Tooltip("An arrival dock whose boat also sails on (the Crystal Caves has one dock for both).")]
+        [SerializeField] private bool alsoDeparts;
         [Tooltip("Scene loaded at the end of the voyage. Must be in the build's scene list.")]
         [SerializeField] private string destinationScene = "";
         [SerializeField] private string destinationName = "the next island";
@@ -72,7 +74,10 @@ namespace SignalLost.World
         /// <summary>Testing: lets the boat sail without clearing the stage.</summary>
         public static bool IgnoreRequirements { get; set; }
 
-        public bool IsOpen => role == Role.Departure &&
+        /// <summary>Its boat can sail from here.</summary>
+        public bool Departs => role == Role.Departure || alsoDeparts;
+
+        public bool IsOpen => Departs &&
                               (IgnoreRequirements || string.IsNullOrEmpty(requiredStage) || StageProgress.IsCleared(requiredStage));
 
         public bool DestinationExists => !string.IsNullOrEmpty(destinationScene) && Application.CanStreamedLevelBeLoaded(destinationScene);

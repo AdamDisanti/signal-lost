@@ -22,7 +22,11 @@ namespace SignalLost.Progression
             new Trophy { Id = "burnout_thorns", Name = "Burnout's Thorn Crest", Boss = "Burnout" },
             new Trophy { Id = "sludge_stinger", Name = "Sludge's Stinger", Boss = "Sludge" },
             new Trophy { Id = "core_worm_fang", Name = "Core Worm Fang", Boss = "Core Worm" },
-            new Trophy { Id = "clutch_aviators", Name = "Clutch's Aviators", Boss = "Clutch McCheddar" }
+            new Trophy { Id = "clutch_aviators", Name = "Clutch's Aviators", Boss = "Clutch McCheddar" },
+            // The Crystal Caves' three mini-bosses (the Axolotl drops none).
+            new Trophy { Id = "beetles_elytra", Name = "The Beetles' Elytra", Boss = "The Beetles" },
+            new Trophy { Id = "shard_mole_hide", Name = "Shard Mole Hide", Boss = "Shard Mole" },
+            new Trophy { Id = "geode_bear_claw", Name = "Geode Bear Claw", Boss = "Geode Bear" }
         };
 
         public static Trophy Find(string id)

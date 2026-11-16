@@ -15,6 +15,9 @@ namespace SignalLost.Scanner
         /// <summary>The fake crystal the player has to get close to.</summary>
         Vector3 DisguisePosition { get; }
         float RevealRadius { get; }
+        /// <summary>With the upgrade, the scanner follows this enemy instead of a quest signal while it is disguised and
+        /// within this radius of the scanner (the Crystal Caves' route chameleons). 0: quest signals always win.</summary>
+        float QuestOverrideRadius { get; }
         /// <summary>Drop the disguise and come out fighting.</summary>
         void Disrupt();
     }

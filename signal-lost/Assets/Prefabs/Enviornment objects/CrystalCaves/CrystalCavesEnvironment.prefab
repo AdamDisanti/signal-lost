@@ -7104,6 +7104,7 @@ MonoBehaviour:
   mooring: {fileID: 8595940280481402921}
   landing: {fileID: 2702566662083112718}
   boarding: {fileID: 8729150011547227418}
+  alsoDeparts: 0
   destinationScene: 
   destinationName: the next island
   requiredStage: 

@@ -104,6 +104,7 @@ namespace SignalLost.Enemies.Caves
         public bool IsDisguised => hidden && !IsDead;
         public Vector3 DisguisePosition => disguise != null ? disguise.transform.position : transform.position;
         public float RevealRadius => revealRadius;
+        public float QuestOverrideRadius => 0f;
 
         /// <summary>True while it's underground posing as a crystal (mid-fight).</summary>
         public bool IsHiding => hidden;

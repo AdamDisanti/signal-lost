@@ -173,7 +173,7 @@ The outdoor look is whatever the scene's Lighting settings are; CaveLighting rea
 - **Don't edit the environment prefab by hand.** **Rebuild Crystal Caves Environment** overwrites it, so change `CrystalCavesTerrain.cs` or `CrystalCavesBuilder.cs` instead.
   - After a rebuild, re-bake the NavMesh: select *Navigation* and press **Bake**.
   - Objects inside the prefab may also get new IDs, so re-check any scene references to them.
-- **Starting over:** delete `CrystalCaves.unity` and run **Create Crystal Caves Level** again.
+- **Starting over:** delete `CrystalCaves.unity`, run **Create Crystal Caves Level** again, then **Install Crystal Caves Story**.
 - **Validation:** **Create** ends by validating the scene. It checks:
   - the shared pieces, the sea, the dock and boat, the camp and its residents (with every camp piece standing on the ground, not floating or sunk), and the crystals;
   - that the end of the dock, the camp, the cave mouth, the foot of the ramp and all three fight zones can be reached on foot from the spawn.
@@ -186,6 +186,7 @@ The outdoor look is whatever the scene's Lighting settings are; CaveLighting rea
 | --- | --- |
 | `Editor/CrystalCavesTerrain.cs` | Layout numbers and the landform: ground, sea floor, cave ceiling and mountain top, the cove, the two cave levels and ramps, and the self-check |
 | `Editor/CrystalCavesBuilder.cs` | The environment prefab (island kit pieces, props and crystal placement), the camp prefab, and the scene (lighting, player, camp and residents, NavMesh, markers, validation) |
+| `Editor/CrystalCavesStory.cs`, `Scripts/Story/CavesStory.cs` | The story install (bosses, tasks, Chameleons, the Axolotl's chamber, the caves' rack) and the runtime story. |
 | `Editor/CrystalAssetBuilder.cs` | Crystal shapes (including the two giant ones) and materials, CrystalBatch prefab, cave and coast rock |
 | `Scripts/Effects/CaveLighting.cs`, `CrystalBatch.cs` | Runtime cave lighting and crystal colour sync |
 | `Prefabs/Enviornment objects/CrystalCaves/` | Environment prefab, meshes, materials, crystals, rocks |
@@ -253,7 +254,7 @@ The outdoor look is whatever the scene's Lighting settings are; CaveLighting rea
 ## Open questions
 
 - **Level flow:** where the boat comes from (the Fog Forest isn't built), whether this island needs a departure dock, and where the exit is.
-- **Enemies and quests:** the beetles, Mini Boss 2 (and any others), the final boss and Cavendish's quests are still to be designed. The zones are empty placeholders.
+- **Enemies and quests:** built (11-15). Route fodder is not placed yet.
 - **Island look:** Crystal Caves outfits for the crew and camp styling (the desert has both). The crew wears the Crash Meadow look here for now.
-- **Respawn point:** set to the foot of the cove by the dock. The camp is the alternative.
-- **Trophy stands:** only three stands exist in the base camp. Space is left for more, but the stand count belongs to BaseCampBuilder.
+- **Respawn point:** the dock at first, then the camp fire after the first talk with Cavendish (11-15).
+- **Trophy stands:** the caves' camp has three new stands (slots 6-8) in front, with the desert's three and the shared three in rows behind (11-15).

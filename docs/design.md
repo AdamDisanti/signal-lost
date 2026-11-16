@@ -198,6 +198,7 @@ Amanda's level-design changes from her reference images. See [Crystal Caves](cry
   - Some lean against the walls; some are angled beams from the floor into the ceiling.
   - They keep clear of the tunnel, the ramp, the cliffs and the fight zones, and they glow, with lights in the cave's budget (211 of 220).
 - **Cave layout protected:** the cave now draws its own random numbers, so reshaping the outside no longer moves its rocks or crystals.
+
 ## Crystal Chameleon (11-09)
 
 Amanda's request: the Crystal Caves fodder enemy, a chameleon with crystal scales that hides among the cave's crystals. See [Crystal Chameleon](crystal-chameleon.md).

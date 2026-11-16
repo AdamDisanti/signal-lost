@@ -2,7 +2,7 @@
 
 The small enemy of the [Crystal Caves](crystal-caves.md), from Amanda's 11-09 request. It's a crawling chameleon whose back is a cluster of the cave's own crystals. While camouflaged it lies buried with only the crystals showing, so it looks exactly like any other crystal batch. The scanner's **Crystal Disruptor** upgrade reveals it: its crystals turn red, it rises out of the ground and it attacks with its tongue. Its crystals stay red while it fights and go dark when it dies.
 
-It lives only in its own test scene for now. It is **not placed in the Crystal Caves level**; that waits until Amanda asks.
+It has its own test scene, and is placed in the Crystal Caves level by **Install Crystal Caves Story** (11-15): route Chameleons along the paths, and the Axolotl chamber's Chameleons.
 
 The model is generated in code, in the same low-poly style as the other enemies. No assets were imported. All numbers are placeholders to tune.
 
@@ -58,6 +58,11 @@ To place chameleons in the level:
    - **Wall:** tick **Hide In Wall**. Put it on the wall's surface at any height, rotated so its forward (the blue arrow) points out of the wall, into the room. There must be NavMesh floor below, about 0.9 m out from the wall (**Wall Landing Distance**).
 2. Set its **Crystal Material** to the colour of the batches around it.
 3. Leave **Start Revealed** unticked.
+
+## Level fields (11-15)
+
+- **Quest Override Radius:** on route Chameleons (20 m). With the Crystal Disruptor, the scanner follows a hidden one within this radius instead of the quest signal, with no different tone or colour. 0 (the default) never overrides.
+- **Scanner Ignores:** on the Axolotl chamber's Chameleons. Their scanner signal is off, so the scanner never targets or reveals them. The lair raises them in phase 2.
 
 ## Changes to shared code
 

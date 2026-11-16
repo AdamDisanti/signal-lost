@@ -1191,6 +1191,8 @@ MonoBehaviour:
   glow: {fileID: 6856068321051075380}
   startRevealed: 0
   revealRadius: 4
+  questOverrideRadius: 0
+  scannerIgnores: 0
   hideInWall: 0
   wallLandingDistance: 0.9
   wallDropTime: 0.45

@@ -38,7 +38,7 @@ namespace SignalLost.Editor
     ///    Eugene, the baked NavMesh, and empty fight-zone markers for enemies to come.
     /// The landform itself is in <see cref="CrystalCavesTerrain"/>; the art kit in <see cref="CrystalAssetBuilder"/>.
     /// </summary>
-    internal static class CrystalCavesBuilder
+    internal static partial class CrystalCavesBuilder
     {
         public const string ScenePath = "Assets/Scenes/Large Areas/CrystalCaves.unity";
         private const string NavMeshPath = "Assets/Scenes/Large Areas/CrystalCavesNavMesh.asset";
@@ -711,7 +711,8 @@ namespace SignalLost.Editor
             island.FindProperty("merchantSeat").objectReferenceValue = Mark("Merchant Seat", new Vector3(log.x, 0f, log.z) * (1f - 1.3f / new Vector2(log.x, log.z).magnitude));
             island.FindProperty("cavendishStand").objectReferenceValue = Mark("Cavendish Stand", new Vector3(1.9f, 0f, -1.3f));
             island.FindProperty("merchantStand").objectReferenceValue = Mark("Merchant Stand", new Vector3(2.6f, 0f, -2.6f));
-            Transform[] order = { Child("Fire Pit"), cavendishLog, otherLog, Child("Tent"), Child("Cavendish's Supplies"), Child("Barrel"), Child("Trophy Stands"), Child("Campfire") };
+            Transform[] rows = ArrangeCampStands(Child("Trophy Stands"));
+            Transform[] order = { Child("Fire Pit"), cavendishLog, otherLog, Child("Tent"), Child("Cavendish's Supplies"), Child("Barrel"), Child("Trophy Stands"), rows[1], rows[0], Child("Campfire") };
             SerializedProperty pieces = island.FindProperty("pieces");
             pieces.arraySize = order.Length;
             for (int i = 0; i < order.Length; i++) pieces.GetArrayElementAtIndex(i).objectReferenceValue = order[i];
@@ -781,18 +782,15 @@ namespace SignalLost.Editor
             AssetDatabase.CreateAsset(surface.navMeshData, NavMeshPath);
         }
 
-        // Loaded directly (not by boat), the player starts at the foot of the cove by the dock, looking up it toward
-        // the cave mouth, with all their gear. Arriving by boat, the voyage puts them on the dock instead.
+        // The player starts on the dock by the boat, where a voyage lands them too, with all their gear. The story moves the
+        // respawn point to the camp fire after the first talk with Cavendish.
         // GameSystems brings up the HUD, menus and pause; the sea adds the deep-water rescue to the player.
         private static void BuildGameplay()
         {
             var gameplay = new GameObject("Gameplay").transform;
-            Vector2 foot = T.CoveBottom - T.DockSeaward * 3f;
-            Vector3 spawnAt = Ground(foot) + Vector3.up * 0.1f;
-            Vector2 toMouth = T.MouthPath[1] - foot;
-            Quaternion facing = Quaternion.LookRotation(new Vector3(toMouth.x, 0f, toMouth.y));
+            DockSpawn(out Vector3 spawnAt, out Quaternion facing);
             GameObject spawn = Place(CorePrefabBuilder.SpawnPath, gameplay, spawnAt, facing, Vector3.one);
-            spawn.name = "Spawn At The Cove";
+            spawn.name = SpawnName;
 
             GameObject player = Place(CorePrefabBuilder.PlayerPath, null, spawnAt + Vector3.up * 0.05f, facing, Vector3.one);
             player.GetComponentInChildren<Camera>(true).clearFlags = CameraClearFlags.Skybox; // the shared player clears to a flat colour
@@ -804,7 +802,7 @@ namespace SignalLost.Editor
             gear.ApplyModifiedPropertiesWithoutUndo();
             // A big level, like the tutorial: the scanner's scene-wide range (signal strength and creature pickup).
             var scanner = new SerializedObject(player.GetComponentInChildren<ScannerController>(true));
-            scanner.FindProperty("levelRangeOverride").floatValue = 200f;
+            scanner.FindProperty("levelRangeOverride").floatValue = ScannerRange;
             scanner.ApplyModifiedPropertiesWithoutUndo();
             Place(CorePrefabBuilder.SystemsPath, null, Vector3.zero, Quaternion.identity, Vector3.one);
             // Eugene sells the caves' upgrades here (the Crystal Disruptor).
@@ -895,7 +893,7 @@ namespace SignalLost.Editor
             IslandDock dock = EnemyTestBuilder.All<IslandDock>().SingleOrDefault();
             EnemyTestBuilder.Require(dock != null && dock.DockRole == IslandDock.Role.Arrival && dock.Boat != null, "Expected one arrival dock with its boat.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<CaveLighting>() == 1, "Expected one CaveLighting.");
-            EnemyTestBuilder.Require(EnemyTestBuilder.Count<TrophyStand>() == 3, "Expected the camp's three trophy stands.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<TrophyStand>() == 9, "Expected the caves' three stands and the six older ones behind them.");
             IslandCamp camp = EnemyTestBuilder.All<IslandCamp>().SingleOrDefault();
             EnemyTestBuilder.Require(camp != null && camp.Cavendish != null && camp.Merchant != null && camp.CavendishSeat != null && camp.MerchantSeat != null,
                 "Expected Cavendish's camp with Cavendish, Eugene and their seats.");

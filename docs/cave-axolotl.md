@@ -2,7 +2,7 @@
 
 The Crystal Caves stage boss, from Amanda's 11-12 request: a huge axolotl crusted with the cave's own crystals, guarding the ship's **Flight Control Module** (the caves' main part in the design document). It plays like the Core Worm (an entrance, four phases that change the arena, a main part that clears the stage) but is built the way the Shard Mole is: a Blender model with animation clips on the `DuelBoss` base, with a boss bar, phases, poise, and the leash and reset.
 
-It lives only in its own test scene for now. It is **not placed in the Crystal Caves level**; that waits until Amanda asks.
+It has its own test scene, and is placed in the Crystal Caves level's deep chamber by **Install Crystal Caves Story** (11-15).
 
 ## Look
 
@@ -115,6 +115,11 @@ The crystals glow brighter each phase. Each phase change shows a banner, and the
   - the cave crystal batch, spire and materials;
   - `CaveEnemyKit` (the test cave, Player and GameSystems);
   - `StartingUpgrades`.
+
+## Level additions (11-15)
+
+- **`AxolotlLair.PartCount`:** when set (the level's `CavesStory` sets it), the gate counts the parts handed to Cavendish instead of the parts picked up. Unset, as in the test scene, it counts picked-up parts. Its refusal names what is missing (parts, the Disruptor, or both).
+- **Chamber Chameleons:** the lair's **Chamber Chameleons** list rises on its own once the Axolotl reaches phase 2, **Rise Per Wave** at a time (2), **Rise Every** seconds apart (4). All of them rise, however fast the fight moves on.
 
 ## Changes to shared code
 

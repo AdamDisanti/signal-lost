@@ -186,7 +186,8 @@ namespace SignalLost.Editor
             data.ApplyModifiedPropertiesWithoutUndo();
 
             // Between the Shard Mole (3-5 / 1-2 / 1-2) and the Cave Axolotl stage boss (5-8 / 2-3 / 2-3).
-            CaveEnemyKit.SetDrops(root.AddComponent<ScrapDropper>(), (ScrapType.ScrapMetal, 4, 6), (ScrapType.Wiring, 1, 3), (ScrapType.CircuitBoards, 1, 2));
+            CaveEnemyKit.SetDrops(root.AddComponent<ScrapDropper>(), (ScrapType.ScrapMetal, 4, 6), (ScrapType.Wiring, 4, 5), (ScrapType.CircuitBoards, 1, 2),
+                (ScrapType.FuelCells, 1, 1)); // with the Beetles' and the Mole's, always enough for the Crystal Disruptor (8 wiring, 4 boards, 1 fuel cell)
             return DesertDuelBossBuilder.Save(root, PrefabPath);
         }
     }
