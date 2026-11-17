@@ -472,7 +472,7 @@ namespace SignalLost.Story
         private void UpdateHomecoming()
         {
             bool carrying = PlayerInventory.Current != null && PlayerInventory.Current.HasKeyItem(wormTrophyId);
-            foreach (TrophyStand stand in FindObjectsByType<TrophyStand>()) Signal(stand, carrying && !fangPlaced && stand.TrophyId == null);
+            foreach (TrophyStand stand in rack) Signal(stand, carrying && !fangPlaced && stand.TrophyId == null); // the desert's own stands
             Quest(HomeTitle, "Out in the open air again, in the Core Worm's old sand bowl. Head back to camp.\n" +
                 (fangPlaced ? "[x] Core Worm Fang on a stand" : "[  ] Set the Core Worm Fang on a trophy stand") + "\n" +
                 "[  ] Show Cavendish the Engine Core");

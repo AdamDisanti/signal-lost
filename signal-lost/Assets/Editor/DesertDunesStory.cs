@@ -2368,7 +2368,7 @@ namespace SignalLost.Editor
                 for (int t = 0; t < taskList.arraySize; t++)
                     EnemyTestBuilder.Require(taskList.GetArrayElementAtIndex(t).objectReferenceValue != null, $"Job {i + 1}: task {t + 1} is missing.");
             }
-            EnemyTestBuilder.Require(data.FindProperty("rack").arraySize == 3, "Expected the three-stand Chop Shop rack.");
+            EnemyTestBuilder.Require(data.FindProperty("rack").arraySize == 4, "Expected the desert's four stands (the Chop Shop's three and the Core Worm's).");
             EnemyTestBuilder.Require(Trophy.Find("core_worm_fang")?.LoadModel() != null, "The Core Worm fang trophy is missing.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<Coreworm>() == 1 && EnemyTestBuilder.Count<CorewormArena>() == 1 && EnemyTestBuilder.Count<WormLair>() == 1,
                 "Expected the Core Worm, its arena and the lair.");

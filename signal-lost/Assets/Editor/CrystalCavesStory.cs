@@ -34,8 +34,8 @@ namespace SignalLost.Editor
         private const string SpawnName = "Spawn At The Dock";
         // The scanner's range here: from the camp or the dock, the far chamber's signal still beeps and fills the bar a little.
         private const float ScannerRange = 450f;
-        private const string RackName = "Crystal Caves Rack";
-        private const int CavesRackFirstIndex = 6; // after the base camp's 0-2 and the desert rack's 3-5
+        private static string RackName => BaseCampBuilder.StandGroupName(BaseCampBuilder.StandSet.Caves);
+        private static int CavesRackFirstIndex => BaseCampBuilder.FirstStandIndex(BaseCampBuilder.StandSet.Caves); // after the tutorial's and the desert's
         private const string TrophyFolder = "Assets/Resources/SignalLost/Trophies";
         private const float RouteOverrideRadius = 20f;
         private const float AxolotlArenaRadius = 30f; // reaches the crystals ringing the chamber's long sides (34 m out)
@@ -74,51 +74,6 @@ namespace SignalLost.Editor
             at = Ground(spot) + Vector3.up * 0.1f;
             Vector2 toMouth = T.MouthPath[1] - spot;
             facing = Quaternion.LookRotation(new Vector3(toMouth.x, 0f, toMouth.y));
-        }
-
-        private const string DesertRowName = "Desert Stands (stored)";
-
-        // The caves' three new stands (save slots 6-8) in front, east of the fire. Behind them, in rows, every older stand
-        // with whatever it holds: the desert's three (slots 3-5), then the camp's shared three (0-2). The rows are
-        // staggered so each trophy shows between the ones in front. Returns the new groups for the camp's pieces.
-        private static Transform[] ArrangeCampStands(Transform shared)
-        {
-            Transform caves = CloneStands(shared, RackName, "Rack Stand", CavesRackFirstIndex);
-            Transform desert = CloneStands(shared, DesertRowName, "Desert Stand", BaseCampBuilder.StandSpots.Length);
-            PlaceRow(caves, 0);
-            PlaceRow(desert, 1);
-            PlaceRow(shared, 2);
-            return new[] { caves, desert };
-        }
-
-        private static Transform CloneStands(Transform shared, string name, string standName, int firstIndex)
-        {
-            Transform row = Object.Instantiate(shared.gameObject, shared.parent).transform;
-            row.name = name;
-            TrophyStand[] stands = row.GetComponentsInChildren<TrophyStand>();
-            for (int i = 0; i < stands.Length; i++)
-            {
-                stands[i].name = $"{standName} {i + 1}";
-                var data = new SerializedObject(stands[i]);
-                data.FindProperty("index").intValue = firstIndex + i;
-                data.ApplyModifiedPropertiesWithoutUndo();
-            }
-            return row;
-        }
-
-        // Row 0 on the desert rack's arc; each row behind is 1.7 m further out and turned half a gap to alternate sides.
-        private static void PlaceRow(Transform row, int depth)
-        {
-            TrophyStand[] stands = row.GetComponentsInChildren<TrophyStand>();
-            for (int i = 0; i < stands.Length; i++)
-            {
-                Vector2 front = BaseCampBuilder.RackSpots[i];
-                float angle = Mathf.Atan2(front.y, front.x) * Mathf.Rad2Deg + (depth == 0 ? 0f : depth == 1 ? -7.5f : 7.5f);
-                float radius = 6.7f + depth * 1.7f;
-                var at = new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad), 0f, Mathf.Sin(angle * Mathf.Deg2Rad)) * radius;
-                stands[i].transform.localPosition = at;
-                stands[i].transform.localRotation = Quaternion.LookRotation(-at); // facing the fire
-            }
         }
 
         // =====================================================================
@@ -951,7 +906,7 @@ namespace SignalLost.Editor
             SerializedProperty rack = data.FindProperty("rack");
             Require(rack.arraySize == 3, "Expected the caves' three-stand rack.");
             for (int i = 0; i < 3; i++)
-                Require(((TrophyStand)rack.GetArrayElementAtIndex(i).objectReferenceValue).Index == CavesRackFirstIndex + i, "The caves' rack stands must be 6-8.");
+                Require(((TrophyStand)rack.GetArrayElementAtIndex(i).objectReferenceValue).Index == CavesRackFirstIndex + i, $"The caves' rack stands must be {CavesRackFirstIndex}-{CavesRackFirstIndex + 2}.");
 
             // The chamber.
             Require(EnemyTestBuilder.Count<CaveAxolotl>() == 1 && EnemyTestBuilder.Count<AxolotlLair>() == 1, "Expected one Cave Axolotl and its lair.");
@@ -1001,7 +956,7 @@ namespace SignalLost.Editor
             reach.Add(("the camp respawn", campRespawn.position));
             Require(Mathf.Approximately(new SerializedObject(Object.FindAnyObjectByType<PlayerGear>().GetComponentInChildren<ScannerController>(true))
                 .FindProperty("levelRangeOverride").floatValue, ScannerRange), "The scanner's level range should be " + ScannerRange + " m.");
-            Require(EnemyTestBuilder.All<TrophyStand>().Select(t => t.Index).OrderBy(i => i).SequenceEqual(Enumerable.Range(0, 9)), "Expected stands 0-8 at the caves' camp.");
+            Require(EnemyTestBuilder.All<TrophyStand>().Select(t => t.Index).OrderBy(i => i).SequenceEqual(Enumerable.Range(0, CavesRackFirstIndex + 3)), "Expected stands 0-7 at the caves' camp.");
             Require(NavMesh.SamplePosition(spawn.transform.position, out NavMeshHit from, 3f, NavMesh.AllAreas), "The spawn is off the NavMesh.");
             foreach ((string name, Vector3 at) in reach)
             {

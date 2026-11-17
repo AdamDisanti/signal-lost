@@ -463,6 +463,9 @@ namespace SignalLost.Editor
         {
             Transform camp = Instance(BaseCampBuilder.PrefabPath, level).transform;
             camp.position = GroundAt(Camp);
+            // The last island so far: every earlier level's stands join the tutorial's, plus Clutch's.
+            foreach (var set in new[] { BaseCampBuilder.StandSet.Desert, BaseCampBuilder.StandSet.Caves, BaseCampBuilder.StandSet.Mudlands })
+                BaseCampBuilder.AddStands(camp, set);
             clear.Add(new Vector3(Camp.x, Camp.y, 12f));
             var noParking = new GameObject("No Parking (camp)");
             noParking.transform.SetParent(camp, false);
