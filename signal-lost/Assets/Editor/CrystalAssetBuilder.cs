@@ -8,8 +8,9 @@ namespace SignalLost.Editor
 {
     /// <summary>
     /// Builds the Crystal Caves art kit in Prefabs/Enviornment objects/CrystalCaves:
-    ///  * three glowing crystal shapes (Crystals/CrystalSpire, CrystalCluster, CrystalShard) and six crystal
-    ///    materials (Materials/Crystal*.mat: dark blue, green, orange, purple, pink, cyan);
+    ///  * three glowing crystal shapes (Crystals/CrystalSpire, CrystalCluster, CrystalShard), two giant ones
+    ///    (Crystals/GiantCrystal, GiantCrystalWide, 10 m long) and six crystal materials (Materials/Crystal*.mat:
+    ///    dark blue, green, orange, purple, pink, cyan);
     ///  * Crystals/CrystalBatch.prefab, a ready-made group of crystals with its glow light: drop it anywhere and pick
     ///    a material on its <see cref="CrystalBatch"/> to recolour the crystals and the light together;
     ///  * cave rock (Rocks/Stalagmite, StalagmiteBlunt, CaveColumn, CaveBoulder, CaveBoulderRound; stalactites are
@@ -28,6 +29,7 @@ namespace SignalLost.Editor
         public enum CrystalColor { DarkBlue, Green, Orange, Purple, Pink, Cyan }
 
         public static readonly string[] CrystalShapes = { "CrystalSpire", "CrystalCluster", "CrystalShard" };
+        public static readonly string[] GiantCrystalShapes = { "GiantCrystal", "GiantCrystalWide" };
         public static string CrystalPath(string shape) => CrystalFolder + "/" + shape + ".prefab";
         public static string BatchPath => CrystalFolder + "/CrystalBatch.prefab";
         public static string RockPath(string name) => RockFolder + "/" + name + ".prefab";
@@ -67,6 +69,10 @@ namespace SignalLost.Editor
             Prefab(CrystalPath("CrystalCluster"), Crystal(cluster), cyan, true, false);
             Prefab(CrystalPath("CrystalShard"), Crystal(Lathe("Shard", new[] { new Vector2(0f, 0f), new Vector2(0.52f, 0f), new Vector2(0.58f, 0.32f), new Vector2(0.36f, 0.95f), new Vector2(0f, 1.2f) }, 5), Matrix4x4.Scale(new Vector3(1f, 1f, 0.75f))), cyan, true, false);
             BuildBatchPrefab(cyan);
+            // Giant crystals, like the reference's long glowing rods: a slim one and a wide, flattened one, 10 m long.
+            Prefab(CrystalPath("GiantCrystal"), Crystal(Prism(0.42f, 10f, 6), Matrix4x4.identity), cyan, true, false);
+            Prefab(CrystalPath("GiantCrystalWide"), Crystal(Lathe("GiantCrystalWide", new[] { new Vector2(0f, 0f), new Vector2(0.8f, 0f), new Vector2(0.84f, 0.5f), new Vector2(0.7f, 7f), new Vector2(0f, 9f) }, 6),
+                Matrix4x4.Scale(new Vector3(1f, 1f, 0.72f))), cyan, true, false);
 
             // Cave and coast rock.
             Prefab(RockPath("Stalagmite"), RockMesh("Stalagmite", Upright(LowPolyMesh.TaperedPrism("Stalagmite", 6, 0.06f))), RockMaterial(Rock.Cave), true, true);

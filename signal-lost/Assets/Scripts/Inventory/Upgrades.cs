@@ -8,7 +8,7 @@ namespace SignalLost.Inventory
     public enum UpgradeSlot { Laser, Scanner, Flask, Suit, Supply, Trade, Car }
 
     /// <summary>The level whose shop sells it.</summary>
-    public enum UpgradeRegion { Tutorial, DesertDunes, Mudlands }
+    public enum UpgradeRegion { Tutorial, DesertDunes, Mudlands, CrystalCaves }
 
     /// <summary>
     /// One thing Bucket &amp; Barter sells (meeting notes 10-23): a fixed recipe of scrap, sometimes plus a key item a
@@ -32,6 +32,9 @@ namespace SignalLost.Inventory
         public float CarRunOverDamage, CarBlastRadius, CarBlastDamage, CarStun, ChugSeconds, CarCooldown;
         public int ChugDrinks;
         public bool CarReinforced, MudTires, SpillProof, Waders;
+
+        // Crystal Caves: the raised scanner reveals camouflaged enemies (Scanner.IScannerDisruptable).
+        public bool DisruptsCamouflage;
 
         // Supplies: what one use does.
         public int SoberUp;
@@ -172,6 +175,14 @@ namespace SignalLost.Inventory
                 Id = "spare_keys", Name = "Spare Keys", Slot = UpgradeSlot.Car, Region = UpgradeRegion.Mudlands,
                 Description = "A spare set taped under the bumper. The car is ready again after 18 s instead of 30 s.",
                 Cost = new[] { (ScrapType.ScrapMetal, 8), (ScrapType.Wiring, 4), (ScrapType.CircuitBoards, 1) }, CarCooldown = -12f
+            },
+
+            // ---------- Crystal Caves upgrades (docs/crystal-caves.md) ----------
+            new Upgrade
+            {
+                Id = "crystal_disruptor", Name = "Crystal Disruptor", Slot = UpgradeSlot.Scanner, Region = UpgradeRegion.CrystalCaves,
+                Description = "A tuning fork that jams crystal energy. The scanner picks up creatures hiding as crystals, and holding it up close makes them burst out.",
+                Cost = new[] { (ScrapType.Wiring, 8), (ScrapType.CircuitBoards, 4), (ScrapType.FuelCells, 1) }, DisruptsCamouflage = true
             },
 
             // ---------- Supplies ----------

@@ -13,16 +13,23 @@ namespace SignalLost.Progression
     public sealed class Trophy
     {
         public string Id, Name, Boss;
+        /// <summary>The level whose stands take it (its own level's camp ring, and every later level's camp).</summary>
+        public CampLevel Level;
 
         public static readonly Trophy[] All =
         {
-            new Trophy { Id = "chief_toad_crown", Name = "Chief Toad's Crown", Boss = "Chief Toad" },
+            new Trophy { Id = "chief_toad_crown", Name = "Chief Toad's Crown", Boss = "Chief Toad", Level = CampLevel.Tutorial },
             // The desert (11-08): the Chop Shop's three, then the Core Worm's.
-            new Trophy { Id = "old_buzzard_feathers", Name = "Old Buzzard's Tail Feathers", Boss = "Old Buzzard" },
-            new Trophy { Id = "burnout_thorns", Name = "Burnout's Thorn Crest", Boss = "Burnout" },
-            new Trophy { Id = "sludge_stinger", Name = "Sludge's Stinger", Boss = "Sludge" },
-            new Trophy { Id = "core_worm_fang", Name = "Core Worm Fang", Boss = "Core Worm" },
-            new Trophy { Id = "clutch_aviators", Name = "Clutch's Aviators", Boss = "Clutch McCheddar" }
+            new Trophy { Id = "old_buzzard_feathers", Name = "Old Buzzard's Tail Feathers", Boss = "Old Buzzard", Level = CampLevel.Desert },
+            new Trophy { Id = "burnout_thorns", Name = "Burnout's Thorn Crest", Boss = "Burnout", Level = CampLevel.Desert },
+            new Trophy { Id = "sludge_stinger", Name = "Sludge's Stinger", Boss = "Sludge", Level = CampLevel.Desert },
+            new Trophy { Id = "core_worm_fang", Name = "Core Worm Fang", Boss = "Core Worm", Level = CampLevel.Desert },
+            new Trophy { Id = "clutch_aviators", Name = "Clutch's Aviators", Boss = "Clutch McCheddar", Level = CampLevel.Mudlands },
+            // The Crystal Caves' three mini-bosses, then the Cave Axolotl's (11-20).
+            new Trophy { Id = "beetles_elytra", Name = "The Beetles' Elytra", Boss = "The Beetles", Level = CampLevel.Caves },
+            new Trophy { Id = "shard_mole_hide", Name = "Shard Mole Hide", Boss = "Shard Mole", Level = CampLevel.Caves },
+            new Trophy { Id = "geode_bear_claw", Name = "Geode Bear Claw", Boss = "Geode Bear", Level = CampLevel.Caves },
+            new Trophy { Id = "cave_axolotl_gill", Name = "Cave Axolotl Gill Frond", Boss = "Cave Axolotl", Level = CampLevel.Caves }
         };
 
         public static Trophy Find(string id)
@@ -33,6 +40,9 @@ namespace SignalLost.Progression
 
         public GameObject LoadModel() => Resources.Load<GameObject>("SignalLost/Trophies/" + Id);
     }
+
+    /// <summary>The levels whose trophies share a stand set (the order they are earned in).</summary>
+    public enum CampLevel { Tutorial, Desert, Caves, Mudlands }
 
     /// <summary>
     /// What the base camp remembers between play sessions: which trophy sits on which stand. The camp is the same in
@@ -81,6 +91,10 @@ namespace SignalLost.Progression
         }
 
         public static bool IsPlaced(string trophyId) => Current.trophies.Contains(trophyId);
+
+        /// <summary>Which level's stand set a stand belongs to. Matches BaseCampBuilder.StandAngles: 1 tutorial, 4 desert, 4 caves, 1 Mudlands.</summary>
+        public static CampLevel LevelOfStand(int stand) =>
+            stand == 0 ? CampLevel.Tutorial : stand <= 4 ? CampLevel.Desert : stand <= 8 ? CampLevel.Caves : CampLevel.Mudlands;
 
         public static void Place(string trophyId, int stand)
         {

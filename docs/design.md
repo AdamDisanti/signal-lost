@@ -10,7 +10,7 @@ The flask heals without a fixed use limit; excessive drinking affects visibility
 
 **Current scanner prototype:** the active in-hand scanner no longer has a directional arrow. It retains its proximity bar and audio feedback. This is an implementation change; the supplied design document's directional-scanner intent above remains unchanged.
 
-**Buried-enemy prototype:** the scanner can track an underground `EnemySignalSource`; the current burrow/emergence test is limited to one Hermit Crab scene instance. The scanner also excludes defeated enemy sources with `Health` and advances to another eligible target. See [burrow and emerge](burrow-emerge.md) and the [scanner prototype](scanner-prototype.md).
+**Buried-enemy prototype:** the scanner can track an underground `EnemySignalSource`; the shared burrow/emergence component (`BurrowEmerge`) is used by one test Hermit Crab instance and by the Crystal Chameleon, which can burrow into the floor or a wall and is revealed by the Crystal Disruptor scanner upgrade. The scanner also excludes defeated enemy sources with `Health` and advances to another eligible target. See [burrow and emerge](burrow-emerge.md) and the [scanner prototype](scanner-prototype.md).
 
 | Area | Planned boss / reward |
 | --- | --- |
@@ -154,37 +154,135 @@ Amanda's fixes and changes after reviewing the world. See [Crystal Caves](crysta
 - **Nothing climbable (later on 11-09):**
   - **The bug:** the player could reach the top of the mountains by pressing Jump over and over.
   - **The cause:** the shared player can jump on any slope that isn't vertical.
-  - **First attempt, withdrawn:** a footing and sliding rule in the shared `FirstPersonController`. Amanda found it made ordinary ground and the ramp slip, and wanted every level to keep its original movement. The player controller is unchanged.
   - **The fix:** vertical rock walls instead, wherever the player must not climb:
     - the mountains' foot round the ledge;
     - both sides of the cut to the mouth;
     - the upper level's cliff in the cave, with a flat top back to the edge and full height where it meets the cave wall.
   - **Getting back up:** you may jump down from the upper level, but the only way back up is one ramp, moved from near the entrance to the far side of the beetles' zone, so you find it after that fight.
-  - **Getting stuck:** Amanda got stuck on the way up to the cave. The ledge had steep spots: hard 2 m terraces, a short pad blend at the top of the cove, and a steep rise at the mountains' foot. The ledge is now soft-terraced and gentler, and the walk from the dock to the cave stays under 35°.
   - **The check:** the terrain self-check verifies all of this.
 - **Polish (later on 11-09):**
   - **Ramp:** the ramp still made the player slip, so it is now a long, even incline of about 12° (it was an S-curve, steepest in the middle at about 38°), and wider. The self-check holds it to 20°.
   - **Walls:** the barrier walls looked broken (thin sheets with gaps behind them and seams at the mouth). They are now solid blocks that run back into the hillside, and the mountains' and the cut's walls are one piece.
   - **Camp on a slope:** the camp sat on sloping ground, with some pieces floating and others sunk. The widened ease at the top of the cove had reached its pad. The camp's pad now always wins, and validation checks every camp piece stands on the ground.
-  - **Cave mouth:** looking out of the cave there was a block on one side and a wall with a hole on the other, not visible from outside. Two things caused it: the cut's walls ran 8 m into the tunnel, and the mountain wall's solid top reached out over the cut. The walls now stop at the mouth and turn into a flat face beside the opening, no top reaches over the cut, and tall props are kept out of the view in front of the mouth.
-  - **Corner right of the mouth:** a slab stuck out of the mountain wall where it turns from the cut onto the mountain foot. The wall's top had run 15 m straight back over open ledge, because the high ground there is diagonally behind the wall. Tops now reach only the nearest hillside within 8 m, in any direction behind the face, or are left off.
   - **Camp overrides (this level only):** the supplies crate and barrel are moved clear of the tent, and Eugene sits on the ground in front of his log instead of floating on top of it.
 - **Not decided, so not invented:** Crystal Caves outfits and camp styling (no `StageTheme` yet, so the crew wears its Crash Meadow look), and a departure dock and voyage route (waiting on the Fog Forest).
 
 The remaining clarifications above are unresolved questions, not permission to silently choose new progression rules.
+
+## Crystal Caves cliffs, mouth and crystals (11-09 to 11-10)
+
+Amanda's level-design changes from her reference images. See [Crystal Caves](crystal-caves.md). Through all of them the cave itself was to stay exactly as it was. Each rebuild was checked against a snapshot taken before the first change, and the cave's floors, walls and ceiling still match it.
+
+- **Sea cliffs instead of pointy mountains:**
+  - The peaks became sheer grey cliffs, about 100 m tall with flat, grassy tops.
+  - Their faces are stone slabs (`CrystalCavesTerrain.CliffBlocks`), on a single front line.
+  - Each slab steps back in two or three terraces with narrow ledges. Only the top terrace keeps the full height; the lower ledges sit at varied heights.
+  - About 1,200 pines, bushes, grass tufts and rocks grow on the ledges and the clifftop.
+  - This went through three references: smooth columns, then tall stone slabs, then terraces. Amanda asked for grey rock, so the cliffs have their own materials and the tutorial's mountains are untouched.
+- **Never climbable:**
+  - The wall at the cliffs' foot is now 18 m tall.
+  - Every slab face is vertical, and the lowest ledge is at least 20 m above the ground or shallows in front. The player reaches about 3.5 m up.
+  - The self-check now also counts water the player can wade in (down to 1.3 m deep) as walkable. It treated anything over 0.6 m deep as a barrier, which hid the low ends of the walls out in the sea.
+  - It also checks the ground in front of every wall and slab.
+- **Cave mouth:**
+  - The open cut in front of the old portal is now roofed tunnel. The cliffs stand at full height over it, and the old cut's walls are gone.
+  - The doorway is a rough, rounded rock arch about 11 m wide. It is set in a narrow plate in the cliff face, with a closed passage back into the tunnel.
+  - Amanda reported several problems with the first versions, now fixed:
+    - see-through ground at the top of the doorway;
+    - roof edge walls poking out of the face right of the mouth;
+    - a gap in the cliff over the mouth;
+    - a square hole;
+    - a flat face around the mouth that didn't match the rest of the cliff.
+- **Giant crystals:**
+  - 53 large structural crystals in two new shapes (`GiantCrystal`, `GiantCrystalWide`), in the six existing colours, varied in size, tilt and turn.
+  - Some lean against the walls; some are angled beams from the floor into the ceiling.
+  - They keep clear of the tunnel, the ramp, the cliffs and the fight zones, and they glow, with lights in the cave's budget (211 of 220).
+- **Cave layout protected:** the cave now draws its own random numbers, so reshaping the outside no longer moves its rocks or crystals.
 
 ## Crystal Chameleon (11-09)
 
 Amanda's request: the Crystal Caves fodder enemy, a chameleon with crystal scales that hides among the cave's crystals. See [Crystal Chameleon](crystal-chameleon.md).
 
 - **Camouflage:** it lies buried with only its crystals showing (the cave's own crystal meshes and materials). Hidden, it can't be shot and the ordinary scanner doesn't see it.
-- **Reveal:** the scanner's camouflage-disrupting upgrade isn't built yet, so `CrystalChameleon.Disrupt()` is the hook for it. Disrupting turns its crystals red, and it rises through the shared `BurrowEmerge`.
+- **Reveal:** the scanner's Crystal Disruptor upgrade (see [Crystal Disruptor](#crystal-disruptor-scanner-upgrade-11-12) below) calls `CrystalChameleon.Disrupt()`. Disrupting turns its crystals red, and it rises through the shared `BurrowEmerge`.
   - The burrow-emerge branch was merged in, as Amanda chose.
   - `BurrowEmerge` gained an opt-out of its proximity trigger and a public `Emerge()`.
 - **Fighting:** a ranged enemy. A telegraphed tongue lick, a straight line that walls stop. Its crystals stay red while it fights and go dark when it dies.
 - **Drops:** scrap, like the other fodder.
-- **Test scene only:** its own test scene, with instances set to **Start Revealed**. It is not placed in the level yet.
-- **Not decided, so not invented:** emerging from walls (only ground is built), and whether a hit while it is camouflaged should reveal it.
+- **Test scene only:** its own test scene. It is not placed in the level yet.
+- **Not decided, so not invented:** whether a hit while it is camouflaged should reveal it. (Walls were decided on 11-12; see below.)
+
+## Crystal Disruptor scanner upgrade (11-12)
+
+Amanda's request for the Crystal Caves scanner upgrade, sold by Eugene. See [scanner prototype](scanner-prototype.md#crystal-disruptor-upgrade) and [upgrades](upgrades.md#crystal-caves-upgrade). Her answers to the open points:
+
+- **Lore:** it jams the crystal energy of the crystals sitting on buried enemies, which turns red. Ordinary crystals are unaffected.
+- **Trigger:** the scanner has to be raised (Q) and the player near the enemy's crystal. Owning the upgrade alone isn't enough.
+- **Pointing:** with the upgrade, the scanner also beeps toward hidden enemies. Without it, they stay invisible to it. Quest signals still come first.
+- **Cost:** scrap only, a one-off buy, priced like the Mudlands one-offs (placeholder: 8 wiring, 4 circuit boards, 1 fuel cell). No mini-boss key item, because the final boss needs it.
+- **Final boss:** the cave axolotl will burrow and pose as a crystal several times in its fight, so any enemy can opt in through `IScannerDisruptable` and may re-hide. The axolotl itself is not built yet.
+- **Model:** the new scanner art doesn't exist. The in-hand scanner has an empty "Upgraded Model" slot and the Gear tab has a placeholder part. Replacement steps are in the scanner doc.
+- **Shop:** the shop only lists the current region's upgrades, so the caves scene sets its region with a `ShopRegion` component.
+
+## Wall chameleons (11-12)
+
+Amanda asked for the chameleons that hide in walls, as a separate job. See [Crystal Chameleon](crystal-chameleon.md).
+
+- **Behaviour:** a **Hide In Wall** toggle on the same prefab. It clings to a wall with only its crystals showing. When revealed it slides out of the wall, drops to the floor below, and fights there like a floor chameleon. It does not stay on the wall.
+- **Placement:** any height on the wall, chosen per chameleon in the scene, always with floor below.
+- **Test scene:** five hidden chameleons (two in walls). The player starts with the Crystal Disruptor, given by a testing component (`StartingUpgrades`), so nothing has to be bought.
+- **Still not in the level:** no chameleon is placed in the Crystal Caves yet.
+
+## Cave Axolotl (11-12)
+
+Amanda's request: the Crystal Caves stage boss, an axolotl covered in crystals like the other cave enemies. See [Cave Axolotl](cave-axolotl.md).
+
+- **Her moves:**
+  - a tail swipe with crystals;
+  - a telegraphed roll with its path shown, untouchable while rolling;
+  - a ring of back shards to jump;
+  - a hide as a crystal that only the raised Crystal Disruptor brings up. It comes up harmlessly, with a small shove.
+- **Her picks (11-12):**
+  - Core Worm-style: an entrance cutscene, four phases that change the arena, and a main part that clears the stage, built on the Shard Mole's kit;
+  - the phases: Still Pool, Crystal Bloom (spires), Cave-In (falling crystals), and Frenzy (no flood);
+  - it hides at every phase change and every 25 s from phase 2;
+  - each hide recolours its crystals to the batch it hides beside;
+  - the fight starts in its deep chamber, once all three cave mini-boss parts are in hand (Amanda, 11-14: the Geode Bear's power cell is the third) **and** the player owns the Crystal Disruptor (it never starts without it);
+  - it drops the **Flight Control Module** plus scrap;
+  - its gills are the weak spot, and a roll into a wall dazes it.
+- **Branch:** `feature/cave-axolotl`, from `feature/crystal-chameleon` with `feature/shard-mole` merged in.
+- **Test scene only:** it is not placed in the level yet.
+- **Not decided, so not invented:** its own sounds and the stage exit after it.
+
+## Shard Mole (11-11)
+
+Amanda's request: the Crystal Caves mini-boss, a blind mole with glowing crystal claws and a crystal-tipped tail that hunts by sound. It's built like the desert mini-bosses (not the beetles, at her direction). See [Shard Mole](shard-mole.md).
+
+- **Hearing:** after 3 s of player silence (standing still, laser quiet) it stops and listens until it hears them again.
+- **Her moves:** the burrow ambush (a floor marker tracks it and marks where it bursts out), the tail swoop (damage and knockback) and the claw swipe.
+- **Her picks (11-11):** three phases. Phase 2 adds the claw flurry and phase 3 the ceiling shards. It drops the **antenna array** ship part plus scrap. About 4.5 m long.
+- **Test scene only:** it is not placed in the level yet.
+- **Not decided, so not invented:** a weak spot, its own sounds, and whether crouch-walking is quieter.
+
+## Geode Bear (11-14)
+
+Amanda's request: a third Crystal Caves mini-boss, Grumble the Geode Bear, built like the Shard Mole. See [Geode Bear](geode-bear.md).
+
+- **Her picks (11-14):** it drops the **power cell**. The yawn slows and clouds the screen. It's tuned a step above Pitchclaw (1,850 HP, poise 200), since the Crystal Caves come after the Desert and before the Mudlands. The colours follow the design doc (cool grey-brown).
+- **Test scene only:** it is not placed in the level yet.
+- **Not decided, so not invented:** whether the Axolotl's gate needs a third part, and its own sounds.
+
+## Quartz Bat (11-11)
+
+Amanda's request: a small flying Crystal Caves fodder enemy, a cave bat with crystal wings and a glowing crystal in its chest. See [Quartz Bat](quartz-bat.md).
+
+- **Pattern:** it circles the player's head at a steady, predictable pace, then winds up and swoops down to bite.
+- **Damage rule:** shots only hurt it on the chest crystal; bolts glance off its wings and body. Melee hurts it anywhere, but it's only in reach while it swoops or hangs low afterwards.
+- **Drops:** scrap, like the other fodder.
+- **Test scene only:** its own test scene. It is not placed in the level yet.
+- **Health and role (11-13):** Amanda lowered it from 30 to **14 HP** and made it the Caves' swarm type, so the Caves' fodder sits between the desert's and the Mudlands' by rank (Spark Tick 8, Mudpuppy 20).
+- **Pack rules (11-13):** no flocking. Each bat circles on its own ring, and at most two can dive at once (**Max Divers**), so a pack takes turns instead of stacking.
+- **Not decided, so not invented:** sounds, and whether bats roost on the ceiling before they notice the player (they hover in place for now).
 
 ## Chief Toad decisions (10-23-26)
 
@@ -505,6 +603,28 @@ Amanda's request: the Crystal Caves mini-boss is four beetles who want to be a b
   - No per-beetle phase 2. The band gets angrier as members fall: faster, with more frequent box-ins and a shorter warning.
 - **Shared code:** `DesertMiniBoss` gained opt-outs of phase 2 (`HasPhaseTwo`) and of the boss bar (`ShowsBossBar`), and a protected `Engage()`. The defeat banner no longer mentions a part when there is none.
 - **Test scene only:** it is not placed in the level yet.
+
+### Rework to match the other mini-bosses (11-11)
+
+Amanda asked for the beetles to work like the game's other mini-bosses (the desert duel bosses and the Shard Mole). Her choices replace these 11-09 points: no boss bars, no phases, scrap only, and the code-built model. See [The Beetles](cave-beetles.md).
+
+- **Still a band of four, with the box-in:** one shared top boss bar, "The Beetles", shows their combined health, with phase notches.
+- **Three phases on the band's combined health:** Rehearsal (100–66%), Performance (66–33%) and Encore (33–0%). Each starts with all four roaring and a banner. The band still speeds up as members fall.
+- **New moves:** the drum stomp from phase 2 (a crystal shockwave to jump), and the stage dive from phase 3 (a shadow follows you, then it belly-flops on you).
+- **Weak spot:** the belly, while a beetle is flipped on its back. A box-in crash (replacing the old daze) or a missed stage dive flips it.
+- **Ship part:** the last beetle standing drops the **signal amplifier**, plus scrap as before.
+- **Model:** rebuilt in Blender with a rig and clips, on `DuelBoss`, like the Shard Mole. The look is unchanged.
+- **Numbers to the shared boss rules:** head-butt 15, box-in 30, stomp and shockwave 25, dive 28.
+- **Follow-up (11-12, Amanda):**
+  - The box-in is an even cross round the player. Its places are no longer pulled in by the zone edge, which bunched beetles together.
+  - The fight should last as long as the other mini-bosses.
+  - Crashes do no damage: they only flip the beetles, so all damage comes from the player.
+  - The hard shell ignores laser swings and fists, takes 25% of a jump smash, and full damage from charged bolts. Flipped, everything gets through, and the belly takes 2.5x.
+  - Health is 400 each (1,600 for the band).
+  - One belly hit per flip: the first hit does 2.5x, then the beetle rolls straight back over.
+  - **Loot:** only the last beetle drops anything: one 12-scrap pile and the signal amplifier, like the Mudlands mini-bosses' loot piles. The desert duel bosses drop no scrap, and the Chief Toad drops 14.
+- **Shared code (11-12):** `JumpSmash.IsLanding` is true while the smash's blast deals damage. `DuelBoss.RoarShove` sets the roar's push (only the nearest beetle pushes, 3 m).
+- **Shared code:** `DuelBoss` gained opt-in hooks (`PhaseHealth`, `RequestPhase`, `BannerName`, `TempoBonus`). `MiniBossHud` takes any `IBossBar`, so a group can share one bar. `DesertDuelBossBuilder.WeakSpot` is now `internal`.
 
 ## Final level and boss (planning 11-06 and 11-09; first slice 11-09)
 

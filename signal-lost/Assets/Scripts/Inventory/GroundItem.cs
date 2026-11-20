@@ -19,9 +19,10 @@ namespace SignalLost.Inventory
 
         /// <summary>
         /// Puts <paramref name="model"/> in a new pivot under <paramref name="parent"/>: upright, its middle on the pivot
-        /// and scaled so its longest side is <see cref="Size"/>. Returns the pivot, which the caller moves and spins.
+        /// and scaled so its longest side is <paramref name="size"/> (<see cref="Size"/> unless given). Returns the pivot, which
+        /// the caller moves and spins.
         /// </summary>
-        public static Transform Wrap(Transform model, Transform parent, string name = "Floating Display")
+        public static Transform Wrap(Transform model, Transform parent, string name = "Floating Display", float size = Size)
         {
             var pivot = new GameObject(name).transform;
             pivot.SetParent(parent, false);
@@ -32,7 +33,7 @@ namespace SignalLost.Inventory
 
             Bounds bounds = VisibleBounds(model);
             float longest = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
-            if (longest > 0.0001f) model.localScale *= Size / longest;
+            if (longest > 0.0001f) model.localScale *= size / longest;
             bounds = VisibleBounds(model);
             model.position += pivot.position - bounds.center;
             return pivot;

@@ -64,14 +64,14 @@ namespace SignalLost.World
         {
             get
             {
-                if (dock == null || dock.DockRole != IslandDock.Role.Departure) return "";
+                if (dock == null || !dock.Departs) return "";
                 if (!dock.IsOpen) return "Boat (not ready to sail)";
                 return "Sail to " + dock.DestinationName;
             }
         }
 
         public bool CanInteract(PlayerInteractor player) =>
-            dock != null && dock.DockRole == IslandDock.Role.Departure && !Sailing && !IslandVoyage.InProgress;
+            dock != null && dock.Departs && !Sailing && !IslandVoyage.InProgress;
 
         public bool Interact(PlayerInteractor player)
         {

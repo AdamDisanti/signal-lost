@@ -25,7 +25,7 @@ namespace SignalLost.Progression
             public string Id, Scene, Name, Unlocks, MainPart;
             public (string part, string stage)[] Parts;
             public string[] Trophies;
-            /// <summary>Stands to prefer for the trophies (the desert's Chop Shop rack is stands 4-6).</summary>
+            /// <summary>Stands to prefer for the trophies (the tutorial's is stand 0, the desert's are 1-4).</summary>
             public int[] Stands;
         }
 
@@ -41,7 +41,7 @@ namespace SignalLost.Progression
             {
                 Id = StageProgress.Desert, Scene = "DesertDunes", Name = "the Desert Dunes", Unlocks = "NextStage", MainPart = "Engine Core",
                 Parts = new[] { ("Wing panels", StageProgress.Desert), ("Rocket thruster", StageProgress.Desert), ("Fuel tank", StageProgress.Desert) },
-                Trophies = new[] { "old_buzzard_feathers", "burnout_thorns", "sludge_stinger", "core_worm_fang" }, Stands = new[] { 3, 4, 5, 1 }
+                Trophies = new[] { "old_buzzard_feathers", "burnout_thorns", "sludge_stinger", "core_worm_fang" }, Stands = new[] { 1, 2, 3, 4 }
             },
             // The finale stays last; the islands in between (Mudlands, Fog Forest, Crystal Caves) go above it once
             // their order is decided (Adam, 11-09).
@@ -126,7 +126,7 @@ namespace SignalLost.Progression
             }
         }
 
-        // On its own stand if that's free, otherwise the first free one of the six.
+        // On its own stand if that's free, otherwise the first free one of the ten in the trophy's level.
         private static void PlaceTrophy(string id, int preferred)
         {
             if (CampSave.IsPlaced(id)) return;
@@ -135,8 +135,8 @@ namespace SignalLost.Progression
                 CampSave.Place(id, preferred);
                 return;
             }
-            for (int stand = 0; stand < 6; stand++)
-                if (CampSave.TrophyOn(stand) == null)
+            for (int stand = 0; stand < 10; stand++)
+                if (CampSave.TrophyOn(stand) == null && CampSave.LevelOfStand(stand) == Trophy.Find(id)?.Level)
                 {
                     CampSave.Place(id, stand);
                     return;

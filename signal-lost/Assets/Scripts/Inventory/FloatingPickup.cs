@@ -13,6 +13,8 @@ namespace SignalLost.Inventory
     {
         [Tooltip("The model to float. Empty: every child with something visible in it.")]
         [SerializeField] private Transform model;
+        [Tooltip("Longest side of the floating model, in metres. 0: the shared collectable size.")]
+        [SerializeField, Min(0f)] private float size;
 
         private Transform pivot;
         private Vector3 rest;
@@ -32,14 +34,15 @@ namespace SignalLost.Inventory
             foreach (Collider own in GetComponents<Collider>()) own.enabled = false;
             foreach (Collider own in shown.GetComponentsInChildren<Collider>()) own.enabled = false;
 
-            pivot = GroundItem.Wrap(shown, transform);
+            float longest = size > 0f ? size : GroundItem.Size;
+            pivot = GroundItem.Wrap(shown, transform, "Floating Display", longest);
             Vector3 ground = GroundItem.GroundBelow(transform.position, transform);
             rest = ground + Vector3.up * GroundItem.HoverHeight(ground, transform);
             pivot.position = rest;
 
             // What the interaction ray hits: a little bigger than the model, so it is easy to aim at.
             var box = pivot.gameObject.AddComponent<BoxCollider>();
-            box.size = Vector3.one * GroundItem.Size * 1.25f;
+            box.size = Vector3.one * longest * 1.25f;
             foreach (CharacterController walker in FindObjectsByType<CharacterController>())
                 Physics.IgnoreCollision(box, walker, true);
         }

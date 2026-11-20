@@ -12,6 +12,12 @@ namespace SignalLost.Scanner
         [SerializeField, Min(0f)] private float targetReachedDistance = 2.5f;
         [SerializeField, Min(0f)] private float levelRangeOverride;
 
+        [Header("Crystal Disruptor upgrade")]
+        [Tooltip("The scanner model shown without the upgrade (under the visual root). Leave empty to never swap.")]
+        [SerializeField] private GameObject standardModel;
+        [Tooltip("The upgraded scanner model, shown once the upgrade is owned. Leave empty to keep the standard model.")]
+        [SerializeField] private GameObject upgradedModel;
+
         [Header("Runtime")]
         [SerializeField] private TrackableTarget currentTarget;
         [SerializeField, Range(0f, 1f)] private float signalStrength01;
@@ -29,6 +35,24 @@ namespace SignalLost.Scanner
         /// <summary>Extra critter range from upgrades (Long-Nose Antenna).</summary>
         public float RangeBonus { get; set; }
 
+        /// <summary>Crystal Disruptor owned: disguised enemies show up, and get revealed when the raised scanner is near.</summary>
+        public bool DisruptsCamouflage
+        {
+            get => disruptsCamouflage;
+            set
+            {
+                disruptsCamouflage = value;
+                if (upgradedModel == null) return;
+                upgradedModel.SetActive(value);
+                if (standardModel != null) standardModel.SetActive(!value);
+            }
+        }
+        private bool disruptsCamouflage;
+
+        /// <summary>No signals at all while set (raised, it stays silent with an empty bar). The Crystal Caves story sets it
+        /// until the first talk with Cavendish.</summary>
+        public bool Silenced { get; set; }
+
         public event Action<TrackableTarget> OnTargetReached;
 
         public void Awake()
@@ -42,7 +66,7 @@ namespace SignalLost.Scanner
 
         private void Update()
         {
-            if (!scannerToggle.IsRaised)
+            if (!scannerToggle.IsRaised || Silenced)
             {
                 SetCurrentTarget(null);
                 signalStrength01 = 0f;
@@ -53,6 +77,7 @@ namespace SignalLost.Scanner
             if (Time.time >= nextScanTime)
             {
                 nextScanTime = Time.time + config.UpdateInterval;
+                if (disruptsCamouflage) DisruptNearby();
                 ScanForNearestTarget();
             }
 
@@ -64,13 +89,32 @@ namespace SignalLost.Scanner
             Health health = enemy.GetComponentInParent<Health>();
             return health != null && health.IsDead;
         }
+
+        private static IScannerDisruptable Disguised(EnemySignalSource enemy)
+        {
+            IScannerDisruptable hider = enemy.GetComponentInParent<IScannerDisruptable>();
+            return hider != null && hider.IsDisguised ? hider : null;
+        }
+
+        // Every disguised enemy whose fake crystal is within its reveal radius of the raised scanner drops the act.
+        private void DisruptNearby()
+        {
+            foreach (EnemySignalSource candidate in FindObjectsByType<EnemySignalSource>())
+            {
+                IScannerDisruptable hider = Disguised(candidate);
+                if (hider != null && candidate.IsActive && !IsDefeated(candidate) &&
+                    (hider.DisguisePosition - scanOrigin.position).sqrMagnitude <= hider.RevealRadius * hider.RevealRadius)
+                    hider.Disrupt();
+            }
+        }
         private void ScanForNearestTarget()
         {
             // Quest objectives outrank creatures and are tracked at any distance (meeting notes 2026-10-20).
             QuestSignalSource quest = QuestSignalSource.Nearest(scanOrigin.position);
             if (quest != null)
             {
-                SetCurrentTarget(quest);
+                // Except a hidden route chameleon close by, once the Crystal Disruptor is owned (no tell: same beeps).
+                SetCurrentTarget(disruptsCamouflage ? (TrackableTarget)NearestQuestOverride() ?? quest : quest);
                 return;
             }
 
@@ -80,7 +124,7 @@ namespace SignalLost.Scanner
 
             foreach (EnemySignalSource candidate in FindObjectsByType<EnemySignalSource>())
             {
-                if (!candidate.IsActive || IsDefeated(candidate))
+                if (!candidate.IsActive || IsDefeated(candidate) || (!disruptsCamouflage && Disguised(candidate) != null))
                 {
                     continue;
                 }
@@ -105,6 +149,24 @@ namespace SignalLost.Scanner
             }
 
             SetCurrentTarget(bestTarget);
+        }
+
+        private EnemySignalSource NearestQuestOverride()
+        {
+            EnemySignalSource best = null;
+            float bestSquared = float.MaxValue;
+            foreach (EnemySignalSource candidate in FindObjectsByType<EnemySignalSource>())
+            {
+                IScannerDisruptable hider = Disguised(candidate);
+                if (hider == null || hider.QuestOverrideRadius <= 0f || !candidate.IsActive || IsDefeated(candidate)) continue;
+                float squared = (hider.DisguisePosition - scanOrigin.position).sqrMagnitude;
+                if (squared <= hider.QuestOverrideRadius * hider.QuestOverrideRadius && squared < bestSquared)
+                {
+                    bestSquared = squared;
+                    best = candidate;
+                }
+            }
+            return best;
         }
 
         private void UpdateSignal()

@@ -9,8 +9,8 @@ namespace SignalLost.Editor
 {
     /// <summary>
     /// Builds the base camp as one prefab (meeting notes 10-23: the same camp appears in every level): Cavendish's
-    /// fire pit and campfire, the tent, two log seats, his supplies, and a row of three trophy stands by the tent where
-    /// beaten bosses' trophies go (<see cref="TrophyStand"/>, remembered by <see cref="CampSave"/>). Also builds the
+    /// fire pit and campfire, the tent, two log seats, his supplies, and the tutorial's trophy stand (later levels' camps
+    /// add their own, <see cref="AddStands"/>) where beaten bosses' trophies go (<see cref="TrophyStand"/>, remembered by <see cref="CampSave"/>). Also builds the
     /// trophy models into Resources (the Chief Toad's crown, copied from his prefab). The camp's origin is the fire,
     /// +Z north. Menu: Signal Lost > Camp > Build Base Camp.
     /// </summary>
@@ -21,10 +21,94 @@ namespace SignalLost.Editor
         private const string ChiefToadPath = "Assets/Prefabs/Enemies/Meadow/ChiefToad.prefab";
         private const string MeadowMaterials = MeadowAssetBuilder.Folder + "/Materials/";
 
-        /// <summary>Where the trophy stands are, relative to the fire (x east, y north).</summary>
-        public static readonly Vector2[] StandSpots = { new Vector2(1.2f, 5.6f), new Vector2(2.9f, 5.1f), new Vector2(4.4f, 4.1f) };
-
         private enum Mat { Wood, Dark, Brass }
+
+        /// <summary>Each level's trophy stands, in the order the islands are sailed.</summary>
+        public enum StandSet { Tutorial, Desert, Caves, Mudlands }
+
+        // The stands ring the fire 7 m out: each level's grouped 11 degrees apart, with wide gaps between levels, so the
+        // order they were earned reads round the ring. Degrees from east, counter-clockwise (90 = north). Kept clear of the
+        // tent (~125), the caves' cave-mouth path (~150) and dock path (~210), and the desert's dock (south).
+        private const float StandRadius = 7f;
+        private static readonly float[][] StandAngles =
+        {
+            new[] { 75f },                // tutorial: north
+            new[] { -11f, 0f, 11f, 22f }, // desert: east
+            new[] { 285f, 296f, 307f, 318f }, // crystal caves: south-east
+            new[] { 250f },               // mudlands: south-south-west, next round after the caves'
+        };
+        private static readonly string[] StandGroupNames = { "Trophy Stands", RackName, "Crystal Caves Rack", "Mudlands Stand" };
+        private const string MudStandFolder = "Assets/Prefabs/Core/MudlandsStand";
+
+        public static string StandGroupName(StandSet set) => StandGroupNames[(int)set];
+        public static int StandCount(StandSet set) => StandAngles[(int)set].Length;
+
+        /// <summary>The save slot of a level's first stand: slots carry on from the levels before.</summary>
+        public static int FirstStandIndex(StandSet set)
+        {
+            int first = 0;
+            for (int i = 0; i < (int)set; i++) first += StandAngles[i].Length;
+            return first;
+        }
+
+        /// <summary>
+        /// Adds one level's trophy stands to a camp, in that level's style (wooden, driftwood, cave rock and crystal, bog
+        /// planks and rust), facing the fire. A level's camp adds every earlier level's set too, each in its own style.
+        /// </summary>
+        public static Transform AddStands(Transform camp, StandSet set)
+        {
+            Mesh stand = StandMesh(out Material[] materials);
+            for (int i = 0; i < materials.Length; i++) materials[i] = StandMaterial(set, FlatMeshKit<Mat>.MaterialOf(stand, i), materials[i]);
+            var group = new GameObject(StandGroupName(set)).transform;
+            group.SetParent(camp, false);
+            float[] angles = StandAngles[(int)set];
+            for (int i = 0; i < angles.Length; i++)
+            {
+                int index = FirstStandIndex(set) + i;
+                var at = new Vector3(Mathf.Cos(angles[i] * Mathf.Deg2Rad), 0f, Mathf.Sin(angles[i] * Mathf.Deg2Rad)) * StandRadius;
+                var spot = new GameObject("Trophy Stand " + (index + 1));
+                spot.transform.SetParent(group, false);
+                spot.transform.localPosition = at;
+                spot.transform.localRotation = Quaternion.LookRotation(-at); // facing the fire
+                spot.AddComponent<MeshFilter>().sharedMesh = stand;
+                spot.AddComponent<MeshRenderer>().sharedMaterials = materials;
+                var box = spot.AddComponent<BoxCollider>();
+                box.center = new Vector3(0f, 0.55f, 0f);
+                box.size = new Vector3(0.8f, 1.1f, 0.8f);
+                var mount = new GameObject("Mount").transform;
+                mount.SetParent(spot.transform, false);
+                mount.localPosition = new Vector3(0f, 1.02f, 0f);
+                var trophyStand = new SerializedObject(spot.AddComponent<TrophyStand>());
+                trophyStand.FindProperty("index").intValue = index;
+                trophyStand.FindProperty("mount").objectReferenceValue = mount;
+                trophyStand.ApplyModifiedPropertiesWithoutUndo();
+                spot.AddComponent<QuestSignalSource>().enabled = false;
+            }
+            return group;
+        }
+
+        private static Material StandMaterial(StandSet set, Mat part, Material wooden)
+        {
+            switch (set)
+            {
+                case StandSet.Desert: // sun-bleached driftwood, the brass plate kept
+                    return part == Mat.Wood ? DesertMaterial("DesertCampDriftwood", new Color(0.8f, 0.72f, 0.6f))
+                        : part == Mat.Dark ? DesertMaterial("DesertCampDriftwoodDark", new Color(0.56f, 0.46f, 0.36f)) : wooden;
+                case StandSet.Caves: // dark cave rock with a glowing cyan crystal inset, the brass plate kept
+                    if (part == Mat.Brass) return wooden;
+                    string path = CrystalAssetBuilder.MaterialFolder + (part == Mat.Wood ? "/RockCaveDark.mat" : "/CrystalCyan.mat");
+                    var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+                    if (material == null) throw new InvalidOperationException("Missing " + path + " (build the Crystal Caves assets first).");
+                    return material;
+                case StandSet.Mudlands: // dark bog planks, a wet mud inset and a rusty plate
+                    EnsureFolder(MudStandFolder + "/Materials");
+                    return part == Mat.Wood ? DesertMaterial("MudStandPlank", SignalLost.Mudlands.MudPalette.DarkWood, 0.08f, MudStandFolder)
+                        : part == Mat.Dark ? DesertMaterial("MudStandMud", SignalLost.Mudlands.MudPalette.WetMud, 0.5f, MudStandFolder)
+                        : DesertMaterial("MudStandRust", SignalLost.Mudlands.MudPalette.Rust, 0.2f, MudStandFolder);
+                default:
+                    return wooden;
+            }
+        }
 
         [MenuItem("Signal Lost/Camp/Build Base Camp")]
         public static void Build()
@@ -40,29 +124,7 @@ namespace SignalLost.Editor
             Place(CrashSiteWreckBuilder.DebrisPath("Crate"), root.transform, new Vector3(-2.5f, 0f, 4.6f), 25f, 0.8f).name = "Cavendish's Supplies";
             Place(CrashSiteWreckBuilder.DebrisPath("Barrel"), root.transform, new Vector3(-1.2f, 0f, 5.2f), 0f, 0.8f);
 
-            Mesh stand = StandMesh(out Material[] materials);
-            var shelf = new GameObject("Trophy Stands").transform;
-            shelf.SetParent(root.transform, false);
-            for (int i = 0; i < StandSpots.Length; i++)
-            {
-                var spot = new GameObject("Trophy Stand " + (i + 1));
-                spot.transform.SetParent(shelf, false);
-                spot.transform.localPosition = new Vector3(StandSpots[i].x, 0f, StandSpots[i].y);
-                spot.transform.localRotation = Quaternion.LookRotation(-new Vector3(StandSpots[i].x, 0f, StandSpots[i].y)); // facing the fire
-                spot.AddComponent<MeshFilter>().sharedMesh = stand;
-                spot.AddComponent<MeshRenderer>().sharedMaterials = materials;
-                var box = spot.AddComponent<BoxCollider>();
-                box.center = new Vector3(0f, 0.55f, 0f);
-                box.size = new Vector3(0.8f, 1.1f, 0.8f);
-                var mount = new GameObject("Mount").transform;
-                mount.SetParent(spot.transform, false);
-                mount.localPosition = new Vector3(0f, 1.02f, 0f);
-                var trophyStand = new SerializedObject(spot.AddComponent<TrophyStand>());
-                trophyStand.FindProperty("index").intValue = i;
-                trophyStand.FindProperty("mount").objectReferenceValue = mount;
-                trophyStand.ApplyModifiedPropertiesWithoutUndo();
-                spot.AddComponent<QuestSignalSource>().enabled = false;
-            }
+            AddStands(root.transform, StandSet.Tutorial); // later levels' camps add their own sets
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             UnityEngine.Object.DestroyImmediate(root);
             AssetDatabase.SaveAssets();
@@ -74,14 +136,12 @@ namespace SignalLost.Editor
         public const string DesertPrefabPath = "Assets/Prefabs/Core/DesertCamp.prefab";
         private const string DesertFolder = "Assets/Prefabs/Core/DesertCamp";
         public const string RackName = "Chop Shop Rack";
-        /// <summary>The desert camp's extra rack for the Chop Shop's trophies, relative to the fire (x east, y north).</summary>
-        public static readonly Vector2[] RackSpots = { new Vector2(6.3f, -2.1f), new Vector2(7.0f, -0.4f), new Vector2(7.2f, 1.4f) };
 
         private enum DesertPart { Driftwood, DriftwoodDark, Canvas, Indigo, Terracotta, Clay, Rope }
 
         /// <summary>
-        /// The base camp as it is pitched on the Desert Dunes (11-08): the same fire, tent, two logs, supplies and three
-        /// trophy stands in the same places, restyled for the desert. Sandstone ring round the fire, sun-bleached
+        /// The base camp as it is pitched on the Desert Dunes (11-08): the same fire, tent, two logs and supplies in the
+        /// same places, restyled for the desert, with the tutorial's wooden stand and the desert's four driftwood ones. Sandstone ring round the fire, sun-bleached
         /// driftwood logs and stands, a terracotta and indigo tent. It adds a canvas sun shade over Cavendish's log, a
         /// woven rug and clay water jars. Carries an <see cref="SignalLost.World.IslandCamp"/>, which packs it away when
         /// the crew arrives by boat and puts it up again piece by piece; the scene installer links Cavendish and Eugene.
@@ -125,58 +185,13 @@ namespace SignalLost.Editor
             jarBox.center = new Vector3(0.2f, 0.35f, 0f);
             jarBox.size = new Vector3(1.1f, 0.7f, 0.6f);
 
-            Mesh stand = StandMesh(out Material[] standMaterials);
-            for (int i = 0; i < standMaterials.Length; i++)
-                if (standMaterials[i] != null && remap.TryGetValue(standMaterials[i].name, out Material desert)) standMaterials[i] = desert;
-            var shelf = new GameObject("Trophy Stands").transform;
-            shelf.SetParent(root.transform, false);
-            for (int i = 0; i < StandSpots.Length; i++)
-            {
-                var spot = new GameObject("Trophy Stand " + (i + 1));
-                spot.transform.SetParent(shelf, false);
-                spot.transform.localPosition = new Vector3(StandSpots[i].x, 0f, StandSpots[i].y);
-                spot.transform.localRotation = Quaternion.LookRotation(-new Vector3(StandSpots[i].x, 0f, StandSpots[i].y));
-                spot.AddComponent<MeshFilter>().sharedMesh = stand;
-                spot.AddComponent<MeshRenderer>().sharedMaterials = standMaterials;
-                var box = spot.AddComponent<BoxCollider>();
-                box.center = new Vector3(0f, 0.55f, 0f);
-                box.size = new Vector3(0.8f, 1.1f, 0.8f);
-                var mount = new GameObject("Mount").transform;
-                mount.SetParent(spot.transform, false);
-                mount.localPosition = new Vector3(0f, 1.02f, 0f);
-                var trophyStand = new SerializedObject(spot.AddComponent<TrophyStand>());
-                trophyStand.FindProperty("index").intValue = i;
-                trophyStand.FindProperty("mount").objectReferenceValue = mount;
-                trophyStand.ApplyModifiedPropertiesWithoutUndo();
-                spot.AddComponent<QuestSignalSource>().enabled = false;
-            }
-
-            // The Chop Shop rack (11-08): three more stands east of the fire for the desert mini-bosses' trophies, under a
-            // driftwood sign. They are stands 4-6 (the camp save remembers them like the first three).
-            var rack = new GameObject(RackName).transform;
-            rack.SetParent(root.transform, false);
-            for (int i = 0; i < RackSpots.Length; i++)
-            {
-                var spot = new GameObject("Rack Stand " + (i + 1));
-                spot.transform.SetParent(rack, false);
-                spot.transform.localPosition = new Vector3(RackSpots[i].x, 0f, RackSpots[i].y);
-                spot.transform.localRotation = Quaternion.LookRotation(-new Vector3(RackSpots[i].x, 0f, RackSpots[i].y));
-                spot.AddComponent<MeshFilter>().sharedMesh = stand;
-                spot.AddComponent<MeshRenderer>().sharedMaterials = standMaterials;
-                var box = spot.AddComponent<BoxCollider>();
-                box.center = new Vector3(0f, 0.55f, 0f);
-                box.size = new Vector3(0.8f, 1.1f, 0.8f);
-                var mount = new GameObject("Mount").transform;
-                mount.SetParent(spot.transform, false);
-                mount.localPosition = new Vector3(0f, 1.02f, 0f);
-                var trophyStand = new SerializedObject(spot.AddComponent<TrophyStand>());
-                trophyStand.FindProperty("index").intValue = StandSpots.Length + i;
-                trophyStand.FindProperty("mount").objectReferenceValue = mount;
-                trophyStand.ApplyModifiedPropertiesWithoutUndo();
-                spot.AddComponent<QuestSignalSource>().enabled = false;
-            }
-            Transform sign = DesertProp(rack, "Rack Sign", RackSignKit(), new Vector3(8.2f, 0f, -0.3f));
-            sign.localRotation = Quaternion.LookRotation(new Vector3(-8.2f, 0f, 0.3f));
+            // The tutorial's wooden stand, and the desert's four driftwood ones east of the fire (the Chop Shop's three
+            // and the Core Worm's) under a driftwood sign.
+            Transform shelf = AddStands(root.transform, StandSet.Tutorial);
+            Transform rack = AddStands(root.transform, StandSet.Desert);
+            var signAt = new Vector3(8.36f, 0f, 0.8f); // behind the middle of the desert's stands
+            Transform sign = DesertProp(rack, "Rack Sign", RackSignKit(), signAt);
+            sign.localRotation = Quaternion.LookRotation(-signAt);
 
             // Where Cavendish and Eugene sit (the log tops, facing the fire) and stand while pitching camp.
             Transform Mark(string name, Vector3 at)
@@ -316,9 +331,9 @@ namespace SignalLost.Editor
             return prop.transform;
         }
 
-        private static Material DesertMaterial(string name, Color color, float smoothness = 0.08f)
+        private static Material DesertMaterial(string name, Color color, float smoothness = 0.08f, string folder = DesertFolder)
         {
-            string path = DesertFolder + "/Materials/" + name + ".mat";
+            string path = folder + "/Materials/" + name + ".mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (material == null)
             {
