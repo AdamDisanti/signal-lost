@@ -895,7 +895,7 @@ namespace SignalLost.Editor
             IslandDock dock = EnemyTestBuilder.All<IslandDock>().SingleOrDefault();
             EnemyTestBuilder.Require(dock != null && dock.DockRole == IslandDock.Role.Arrival && dock.Boat != null, "Expected one arrival dock with its boat.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<CaveLighting>() == 1, "Expected one CaveLighting.");
-            EnemyTestBuilder.Require(EnemyTestBuilder.Count<TrophyStand>() == 8, "Expected the tutorial's stand, the desert's four and the caves' three.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<TrophyStand>() == 9, "Expected the tutorial's stand, the desert's four and the caves' four.");
             IslandCamp camp = EnemyTestBuilder.All<IslandCamp>().SingleOrDefault();
             EnemyTestBuilder.Require(camp != null && camp.Cavendish != null && camp.Merchant != null && camp.CavendishSeat != null && camp.MerchantSeat != null,
                 "Expected Cavendish's camp with Cavendish, Eugene and their seats.");

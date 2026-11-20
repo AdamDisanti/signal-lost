@@ -38,7 +38,7 @@ Menu **Signal Lost > Crystal Caves Enemies > Cave Axolotl**:
 1. **Waiting:** the axolotl sleeps under a crystal in the middle of its chamber, switched off.
 2. **The entrance:** walk within 6 m of the lair (the chamber's mouth) with all three cave mini-boss parts (the Shard Mole's antenna array, the Beetles' signal amplifier and the Geode Bear's power cell) and the **Crystal Disruptor** scanner upgrade. Without the parts, a message tells you to find them first. Without the upgrade, a message says one of the crystals is alive and that Eugene sells the Crystal Disruptor. Amanda's call (11-12): the fight never starts without the upgrade, since you couldn't find the axolotl once it hides. The cutscene uses the shared `BossEntrance` from the Mudlands bosses (letterbox, HUD hidden, the player frozen and safe, **Space** skips). The cave rumbles and the crystal sheds dust as the camera creeps in ("One of the crystals is moving..."). It bursts out of its crystal and roars, and the name card shows: **THE CAVE AXOLOTL**, "It's guarding the ship's Flight Control Module".
 3. **Retry:** if you die, or run more than twice the arena radius away, it resets (full health, phase 1) and sinks back under its crystal. Walk in again to replay the entrance.
-4. **Defeat:** it drops the **Flight Control Module** as a floating pickup, plus scrap. Picking the module up records it as a main ship part and clears the Crystal Caves stage (`CrystalCaves`). The next stage isn't built yet.
+4. **Defeat:** it drops the **Flight Control Module** as a floating pickup, plus scrap. In the level, the caves story also drops its trophy, the **Cave Axolotl Gill Frond** (see below). Picking the module up records it as a main ship part and clears the Crystal Caves stage (`CrystalCaves`). The next stage isn't built yet.
 
 ## How it fights
 
@@ -86,6 +86,7 @@ The crystals glow brighter each phase. Each phase change shows a banner, and the
 ### Drops
 
 - The **Flight Control Module**, a main ship part. It rides hidden inside the boss until it drops.
+- In the level only: the **Cave Axolotl Gill Frond** trophy (`cave_axolotl_gill`), dropped by `CavesStory` like the mini-bosses' trophies. A coral gill stalk with its fringe on a scrap of skin, ringed by one crystal in each of the cave's six colours, on a cave rock. It goes on the caves' fourth stand. The boat only sails once it is on the rack and Cavendish has wrapped up (`CavesStory.HomeStage`).
 - Scrap, more than the cave mini-bosses give: 5–8 scrap metal, 2–3 wiring and 2–3 circuit boards.
 
 ## How it's built

@@ -57,9 +57,10 @@ namespace SignalLost.Progression
             return true;
         }
 
-        // The first boss trophy in the pockets that is not already on display.
-        private static Trophy Carried(PlayerInventory inventory) =>
-            inventory == null ? null : inventory.KeyItems.Select(Trophy.Find).FirstOrDefault(t => t != null && !CampSave.IsPlaced(t.Id));
+        // The first boss trophy in the pockets that is not already on display and belongs to this stand's level.
+        private Trophy Carried(PlayerInventory inventory) =>
+            inventory == null ? null : inventory.KeyItems.Select(Trophy.Find)
+                .FirstOrDefault(t => t != null && t.Level == CampSave.LevelOfStand(index) && !CampSave.IsPlaced(t.Id));
 
         private void Refresh()
         {

@@ -19,13 +19,19 @@ namespace SignalLost.Story
     /// <item>The trophy goes on the caves' rack at camp; then a talk with Cavendish hands him the part, which he keeps.
     /// Only parts handed to him count toward the Axolotl's gate (<see cref="AxolotlLair.PartCount"/>).</item>
     /// <item>With all three handed in and the Crystal Disruptor owned, the deep chamber's <see cref="AxolotlLair"/> lets
-    /// the fight start. The Axolotl drops the Flight Control Module.</item>
-    /// <item>The player walks back to camp; Cavendish wraps up and the boat at the dock can depart.</item>
+    /// the fight start. The Axolotl drops the Flight Control Module and its trophy, a gill frond.</item>
+    /// <item>The player walks back to camp and sets the gill frond on the rack; then Cavendish wraps up and the boat at
+    /// the dock can depart (<see cref="HomeStage"/>).</item>
     /// </list>
     /// Progress is for the current Play session only, apart from the trophies, which the camp remembers.
     /// </summary>
     public sealed class CavesStory : MonoBehaviour, INpcStory
     {
+        /// <summary>The Cave Axolotl's trophy (dropped by this story, like the mini-bosses').</summary>
+        public const string AxolotlTrophyId = "cave_axolotl_gill";
+        /// <summary>Cleared once Cavendish wraps up (the axolotl's trophy is on the rack): the dock's boat sails after it.</summary>
+        public const string HomeStage = "CrystalCavesHome";
+
         public enum Stage { Welcome, Tasks, Hunt, Fight, Loot, Report, Finale, FinaleFight, FinaleLoot, Homecoming, Done }
 
         /// <summary>One of Cavendish's jobs: three tasks, then a mini-boss (the Beetles are four).</summary>
@@ -56,7 +62,7 @@ namespace SignalLost.Story
 
         [Header("Jobs")]
         [SerializeField] private Job[] jobs = Array.Empty<Job>();
-        [Tooltip("The caves' three trophy stands at camp (the scanner points here while a trophy is carried).")]
+        [Tooltip("The caves' trophy stands at camp (the scanner points here while a trophy is carried).")]
         [SerializeField] private TrophyStand[] rack = Array.Empty<TrophyStand>();
 
         [Header("Finale")]
@@ -113,6 +119,7 @@ namespace SignalLost.Story
         private int job;
         private int partsHandedIn;
         private bool trophyPlaced, partRecovered;
+        private bool moduleTaken;
         private int partsAtStart;
         private int nextReminder;
         private bool hadDisruptor;
@@ -125,6 +132,9 @@ namespace SignalLost.Story
 
         private Job CurrentJob => job < jobs.Length ? jobs[job] : null;
         private bool HasDisruptor => scanner != null && scanner.DisruptsCamouflage;
+        // Read from the camp and inventory, so it holds whichever order the loot is picked up and placed in.
+        private static bool GillHome => CampSave.IsPlaced(AxolotlTrophyId);
+        private static bool GillCarried => PlayerInventory.Current != null && PlayerInventory.Current.HasKeyItem(AxolotlTrophyId);
 
         private void Awake()
         {
@@ -232,10 +242,14 @@ namespace SignalLost.Story
                         ? new[] { "The chamber's right at the back of the cave. Go for the gills.", "If a crystal looks at you funny, raise your scanner." }
                         : new[] { "Eugene sells the Crystal Disruptor. Without it, that axolotl is just another crystal.", "Scrap for Eugene, Disruptor for you, axolotl for nobody." });
                 case Stage.FinaleLoot:
-                    return Remind(bubble, new[] { "You beat it? Then where's the module? Go and fetch it!" });
-                case Stage.Homecoming:
+                    return Remind(bubble, new[] { moduleTaken
+                        ? "The module, lovely! But didn't it leave anything for the rack? Go and look."
+                        : "You beat it? Then where's the module? Go and fetch it!" });
+                case Stage.Homecoming when GillHome:
                     Converse(HomeTitle, WrapUp, EnterDone);
                     return true;
+                case Stage.Homecoming:
+                    return Remind(bubble, new[] { "Is that a gill? Goodness. Put it on the rack by the fire first, then we'll talk." });
                 default:
                     return false; // his own small talk
             }
@@ -316,7 +330,7 @@ namespace SignalLost.Story
         {
             if (boss is CaveAxolotl)
             {
-                if (stage == Stage.FinaleFight) OnAxolotlDefeated();
+                if (stage == Stage.FinaleFight) OnAxolotlDefeated(boss);
                 return;
             }
             Job current = CurrentJob;
@@ -362,10 +376,17 @@ namespace SignalLost.Story
         private void OnTrophyPickedUp(string id)
         {
             if (stage == Stage.Loot && CurrentJob != null && id == CurrentJob.trophyId) UpdateLoot();
+            else if (stage == Stage.FinaleLoot && id == AxolotlTrophyId) UpdateFinaleLoot();
         }
 
         private void OnTrophyPlaced(string id)
         {
+            if (id == AxolotlTrophyId)
+            {
+                if (stage == Stage.FinaleLoot) UpdateFinaleLoot();
+                else if (stage == Stage.Homecoming) UpdateHomecoming();
+                return;
+            }
             if (stage != Stage.Loot || CurrentJob == null || id != CurrentJob.trophyId) return;
             trophyPlaced = true;
             UpdateLoot();
@@ -398,24 +419,54 @@ namespace SignalLost.Story
                 : "Buy the Crystal Disruptor from Eugene at camp, then go to the deep chamber at the back of the cave.");
         }
 
-        private void OnAxolotlDefeated()
+        private void OnAxolotlDefeated(DesertMiniBoss boss)
         {
             SetStage(Stage.FinaleLoot);
-            Quest(FinaleTitle, "The Cave Axolotl is beaten! Pick up the Flight Control Module.");
+            moduleTaken = StageProgress.HasMainPart(CaveAxolotl.MainPart);
+            if (!GillHome && !GillCarried)
+            {
+                Vector3 at = GroundBelow(boss.transform.position - boss.transform.right * 3f) + Vector3.up * 0.2f; // the module drops in front
+                TrophyPickup.Create(AxolotlTrophyId, at).gameObject.AddComponent<QuestSignalSource>();
+            }
+            UpdateFinaleLoot();
         }
 
         private void OnModuleRecovered(string part)
         {
             if (part != CaveAxolotl.MainPart) return;
-            SetStage(Stage.Homecoming);
-            Signal(cavendish, true);
-            Quest(HomeTitle, "The Flight Control Module is yours. Walk back out of the cave and tell Cavendish.");
+            moduleTaken = true;
+            if (stage == Stage.FinaleLoot) UpdateFinaleLoot();
+        }
+
+        private void UpdateFinaleLoot()
+        {
+            bool gillTaken = GillHome || GillCarried;
+            if (moduleTaken && gillTaken)
+            {
+                SetStage(Stage.Homecoming);
+                Signal(cavendish, true);
+                UpdateHomecoming();
+                return;
+            }
+            Quest(FinaleTitle, "The Cave Axolotl is beaten! Grab the loot.\n" +
+                (moduleTaken ? "[x] Flight Control Module" : "[  ] Flight Control Module") + "\n" +
+                (gillTaken ? "[x] Cave Axolotl Gill Frond" : "[  ] Cave Axolotl Gill Frond"));
+        }
+
+        private void UpdateHomecoming()
+        {
+            foreach (TrophyStand stand in rack) Signal(stand, GillCarried && !GillHome && stand.TrophyId == null);
+            Quest(HomeTitle, "Walk back out of the cave to camp.\n" +
+                (GillHome ? "[x] Gill frond on the rack" : "[  ] Set the gill frond on the rack at camp") + "\n" +
+                "[  ] Show Cavendish the Flight Control Module");
         }
 
         private void EnterDone()
         {
             SetStage(Stage.Done);
             Signal(cavendish, false);
+            foreach (TrophyStand stand in rack) Signal(stand, false);
+            StageProgress.ClearStage(HomeStage, null);
             Quest(HomeTitle, "The Crystal Caves are cleared! Board the boat at the dock to keep searching for the rest of the ship.", true);
         }
 

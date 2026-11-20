@@ -34,7 +34,7 @@ namespace SignalLost.Editor
         {
             new[] { 75f },                // tutorial: north
             new[] { -11f, 0f, 11f, 22f }, // desert: east
-            new[] { 285f, 296f, 307f },   // crystal caves: south-east
+            new[] { 285f, 296f, 307f, 318f }, // crystal caves: south-east
             new[] { 250f },               // mudlands: south-south-west, next round after the caves'
         };
         private static readonly string[] StandGroupNames = { "Trophy Stands", RackName, "Crystal Caves Rack", "Mudlands Stand" };

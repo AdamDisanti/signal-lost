@@ -126,7 +126,7 @@ namespace SignalLost.Progression
             }
         }
 
-        // On its own stand if that's free, otherwise the first free one of the nine (every level's).
+        // On its own stand if that's free, otherwise the first free one of the ten in the trophy's level.
         private static void PlaceTrophy(string id, int preferred)
         {
             if (CampSave.IsPlaced(id)) return;
@@ -135,8 +135,8 @@ namespace SignalLost.Progression
                 CampSave.Place(id, preferred);
                 return;
             }
-            for (int stand = 0; stand < 9; stand++)
-                if (CampSave.TrophyOn(stand) == null)
+            for (int stand = 0; stand < 10; stand++)
+                if (CampSave.TrophyOn(stand) == null && CampSave.LevelOfStand(stand) == Trophy.Find(id)?.Level)
                 {
                     CampSave.Place(id, stand);
                     return;

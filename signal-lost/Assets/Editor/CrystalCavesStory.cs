@@ -80,13 +80,18 @@ namespace SignalLost.Editor
         // Trophies and the ticket (low-poly kits in the desert trophies' style)
         // =====================================================================
 
-        private enum CM { Rock, Shell, ShellDark, ShellCrystal, Fur, FurDark, MoleCrystal, MoleNail, BearFur, Claw, Geode, GeodeCrystal, Paper, Ink }
+        private enum CM
+        {
+            Rock, Shell, ShellDark, ShellCrystal, Fur, FurDark, MoleCrystal, MoleNail, BearFur, Claw, Geode, GeodeCrystal, Paper, Ink,
+            AxolotlSkin, Gill, GillFringe, DarkBlue, Green, Orange, Purple, Pink, Cyan // the last six: the cave's crystal colours
+        }
 
         private static Dictionary<CM, Material> caveMats;
 
         private static Dictionary<CM, Material> CaveMats()
         {
             const string mole = CaveEnemyKit.PrefabFolder + "/Bosses/ShardMole/Materials/", bear = CaveEnemyKit.PrefabFolder + "/Bosses/GeodeBear/Materials/";
+            const string axolotl = CaveEnemyKit.PrefabFolder + "/Bosses/CaveAxolotl/Materials/";
             const string kit = CaveEnemyKit.MaterialFolder + "/";
             return caveMats ??= new Dictionary<CM, Material>
             {
@@ -104,6 +109,15 @@ namespace SignalLost.Editor
                 [CM.GeodeCrystal] = Mat(bear + "GeodeBearCrystalPurple.mat"),
                 [CM.Paper] = TicketMaterial("TicketPaper", new Color(0.8f, 0.55f, 0.3f), 0.35f),
                 [CM.Ink] = TicketMaterial("TicketInk", new Color(0.1f, 0.07f, 0.06f), 0f),
+                [CM.AxolotlSkin] = Mat(axolotl + "CaveAxolotlSkin.mat"),
+                [CM.Gill] = Mat(axolotl + "CaveAxolotlGill.mat"),
+                [CM.GillFringe] = Mat(axolotl + "CaveAxolotlGillFringe.mat"),
+                [CM.DarkBlue] = CrystalAssetBuilder.CrystalMaterial(CrystalAssetBuilder.CrystalColor.DarkBlue),
+                [CM.Green] = CrystalAssetBuilder.CrystalMaterial(CrystalAssetBuilder.CrystalColor.Green),
+                [CM.Orange] = CrystalAssetBuilder.CrystalMaterial(CrystalAssetBuilder.CrystalColor.Orange),
+                [CM.Purple] = CrystalAssetBuilder.CrystalMaterial(CrystalAssetBuilder.CrystalColor.Purple),
+                [CM.Pink] = CrystalAssetBuilder.CrystalMaterial(CrystalAssetBuilder.CrystalColor.Pink),
+                [CM.Cyan] = CrystalAssetBuilder.CrystalMaterial(CrystalAssetBuilder.CrystalColor.Cyan),
             };
         }
 
@@ -153,6 +167,7 @@ namespace SignalLost.Editor
             SaveCaveTrophy("beetles_elytra", "The Beetles' Elytra", "TrophyBeetlesElytra", ElytraKit());
             SaveCaveTrophy("shard_mole_hide", "Shard Mole Hide", "TrophyShardMoleHide", MoleHideKit());
             SaveCaveTrophy("geode_bear_claw", "Geode Bear Claw", "TrophyGeodeBearClaw", BearClawKit());
+            SaveCaveTrophy(CavesStory.AxolotlTrophyId, "Cave Axolotl Gill Frond", "TrophyCaveAxolotlGill", GillFrondKit());
         }
 
         // Like the desert's: resting on y = 0, centred, about 0.7 m across.
@@ -239,6 +254,37 @@ namespace SignalLost.Editor
             for (int i = 0; i < 4; i++)
                 kit.Add(LowPolyMesh.TaperedPrism("gem", 5, 0f), Matrix4x4.TRS(new Vector3((i - 1.5f) * 0.05f, 0.24f, -0.12f), Quaternion.Euler(-30f + (i % 2) * 15f, 0f, 0f),
                     new Vector3(0.025f, 0.025f, 0.09f)), CM.GeodeCrystal);
+            return kit;
+        }
+
+        // The Cave Axolotl's gill frond: one coral gill stalk curving up out of a scrap of its pale skin, feathery fringe
+        // down its back, ringed by six small crystals in the cave's six colours (it wore them all, hiding), on a cave rock.
+        private static FlatMeshKit<CM> GillFrondKit()
+        {
+            FlatMeshKit<CM> kit = RockBase(0.34f);
+            kit.Add(LowPolyMesh.Icosphere("skin", 1), Matrix4x4.TRS(new Vector3(0f, 0.16f, 0f), Quaternion.identity, new Vector3(0.2f, 0.09f, 0.18f)), CM.AxolotlSkin);
+            Vector3 previous = new Vector3(0f, 0.2f, 0f);
+            for (int i = 0; i < 5; i++)
+            {
+                float k = (i + 1) / 5f;
+                Vector3 next = new Vector3(0f, 0.2f + k * 0.5f, k * k * 0.18f); // up, bending forward like the boss's gills
+                float r = Mathf.Lerp(0.05f, 0.012f, k);
+                Quaternion along = Quaternion.LookRotation(next - previous);
+                kit.Add(LowPolyMesh.TaperedPrism("gill", 5, 0.75f), Matrix4x4.TRS(previous, along, new Vector3(r, r, Vector3.Distance(previous, next) * 1.05f)), CM.Gill);
+                if (i < 4)
+                    foreach (float side in new[] { -1f, 1f }) // a pair of fringe spikes per segment, swept back
+                        kit.Add(LowPolyMesh.TaperedPrism("fringe", 3, 0f), Matrix4x4.TRS(next, Quaternion.LookRotation(new Vector3(side * 0.5f, -0.2f, -1f)),
+                            new Vector3(0.015f, 0.015f, 0.12f - i * 0.02f)), CM.GillFringe);
+                previous = next;
+            }
+            CM[] colours = { CM.DarkBlue, CM.Green, CM.Orange, CM.Purple, CM.Pink, CM.Cyan };
+            for (int i = 0; i < colours.Length; i++)
+            {
+                float a = i * Mathf.PI * 2f / colours.Length;
+                var at = new Vector3(Mathf.Cos(a) * 0.17f, 0.12f, Mathf.Sin(a) * 0.15f);
+                kit.Add(LowPolyMesh.TaperedPrism("crystal", 6, 0f), Matrix4x4.TRS(at, Quaternion.LookRotation(at.normalized * 0.5f + Vector3.up),
+                    new Vector3(0.028f, 0.028f, 0.11f + (i % 2) * 0.04f)), colours[i]);
+            }
             return kit;
         }
 
@@ -487,7 +533,7 @@ namespace SignalLost.Editor
 
             var dock = new SerializedObject(Object.FindAnyObjectByType<IslandDock>());
             dock.FindProperty("alsoDeparts").boolValue = true;
-            dock.FindProperty("requiredStage").stringValue = CaveAxolotl.Stage;
+            dock.FindProperty("requiredStage").stringValue = CavesStory.HomeStage; // sails once the axolotl's trophy is home and Cavendish has wrapped up
             dock.FindProperty("destinationName").stringValue = "the next island";
             dock.FindProperty("lockedMessage").stringValue = "Cavendish won't sail until the caves give back what they took.";
             dock.ApplyModifiedPropertiesWithoutUndo();
@@ -904,9 +950,11 @@ namespace SignalLost.Editor
                 reach.Add(($"job {i + 1}'s zone", Ground(zones[i])));
             }
             SerializedProperty rack = data.FindProperty("rack");
-            Require(rack.arraySize == 3, "Expected the caves' three-stand rack.");
-            for (int i = 0; i < 3; i++)
-                Require(((TrophyStand)rack.GetArrayElementAtIndex(i).objectReferenceValue).Index == CavesRackFirstIndex + i, $"The caves' rack stands must be {CavesRackFirstIndex}-{CavesRackFirstIndex + 2}.");
+            int rackSize = BaseCampBuilder.StandCount(BaseCampBuilder.StandSet.Caves);
+            Require(rack.arraySize == rackSize, $"Expected the caves' {rackSize}-stand rack.");
+            for (int i = 0; i < rackSize; i++)
+                Require(((TrophyStand)rack.GetArrayElementAtIndex(i).objectReferenceValue).Index == CavesRackFirstIndex + i, $"The caves' rack stands must be {CavesRackFirstIndex}-{CavesRackFirstIndex + rackSize - 1}.");
+            Require(Trophy.Find(CavesStory.AxolotlTrophyId)?.LoadModel() != null, "The Cave Axolotl's trophy is unknown or has no model.");
 
             // The chamber.
             Require(EnemyTestBuilder.Count<CaveAxolotl>() == 1 && EnemyTestBuilder.Count<AxolotlLair>() == 1, "Expected one Cave Axolotl and its lair.");
@@ -956,7 +1004,7 @@ namespace SignalLost.Editor
             reach.Add(("the camp respawn", campRespawn.position));
             Require(Mathf.Approximately(new SerializedObject(Object.FindAnyObjectByType<PlayerGear>().GetComponentInChildren<ScannerController>(true))
                 .FindProperty("levelRangeOverride").floatValue, ScannerRange), "The scanner's level range should be " + ScannerRange + " m.");
-            Require(EnemyTestBuilder.All<TrophyStand>().Select(t => t.Index).OrderBy(i => i).SequenceEqual(Enumerable.Range(0, CavesRackFirstIndex + 3)), "Expected stands 0-7 at the caves' camp.");
+            Require(EnemyTestBuilder.All<TrophyStand>().Select(t => t.Index).OrderBy(i => i).SequenceEqual(Enumerable.Range(0, CavesRackFirstIndex + rackSize)), $"Expected stands 0-{CavesRackFirstIndex + rackSize - 1} at the caves' camp.");
             Require(NavMesh.SamplePosition(spawn.transform.position, out NavMeshHit from, 3f, NavMesh.AllAreas), "The spawn is off the NavMesh.");
             foreach ((string name, Vector3 at) in reach)
             {
@@ -965,7 +1013,7 @@ namespace SignalLost.Editor
                 Require(NavMesh.CalculatePath(from.position, to.position, NavMesh.AllAreas, path) && path.status == NavMeshPathStatus.PathComplete, "No walkable path from camp to " + name + ".");
             }
             var dock = new SerializedObject(Object.FindAnyObjectByType<IslandDock>());
-            Require(dock.FindProperty("alsoDeparts").boolValue && dock.FindProperty("requiredStage").stringValue == CaveAxolotl.Stage, "The dock's boat should depart once the caves are cleared.");
+            Require(dock.FindProperty("alsoDeparts").boolValue && dock.FindProperty("requiredStage").stringValue == CavesStory.HomeStage, "The dock's boat should depart once Cavendish has wrapped up the caves.");
             Debug.Log($"CRYSTAL_CAVES_STORY_VALIDATED ({upper} upper and {deep} deep route chameleons, {chamberList.arraySize} in the chamber)");
         }
     }
