@@ -468,6 +468,7 @@ namespace SignalLost.Editor
             QuestTask[] nodes = PlaceTasks(tasks, "Power Node", NodeSpots, NodeTask);
 
             PlaceRouteChameleons(route);
+            PlaceRouteFodder(Group(FodderGroupName, story.transform));
             (AxolotlLair lair, QuestSignalSource chamberSignal) = BuildChamber(chamber);
 
             var camp = Object.FindAnyObjectByType<IslandCamp>();
@@ -764,6 +765,182 @@ namespace SignalLost.Editor
             }
         }
 
+        // =====================================================================
+        // Route fodder (Amanda's map, 11-20)
+        // =====================================================================
+
+        private const string FodderGroupName = "Route Fodder";
+        private const float FodderZoneGap = 45f;  // zone radius 24 + the 14 m territory + margin, so a duel never wakes one
+        private const float FodderChamberPad = 21f;
+        private const float FodderMaxShift = 12f; // how far a spot may move to get clear of rock and crystals
+        // Each spot is pulled toward its route: half the way, at most 15 m, stopping 6 m short of it.
+        private const float FodderMaxPull = 15f, FodderRouteKeep = 6f;
+        private const float FodderTaskGap = 8f;
+        private const float FodderGroupGap = 25f; // enemies this far apart don't join one fight; the pull never merges groups
+
+        // B Quartz Bat, Q Quill Porcupine, R Gem Ram, S Prism Snail, read off Amanda's map (map metres, second map 11-20).
+        private static readonly (char Kind, Vector2 At)[] FodderSpots =
+        {
+            // Upper level.
+            ('S', new Vector2(-168f, 5f)), ('B', new Vector2(-125f, 0f)), ('B', new Vector2(-114f, -9f)),
+            ('Q', new Vector2(-101f, -85f)), ('Q', new Vector2(-66f, -79f)),
+            ('B', new Vector2(-9f, -84f)), ('B', new Vector2(-23f, -93f)), ('B', new Vector2(-9f, -107f)), ('Q', new Vector2(65f, -75f)),
+            ('B', new Vector2(108f, -75f)), ('B', new Vector2(122f, -81f)), ('B', new Vector2(89f, -107f)), ('S', new Vector2(-45f, -138f)),
+            // Deep level, west and round the Mole.
+            ('S', new Vector2(-115f, 148f)), ('S', new Vector2(-121f, 136f)), ('Q', new Vector2(-150f, 112f)), ('Q', new Vector2(-121f, 107f)),
+            ('R', new Vector2(-121f, 89f)), ('R', new Vector2(-44f, 85f)), ('B', new Vector2(-112f, 61f)), ('B', new Vector2(-98f, 56f)), ('B', new Vector2(-112f, 48f)),
+            ('Q', new Vector2(-37f, 57f)), ('Q', new Vector2(-37f, 41f)), ('B', new Vector2(-15f, 55f)), ('B', new Vector2(-2f, 63f)),
+            ('S', new Vector2(-75f, 29f)), ('S', new Vector2(-61f, 31f)),
+            ('Q', new Vector2(37f, 65f)), ('Q', new Vector2(46f, 54f)), ('R', new Vector2(28f, 42f)),
+            ('B', new Vector2(-28f, -7f)), ('B', new Vector2(-35f, -23f)), ('B', new Vector2(-18f, -19f)), ('S', new Vector2(42f, -24f)), ('S', new Vector2(35f, -37f)),
+            // Deep level, east to the Bear.
+            ('S', new Vector2(76f, 64f)), ('S', new Vector2(89f, 56f)), ('Q', new Vector2(93f, 93f)), ('Q', new Vector2(65f, 33f)), ('R', new Vector2(68f, 19f)),
+            ('Q', new Vector2(107f, 24f)), ('Q', new Vector2(116f, 14f)), ('Q', new Vector2(47f, -6f)), ('R', new Vector2(85f, -11f)),
+            ('B', new Vector2(124f, 121f)), ('B', new Vector2(136f, 117f)),
+        };
+
+        private static Vector2 NearestOnRoute(Vector2 p, Vector2[] route)
+        {
+            Vector2 best = route[0];
+            for (int i = 0; i + 1 < route.Length; i++)
+            {
+                Vector2 a = route[i], ab = route[i + 1] - a;
+                Vector2 q = a + ab * Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
+                if ((q - p).sqrMagnitude < (best - p).sqrMagnitude) best = q;
+            }
+            return best;
+        }
+
+        [MenuItem("Signal Lost/Crystal Caves/Install Route Fodder")]
+        public static void InstallRouteFodderMenu()
+        {
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            InstallRouteFodder();
+        }
+
+        public static void InstallRouteFodderBatch()
+        {
+            try
+            {
+                InstallRouteFodder();
+                EditorApplication.Exit(0);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                EditorApplication.Exit(1);
+            }
+        }
+
+        /// <summary>Replaces only the story's Route Fodder group (the full install places it too).</summary>
+        public static void InstallRouteFodder()
+        {
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            T.Generate();
+            Transform story = GameObject.Find(StoryRootName)?.transform;
+            if (story == null) throw new InvalidOperationException("Install the Crystal Caves story first.");
+            for (Transform old = story.Find(FodderGroupName); old != null; old = story.Find(FodderGroupName)) Object.DestroyImmediate(old.gameObject);
+            Physics.SyncTransforms();
+            PlaceRouteFodder(Group(FodderGroupName, story));
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            ValidateStory();
+        }
+
+        // Each spot moves to the nearest clear ground within 12 m on the same level, or is left out.
+        private static void PlaceRouteFodder(Transform parent)
+        {
+            Physics.SyncTransforms();
+            Renderer[] scenery = Object.FindObjectsByType<Renderer>().Where(r => r.enabled && (r is MeshRenderer || r is SkinnedMeshRenderer)
+                && r.name != "Ground" && r.name != "Cave Roof" && r.bounds.extents.magnitude < 40f).ToArray();
+            var placed = new List<(Vector2 At, float Radius, Vector2 Mark)>();
+            var counts = new Dictionary<char, int>();
+            Vector2[] zones = { T.BeetleZone, T.MoleZone, T.BearZone };
+            foreach ((char kind, Vector2 drawn) in FodderSpots)
+            {
+                // Too near a mini-boss zone: straight out from its centre to just past the gap, still in the same area.
+                Vector2 mark = drawn;
+                foreach (Vector2 z in zones)
+                    if (Vector2.Distance(z, mark) < FodderZoneGap) mark = z + (mark - z).normalized * (FodderZoneGap + 1f);
+                (string path, string label) = kind switch
+                {
+                    'B' => (QuartzBatBuilder.PrefabPath, "Quartz Bat"),
+                    'Q' => (QuillPorcupineBuilder.PrefabPath, "Quill Porcupine"),
+                    'R' => (GemRamBuilder.PrefabPath, "Gem Ram"),
+                    _ => (PrismSnailBuilder.PrefabPath, "Prism Snail"),
+                };
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(CaveEnemyKit.Load(path), parent);
+                counts[kind] = counts.TryGetValue(kind, out int n) ? n + 1 : 1;
+                go.name = $"{label} {counts[kind]}";
+                // Footprint from the model at the origin; a bat's model flies at about 3.3 m, so its column goes higher.
+                go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                Bounds body = new Bounds(Vector3.zero, Vector3.zero);
+                foreach (Renderer r in go.GetComponentsInChildren<Renderer>()) body.Encapsulate(r.bounds);
+                float radius = Mathf.Max(body.extents.x, body.extents.z, 0.5f) + 0.3f;
+                float height = Mathf.Max(body.max.y, kind == 'B' ? 5f : 0f) + 0.5f;
+                float level = T.GroundAt(mark.x, mark.y);
+
+                bool Clear(Vector2 p)
+                {
+                    if (Mathf.Abs(T.GroundAt(p.x, p.y) - level) > 3f || !T.Roofed(p.x, p.y) || T.DistanceToMouth(p) < 12f) return false;
+                    if (zones.Any(z => Vector2.Distance(z, p) < FodderZoneGap) || ChamberDistance(p, FodderChamberPad) < 1f) return false;
+                    if (TaskSpots.Any(t => Vector2.Distance(t, p) < FodderTaskGap) || placed.Any(o => Vector2.Distance(o.At, p) < o.Radius + radius + 1f)) return false;
+                    // Keep Amanda's groups apart: enemies drawn in different groups stay near 25 m apart (give or take 3 m).
+                    if (placed.Any(o => Vector2.Distance(o.Mark, mark) >= FodderGroupGap && Vector2.Distance(o.At, p) < FodderGroupGap - 3f)) return false;
+                    // Flat ground under the whole footprint (no wall or rock face of the terrain inside it), with headroom.
+                    float h = T.GroundAt(p.x, p.y);
+                    if (Slope(p) > 20f || T.CeilingAt(p.x, p.y) - h < height + 2f) return false;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        Vector2 edge = p + new Vector2(Mathf.Cos(i * Mathf.PI / 4f), Mathf.Sin(i * Mathf.PI / 4f)) * radius;
+                        if (Mathf.Abs(T.GroundAt(edge.x, edge.y) - h) > 0.8f) return false;
+                    }
+                    Vector3 at = new Vector3(p.x, h, p.y);
+                    if (!NavMesh.SamplePosition(at, out NavMeshHit nav, 0.6f, NavMesh.AllAreas)) return false;
+                    if (!NavMesh.FindClosestEdge(nav.position, out NavMeshHit edgeHit, NavMesh.AllAreas) || edgeHit.distance < radius + 0.5f) return false;
+                    // Nothing solid in its space (terrain aside, checked above), and no crystal or rock model either: small
+                    // decorative crystals have no collider, so their bounds count too.
+                    Vector3 low = at + Vector3.up * (radius + 0.25f), high = at + Vector3.up * Mathf.Max(height - radius, radius + 0.3f);
+                    if (Physics.OverlapCapsule(low, high, radius, ~0, QueryTriggerInteraction.Ignore).Any(c => !VisibleRock(c) && !c.transform.IsChildOf(go.transform))) return false;
+                    var space = new Bounds(at + Vector3.up * height * 0.5f, new Vector3(radius * 2f + 0.6f, height, radius * 2f + 0.6f));
+                    return !scenery.Any(r => r != null && !r.transform.IsChildOf(go.transform) && r.bounds.Intersects(space));
+                }
+
+                // Pulled toward the route as far as allowed, backing off toward the mark until a spot is clear.
+                Vector2 toward = NearestOnRoute(mark, level > 10f ? UpperRoute : DeepRoute) - mark;
+                float pull = Mathf.Min(toward.magnitude * 0.5f, FodderMaxPull, Mathf.Max(0f, toward.magnitude - FodderRouteKeep));
+                Vector2? spot = null;
+                for (float step = pull; step > 0f && spot == null; step -= 1f)
+                    for (int i = 0; i < 40 && spot == null; i++)
+                    {
+                        float ring = Mathf.Sqrt(i) * 2f / Mathf.Sqrt(40f), angle = i * 2.39996f;
+                        Vector2 p = mark + toward.normalized * step + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * ring;
+                        if (Clear(p)) spot = p;
+                    }
+                for (int i = 0; i < 1200 && spot == null; i++)
+                {
+                    float ring = Mathf.Sqrt(i) * FodderMaxShift / Mathf.Sqrt(1200f), angle = i * 2.39996f; // golden-angle spiral outward
+                    Vector2 p = mark + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * ring;
+                    if (Clear(p)) spot = p;
+                }
+                if (spot == null)
+                {
+                    Debug.LogWarning($"Route fodder: no clear ground within {FodderMaxShift} m of {label} at ({mark.x:0}, {mark.y:0}); left out.");
+                    Object.DestroyImmediate(go);
+                    counts[kind]--;
+                    continue;
+                }
+                Vector2 s = spot.Value;
+                Vector2[] route = level > 10f ? UpperRoute : DeepRoute;
+                Debug.Log($"Route fodder: {go.name} drawn ({drawn.x:0}, {drawn.y:0}) -> ({s.x:0}, {s.y:0}), moved {Vector2.Distance(s, drawn):0.0} m, " +
+                          $"route {DistanceToRoute(drawn, route):0} -> {DistanceToRoute(s, route):0} m");
+                go.transform.SetPositionAndRotation(Ground(s), Quaternion.Euler(0f, (placed.Count * 137f) % 360f, 0f));
+                placed.Add((s, radius, mark));
+                Physics.SyncTransforms();
+            }
+            Debug.Log($"ROUTE_FODDER_PLACED {placed.Count} of {FodderSpots.Length}");
+        }
+
         // Off the tunnel, ramp, tasks, fight zones and chamber, and near enough a route that players pass close to some.
         private static bool RouteCandidate(Spot spot)
         {
@@ -995,6 +1172,16 @@ namespace SignalLost.Editor
                 reach.Add((chameleon.name, Ground(new Vector2(landing.x, landing.z))));
             }
 
+            // The route fodder: clear of the duels and the chamber, and inside nothing.
+            List<DesertFodder> fodder = EnemyTestBuilder.All<DesertFodder>().Where(f => f.transform.parent != null && f.transform.parent.name == FodderGroupName).ToList();
+            Require(fodder.Count > 0, "No route fodder.");
+            foreach (DesertFodder f in fodder)
+            {
+                Vector2 flat = new Vector2(f.transform.position.x, f.transform.position.z);
+                Require(zones.All(z => Vector2.Distance(z, flat) >= FodderZoneGap - 0.5f) && ChamberDistance(flat, FodderChamberPad) >= 1f, f.name + " is near a fight zone.");
+                reach.Add((f.name, f.transform.position));
+            }
+
             // Everything above can be walked to from the camp.
             PlayerSpawnPoint spawn = Object.FindAnyObjectByType<PlayerSpawnPoint>();
             Require(Vector3.Distance(spawn.transform.position, Object.FindAnyObjectByType<IslandDock>().Landing.position) < 2f, "The first spawn should be on the dock by the boat.");
@@ -1014,7 +1201,7 @@ namespace SignalLost.Editor
             }
             var dock = new SerializedObject(Object.FindAnyObjectByType<IslandDock>());
             Require(dock.FindProperty("alsoDeparts").boolValue && dock.FindProperty("requiredStage").stringValue == CavesStory.HomeStage, "The dock's boat should depart once Cavendish has wrapped up the caves.");
-            Debug.Log($"CRYSTAL_CAVES_STORY_VALIDATED ({upper} upper and {deep} deep route chameleons, {chamberList.arraySize} in the chamber)");
+            Debug.Log($"CRYSTAL_CAVES_STORY_VALIDATED ({upper} upper and {deep} deep route chameleons, {chamberList.arraySize} in the chamber, {fodder.Count} route fodder)");
         }
     }
 }
