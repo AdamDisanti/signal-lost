@@ -142,7 +142,7 @@ namespace SignalLost.Mudlands
             ShipPart = MudArt.Part(spine, "Auxiliary Starter Motor", new Vector3(0f, 0.72f, -0.92f), Quaternion.Euler(0f, 0f, 90f), "kong3_motor", MotorMesh);
             foreach ((Vector3 root, Vector3 dir, float length) in BackSpineLayout)
                 AddSpine(spine, root, dir, length, backSpines, "Back Spine");
-            scarfTail = MudArt.Pivot(spine, "Scarf Tail", new Vector3(0.36f, 1.3f, 0.66f), Quaternion.Euler(18f, 0f, 14f));
+            scarfTail = MudArt.Pivot(spine, "Scarf Tail", new Vector3(0.55f, 1.1f, 0.76f), Quaternion.Euler(-8f, 0f, 10f));
             MudArt.Part(scarfTail, "Tail", Vector3.zero, Quaternion.identity, "kong3_scarf_tail", ScarfTailMesh);
             head = MudArt.Pivot(spine, "Head", NeckAt);
             BuildHead();
@@ -448,14 +448,20 @@ namespace SignalLost.Mudlands
                 Vector3.forward, 10, (band, at) =>
                     band >= 1 && band <= 2 && at.y > 0.45f && Mathf.Abs(at.x) < 0.7f ? ChestSkin :
                     band >= 1 && band <= 2 && at.y < -0.5f ? Silver : Fur, 2.2f);
-            // The checkered racing scarf: one ring of big checks, and its knot.
-            // (round the base of his neck, outside the lofted shoulders)
-            for (int i = 0; i < 10; i++)
+            // The checkered racing scarf: big checks round his shoulders and the back of his neck, down both sides of
+            // his jaw, knotted under the right side of it. (11-19: lowered and widened so it clears the lofted head;
+            // the old ring ran through his cheeks.)
+            for (int i = 2; i <= 8; i++)
             {
                 float a = i / 10f * Mathf.PI * 2f;
-                k.Box(new Vector3(Mathf.Sin(a) * 0.64f, 1.37f, Mathf.Cos(a) * 0.54f + 0.1f), new Vector3(0.42f, 0.24f, 0.16f), Quaternion.Euler(0f, a * Mathf.Rad2Deg, 0f), i % 2 == 0 ? MudPalette.Black : MudPalette.White);
+                k.Box(new Vector3(Mathf.Sin(a) * 0.78f, 1.25f, Mathf.Cos(a) * 0.64f - 0.05f), new Vector3(0.42f, 0.24f, 0.16f), Quaternion.Euler(0f, a * Mathf.Rad2Deg, 0f), i % 2 == 0 ? MudPalette.Black : MudPalette.White);
             }
-            k.Ball(new Vector3(0.36f, 1.33f, 0.64f), new Vector3(0.14f, 0.12f, 0.1f), Quaternion.identity, MudPalette.White, 0); // the knot
+            foreach (float s in new[] { -1f, 1f })
+            {
+                k.Box(new Vector3(0.63f * s, 1.21f, 0.4f), new Vector3(0.36f, 0.22f, 0.15f), Quaternion.Euler(0f, 50f * s, 0f), MudPalette.White);
+                k.Box(new Vector3(0.57f * s, 1.15f, 0.6f), new Vector3(0.3f, 0.2f, 0.14f), Quaternion.Euler(0f, 35f * s, 0f), MudPalette.Black);
+            }
+            k.Ball(new Vector3(0.55f, 1.14f, 0.73f), new Vector3(0.14f, 0.12f, 0.1f), Quaternion.identity, MudPalette.White, 0); // the knot
             // A gold medal on a red ribbon (he gave it to himself).
             k.Rod(new Vector3(-0.15f, 1.14f, 0.68f), new Vector3(0f, 0.84f, 0.8f), 0.03f, 3, KartRed);
             k.Rod(new Vector3(0.15f, 1.14f, 0.68f), new Vector3(0f, 0.84f, 0.8f), 0.03f, 3, KartRed);
@@ -506,7 +512,7 @@ namespace SignalLost.Mudlands
             AddSpine(head, new Vector3(0f, 0.66f, -0.1f), new Vector3(0f, 1f, -0.4f), 0.55f, headSpines, "Crest Spine");
             AddSpine(head, new Vector3(0f, 0.6f, -0.4f), new Vector3(0f, 0.75f, -1f), 0.5f, headSpines, "Crest Spine");
             // The anger mark that throbs on his temple once he's enraged.
-            rageMark = MudArt.Pivot(head, "Rage Mark", new Vector3(0.42f, 0.36f, 0.22f), Quaternion.LookRotation(new Vector3(0.65f, 0.2f, 0.73f)));
+            rageMark = MudArt.Pivot(head, "Rage Mark", new Vector3(0.46f, 0.36f, 0.2f), Quaternion.LookRotation(new Vector3(0.65f, 0.2f, 0.73f)));
             MudArt.Part(rageMark, "Mark", Vector3.zero, Quaternion.identity, "kong3_rage_mark", RageMarkMesh, false);
             rageMark.gameObject.SetActive(false);
             stars = MudArt.Pivot(head, "Dazed Stars", new Vector3(0f, 0.75f, -0.05f));
@@ -553,23 +559,37 @@ namespace SignalLost.Mudlands
             if (rageMark != null) rageMark.gameObject.SetActive(on);
         }
 
+        // Lofted like the desert bosses' heads (11-19): a cranium down to a flat face the eyes sit in, one heavy brow
+        // ridge over them, an upper muzzle out to a flat nose pad, and a lower jaw under the mouth that the tusks come
+        // up out of. The animated eyes, brows and mouth keep their pivots.
         private static void HeadMesh(MeshKit k, bool rage)
         {
             Color skin = rage ? RageSkin : Skin;
-            k.Ball(new Vector3(0f, 0.05f, -0.05f), new Vector3(0.55f, 0.52f, 0.5f), Quaternion.identity, Fur, 1);
-            k.Ball(new Vector3(0f, 0.36f, -0.18f), new Vector3(0.3f, 0.32f, 0.42f), Quaternion.identity, Fur, 1); // the crest
-            k.Ball(new Vector3(0f, -0.13f, 0.36f), new Vector3(0.45f, 0.36f, 0.34f), Quaternion.identity, skin, 1); // face and muzzle
-            k.Ball(new Vector3(0f, -0.05f, 0.58f), new Vector3(0.2f, 0.12f, 0.12f), Quaternion.identity, skin, 0); // nose bridge
-            // The heavy brow ridge: lower and knotted when he's enraged.
-            if (rage) k.Ball(new Vector3(0f, 0.25f, 0.44f), new Vector3(0.42f, 0.11f, 0.17f), Quaternion.Euler(8f, 0f, 0f), FurDark, 0);
-            else k.Ball(new Vector3(0f, 0.27f, 0.42f), new Vector3(0.4f, 0.1f, 0.15f), Quaternion.identity, FurDark, 0);
-            foreach (float x in new[] { -0.08f, 0.08f }) // slit nostrils
-                k.Ball(new Vector3(x, -0.07f, 0.67f), new Vector3(0.025f, rage ? 0.055f : 0.045f, 0.03f), Quaternion.Euler(0f, 0f, x * 250f), new Color(0.16f, 0.07f, 0.18f), 0);
+            k.Loft(new[] { new Vector3(0f, 0.14f, -0.56f), new Vector3(0f, 0.16f, -0.42f), new Vector3(0f, 0.15f, -0.16f), new Vector3(0f, 0.12f, 0.12f),
+                    new Vector3(0f, 0.12f, 0.34f), new Vector3(0f, 0.13f, 0.44f) },
+                new[] { new Vector2(0.46f, 0.46f), new Vector2(0.92f, 0.88f), new Vector2(1.12f, 1.02f), new Vector2(1.08f, 0.98f), new Vector2(0.86f, 0.7f), new Vector2(0.6f, 0.46f) },
+                Vector3.up, 8, (band, at) => band == 5 || (band >= 4 && at.y < 0.55f) ? skin : Fur);
+            // The brow ridge: lower and pushed forward when he's enraged.
+            float dy = rage ? -0.02f : 0f, dz = rage ? 0.02f : 0f;
+            // (set back from the animated brows, so they sit in front of it and show when they move)
+            k.Loft(new[] { new Vector3(-0.5f, 0.2f + dy, 0.26f), new Vector3(-0.24f, 0.27f + dy, 0.39f + dz), new Vector3(0f, 0.26f + dy, 0.42f + dz),
+                    new Vector3(0.24f, 0.27f + dy, 0.39f + dz), new Vector3(0.5f, 0.2f + dy, 0.26f) },
+                new[] { new Vector2(0.12f, 0.08f), new Vector2(0.18f, 0.15f), new Vector2(0.18f, 0.14f), new Vector2(0.18f, 0.15f), new Vector2(0.12f, 0.08f) },
+                Vector3.up, 6, FurDark, 2.2f);
+            k.Loft(new[] { new Vector3(0f, -0.1f, 0.12f), new Vector3(0f, -0.08f, 0.4f), new Vector3(0f, -0.09f, 0.58f), new Vector3(0f, -0.08f, 0.7f), new Vector3(0f, -0.08f, 0.76f) },
+                new[] { new Vector2(0.78f, 0.52f), new Vector2(0.8f, 0.36f), new Vector2(0.66f, 0.3f), new Vector2(0.48f, 0.24f), new Vector2(0.3f, 0.16f) },
+                Vector3.up, 8, (band, at) => band == 0 && at.y > 0.4f ? Fur : skin, 2.6f);
+            k.Loft(new[] { new Vector3(0f, -0.3f, 0.1f), new Vector3(0f, -0.33f, 0.4f), new Vector3(0f, -0.35f, 0.54f), new Vector3(0f, -0.36f, 0.6f) },
+                new[] { new Vector2(0.8f, 0.3f), new Vector2(0.72f, 0.24f), new Vector2(0.58f, 0.18f), new Vector2(0.4f, 0.12f) },
+                Vector3.up, 8, skin);
+            foreach (float x in new[] { -0.07f, 0.07f }) // slit nostrils on the nose pad
+                k.Ball(new Vector3(x, -0.075f, 0.758f), new Vector3(0.026f, rage ? 0.05f : 0.042f, 0.02f), Quaternion.Euler(0f, 0f, x * 300f), new Color(0.16f, 0.07f, 0.18f), 0);
             foreach (float s in new[] { -1f, 1f }) // long pointed ears swept back
-                k.Ball(new Vector3(0.48f * s, 0.1f, -0.1f), new Vector3(0.06f, 0.11f, 0.28f), Quaternion.LookRotation(new Vector3(0.75f * s, 0.35f, -0.6f)), skin, 0);
+                k.Loft(new[] { new Vector3(0.5f * s, 0.1f, -0.02f), new Vector3(0.6f * s, 0.16f, -0.18f), new Vector3(0.68f * s, 0.24f, -0.38f) },
+                    new[] { new Vector2(0.08f, 0.22f), new Vector2(0.07f, 0.16f), new Vector2(0.01f, 0.02f) }, Vector3.up, 4, skin, 2f);
             if (rage)
-                foreach (float s in new[] { -1f, 1f }) // snarl lines down the muzzle
-                    k.Box(new Vector3(s * 0.22f, -0.08f, 0.58f), new Vector3(0.02f, 0.14f, 0.03f), Quaternion.Euler(0f, s * 30f, s * 35f), new Color(0.5f, 0.14f, 0.3f));
+                foreach (float s in new[] { -1f, 1f }) // snarl lines up the nose bridge
+                    k.Box(new Vector3(s * 0.12f, 0.06f, 0.6f), new Vector3(0.025f, 0.02f, 0.13f), Quaternion.Euler(0f, s * -28f, 0f), new Color(0.5f, 0.14f, 0.3f));
             // Tusks: up out of the lower jaw, past the muzzle, curving out and back in.
             foreach (float s in new[] { -1f, 1f })
             {

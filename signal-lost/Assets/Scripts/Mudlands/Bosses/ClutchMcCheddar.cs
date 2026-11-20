@@ -335,31 +335,45 @@ namespace SignalLost.Mudlands
 
         private static void HeadMesh(MeshKit k)
         {
-            // A big round mouse head, chubby cheeks, a long snout with a pink nose, feelers; a red bandana with white
-            // dots over the crown.
-            k.Ball(new Vector3(0f, 0.22f, 0f), new Vector3(0.27f, 0.25f, 0.26f), Quaternion.identity, Fur, 1);
-            k.Ball(new Vector3(0f, 0.04f, 0.02f), new Vector3(0.12f, 0.08f, 0.1f), Quaternion.identity, Fur, 0); // neck
-            foreach (float s in new[] { -1f, 1f })
-                k.Ball(new Vector3(0.15f * s, 0.12f, 0.14f), new Vector3(0.13f, 0.11f, 0.12f), Quaternion.identity, FurLight, 0); // cheeks
-            k.Lathe(new Vector3(0f, 0.14f, 0.12f), Quaternion.Euler(100f, 0f, 0f), new[]
-            {
-                new Vector2(0.0001f, -0.02f), new Vector2(0.15f, 0.04f), new Vector2(0.1f, 0.26f), new Vector2(0.045f, 0.34f), new Vector2(0.0001f, 0.36f)
-            }, 6, Fur);
+            // Lofted like the desert bosses' heads (11-19): a round cranium to a front the eyes sit on, a snout tapering
+            // forward to the pink nose, whisker pads across the face, feelers; the red bandana a thin shell over the
+            // crown down to the brow, with a knot at the back and white dots.
+            k.Loft(new[] { new Vector3(0f, 0.24f, -0.28f), new Vector3(0f, 0.25f, -0.18f), new Vector3(0f, 0.25f, -0.02f), new Vector3(0f, 0.24f, 0.12f), new Vector3(0f, 0.25f, 0.2f) },
+                new[] { new Vector2(0.3f, 0.28f), new Vector2(0.5f, 0.46f), new Vector2(0.56f, 0.5f), new Vector2(0.5f, 0.44f), new Vector2(0.34f, 0.3f) },
+                Vector3.up, 8, Fur);
+            // A brow ridge over the eyes, for the brows to sit on.
+            k.Loft(new[] { new Vector3(-0.2f, 0.33f, 0.14f), new Vector3(-0.1f, 0.345f, 0.205f), new Vector3(0f, 0.34f, 0.215f), new Vector3(0.1f, 0.345f, 0.205f), new Vector3(0.2f, 0.33f, 0.14f) },
+                new[] { new Vector2(0.06f, 0.05f), new Vector2(0.07f, 0.06f), new Vector2(0.07f, 0.055f), new Vector2(0.07f, 0.06f), new Vector2(0.06f, 0.05f) },
+                Vector3.up, 6, Fur, 2.2f);
+            k.Loft(new[] { new Vector3(0f, 0.13f, 0.04f), new Vector3(0f, 0.12f, 0.2f), new Vector3(0f, 0.11f, 0.32f), new Vector3(0f, 0.1f, 0.42f), new Vector3(0f, 0.1f, 0.47f) },
+                new[] { new Vector2(0.4f, 0.26f), new Vector2(0.32f, 0.2f), new Vector2(0.22f, 0.15f), new Vector2(0.12f, 0.09f), new Vector2(0.06f, 0.05f) },
+                Vector3.up, 8, (band, at) => at.y < -0.3f ? FurLight : Fur, 2.2f);
+            k.Loft(new[] { new Vector3(-0.25f, 0.12f, 0.06f), new Vector3(-0.13f, 0.11f, 0.17f), new Vector3(0f, 0.1f, 0.2f), new Vector3(0.13f, 0.11f, 0.17f), new Vector3(0.25f, 0.12f, 0.06f) },
+                new[] { new Vector2(0.14f, 0.14f), new Vector2(0.2f, 0.17f), new Vector2(0.18f, 0.13f), new Vector2(0.2f, 0.17f), new Vector2(0.14f, 0.14f) },
+                Vector3.up, 6, FurLight, 2.2f);
+            // A chin under the snout: the mouth sits in the gap between them and opens into them (without it the
+            // mouth hung in the air when he talked).
+            k.Loft(new[] { new Vector3(0f, 0.04f, 0.04f), new Vector3(0f, 0.03f, 0.2f), new Vector3(0f, 0.008f, 0.32f), new Vector3(0f, -0.002f, 0.378f) },
+                new[] { new Vector2(0.32f, 0.16f), new Vector2(0.24f, 0.13f), new Vector2(0.16f, 0.1f), new Vector2(0.08f, 0.065f) },
+                Vector3.up, 8, FurLight, 2.2f);
             k.Ball(new Vector3(0f, 0.1f, 0.48f), new Vector3(0.07f, 0.055f, 0.055f), Quaternion.identity, Pink, 0); // nose
             // Feelers instead of whiskers.
             foreach (float s in new[] { -1f, 1f })
                 for (int i = 0; i < 2; i++)
                     k.Plank(new Vector3(0.07f * s, 0.08f + i * 0.03f, 0.42f), new Vector3(0.32f * s, 0.06f + i * 0.1f, 0.39f), 0.012f, 0.012f, PinkDark);
-            // The bandana: a cap over the crown down to the brow, a knot at the back, white dots.
-            k.Ball(new Vector3(0f, 0.32f, -0.02f), new Vector3(0.28f, 0.17f, 0.27f), Quaternion.Euler(-12f, 0f, 0f), Bandana, 1);
-            k.Ball(new Vector3(0f, 0.34f, -0.24f), new Vector3(0.08f, 0.07f, 0.06f), Quaternion.identity, Bandana, 0); // knot
-            for (int i = 0; i < 5; i++)
-            {
-                float a = (i / 5f + 0.05f) * Mathf.PI * 2f;
-                Vector3 n = Quaternion.Euler(-12f, 0f, 0f) * new Vector3(Mathf.Cos(a) * 0.7f, 0.7f, Mathf.Sin(a) * 0.7f).normalized;
-                k.Ball(new Vector3(0f, 0.32f, -0.02f) + Vector3.Scale(n, new Vector3(0.28f, 0.17f, 0.27f)), 0.026f, MudPalette.White, 0);
-            }
+            k.Loft(new[] { new Vector3(0f, 0.33f, -0.3f), new Vector3(0f, 0.36f, -0.2f), new Vector3(0f, 0.38f, -0.02f), new Vector3(0f, 0.39f, 0.13f), new Vector3(0f, 0.405f, 0.225f) },
+                new[] { new Vector2(0.28f, 0.16f), new Vector2(0.52f, 0.3f), new Vector2(0.58f, 0.3f), new Vector2(0.53f, 0.26f), new Vector2(0.34f, 0.13f) },
+                Vector3.up, 8, Bandana);
+            k.Ball(new Vector3(0f, 0.35f, -0.31f), new Vector3(0.08f, 0.07f, 0.06f), Quaternion.identity, Bandana, 0); // knot
+            foreach (Vector3 dot in BandanaDots) k.Ball(dot, 0.026f, MudPalette.White, 0);
         }
+
+        // On the bandana's surface.
+        private static readonly Vector3[] BandanaDots =
+        {
+            new Vector3(0.154f, 0.501f, -0.133f), new Vector3(-0.154f, 0.501f, -0.133f), new Vector3(0f, 0.526f, 0.012f),
+            new Vector3(0.244f, 0.463f, 0.063f), new Vector3(-0.244f, 0.463f, 0.063f), new Vector3(0.093f, 0.494f, 0.158f),
+        };
 
         /// <summary>Gold-rimmed teardrop aviators (also the trophy).</summary>
         public static void AviatorsMesh(MeshKit k)

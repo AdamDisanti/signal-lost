@@ -379,21 +379,28 @@ namespace SignalLost.Mudlands
         private static void HeadMesh(MeshKit k)
         {
             Vector3 c = HeadCentre;
-            k.Ball(c, new Vector3(0.29f, 0.27f, 0.27f), Quaternion.identity, Fur, 1);
-            // A sloth's face: a pale mask, the dark stripes running back from her eyes, a dark button nose.
-            k.Ball(c + new Vector3(0f, -0.03f, 0.13f), new Vector3(0.235f, 0.2f, 0.17f), Quaternion.identity, Mask, 1);
+            // Lofted like the desert bosses' heads (11-19): round at the back, a broad flat face. A sloth's face is painted
+            // on: the pale mask over the lower front, dark stripes running back from her eyes, a dark button nose.
+            k.Loft(new[] { c + new Vector3(0f, 0.02f, -0.27f), c + new Vector3(0f, 0.02f, -0.16f), c + new Vector3(0f, 0.01f, 0.02f), c + new Vector3(0f, 0f, 0.15f),
+                    c + new Vector3(0f, -0.01f, 0.215f), c + new Vector3(0f, -0.01f, 0.25f) },
+                new[] { new Vector2(0.3f, 0.3f), new Vector2(0.52f, 0.5f), new Vector2(0.6f, 0.54f), new Vector2(0.54f, 0.42f), new Vector2(0.44f, 0.26f), new Vector2(0.28f, 0.16f) },
+                Vector3.up, 8, (band, at) => band == 5 || (band == 4 && at.y < 0.6f) || (band == 3 && at.y < 0.2f && Mathf.Abs(at.x) < 0.8f) ? Mask : Fur);
             foreach (float s in new[] { -1f, 1f })
-                k.Ball(c + new Vector3(0.14f * s, 0.005f, 0.215f), new Vector3(0.11f, 0.042f, 0.03f), Quaternion.Euler(0f, -38f * s, -14f * s), Patch, 0);
+                k.Loft(new[] { c + new Vector3(0.127f * s, 0.028f, 0.261f), c + new Vector3(0.172f * s, 0.02f, 0.245f), c + new Vector3(0.25f * s, 0.005f, 0.175f), c + new Vector3(0.278f * s, -0.005f, 0.09f) },
+                    new[] { new Vector2(0.03f, 0.06f), new Vector2(0.03f, 0.07f), new Vector2(0.03f, 0.055f), new Vector2(0.02f, 0.03f) }, Vector3.up, 5, Patch, 2f);
+            // A pale muzzle under the nose, for the mouth to sit on.
+            k.Loft(new[] { c + new Vector3(0f, -0.09f, 0.14f), c + new Vector3(0f, -0.105f, 0.22f), c + new Vector3(0f, -0.115f, 0.26f) },
+                new[] { new Vector2(0.26f, 0.16f), new Vector2(0.22f, 0.13f), new Vector2(0.13f, 0.08f) }, Vector3.up, 8, Mask, 2.2f);
             k.Ball(c + new Vector3(0f, -0.05f, 0.3f), new Vector3(0.06f, 0.045f, 0.04f), Quaternion.identity, MudPalette.Black, 0); // nose
             // Grey granny hair: wisps poking out under the hat at the sides and back, and a little bun.
             for (int i = 0; i < 5; i++)
             {
                 float a = Mathf.Lerp(150f, 390f, i / 4f) * Mathf.Deg2Rad;
                 var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
-                k.Cone(c + dir * 0.22f + Vector3.up * 0.06f, Quaternion.FromToRotation(Vector3.up, (dir * 0.9f + Vector3.down * 0.6f).normalized), 0.065f, 0.17f, 3, Hair);
+                k.Cone(c + dir * 0.24f + Vector3.up * 0.06f, Quaternion.FromToRotation(Vector3.up, (dir * 0.9f + Vector3.down * 0.6f).normalized), 0.065f, 0.17f, 3, Hair);
             }
             k.Ball(c + new Vector3(0f, 0.04f, -0.29f), 0.085f, Hair, 0); // the bun
-            k.Ball(c + new Vector3(0.1f, -0.07f, 0.27f), 0.022f, Wart, 0); // a wart, of course
+            k.Ball(c + new Vector3(0.1f, -0.07f, 0.255f), 0.022f, Wart, 0); // a wart, of course
             foreach (float x in new[] { -0.03f, 0.03f }) // chin whiskers
                 k.Cone(c + new Vector3(x, -0.2f, 0.2f), Quaternion.Euler(160f, 0f, x * 300f), 0.02f, 0.08f, 3, Hair);
         }
@@ -620,6 +627,13 @@ namespace SignalLost.Mudlands
             Quaternion facing = Quaternion.LookRotation(toPlayer);
             var lanterns = new List<Light>(transform.parent != null ? transform.parent.GetComponentsInChildren<Light>() : new Light[0]);
             lanterns.RemoveAll(light => light.transform.IsChildOf(transform)); // not her own broom lantern
+            // She waits deep in the cauldron (its shell hides her), broom and all. Put her there before the first frame:
+            // she was standing up through the pot while the lanterns went out.
+            AttachBroom();
+            broom.gameObject.SetActive(false);
+            transform.SetPositionAndRotation(home + Vector3.down * 2.4f, facing);
+            HoldWandInTeeth(true);
+            Face?.Show(Mood.Sleepy, 14f);
             cine.Cut(home + toPlayer * 16f + Vector3.up * 4f, home + Vector3.up * 2f);
             // The clearing's lanterns go out one by one.
             foreach (Light lantern in lanterns)
@@ -629,11 +643,6 @@ namespace SignalLost.Mudlands
                 Sfx.Play("ui_close", 0.5f, 0.7f);
                 yield return cine.Wait(0.25f);
             }
-            // She waits deep in the cauldron (its shell hides her), broom and all.
-            AttachBroom();
-            broom.gameObject.SetActive(false);
-            transform.SetPositionAndRotation(home + Vector3.down * 2.4f, facing);
-            HoldWandInTeeth(true);
             Face?.Show(Mood.Sleepy, 14f);
             yield return cine.Move(home + toPlayer * 8f + Vector3.up * 2.5f, home + Vector3.up * 1.5f, 1f);
             // The cauldron bubbles harder and harder...
