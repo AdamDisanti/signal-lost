@@ -65,6 +65,18 @@ namespace SignalLost.Mudlands
         public float Tempo { get; private set; } = 1f;
         private float tempoUntil;
 
+        // The music note over a buffed creature's head (11-20), so it's obvious who the Banjo Toad is pumping up.
+        private Transform buffNote;
+        private float notePulse;
+
+        /// <summary>Show the music note over this creature (default: while the Banjo Toad's tune speeds it up).</summary>
+        protected virtual bool ShowsMusicNote => Tempo > 1.001f;
+        /// <summary>How big its music note is (the toad itself wears a bigger one).</summary>
+        protected virtual float MusicNoteSize => 1f;
+
+        /// <summary>A note from the banjo just reached it: its own note gives a hop.</summary>
+        public void NotePulse() => notePulse = 1f;
+
         private float squash, squashVelocity, nextCarCheck, nextBlink, blinkUntil, nextIdleEmote;
         private bool airborne;
         private Vector3 flightVelocity, flightSpin;
@@ -152,6 +164,7 @@ namespace SignalLost.Mudlands
             base.LateUpdate();
             if (airborne && Started) UpdateFlight(Time.deltaTime);
             if (Started && !IsDead) Animate(Time.deltaTime);
+            UpdateMusicNote();
             if (IsDead && !airborne) return;
             // Squash and stretch: a spring back to rest.
             squashVelocity += (-squash * 160f - squashVelocity * 14f) * Time.deltaTime;
@@ -159,6 +172,31 @@ namespace SignalLost.Mudlands
             float s = Mathf.Clamp(squash, -0.45f, 0.45f);
             Visual.localScale = Vector3.Scale(visualScale, new Vector3(1f + s * 0.5f, 1f - s, 1f + s * 0.5f));
             Blink();
+        }
+
+        private void UpdateMusicNote()
+        {
+            bool show = Started && !IsDead && !airborne && ShowsMusicNote && transform.localScale.y > 0.9f; // not on a clinging pup
+            if (!show)
+            {
+                if (buffNote != null && buffNote.gameObject.activeSelf) buffNote.gameObject.SetActive(false);
+                return;
+            }
+            if (buffNote == null) buffNote = MusicNote.Create(transform, "Buff Note");
+            if (!buffNote.gameObject.activeSelf) { buffNote.gameObject.SetActive(true); notePulse = 1f; }
+            notePulse = Mathf.MoveTowards(notePulse, 0f, Time.deltaTime * 3f);
+            Camera view = Camera.main;
+            float distance = view != null ? Vector3.Distance(view.transform.position, transform.position) : 10f;
+            // Grows with distance so it still reads from across a fight; bounces when a note arrives.
+            // Shrinks away when the camera is right on top of it, so it never fills the screen.
+            float near = Mathf.Clamp01((distance - 2f) / 1.5f);
+            float size = MusicNoteSize * Mathf.Max(1f, distance / 14f) * (1f + notePulse * 0.45f) * near;
+            float bob = Mathf.Sin(Time.time * 6.3f + Seed) * 0.07f + notePulse * 0.15f;
+            buffNote.position = transform.position + Vector3.up * (emoteHeight + 0.45f * size + bob);
+            if (view != null)
+                buffNote.rotation = Quaternion.LookRotation(buffNote.position - view.transform.position) * Quaternion.Euler(0f, 0f, Mathf.Sin(Time.time * 6.3f + Seed) * 12f);
+            float parent = Mathf.Max(0.05f, transform.lossyScale.y);
+            buffNote.localScale = Vector3.one * size / parent;
         }
 
         /// <summary>The creature's procedural animation, every frame while alive (after the state machine).</summary>

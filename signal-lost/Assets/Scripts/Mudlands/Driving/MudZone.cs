@@ -170,7 +170,16 @@ namespace SignalLost.Mudlands
             {
                 Vector3 moved = now - last;
                 moved.y = 0f;
-                if (moved.sqrMagnitude < 4f) body.Move(-moved * Mathf.Clamp01(slow));
+                if (moved.sqrMagnitude < 4f)
+                {
+                    // CharacterController.isGrounded comes from the last Move. A sideways-only Move leaves it false, and
+                    // FirstPersonController only jumps when grounded, so jumping in mud (or with Mudpuppies on you)
+                    // did nothing (11-20). Keep a grounded player pressed onto the ground while undoing the move.
+                    Vector3 undo = -moved * Mathf.Clamp01(slow);
+                    bool grounded = body.isGrounded; // from the player's own Move this frame
+                    if (grounded) undo += Vector3.down * 0.02f;
+                    if (undo.sqrMagnitude > 1e-8f) body.Move(undo);
+                }
             }
             last = transform.position;
             hasLast = true;

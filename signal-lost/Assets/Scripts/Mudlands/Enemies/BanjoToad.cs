@@ -16,6 +16,8 @@ namespace SignalLost.Mudlands
     /// 9-14 m from you and tucks itself behind the biggest ally it can find. Get within 3.5 m and it winds up and
     /// twangs a shockwave (6 and a big shove), then hops away. When it dies its string snaps and the allies near it
     /// stop for a moment to mourn, which is your opening. Kill it first. Runs off clutching the banjo when a car comes.
+    /// Readability (11-20): every creature it is buffing wears a glowing music note over its head, and on each beat a
+    /// little note flies from the banjo to each of them; the toad wears a bigger note while it plays.
     /// 50 HP.
     /// </summary>
     public sealed class BanjoToad : MudCritter
@@ -177,9 +179,15 @@ namespace SignalLost.Mudlands
                 Health ally = hit.GetComponentInParent<Health>();
                 if (ally == null || ally.IsDead || ally.gameObject == gameObject || !EnemyAllegiance.IsEnemy(ally.gameObject)) continue;
                 ally.Heal(HealPerSecond * 0.5f);
-                ally.GetComponentInParent<MudCritter>()?.Buff(1.25f, 1.2f);
+                MudCritter critter = ally.GetComponentInParent<MudCritter>();
+                if (critter == null) continue;
+                critter.Buff(1.25f, 1.2f);
+                MusicNote.Fly(banjo.position + Vector3.up * 0.3f, critter); // one note per buddy per beat
             }
         }
+
+        protected override bool ShowsMusicNote => state == State.Play;
+        protected override float MusicNoteSize => 1.5f;
 
         private void Twang()
         {
@@ -253,6 +261,84 @@ namespace SignalLost.Mudlands
             // Flops forward onto its banjo.
             Visual.localRotation = VisualRestRotation * Quaternion.Euler(80f * Mathf.Clamp01(t / 0.4f), 0f, 0f);
             Visual.localPosition = VisualRest + Vector3.down * 0.5f * Mathf.Clamp01((t - 2f) / 1f);
+        }
+    }
+
+    /// <summary>
+    /// A glowing double music note (♫), built in code: worn over a buffed creature's head, and flown from the Banjo
+    /// Toad's banjo to each creature it buffs on the beat.
+    /// </summary>
+    public static class MusicNote
+    {
+        public static readonly Color Gold = new Color(1f, 0.82f, 0.28f);
+
+        /// <summary>A note under <paramref name="parent"/> (the caller places, turns and sizes it).</summary>
+        public static Transform Create(Transform parent, string name)
+        {
+            Transform note = MudArt.Part(parent, name, Vector3.zero, Quaternion.identity, "music_note", Mesh);
+            foreach (Renderer part in note.GetComponentsInChildren<Renderer>())
+            {
+                part.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                part.receiveShadows = false;
+            }
+            return note;
+        }
+
+        // Two tilted heads, two stems and a beam, about 0.4 m tall, flat-faced toward +Z (the side that faces the camera).
+        private static void Mesh(MeshKit k)
+        {
+            foreach (float x in new[] { -0.12f, 0.12f })
+            {
+                k.Ball(new Vector3(x, x < 0f ? -0.02f : 0.04f, 0f), new Vector3(0.085f, 0.06f, 0.035f), Quaternion.Euler(0f, 0f, 25f), Gold, 1, 2.6f);
+                k.Box(new Vector3(x + 0.07f, x < 0f ? 0.15f : 0.21f, 0f), new Vector3(0.025f, 0.32f, 0.03f), Gold, 2.6f);
+            }
+            k.Box(new Vector3(0.07f, 0.34f, 0f), new Vector3(0.29f, 0.05f, 0.03f), Quaternion.Euler(0f, 0f, 12f), Gold, 2.6f);
+        }
+
+        /// <summary>Flies a small note from <paramref name="from"/> to the creature's head; it bounces the creature's note on arrival.</summary>
+        public static void Fly(Vector3 from, MudCritter to)
+        {
+            if (to == null) return;
+            Transform note = Create(null, "Flying Note");
+            note.position = from;
+            note.localScale = Vector3.one * 0.5f;
+            note.gameObject.AddComponent<NoteFlight>().Begin(from, to);
+        }
+    }
+
+    /// <summary>One flying note: an arc from the banjo to a buddy's head in 0.45 s, wobbling, then gone.</summary>
+    public sealed class NoteFlight : MonoBehaviour
+    {
+        private const float Duration = 0.45f;
+        private Vector3 from;
+        private MudCritter to;
+        private float born, wobble;
+
+        public void Begin(Vector3 start, MudCritter target)
+        {
+            from = start;
+            to = target;
+            born = Time.time;
+            wobble = Random.value * 10f;
+        }
+
+        private void LateUpdate()
+        {
+            float k = (Time.time - born) / Duration;
+            if (to == null || to.IsDead || k >= 1f)
+            {
+                if (to != null && !to.IsDead) to.NotePulse();
+                Destroy(gameObject);
+                return;
+            }
+            Vector3 end = to.transform.position + Vector3.up * 1.4f;
+            transform.position = Vector3.Lerp(from, end, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 1.2f;
+            Camera view = Camera.main;
+            if (view != null)
+                transform.rotation = Quaternion.LookRotation(transform.position - view.transform.position) * Quaternion.Euler(0f, 0f, Mathf.Sin(Time.time * 14f + wobble) * 25f);
+            float distance = view != null ? Vector3.Distance(view.transform.position, transform.position) : 10f;
+            float near = Mathf.Clamp01((distance - 2f) / 1.5f); // gone when it would fly through the camera
+            transform.localScale = Vector3.one * 0.5f * Mathf.Max(1f, distance / 14f) * (k < 0.15f ? k / 0.15f : 1f) * near;
         }
     }
 }

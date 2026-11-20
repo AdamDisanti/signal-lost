@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SignalLost.Audio;
 using SignalLost.Combat;
 using SignalLost.Effects;
@@ -15,6 +16,9 @@ namespace SignalLost.Mudlands
     /// going. It ducks behind the roof ridge while you aim a charged bolt at it. A good hit makes it play dead: it
     /// keels over (off the roof, if it is on one) and lies still with its tongue out for 2.5 s, taking extra damage,
     /// then scurries off. On the ground it keeps its distance. Cars: it plays dead and is too flat to hit.
+    /// Readability (11-20): the canister's fuse flares (a bright light) while it winds up, the thrown canister leaves a
+    /// fire trail and a lingering smoke line back to the thrower, and <see cref="CritterOverlay"/> marks every possum
+    /// that is after you (an edge arrow when it's off-screen), bright and pulsing while it winds up.
     /// 45 HP.
     /// </summary>
     public sealed class JugPossum : MudCritter
@@ -35,7 +39,34 @@ namespace SignalLost.Mudlands
         private Vector3 placed;
         private float stateTime, nextThrow, deadFor;
         private bool perched, bonusHit;
-        private Transform torso, armR, jug, tail, tongue, hat;
+        private Transform torso, armR, jug, tail, tongue, hat, fuse;
+        private Light fuseLight;
+        private float nextFuseSpark;
+
+        private static readonly List<JugPossum> Active = new List<JugPossum>();
+        /// <summary>Every possum in the scene (for the on-screen markers).</summary>
+        public static IReadOnlyList<JugPossum> All => Active;
+        /// <summary>Alive, has spotted you and is in the fight (not hiding, faking or fleeing).</summary>
+        public bool Hunting => !IsDead && Spotted && TargetAlive && !ReturningHome && state != State.PlayDead && state != State.Scurry;
+        /// <summary>Winding up or letting go of a throw right now.</summary>
+        public bool WindingUp => !IsDead && (state == State.Aim || state == State.Throw);
+        /// <summary>Where its marker floats.</summary>
+        public Vector3 MarkerPoint => transform.position + Vector3.up * (emoteHeight + 0.35f);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetActive() => Active.Clear();
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            Active.Add(this);
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            Active.Remove(this);
+        }
         private static readonly FireStyle JugFire = new FireStyle { damage = 5f, duration = 2.5f, tint = new Color(1f, 0.85f, 0.5f) };
 
         protected override void BuildModel(Transform visual)
@@ -120,6 +151,24 @@ namespace SignalLost.Mudlands
             perched = perch || !AgentReady;
             Enter(State.Idle);
             nextThrow = Time.time + Random.Range(0.5f, 1.5f);
+            if (jug != null)
+            {
+                fuse = MudArt.Part(jug, "Fuse Flame", new Vector3(0.04f, 0.2f, 0f), Quaternion.identity, "possum_fuse", FuseMesh);
+                fuseLight = fuse.gameObject.AddComponent<Light>();
+                fuseLight.type = LightType.Point;
+                fuseLight.color = new Color(1f, 0.55f, 0.15f);
+                fuseLight.range = 7f;
+                fuseLight.shadows = LightShadows.None;
+                fuse.gameObject.SetActive(false);
+            }
+            CritterOverlay.Ensure();
+        }
+
+        // A lit rag in the canister's nozzle: a hot core in an orange flame.
+        private static void FuseMesh(MeshKit k)
+        {
+            k.Ball(Vector3.zero, new Vector3(0.06f, 0.09f, 0.06f), Quaternion.identity, new Color(1f, 0.5f, 0.12f), 1, 4f);
+            k.Ball(new Vector3(0f, 0.02f, 0f), 0.035f, new Color(1f, 0.95f, 0.65f), 0, 6f);
         }
 
         private void Enter(State next)
@@ -210,10 +259,26 @@ namespace SignalLost.Mudlands
             Vector3 aim = PlayerPosition + lead + Random.insideUnitSphere.Flat() * 0.8f;
             float distance = Vector3.Distance(from, aim);
             var model = MudArt.Part(null, "Thrown Jug", Vector3.zero, Quaternion.identity, "fuel_canister", JugMesh);
+            // Burning in flight: its fuse, a glow, a fire streak and a smoke line that hangs in the air for a couple of
+            // seconds, pointing back at whoever threw it.
+            MudArt.Part(model, "Fuse Flame", new Vector3(0.04f, 0.2f, 0f), Quaternion.identity, "possum_fuse", FuseMesh);
+            var glow = model.gameObject.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(1f, 0.55f, 0.15f);
+            glow.range = 6f;
+            glow.intensity = 3f;
+            glow.shadows = LightShadows.None;
+            Transform fireTrail = Trail(model, "Fire Trail", EffectMaterials.Additive(EffectMaterials.Look.Flame), 0.45f, 0.35f,
+                new Color(1f, 0.75f, 0.3f, 1f), new Color(1f, 0.25f, 0.05f, 0f));
+            Transform smokeTrail = Trail(model, "Smoke Trail", EffectMaterials.AlphaBlended(EffectMaterials.Look.Smoke), 2.4f, 0.5f,
+                new Color(0.35f, 0.33f, 0.3f, 0.55f), new Color(0.35f, 0.33f, 0.3f, 0f));
             ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, from, Vector3.up, 3, 0.2f, 0.5f);
+            Say(Random.value < 0.5f ? "CATCH!" : "HUP!", new Color(1f, 0.7f, 0.3f), 0.8f, 3.2f);
             GameObject owner = gameObject;
             Lob.Throw(model, from, aim, Mathf.Clamp(distance / 14f, 0.7f, 1.4f), 2.5f + distance * 0.12f, at =>
             {
+                LetTrailFade(fireTrail);
+                LetTrailFade(smokeTrail);
                 Sfx.PlayAt("bottle_smash", at, 0.8f, Random.Range(0.8f, 0.95f), 35f);
                 ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, at, Vector3.up, 18, 0.7f, 3f, 70f);
                 foreach (Collider hit in Physics.OverlapSphere(at, 1.6f, ~0, QueryTriggerInteraction.Ignore))
@@ -226,6 +291,34 @@ namespace SignalLost.Mudlands
                 FireZone.Spawn(JugFire, at, 1.4f, owner, null);
             }, 1.6f, new Color(1f, 0.55f, 0.15f, 0.5f), 1f);
             Sfx.PlayAt("chain_swish", from, 0.4f, 0.8f, 25f);
+        }
+
+        private static Transform Trail(Transform parent, string name, Material material, float seconds, float width, Color head, Color tail)
+        {
+            var holder = new GameObject(name).transform;
+            holder.SetParent(parent, false);
+            var trail = holder.gameObject.AddComponent<TrailRenderer>();
+            trail.sharedMaterial = material;
+            trail.time = seconds;
+            trail.minVertexDistance = 0.12f;
+            trail.widthCurve = new AnimationCurve(new Keyframe(0f, width), new Keyframe(1f, width * 0.15f));
+            var colours = new Gradient();
+            colours.SetKeys(new[] { new GradientColorKey(head, 0f), new GradientColorKey(tail, 1f) },
+                new[] { new GradientAlphaKey(head.a, 0f), new GradientAlphaKey(tail.a, 1f) });
+            trail.colorGradient = colours;
+            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            trail.receiveShadows = false;
+            return holder;
+        }
+
+        // The canister is gone; its trail stays where it is and fades out.
+        private static void LetTrailFade(Transform holder)
+        {
+            if (holder == null) return;
+            holder.SetParent(null, true);
+            var trail = holder.GetComponent<TrailRenderer>();
+            if (trail != null) trail.emitting = false;
+            Destroy(holder.gameObject, trail != null ? trail.time + 0.1f : 0.1f);
         }
 
         // ---------- Reactions ----------
@@ -323,6 +416,20 @@ namespace SignalLost.Mudlands
             armR.localRotation = Quaternion.Slerp(armR.localRotation, arm, dt * 14f);
             Visual.localPosition = Vector3.Lerp(Visual.localPosition, VisualRest + Vector3.up * sink, dt * 12f);
             jug.gameObject.SetActive(state != State.Throw);
+            // The fuse is lit while it winds up: a flaring light over its head you can see across the swamp.
+            bool lit = state == State.Aim;
+            if (fuse != null && fuse.gameObject.activeSelf != lit) fuse.gameObject.SetActive(lit);
+            if (lit && fuse != null)
+            {
+                float flicker = 1f + Mathf.Sin(t * 37f) * 0.15f + Mathf.Sin(t * 23f) * 0.1f;
+                fuse.localScale = Vector3.one * flicker * Mathf.Lerp(0.6f, 1.3f, Mathf.Clamp01(stateTime / 0.5f));
+                if (fuseLight != null) fuseLight.intensity = 4f * flicker;
+                if (Time.time >= nextFuseSpark)
+                {
+                    nextFuseSpark = Time.time + 0.08f;
+                    ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, fuse.position, Vector3.up, 3, 0.05f, 1.5f, 60f, new Color(1f, 0.7f, 0.3f));
+                }
+            }
             if (tail != null) tail.localRotation = Quaternion.Euler(0f, Mathf.Sin(t * 2f) * 20f, 0f);
             if (hat != null) hat.localRotation = Quaternion.Euler(-8f, 0f, 6f + Mathf.Sin(t * 1.3f) * 5f);
         }

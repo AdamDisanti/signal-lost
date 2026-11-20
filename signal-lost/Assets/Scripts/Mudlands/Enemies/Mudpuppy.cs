@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SignalLost.Audio;
 using SignalLost.Effects;
 using UnityEngine;
@@ -11,6 +12,10 @@ namespace SignalLost.Mudlands
     /// then hops back and often dives into its hole again. It sometimes plays dead after a hit, belly up with its
     /// tongue out, and jumps up to bite if you walk past (hit it while it fakes and it takes extra).
     /// It panics at cars, scattering with its arms in the air and sometimes running into another pup.
+    /// Latching (11-20, like the desert's Spark Tick): from a few metres it crouches for a beat, then leaps at you. A
+    /// leap that connects clamps onto your visor (you see it chewing on the edge of the screen): 2 every 0.6 s and 10%
+    /// slower per pup, up to three at once. A swing swats up to two off (they take 10 and land dazed); a jump throws
+    /// them all off. A sidestepped leap lands it dazed.
     /// 20 HP.
     /// </summary>
     public sealed class Mudpuppy : MudCritter
@@ -18,7 +23,33 @@ namespace SignalLost.Mudlands
         public static readonly CritterSpec Defaults = new CritterSpec("Mudpuppy", 20f, 0.32f, 0.6f, 3.5f, 14f,
             (Inventory.ScrapType.ScrapMetal, 0, 1), (Inventory.ScrapType.Wiring, 0, 1));
 
-        private enum State { Lurk, Emerge, Hop, Windup, Bite, Retreat, Dive, PlayDead, Panic, Tumble }
+        private enum State { Lurk, Emerge, Hop, Windup, Bite, Retreat, Dive, PlayDead, Panic, Tumble, Crouch, Leap, Latched }
+
+        // ---------- Latching numbers ----------
+        private const float LeapRange = 3.6f, LeapChance = 0.55f, CrouchTime = 0.3f, LeapTime = 0.42f, LeapHeight = 0.9f, LeapCooldown = 2.2f;
+        private const float ChewDamage = 2f, ChewInterval = 0.6f, SlowPerPup = 0.1f, SwatDamage = 10f, LatchedScale = 0.38f;
+        private const int MaxClinging = 3, SwatsPerSwing = 2;
+        // Where clinging pups sit on the view, in metres right/up of the screen centre, 0.62 m in front of the camera:
+        // hanging off the bottom corners and the bottom edge, just above the HUD, clear of the crosshair.
+        private static readonly Vector2[] Slots = { new Vector2(-0.44f, -0.34f), new Vector2(0.44f, -0.34f), new Vector2(-0.12f, -0.4f) };
+        private static readonly List<Mudpuppy> Clinging = new List<Mudpuppy>();
+        private static int swatFrame = -1, swatsThisFrame;
+
+        /// <summary>How many pups are clinging to the player right now (for the on-screen hint).</summary>
+        public static int ClingingCount => Clinging.Count;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetClinging()
+        {
+            Clinging.Clear();
+            swatFrame = -1;
+        }
+
+        private Vector3 leapFrom, leapTo;
+        private int slot;
+        private float nextChew, nextLeap;
+        private bool wasSwinging, wasRising;
+        private SignalLost.Player.FirstPersonController walker;
 
         // Alien colours: teal skin, a mint belly, violet spots and glowing magenta gills.
         private static readonly Color Skin = new Color(0.27f, 0.52f, 0.56f), Belly = new Color(0.72f, 0.9f, 0.82f),
@@ -91,6 +122,7 @@ namespace SignalLost.Mudlands
 
         private void Enter(State next)
         {
+            if (state == State.Latched && next != State.Latched) Unclamp();
             state = next;
             stateTime = 0f;
             switch (next)
@@ -101,6 +133,7 @@ namespace SignalLost.Mudlands
                     break;
                 case State.Emerge:
                     SetColliders(true);
+                    nextLeap = Mathf.Max(nextLeap, Time.time + Random.Range(0.4f, 1.4f));
                     Sfx.PlayAt("pup_squeak", transform.position, 0.6f, Random.Range(1f, 1.3f), 20f);
                     ParticleBurst.Spawn(ParticleBurst.Kind.Sand, transform.position, Vector3.up, 10, 0.3f, 2.5f, 60f, new Color(0.3f, 0.22f, 0.15f, 0.8f));
                     Squash(-0.4f);
@@ -185,9 +218,209 @@ namespace SignalLost.Mudlands
                 case State.Tumble:
                     if (stateTime > 0.7f) StartHop();
                     break;
+                case State.Crouch:
+                    Halt();
+                    TurnToward(PlayerPosition, 900f * dt);
+                    if (stateTime >= CrouchTime) BeginLeap();
+                    break;
+                case State.Leap: UpdateLeap(); break;
+                case State.Latched: UpdateLatched(); break;
             }
+            if (state == State.Latched || state == State.Leap) return; // riding the player: no leash, no head-turning
             if (GaveUp()) { lurkFor = 0.5f; Enter(State.Dive); }
             if (state != State.PlayDead && state != State.Lurk) WatchPlayer();
+        }
+
+        // ---------- Leaping and latching ----------
+
+        private static bool PlayerDriving => DrunkDriving.Instance != null && DrunkDriving.Instance.Current == DrunkDriving.State.Driving;
+
+        private bool CanLeap()
+        {
+            if (!TargetAlive || PlayerDriving || Time.time < nextLeap || Clinging.Count >= MaxClinging) return false;
+            float distance = PlayerDistance;
+            return distance <= LeapRange && distance >= 0.8f && Random.value < LeapChance && CanSee(LeapRange + 1f);
+        }
+
+        // The tell: a quick crouch with its gills flared and a squeak, then the leap.
+        private void StartCrouch()
+        {
+            Enter(State.Crouch);
+            Squash(0.4f);
+            Sfx.PlayAt("pup_squeak", transform.position, 0.6f, Random.Range(0.85f, 0.95f), 20f);
+        }
+
+        private void BeginLeap()
+        {
+            if (!TargetAlive) { StartHop(); return; }
+            leapFrom = transform.position;
+            // At where the player stands now, a little past them, so a late sidestep makes it miss.
+            Vector3 aim = PlayerPosition + FlatDirectionTo(PlayerPosition) * 0.3f;
+            leapTo = new Vector3(aim.x, PlayerPosition.y, aim.z);
+            Halt();
+            if (Agent != null) Agent.enabled = false;
+            Vector3 face = FlatDirectionTo(leapTo);
+            if (face.sqrMagnitude > 0.001f) transform.rotation = Quaternion.LookRotation(face);
+            Enter(State.Leap);
+            Squash(-0.45f);
+            nextLeap = Time.time + LeapCooldown;
+        }
+
+        private void UpdateLeap()
+        {
+            float t = Mathf.Clamp01(stateTime / LeapTime);
+            Vector3 position = Vector3.Lerp(leapFrom, leapTo, t);
+            position.y += Mathf.Sin(t * Mathf.PI) * LeapHeight;
+            transform.position = position;
+            if (TargetAlive && TouchesPlayer(position + Vector3.up * 0.2f))
+            {
+                if (Clinging.Count < MaxClinging && !PlayerDriving) { Clamp(); return; }
+                MissedLeap(); // no room: bounces off
+                return;
+            }
+            if (t >= 1f) MissedLeap();
+        }
+
+        /// <summary>True if this point is inside the player's capsule (with a little slack).</summary>
+        private bool TouchesPlayer(Vector3 point)
+        {
+            Vector3 feet = PlayerPosition;
+            float height = TargetBody != null ? TargetBody.height : 1.8f;
+            float radius = (TargetBody != null ? TargetBody.radius : 0.4f) + 0.3f;
+            Vector3 flat = point - feet;
+            float up = flat.y;
+            flat.y = 0f;
+            return flat.magnitude <= radius && up >= -0.3f && up <= height + 0.3f;
+        }
+
+        private void MissedLeap()
+        {
+            Settle();
+            Enter(State.Tumble);
+            Say("@_@", new Color(1f, 1f, 0.6f), 0.9f, 3f);
+            Squash(0.4f);
+            Sfx.PlayAt("mud_splat", transform.position, 0.35f, 1.6f, 20f);
+        }
+
+        // Back on its feet on the NavMesh (or left where it is if there is none close).
+        private void Settle()
+        {
+            transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+            AgentUtil.Reenable(Agent, 3f);
+        }
+
+        private void Clamp()
+        {
+            Enter(State.Latched);
+            Clinging.Add(this);
+            slot = FreeSlot();
+            SetColliders(false); // can't be shot and doesn't block the player while it clings on
+            transform.localScale = Vector3.one * LatchedScale;
+            nextChew = Time.time + ChewInterval;
+            wasSwinging = PlayerSwinging();
+            if (walker == null && Target != null) walker = Target.GetComponentInParent<SignalLost.Player.FirstPersonController>();
+            wasRising = Rising;
+            Sfx.Play("pup_squeak", 0.7f, Random.Range(1.7f, 1.9f));
+            Sfx.Play("crab_snip", 0.5f, 1.9f);
+            CameraShake.Add(0.12f);
+            CritterOverlay.Ensure();
+        }
+
+        private int FreeSlot()
+        {
+            for (int s = 0; s < Slots.Length; s++)
+            {
+                bool used = false;
+                foreach (Mudpuppy other in Clinging)
+                    if (other != this && other.slot == s) used = true;
+                if (!used) return s;
+            }
+            return 0;
+        }
+
+        // Leaving the Latched state (any way): off the player's face and back to full size and solid.
+        private void Unclamp()
+        {
+            Clinging.Remove(this);
+            transform.localScale = Vector3.one;
+            if (!IsDead && !Health.IsDead) SetColliders(true);
+        }
+
+        private void OnDestroy() => Clinging.Remove(this);
+
+        private bool PlayerSwinging()
+        {
+            if (TargetLaser != null && TargetLaser.isActiveAndEnabled && TargetLaser.IsSwinging) return true;
+            var fists = Target != null ? Target.GetComponentInParent<SignalLost.Melee.PlayerFists>() : null;
+            return fists != null && fists.isActiveAndEnabled && fists.IsBusy;
+        }
+
+        private void UpdateLatched()
+        {
+            if (!TargetAlive || PlayerDriving || TargetBody == null || !TargetBody.enabled) { ThrownOff(false); return; }
+
+            if (Time.time >= nextChew)
+            {
+                nextChew = Time.time + ChewInterval;
+                TargetHealth?.TakeDamage(ChewDamage, gameObject);
+                Squash(0.25f);
+                if (Random.value < 0.5f) Sfx.Play("crab_snip", 0.3f, Random.Range(1.8f, 2.1f));
+            }
+            if (Clinging.Count > 0 && Clinging[0] == this)
+                MudlandsPlayerSlow.Ensure(TargetBody.gameObject).SlowFor(Clinging.Count * SlowPerPup, 0.2f);
+
+            // A swing swats up to two off; a jump throws them all off.
+            bool swinging = PlayerSwinging();
+            if (swinging && !wasSwinging)
+            {
+                if (swatFrame != Time.frameCount) { swatFrame = Time.frameCount; swatsThisFrame = 0; }
+                if (swatsThisFrame < SwatsPerSwing)
+                {
+                    swatsThisFrame++;
+                    ThrownOff(true);
+                    return;
+                }
+            }
+            wasSwinging = swinging;
+
+            // The jump read from the controller itself: the mud slow's extra Move hides it from CharacterController.velocity.
+            bool rising = Rising;
+            bool jumped = rising && !wasRising;
+            wasRising = rising;
+            if (jumped) ThrownOff(false);
+        }
+
+        private bool Rising => walker != null ? walker.VerticalSpeed > 2f : TargetBody != null && TargetBody.velocity.y > 2f;
+
+        /// <summary>Comes off the player: swatted (hurt, flung further) or shaken off by a jump; lands dazed.</summary>
+        private void ThrownOff(bool swatted)
+        {
+            Transform view = TargetView != null ? TargetView : transform;
+            Vector2 s = Slots[Mathf.Clamp(slot, 0, Slots.Length - 1)];
+            float side = s.x < -0.01f ? -1f : s.x > 0.01f ? 1f : (Random.value < 0.5f ? -1f : 1f);
+            Vector3 sideways = new Vector3(view.right.x, 0f, view.right.z).normalized * side;
+            Vector3 ahead = new Vector3(view.forward.x, 0f, view.forward.z).normalized;
+            Vector3 feet = Target != null ? Target.position : transform.position;
+            Enter(State.Tumble); // unclamps
+            transform.position = feet + Vector3.up * 1.1f + sideways * 0.7f + ahead * 0.5f;
+            transform.rotation = Quaternion.LookRotation(-sideways);
+            Say(swatted ? "!!" : "!?", new Color(1f, 0.7f, 0.5f), 0.8f, 3f);
+            Sfx.PlayAt("pup_squeak", transform.position, 0.6f, Random.Range(1.4f, 1.7f), 20f);
+            Launch((sideways * (swatted ? 5f : 3f) + ahead * 1.5f) + Vector3.up * (swatted ? 3.5f : 2.5f), swatted ? 720f : 400f);
+            if (swatted) Health.TakeDamage(SwatDamage, Target != null ? Target.gameObject : null);
+        }
+
+        // Clinging pups stay glued to the view after the camera has moved this frame.
+        protected override void LateUpdate()
+        {
+            base.LateUpdate();
+            if (state != State.Latched || IsDead || TargetView == null) return;
+            Transform view = TargetView;
+            Vector2 s = Slots[Mathf.Clamp(slot, 0, Slots.Length - 1)];
+            float wiggle = Mathf.Sin(Time.time * 19f + slot * 2f) * 0.012f;
+            transform.position = view.position + view.forward * 0.62f + view.right * (s.x + wiggle) + view.up * (s.y + Mathf.Abs(wiggle));
+            // Face the camera, nose up into the middle of the screen, tilted toward its corner.
+            transform.rotation = Quaternion.LookRotation(-view.forward, view.up) * Quaternion.Euler(-35f, 0f, -s.x * 70f);
         }
 
         private void Bonk()
@@ -228,6 +461,7 @@ namespace SignalLost.Mudlands
             if (hopTime < duration) return;
             Squash(0.3f);
             if (Random.value < 0.25f) Sfx.PlayAt("pup_squeak", transform.position, 0.3f, Random.Range(1.2f, 1.6f), 15f);
+            if (CanLeap()) { StartCrouch(); return; }
             if (PlayerDistance < 1.6f) { Enter(State.Windup); Squash(0.35f); return; }
             if (!Notices() && !ReturningHome) { Enter(State.Dive); return; }
             NextHop();
@@ -257,6 +491,7 @@ namespace SignalLost.Mudlands
 
         protected override void OnHit(float amount, GameObject source, Vector3 away)
         {
+            if (state == State.Latched || state == State.Leap) return; // a blast caught it on the player: just the damage
             if (state == State.Lurk) { Enter(State.Emerge); return; }
             if (state == State.PlayDead && !bonusHit)
             {
@@ -286,7 +521,8 @@ namespace SignalLost.Mudlands
 
         public override void OnCarApproaching(DrunkCar car, float secondsAway)
         {
-            if (secondsAway > 1.8f || state == State.Panic || state == State.Lurk || state == State.PlayDead || state == State.Tumble) return;
+            if (secondsAway > 1.8f || state == State.Panic || state == State.Lurk || state == State.PlayDead || state == State.Tumble ||
+                state == State.Latched || state == State.Leap) return;
             if (FlatDistance(Home) < 3f) { Enter(State.Dive); return; }
             Enter(State.Panic);
             Say(Random.value < 0.5f ? "AAAA!" : "EEK!", new Color(1f, 0.6f, 0.6f), 1f, 3f);
@@ -312,7 +548,9 @@ namespace SignalLost.Mudlands
         protected override void Animate(float dt)
         {
             float t = Time.time;
-            float sink = state == State.Lurk ? -0.4f : state == State.Emerge ? Mathf.Lerp(-0.4f, 0f, stateTime / 0.35f) : 0f;
+            if (state == State.Latched) { AnimateClinging(t); return; }
+            float sink = state == State.Lurk ? -0.4f : state == State.Emerge ? Mathf.Lerp(-0.4f, 0f, stateTime / 0.35f) :
+                state == State.Crouch ? -0.08f * Mathf.Clamp01(stateTime / 0.12f) : 0f;
             float hopLift = state == State.Hop ? Mathf.Sin(Mathf.Clamp01(hopTime / (0.38f / Tempo)) * Mathf.PI) * 0.3f :
                 state == State.Retreat ? Mathf.Abs(Mathf.Sin(stateTime * 10f)) * 0.2f :
                 state == State.Panic ? Mathf.Abs(Mathf.Sin(stateTime * 18f)) * 0.15f : 0f;
@@ -320,22 +558,44 @@ namespace SignalLost.Mudlands
             {
                 Visual.localPosition = VisualRest + Vector3.up * (sink + hopLift + (state == State.Lurk ? Mathf.Sin(bob * 2f) * 0.02f : 0f));
                 float roll = state == State.PlayDead ? Mathf.Min(1f, stateTime / 0.2f) * 175f : state == State.Tumble ? Mathf.Sin(stateTime * 20f) * 40f : 0f;
-                float pitch = state == State.Windup ? -15f : state == State.Bite ? 12f : 0f;
+                float pitch = state == State.Windup ? -15f : state == State.Bite ? 12f : state == State.Crouch ? -12f : state == State.Leap ? -30f : 0f;
                 Visual.localRotation = VisualRestRotation * Quaternion.Euler(pitch, 0f, roll);
             }
             if (tail != null) tail.localRotation = Quaternion.Euler(0f, Mathf.Sin(t * (state == State.Panic ? 25f : 7f)) * 25f, 0f);
             for (int i = 0; i < gills.Length; i++)
-                if (gills[i] != null) gills[i].localScale = Vector3.one * (1f + Mathf.Sin(t * 9f + i) * 0.12f);
+                if (gills[i] != null) gills[i].localScale = Vector3.one * ((state == State.Crouch || state == State.Leap ? 1.45f : 1f) + Mathf.Sin(t * 9f + i) * 0.12f);
             for (int i = 0; i < 4; i++)
             {
                 if (legs[i] == null) continue;
                 bool front = i < 2;
-                float swing = state == State.Panic && front ? -120f + Mathf.Sin(t * 30f + i) * 50f :
+                float swing = state == State.Leap ? (front ? -75f : 55f) :
+                    state == State.Panic && front ? -120f + Mathf.Sin(t * 30f + i) * 50f :
                     state == State.PlayDead ? Mathf.Sin(t * 3f + i) * 10f :
                     Mathf.Sin(t * 14f + i * 1.7f) * (state == State.Hop || state == State.Retreat ? 35f : 6f);
                 legs[i].localRotation = Quaternion.Euler(swing, 0f, 0f);
             }
-            if (mouth != null) mouth.localScale = new Vector3(1f, state == State.Windup ? 4f : state == State.Bite ? 2.5f : 1f, 1f);
+            if (mouth != null) mouth.localScale = new Vector3(1f, state == State.Windup || state == State.Leap ? 4f : state == State.Bite ? 2.5f : 1f, 1f);
+        }
+
+        // On the player's visor: chomping, gills flared, legs scrabbling, tail whipping.
+        private void AnimateClinging(float t)
+        {
+            Visual.localPosition = VisualRest;
+            Visual.localRotation = VisualRestRotation * Quaternion.Euler(0f, 0f, Mathf.Sin(t * 13f + slot) * 9f);
+            if (Head != null) Head.localRotation = Quaternion.Euler(-18f + Mathf.Sin(t * 26f) * 16f, Mathf.Sin(t * 7f) * 10f, 0f);
+            if (mouth != null) mouth.localScale = new Vector3(1f, 2.5f + Mathf.Sin(t * 26f) * 1.5f, 1f);
+            if (tail != null) tail.localRotation = Quaternion.Euler(0f, Mathf.Sin(t * 22f) * 40f, 0f);
+            for (int i = 0; i < gills.Length; i++)
+                if (gills[i] != null) gills[i].localScale = Vector3.one * (1.4f + Mathf.Sin(t * 16f + i) * 0.2f);
+            for (int i = 0; i < 4; i++)
+                if (legs[i] != null) legs[i].localRotation = Quaternion.Euler(Mathf.Sin(t * 30f + i * 1.9f) * 45f, 0f, 0f);
+        }
+
+        protected override void OnCritterDeath()
+        {
+            // Killed while clinging on (a blast, the player dying): it drops off rather than dying on the screen.
+            if (state == State.Latched) ThrownOff(false);
+            else if (state == State.Leap) Settle();
         }
 
         protected override void DeathPose(float t)

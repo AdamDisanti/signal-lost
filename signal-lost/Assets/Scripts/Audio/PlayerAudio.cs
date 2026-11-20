@@ -32,6 +32,7 @@ namespace SignalLost.Audio
         private PlayerInventory inventory;
         private ScannerToggle scanner;
         private CharacterController body;
+        private FirstPersonController walker;
         private WakeUpSequence wakeUp;
 
         private SfxLoop chargeLoop, heartbeat;
@@ -58,6 +59,7 @@ namespace SignalLost.Audio
             if (inventory == null) inventory = PlayerInventory.Current;
             scanner = gear != null && gear.Scanner != null ? gear.Scanner : GetComponentInChildren<ScannerToggle>(true);
             body = GetComponent<CharacterController>();
+            walker = GetComponent<FirstPersonController>();
             wakeUp = FindAnyObjectByType<WakeUpSequence>();
 
             string scene = SceneManager.GetActiveScene().name.ToLowerInvariant();
@@ -224,6 +226,9 @@ namespace SignalLost.Audio
             if (body == null || !body.enabled) return;
             bool grounded = body.isGrounded;
             Vector3 velocity = body.velocity;
+            // Up/down speed from the controller itself: anything that calls Move again in the same frame (the Mudlands'
+            // mud slow, 11-20) leaves CharacterController.velocity with no vertical part, which hid jumps and landings.
+            if (walker != null) velocity.y = walker.VerticalSpeed;
             float speed = new Vector3(velocity.x, 0f, velocity.z).magnitude;
             bool busy = UiMenus.FullScreenOpen || (life != null && life.IsRespawning) || Time.timeScale == 0f;
 
