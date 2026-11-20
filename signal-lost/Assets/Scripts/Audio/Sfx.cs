@@ -27,7 +27,15 @@ namespace SignalLost.Audio
 
         private static readonly Dictionary<string, AudioClip> cache = new Dictionary<string, AudioClip>();
         private static readonly List<AudioSource> pool = new List<AudioSource>();
+        private static readonly Dictionary<AudioSource, float> playUntil = new Dictionary<AudioSource, float>();
         private static Transform root;
+        private static AudioListener listener;
+        private static float nextListenerLook;
+
+        /// <summary>Priority for sounds that aren't anywhere in the world (the player's own, menus): they always get a voice.</summary>
+        internal const int PlayerPriority = 16;
+        /// <summary>Priority for 2D loops (ambience, the laser charge, the heartbeat).</summary>
+        internal const int FlatLoopPriority = 64;
 
         internal static void SetRoot(Transform parent) => root = parent;
 
@@ -38,6 +46,21 @@ namespace SignalLost.Audio
         public static readonly AnimationCurve NearbyFalloff = new AnimationCurve(
             new Keyframe(0f, 1f), new Keyframe(0.05f, 0.9f), new Keyframe(0.15f, 0.5f),
             new Keyframe(0.4f, 0.15f), new Keyframe(0.75f, 0.04f), new Keyframe(1f, 0f));
+
+        /// <summary>
+        /// Where the ears are (the active AudioListener), looked up at most twice a second. False if there is none.
+        /// </summary>
+        public static bool ListenerPosition(out Vector3 position)
+        {
+            if ((listener == null || !listener.isActiveAndEnabled) && Time.unscaledTime >= nextListenerLook)
+            {
+                nextListenerLook = Time.unscaledTime + 0.5f;
+                listener = Object.FindAnyObjectByType<AudioListener>();
+            }
+            bool found = listener != null && listener.isActiveAndEnabled;
+            position = found ? listener.transform.position : Vector3.zero;
+            return found;
+        }
 
         public static float BusVolume(SoundBus bus) =>
             bus == SoundBus.Ambience ? GameSettings.MusicVolume : GameSettings.EffectsVolume;
@@ -69,7 +92,12 @@ namespace SignalLost.Audio
         private static AudioSource Start(string name, Vector3? position, float volume, float pitch, SoundBus bus, float maxDistance)
         {
             AudioClip clip = Clip(name);
-            AudioSource source = clip != null ? Rent() : null;
+            if (clip == null) return null;
+            // A world sound too far away to be heard isn't started at all: it would only take a voice from sounds
+            // that can be heard (the Mudlands has dozens of critters and torches across the map; 11-20).
+            if (position.HasValue && ListenerPosition(out Vector3 ears) && (position.Value - ears).sqrMagnitude > maxDistance * maxDistance)
+                return null;
+            AudioSource source = Rent();
             if (source == null) return null;
 
             source.clip = clip;
@@ -78,6 +106,7 @@ namespace SignalLost.Audio
             source.volume = Mathf.Clamp01(volume * BusVolume(bus));
             source.ignoreListenerPause = bus == SoundBus.Interface;
             source.dopplerLevel = 0f;
+            source.priority = position.HasValue ? 128 : PlayerPriority;
             if (position.HasValue)
             {
                 source.transform.position = position.Value;
@@ -92,6 +121,9 @@ namespace SignalLost.Audio
                 source.spatialBlend = 0f;
             }
             source.Play();
+            // When Unity is short of voices a sound can sit "virtual" without ever finishing; the pool takes the voice
+            // back once the clip should long be over.
+            playUntil[source] = Time.unscaledTime + clip.length / Mathf.Max(0.1f, Mathf.Abs(pitch)) + 0.5f;
             return source;
         }
 
@@ -103,6 +135,7 @@ namespace SignalLost.Audio
             {
                 if (source == null) continue;
                 if (!source.isPlaying) return source;
+                if (playUntil.TryGetValue(source, out float until) && Time.unscaledTime > until) { source.Stop(); return source; }
                 if (oldest == null || source.time / Mathf.Max(0.01f, source.clip.length) > oldest.time / Mathf.Max(0.01f, oldest.clip.length))
                     oldest = source;
             }
@@ -138,6 +171,7 @@ namespace SignalLost.Audio
             source.spatialBlend = spatial ? 1f : 0f;
             source.minDistance = minDistance;
             source.maxDistance = maxDistance;
+            source.priority = spatial ? 128 : FlatLoopPriority;
             if (spatial)
             {
                 // Loud up close, drops off quickly, and is fully silent at maxDistance.
