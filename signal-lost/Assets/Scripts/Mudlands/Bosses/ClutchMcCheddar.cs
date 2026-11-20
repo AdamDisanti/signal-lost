@@ -36,8 +36,10 @@ namespace SignalLost.Mudlands
     /// the bike slides out from under him, he tumbles, sits dazed, dusts himself off and gets back on (3 s at 1.5x
     /// damage).</item>
     /// <item><b>The getaway:</b> at 15% he stops taking damage and pulls a wheelie up the Gator Causeway. Drunk Driving
-    /// is free for the chase; ram him before the County Line gate and he goes over the handlebars. If he gets away he
-    /// heals back to 33% and roars back into the lot.</item>
+    /// is free for the chase; ram him before the jump ramp short of the County Line and he goes over the handlebars.
+    /// If he reaches it he lines up, hits the nitro and jumps the County Line out of bounds (slow motion over the banner,
+    /// a whip and a wave at the top, gone over the ridge's treeline with a twinkle), heals back to 33% and roars back
+    /// into the lot.</item>
     /// </list>
     /// 1100 HP. Drops the Landing Gear (the stage's main part) and Clutch's Aviators (a camp trophy).
     /// </summary>
@@ -91,7 +93,7 @@ namespace SignalLost.Mudlands
         private float stateTime, orbit, nextAttack, nextGang, escapeTimer, nextDrop, nextTick, nextGesture;
         private int ramsLeft, getawayStop;
         private Vector3 ramDirection, jumpFrom, jumpTo, savedHome, spinCentre;
-        private bool ramHit, escaped, chaseRunning, taunted, nitroDone, titleShown, slowMo;
+        private bool ramHit, escaped, awayFromLot, chaseRunning, taunted, nitroDone, titleShown, slowMo;
         private GroundRing ring;
         private readonly List<GameObject> gang = new List<GameObject>();
         private SfxLoop engine;
@@ -950,6 +952,13 @@ namespace SignalLost.Mudlands
             UpdateShove(dt);
             gang.RemoveAll(g => g == null);
             if (chaseRunning) Home = Target != null ? Target.position : Home; // the leash follows the chase
+            else if (awayFromLot && Target != null)
+            {
+                // After he got away the leash stays on you until you're back at the lot (it used to reset the whole
+                // fight the moment he vanished, with you 150 m off at the County Line); till then round two comes to you.
+                if (Flat(Target.position - savedHome) <= ArenaRadius) { awayFromLot = false; Home = savedHome; }
+                else Home = Target.position;
+            }
             bool nitro = Stage == 3 && nitroDone;
             switch (state)
             {
@@ -988,7 +997,8 @@ namespace SignalLost.Mudlands
             }
             if (state == State.Circle) MaybeGesture();
             bool flaming = state == State.Rally || state == State.Nitro && stateTime > 0.6f;
-            if (!flaming) ExhaustFlames(nitro && (state == State.Ram || state == State.Circle || state == State.Getaway), true);
+            bool ramping = state == State.Getaway && committed && run != Run.Road; // he hits the nitro for the jump
+            if (!flaming) ExhaustFlames(ramping || nitro && (state == State.Ram || state == State.Circle || state == State.Getaway), true);
             if (engine != null && engine.Source != null)
             {
                 float revving = state == State.Line || state == State.Rooster || state == State.Rally ? 0.5f : 0f;
@@ -1410,6 +1420,9 @@ namespace SignalLost.Mudlands
             getawayStop = 0;
             escapeTimer = 0f;
             taunted = false;
+            run = Run.Road;
+            runTime = 0f;
+            committed = false;
             chaseRunning = true;
             foreach (GameObject member in gang) if (member != null) Emote.Show(member.transform, "GO BOSS GO!", new Color(1f, 0.8f, 0.4f), 1.6f, 2f, 2.5f);
             const string line = "Catch me if you can, cheese-for-brains!";
@@ -1424,23 +1437,57 @@ namespace SignalLost.Mudlands
             BuildEscapeRamp();
         }
 
-        // ---------- The escape ramp: his way out, at the end of the causeway ----------
+        // ---------- The escape ramp: his way out, over the County Line and off the map ----------
+
+        // His way out is a plank ramp on the causeway just short of the County Line, angled a little off the road toward
+        // the edge of the map. On the last stretch he stops weaving, lines up on it and hits the nitro; he rides up the
+        // planks (placed on the ramp's own slope, no ground probes, so nothing to stutter on), launches over the County
+        // Line's banner in slow motion, whips the bike at the top of the arc while he twists round and waves you
+        // goodbye, then tucks in and sails over the ridge's treeline: out of bounds, gone with a twinkle.
+        private enum Run { Road, LineUp, Climb, Air }
+
+        // The lip sits on the road this far short of the County Line; the jump bends at most this far off the road (so it
+        // still crosses the banner well inside the posts); he commits to the ramp this far out.
+        private const float LipBeforeLine = 9f, JumpBend = 15f, LineUpFrom = 35f, CommitAt = 12f, RampSpeed = 22f;
+        // MudModels.Kind.Ramp: 8 m long, 2.6 m high at the lip (+Z), so an 18 degree slope.
+        private const float RampLength = 8f, RampHeight = 2.6f;
+        // The flight (m/s, m/s, m/s^2, s): clears the banner by about 3.5 m, peaks about 24 m up at 2 s.
+        private const float FlightForward = 28f, FlightUp = 24f, FlightGravity = 12f, FlightMax = 3.2f;
+        // Gone once the ground under him is this close (the ridge rising under its trees, up to 20 m tall), checked from
+        // 1.3 s on (by then he's about 24 m up over the flat).
+        private const float TreelineClearance = 19f, TreelineCheckFrom = 1.3f;
+
+        private static readonly RaycastHit[] FlightHits = new RaycastHit[16];
 
         private Transform escapeRamp;
-        private bool launching;
-        private float launchTime;
-        private Vector3 launchFrom, launchTo;
+        private Run run;
+        private float runTime, rampZ, rampSide;
+        private bool committed, slowJump, waved;
+        private Vector3 escapeFrom, lastFlight;
 
-        private Vector3 RampLip => escapeRamp.TransformPoint(new Vector3(0f, 2.6f, 4f));
+        private bool Airborne => state == State.Getaway && run == Run.Air;
+        private Vector3 JumpDir => escapeRamp.forward.Flatten().normalized;
+        // A point on the planks: z along the ramp (-4 at the foot, +4 at the lip), side across it.
+        private Vector3 OnRamp(float z, float side) =>
+            escapeRamp.TransformPoint(new Vector3(side, (z + RampLength * 0.5f) / RampLength * RampHeight, z));
+        private Vector3 RampFoot => OnRamp(-RampLength * 0.5f, 0f);
+        private Vector3 FlightAt(float t) =>
+            escapeFrom + JumpDir * (FlightForward * t) + Vector3.up * (FlightUp * t - 0.5f * FlightGravity * t * t);
 
-        // A plank jump ramp on the road just short of the County Line (built once, on his first getaway).
+        // Built once, on his first getaway (it stays for round two).
         private void BuildEscapeRamp()
         {
             if (escapeRamp != null || escapeRoute.Length < 2) return;
             Vector3 end = escapeRoute[escapeRoute.Length - 1].position, before = escapeRoute[escapeRoute.Length - 2].position;
-            Vector3 dir = (end - before).Flatten().normalized;
+            Vector3 road = (end - before).Flatten().normalized;
+            // Bent toward the map's edge (the Mudlands are centred on the world origin), only as far as keeps the jump
+            // over the County Line's banner: 9 m on at 15 degrees is 2.4 m off centre, the posts are 5 m out.
+            Vector3 outward = end.Flatten();
+            float bend = outward.sqrMagnitude > 1f ? Mathf.Clamp(Vector3.SignedAngle(road, outward, Vector3.up), -JumpBend, JumpBend) : 0f;
+            Vector3 dir = Quaternion.Euler(0f, bend, 0f) * road;
+            Vector3 lip = end - road * LipBeforeLine;
             var root = new GameObject("Clutch's Escape Ramp").transform;
-            root.SetPositionAndRotation(Ground(end - dir * 6f), Quaternion.LookRotation(dir));
+            root.SetPositionAndRotation(Ground(lip - dir * (RampLength * 0.5f)), Quaternion.LookRotation(dir));
             MudArt.Part(root, "Model", Vector3.zero, Quaternion.identity, "clutch2_escape_ramp", k => MudModels.Build(k, MudModels.Kind.Ramp, 0, 1f));
             var surface = new GameObject("Ramp Surface");
             surface.transform.SetParent(root, false);
@@ -1450,72 +1497,34 @@ namespace SignalLost.Mudlands
             escapeRamp = root;
         }
 
-        // Off the lip: a huge jump over the County Line and away (unless you rammed him first).
-        private void Launch()
-        {
-            launching = true;
-            launchTime = 0f;
-            launchFrom = transform.position;
-            Vector3 dir = escapeRamp.forward.Flatten().normalized;
-            launchTo = Ground(launchFrom + dir * 40f);
-            transform.rotation = Quaternion.LookRotation(dir);
-            Say("SO LONG, SUCKER!", Line, 1.6f, 5f);
-            Sfx.PlayAt("rev", transform.position, 1f, 1.4f, 120f);
-            engineBlast = 1f;
-            ExhaustFlames(true, Stage == 3 && nitroDone);
-            MudHud.Shout("HE JUMPED IT!", new Color(1f, 0.5f, 0.3f), 2f);
-        }
-
-        private void UpdateLaunch(float dt)
-        {
-            launchTime += dt;
-            float k = Mathf.Clamp01(launchTime / 1.6f);
-            transform.position = Vector3.Lerp(launchFrom, launchTo, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 10f;
-            if (k < 1f) return;
-            launching = false;
-            ExhaustFlames(false, false);
-            Dust(transform.position, 40, 1.2f);
-            Escape();
-        }
-
         private void UpdateGetaway(float dt)
         {
             if (escapeRoute.Length == 0) { Escape(); return; }
             escapeTimer += dt;
+            runTime += dt;
+            switch (run)
+            {
+                case Run.Climb: UpdateClimb(dt); return;
+                case Run.Air: UpdateAir(dt); return;
+            }
+            // The last stretch: from 35 m out (the ramp is angled off the road, so he needs the room to curve onto it).
+            if (run == Run.Road && escapeRamp != null && (getawayStop >= escapeRoute.Length - 1 || Flat(RampFoot - transform.position) < LineUpFrom))
+            {
+                run = Run.LineUp;
+                runTime = 0f;
+                committed = false;
+            }
+            if (run == Run.LineUp) { UpdateLineUp(dt); return; }
+
             // A wheelie off the line, then flat out along the causeway, weaving, dropping barrels.
             Vector3 target = escapeRoute[Mathf.Min(getawayStop, escapeRoute.Length - 1)].position;
             Vector3 to = (target - transform.position).Flatten();
-            if (escapeRamp != null && getawayStop >= escapeRoute.Length - 1 && Flat(RampLip - transform.position) < 2f) { Launch(); return; }
             if (to.magnitude < 3f)
             {
                 getawayStop++;
-                if (getawayStop >= escapeRoute.Length) { Escape(); return; }
+                if (getawayStop >= escapeRoute.Length) { Escape(); return; } // no ramp (no route to build it on)
             }
-            // Off the line in a wheelie; then he dawdles (taunting) until you are in a car, and from there he
-            // rubber-bands: flat out when you are close, easing off when you fall far behind, so the chase stays
-            // winnable but you have to drive well (and dodge his barrels) to get alongside.
-            DrunkCar chaser = DrunkDriving.Instance != null ? DrunkDriving.Instance.Car : null;
-            float speed;
-            if (launching) { UpdateLaunch(dt); return; }
-            if (escapeTimer < 1.2f) speed = 8f;
-            else if (chaser == null)
-            {
-                speed = 6f; // slow enough that the chug and the car's drop don't lose you the race
-                if (!taunted && escapeTimer > 2.5f)
-                {
-                    taunted = true;
-                    Say("C'mon, slowpoke!", Line, 1.4f, 2.5f);
-                    StartGesture(Gesture.Wave, 1.2f);
-                }
-            }
-            // The chase car tops out at 26 m/s (less in mud). Close up he does 13, far behind 7, and if you've fallen
-            // way back he all but waits for you: always catchable, it just takes a clean run (11-09: at 11-18 he
-            // always got away).
-            else
-            {
-                float behind = Flat(chaser.transform.position - transform.position);
-                speed = behind > 60f ? 4f : Mathf.Lerp(13f, 7f, Mathf.InverseLerp(8f, 45f, behind));
-            }
+            float speed = ChaseSpeed();
             Vector3 weave = Vector3.Cross(Vector3.up, to.normalized) * Mathf.Sin(escapeTimer * 1.6f) * 0.35f;
             Vector3 heading = (to.normalized + weave).normalized;
             transform.position = Ground(transform.position + heading * speed * dt);
@@ -1526,15 +1535,242 @@ namespace SignalLost.Mudlands
                 StartGesture(Gesture.Toss, 0.6f);
                 DropBarrel(transform.position - transform.forward * 2.5f);
             }
-            float left = RouteLeft();
-            MudHud.Chase(DrunkDriving.Instance != null && DrunkDriving.Instance.InCar ? "RAM HIM before the ramp!" : "HE'S GETTING AWAY!  Hold F and RAM HIM!", left);
+            ChaseBar("RAM HIM before the ramp!");
+        }
+
+        // Off the line in a wheelie; then he dawdles (taunting) until you are in a car, and from there he rubber-bands:
+        // flat out when you are close, easing off when you fall far behind, so the chase stays winnable but you have to
+        // drive well (and dodge his barrels) to get alongside. The chase car tops out at 26 m/s (less in mud). Close up
+        // he does 13, far behind 7, and if you've fallen way back he all but waits for you: always catchable, it just
+        // takes a clean run (11-09: at 11-18 he always got away).
+        private float ChaseSpeed()
+        {
+            if (escapeTimer < 1.2f) return 8f;
+            DrunkCar chaser = DrunkDriving.Instance != null ? DrunkDriving.Instance.Car : null;
+            if (chaser == null)
+            {
+                if (!taunted && escapeTimer > 2.5f)
+                {
+                    taunted = true;
+                    Say("C'mon, slowpoke!", Line, 1.4f, 2.5f);
+                    StartGesture(Gesture.Wave, 1.2f);
+                }
+                return 6f; // slow enough that the chug and the car's drop don't lose you the race
+            }
+            float behind = Flat(chaser.transform.position - transform.position);
+            return behind > 60f ? 4f : Mathf.Lerp(13f, 7f, Mathf.InverseLerp(8f, 45f, behind));
+        }
+
+        private void ChaseBar(string inCar) => ChaseBar(inCar, RouteLeft());
+
+        private void ChaseBar(string inCar, float left)
+        {
+            bool driving = DrunkDriving.Instance != null && DrunkDriving.Instance.InCar;
+            MudHud.Chase(driving ? inCar : "HE'S GETTING AWAY!  Hold F and RAM HIM!", left);
+        }
+
+        // The last stretch: no more weaving or barrels; he curves onto the ramp's centre line and, from 12 m out, guns it.
+        private void UpdateLineUp(float dt)
+        {
+            Vector3 dir = JumpDir, side = Vector3.Cross(Vector3.up, dir);
+            Vector3 offset = (transform.position - RampFoot).Flatten();
+            float along = Vector3.Dot(offset, dir), lateral = Vector3.Dot(offset, side);
+            if (along >= -0.25f) { BeginClimb(along, lateral); return; }
+            if (!committed && along > -CommitAt)
+            {
+                committed = true;
+                gesture = Gesture.None;
+                Sfx.PlayAt("rev", transform.position, 1f, 1.35f, 120f);
+                engineBlast = 1f;
+                Face?.Show(Mood.Smug, 2f);
+            }
+            // Pursue a point on the centre line a little ahead of him (never past the foot): a smooth curve onto it.
+            float ahead = Mathf.Min(along + Mathf.Max(6f, -along * 0.5f), 0f);
+            Vector3 heading = (RampFoot + dir * ahead - transform.position).Flatten();
+            heading = heading.sqrMagnitude > 0.01f ? heading.normalized : dir;
+            float speed = committed ? Mathf.Lerp(Mathf.Max(ChaseSpeed(), 12f), RampSpeed, Mathf.InverseLerp(-CommitAt, -3f, along)) : ChaseSpeed();
+            transform.position = Ground(transform.position + heading * speed * dt);
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(heading), dt * 8f);
+            // The bar runs out at the lip.
+            ChaseBar(committed ? "HE'S GOING FOR THE RAMP!" : "RAM HIM before the ramp!", Mathf.Min(RouteLeft(), Mathf.Clamp01((RampLength - along) / Mathf.Max(1f, RouteLength()))));
+        }
+
+        private void BeginClimb(float along, float lateral)
+        {
+            run = Run.Climb;
+            runTime = 0f;
+            rampZ = Mathf.Clamp(along - RampLength * 0.5f, -RampLength * 0.5f, RampLength * 0.5f);
+            rampSide = Mathf.Clamp(lateral, -1.5f, 1.5f);
+            if (!committed) { committed = true; engineBlast = 1f; }
+        }
+
+        // Up the planks at 22 m/s: on the slope itself, drifting onto the centre line, square to the ramp.
+        private void UpdateClimb(float dt)
+        {
+            rampZ += RampSpeed * 0.95f * dt; // cos 18 degrees: the slope is a little longer than its run
+            rampSide = Mathf.MoveTowards(rampSide, 0f, dt * 5f);
+            transform.position = OnRamp(Mathf.Min(rampZ, RampLength * 0.5f), rampSide);
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(JumpDir), 1f - Mathf.Exp(-14f * dt));
+            ChaseBar("HE'S GOING FOR THE RAMP!", Mathf.Clamp01((RampLength * 0.5f - rampZ) / Mathf.Max(1f, RouteLength())));
+            if (rampZ >= RampLength * 0.5f) Launch();
+        }
+
+        // Off the lip: over the County Line and away (unless you rammed him first).
+        private void Launch()
+        {
+            run = Run.Air;
+            runTime = 0f;
+            waved = false;
+            escapeFrom = lastFlight = transform.position;
+            transform.rotation = Quaternion.LookRotation(JumpDir);
+            Say("WAHOOO!", Line, 1.2f, 5f);
+            Face?.Show(Mood.Laugh, 2.5f);
+            Sfx.PlayAt("rev", transform.position, 1f, 1.5f, 150f);
+            Sfx.PlayAt("car_drop", transform.position, 0.7f, 0.8f, 60f);
+            engineBlast = 1f;
+            CameraShake.Add(0.3f);
+            Dust(transform.position - JumpDir * 1.5f, 35, 1.1f);
+            ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, transform.position, -JumpDir + Vector3.up * 0.4f, 12, 0.08f, 6f, 30f, Nitro);
+            MudHud.Shout("HE'S JUMPING THE COUNTY LINE!", new Color(1f, 0.5f, 0.3f), 2.2f);
+            // Slow motion over the banner, if you're close enough to see it.
+            slowJump = Target != null && Flat(Target.position - transform.position) < 90f;
+        }
+
+        private void UpdateAir(float dt)
+        {
+            float t = runTime;
+            if (slowJump)
+            {
+                SetSlowMotion(t < 0.4f ? 0.35f : Mathf.Lerp(0.35f, 1f, (t - 0.4f) / 0.4f));
+                if (t >= 0.8f) { SetSlowMotion(1f); slowJump = false; }
+            }
+            if (!waved && t >= 1f)
+            {
+                waved = true;
+                const string bye = "SO LONG, SUCKER!";
+                DialogueUi.Instance.Subtitle("Clutch McCheddar", bye, 2.5f);
+                Say(bye, Line, 1.8f, 6f);
+                Sfx.PlayAt("rev", transform.position, 1f, 1.6f, 200f);
+                engineBlast = 1f;
+            }
+            Vector3 next = FlightAt(t);
+            // Gone over the edge of the world: into the ridge's treeline (or anything else in the way), off the end of
+            // the terrain, or simply far enough.
+            if (t >= FlightMax || t > 0.15f && FlightBlocked(lastFlight, next) || t > TreelineCheckFrom && Clearance(next) < TreelineClearance)
+            {
+                Vanish(lastFlight);
+                return;
+            }
+            transform.position = lastFlight = next;
+            transform.rotation = Quaternion.LookRotation(JumpDir);
+        }
+
+        // Anything solid between here and there (not creatures, the car or himself).
+        private static bool FlightBlocked(Vector3 from, Vector3 to)
+        {
+            Vector3 move = to - from;
+            float length = move.magnitude;
+            if (length < 1e-4f) return false;
+            int count = Physics.SphereCastNonAlloc(from + Vector3.up * 1.2f, 1.1f, move / length, FlightHits, length, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = FlightHits[i].collider;
+                if (hit.attachedRigidbody != null || hit is CharacterController || hit.GetComponentInParent<Health>() != null) continue;
+                return true;
+            }
+            return false;
+        }
+
+        // How high he is over the land under him (the terrain itself, not trees or props); off the end of the map, where
+        // there is no land, counts as no height at all.
+        private static float Clearance(Vector3 at)
+        {
+            int count = Physics.RaycastNonAlloc(at, Vector3.down, FlightHits, 300f, ~0, QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue;
+            for (int i = 0; i < count; i++)
+                if ((FlightHits[i].collider is MeshCollider || FlightHits[i].collider is TerrainCollider) && FlightHits[i].collider.attachedRigidbody == null)
+                    best = Mathf.Min(best, FlightHits[i].distance);
+            return best < float.MaxValue ? best : float.MinValue;
+        }
+
+        // The twinkle where he vanished, a ding, and he's out of the county.
+        private void Vanish(Vector3 at)
+        {
+            SpawnTwinkle(at + Vector3.up * 1.2f);
+            Sfx.Play("item_pickup", 0.8f, 1.9f);
+            Escape();
+        }
+
+        // ---------- The twinkle ----------
+
+        private Transform twinkle;
+        private LineRenderer[] twinkleRays;
+        private float twinkleAge;
+        private const float TwinkleLife = 0.8f;
+
+        // A four-point star (and four shorter diagonals) that pops, spins and shrinks away.
+        private void SpawnTwinkle(Vector3 at)
+        {
+            ClearTwinkle();
+            twinkle = new GameObject("Getaway Twinkle").transform;
+            twinkle.position = at;
+            twinkle.localScale = Vector3.zero;
+            twinkleAge = 0f;
+            Material glow = EffectMaterials.Additive(EffectMaterials.Look.Glow);
+            var widths = new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(0.5f, 1f), new Keyframe(1f, 0f));
+            twinkleRays = new LineRenderer[4];
+            for (int i = 0; i < 4; i++)
+            {
+                var ray = new GameObject("Ray").AddComponent<LineRenderer>();
+                ray.transform.SetParent(twinkle, false);
+                ray.useWorldSpace = false;
+                ray.sharedMaterial = glow;
+                ray.shadowCastingMode = ShadowCastingMode.Off;
+                ray.receiveShadows = false;
+                float length = i < 2 ? 1f : 0.45f;
+                Vector3 along = Quaternion.Euler(0f, 0f, i < 2 ? i * 90f : 45f + (i - 2) * 90f) * Vector3.up * length;
+                ray.positionCount = 3;
+                ray.SetPositions(new[] { -along, Vector3.zero, along });
+                ray.widthCurve = widths;
+                ray.startColor = ray.endColor = i < 2 ? new Color(1f, 0.95f, 0.75f) : new Color(1f, 0.8f, 0.4f);
+                twinkleRays[i] = ray;
+            }
+            ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, at, Vector3.zero, 16, 0.3f, 7f, 89f, Gold);
+        }
+
+        private void UpdateTwinkle(float dt)
+        {
+            if (twinkle == null) return;
+            twinkleAge += dt;
+            if (twinkleAge >= TwinkleLife) { ClearTwinkle(); return; }
+            float k = twinkleAge / TwinkleLife;
+            float pop = k < 0.2f ? Mathf.SmoothStep(0f, 1.2f, k / 0.2f) : Mathf.Lerp(1.2f, 0f, Mathf.SmoothStep(0f, 1f, (k - 0.2f) / 0.8f));
+            // Sized by distance, so it reads from wherever you watched him go.
+            Camera cam = Camera.main;
+            Vector3 eye = cam != null ? cam.transform.position : PlayerPosition;
+            float size = pop * Mathf.Max(2.5f, Vector3.Distance(eye, twinkle.position) * 0.05f);
+            twinkle.localScale = Vector3.one * size;
+            twinkle.rotation = Quaternion.LookRotation(twinkle.position - eye) * Quaternion.Euler(0f, 0f, twinkleAge * 220f);
+            for (int i = 0; i < twinkleRays.Length; i++) twinkleRays[i].widthMultiplier = size * (i < 2 ? 0.16f : 0.1f);
+        }
+
+        private void ClearTwinkle()
+        {
+            if (twinkle != null) Destroy(twinkle.gameObject);
+            twinkle = null;
+        }
+
+        private float RouteLength()
+        {
+            float total = 0f;
+            for (int i = 1; i < escapeRoute.Length; i++) total += Flat(escapeRoute[i].position - escapeRoute[i - 1].position);
+            return total;
         }
 
         private float RouteLeft()
         {
             if (escapeRoute.Length == 0) return 0f;
-            float total = 0f, remaining = Flat(escapeRoute[Mathf.Min(getawayStop, escapeRoute.Length - 1)].position - transform.position);
-            for (int i = 1; i < escapeRoute.Length; i++) total += Flat(escapeRoute[i].position - escapeRoute[i - 1].position);
+            float total = RouteLength(), remaining = Flat(escapeRoute[Mathf.Min(getawayStop, escapeRoute.Length - 1)].position - transform.position);
             for (int i = getawayStop + 1; i < escapeRoute.Length; i++) remaining += Flat(escapeRoute[i].position - escapeRoute[i - 1].position);
             return total > 0f ? Mathf.Clamp01(remaining / total) : 0f;
         }
@@ -1554,11 +1790,20 @@ namespace SignalLost.Mudlands
         private void Escape()
         {
             chaseRunning = false;
-            Home = savedHome;
+            // The leash stays on you this frame too (the next frame's leash check runs before TickCombat moves it).
+            Home = Target != null && Flat(Target.position - savedHome) > ArenaRadius ? Target.position : savedHome;
             Enter(State.Escaped);
             escaped = true;
-            launching = false;
+            awayFromLot = true;
+            run = Run.Road;
+            if (slowJump || slowMo) SetSlowMotion(1f);
+            slowJump = false;
+            ExhaustFlames(false, false);
             transform.position = Ground(savedHome + (savedHome - (escapeRoute.Length > 0 ? escapeRoute[0].position : savedHome)).Flatten().normalized * 70f);
+            transform.rotation = Quaternion.LookRotation((savedHome - transform.position).Flatten().sqrMagnitude > 0.01f ? (savedHome - transform.position).Flatten() : Vector3.forward);
+            // Out of sight behind the roadhouse: no tail-light streak across the map, no blend from the air.
+            if (tailTrail != null) tailTrail.Clear();
+            SnapRig();
             // He got away: phase 3's health comes back.
             Health.Invulnerable = false;
             float target = Health.Max * PhaseThree;
@@ -1662,12 +1907,14 @@ namespace SignalLost.Mudlands
 
         public override VehicleResponse OnVehicleHit(VehicleHit hit)
         {
+            if (Airborne) return VehicleResponse.Bounce; // over the County Line: too late
             if (state == State.Getaway) Caught();
             return VehicleResponse.Explode;
         }
 
         public override float OnCarBlast(CarBlastInfo blast)
         {
+            if (Airborne) return 0f;
             if (state == State.Getaway) { Caught(); return 0f; }
             if (state != State.Caught && state != State.Jump && state != State.WipeOut) WipeOut("MY PAINT JOB!");
             return blast.Damage;
@@ -1679,7 +1926,10 @@ namespace SignalLost.Mudlands
             gang.Clear();
             chaseRunning = false;
             escaped = false;
-            launching = false;
+            awayFromLot = false;
+            run = Run.Road;
+            if (slowJump || slowMo) SetSlowMotion(1f);
+            slowJump = false;
             Home = savedHome;
             Health.Invulnerable = false;
             DamageTakenMultiplier = 1f;
@@ -1717,6 +1967,7 @@ namespace SignalLost.Mudlands
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            ClearTwinkle();
             if (slowMo && Time.timeScale > 0f) Time.timeScale = 1f;
         }
 
@@ -1739,6 +1990,7 @@ namespace SignalLost.Mudlands
         private void Animate(float dt)
         {
             lastDt = dt;
+            UpdateTwinkle(dt);
             // How he's moving: measured from the root, so it works for the agent, the entrance and the getaway alike.
             Vector3 moved = (transform.position - lastPosition).Flatten();
             float yaw = transform.eulerAngles.y;
@@ -1866,9 +2118,30 @@ namespace SignalLost.Mudlands
                     pitch = t > 0.6f ? 22f * Mathf.Sin(Mathf.Clamp01((t - 0.6f) / 0.9f) * Mathf.PI) : 0f;
                     rearSpeed = t > 0.6f ? 30f : 0f;
                     break;
-                case State.Getaway when launching:
-                    pitch = Mathf.Lerp(24f, -10f, Mathf.Clamp01(launchTime / 1.6f));
-                    rearSpeed = 25f;
+                case State.Getaway when run == Run.Climb:
+                    pitch = 18f; // square on the planks
+                    lean = 0f;
+                    steerTo = 0f;
+                    rearSpeed = 30f;
+                    rate = 18f;
+                    break;
+                case State.Getaway when run == Run.Air:
+                {
+                    // The nose follows the arc; at the top a whip: laid over and kicked sideways, then straightened.
+                    float rise = FlightUp - FlightGravity * runTime;
+                    pitch = Mathf.Clamp(Mathf.Atan2(rise, FlightForward) * Mathf.Rad2Deg * 0.75f, -22f, 26f);
+                    float whip = Mathf.Sin(Mathf.Clamp01((runTime - 0.9f) / 1.1f) * Mathf.PI);
+                    lean = -38f * whip;
+                    yawOff = 28f * whip;
+                    steerTo = -14f * whip;
+                    frontSpeed = 6f;
+                    rearSpeed = 32f;
+                    rate = 12f;
+                    break;
+                }
+                case State.Getaway when run == Run.LineUp:
+                    pitch = committed ? 4f : 0f; // weight back, the front light as he guns it
+                    rearSpeed = committed ? 30f : speedNow;
                     break;
                 case State.Getaway:
                     pitch = escapeTimer < 1f ? 30f * Mathf.SmoothStep(0f, 1f, escapeTimer / 0.25f) : Mathf.Lerp(30f, 0f, (escapeTimer - 1f) / 0.4f);
@@ -1978,6 +2251,7 @@ namespace SignalLost.Mudlands
         {
             if (act == Act.Slide) return 14f;
             if (state == State.WipeOut || state == State.Caught || state == State.Jump) return 20f;
+            if (state == State.Getaway && run == Run.Air) return 14f;
             return 10f;
         }
 
@@ -2030,7 +2304,9 @@ namespace SignalLost.Mudlands
                     if (t < 1.15f) return Crack(p, (t - 0.8f) / 0.35f);
                     return p;
                 case State.Getaway:
-                    if (launching) return JumpPose(launchTime * 0.75f); // the no-footer, over the County Line
+                    if (run == Run.Air) return FlightPose(runTime); // over the County Line
+                    if (run == Run.Climb) return Ride(0.5f, Mathf.SmoothStep(0f, 1f, runTime / 0.3f) * 0.6f); // up on the pegs
+                    if (run == Run.LineUp && committed) return Ride(0.9f); // tucked over the tank
                     return WithGesture(Ride(escapeTimer < 1f ? 0.1f : 0.7f));
                 default:
                 {
@@ -2306,6 +2582,35 @@ namespace SignalLost.Mudlands
                 p.FootR = Vector3.Lerp(p.FootR, B(new Vector3(0.8f, 0.85f, -0.55f)), trick);
                 p.Hip = Vector3.Lerp(p.Hip, B(HipOnSeat + new Vector3(0f, 0.05f, 0.15f)), trick);
                 p.Head = Quaternion.Euler(-20f * trick, 0f, 0f);
+            }
+            return p;
+        }
+
+        // Over the County Line: up on the pegs off the lip, a no-footer, back on; then (as the bike whips at the top) a
+        // twist round in the saddle and a wave goodbye back at you; then tucked in for the drop over the treeline.
+        private Pose FlightPose(float t)
+        {
+            lookWeight = 1f;
+            float stand = Mathf.SmoothStep(0f, 1f, t / 0.15f) * (1f - Mathf.SmoothStep(0f, 1f, (t - 0.8f) / 0.25f));
+            float tuck = Mathf.SmoothStep(0f, 1f, (t - 1.9f) / 0.35f);
+            Pose p = Ride(Mathf.Lerp(0.35f, 0.9f, tuck), stand);
+            float trick = Mathf.Sin(Mathf.Clamp01((t - 0.1f) / 0.6f) * Mathf.PI);
+            if (trick > 0f)
+            {
+                p.FootL = Vector3.Lerp(p.FootL, B(new Vector3(-0.8f, 0.85f, -0.55f)), trick);
+                p.FootR = Vector3.Lerp(p.FootR, B(new Vector3(0.8f, 0.85f, -0.55f)), trick);
+                p.Hip = Vector3.Lerp(p.Hip, B(HipOnSeat + new Vector3(0f, 0.05f, 0.15f)), trick);
+                p.Head = Quaternion.Euler(-20f * trick, 0f, 0f);
+            }
+            float bye = Mathf.SmoothStep(0f, 1f, (t - 0.95f) / 0.25f) * (1f - Mathf.SmoothStep(0f, 1f, (t - 1.8f) / 0.25f));
+            if (bye > 0f)
+            {
+                p.Spine = Quaternion.Euler(0f, -35f * bye, 0f) * p.Spine; // left shoulder round toward you
+                Quaternion chest = p.HipRot * p.Spine;
+                float age = t - 0.95f;
+                Vector3 at = Shoulder(p, -1f) + chest * new Vector3(-0.15f + Mathf.Sin(age * 15f) * 0.1f, 0.55f, -0.05f);
+                p.HandL = Vector3.Lerp(p.HandL, at, bye);
+                p.HandLRot = Quaternion.Slerp(p.HandLRot, Bone(chest * new Vector3(Mathf.Sin(age * 15f) * 0.4f, 1f, 0f), chest * Vector3.forward), bye);
             }
             return p;
         }
