@@ -51,16 +51,18 @@ namespace SignalLost.Mudlands
 
         // Alien: purple fur, lilac skin, bone tusks and spines with violet-glowing tips, amber slit eyes. Enraged, the
         // face flushes magenta with glowing veins and the eyes burn red.
-        private static readonly Color Fur = new Color(0.4f, 0.22f, 0.55f), FurDark = new Color(0.25f, 0.13f, 0.36f),
-            Silver = new Color(0.68f, 0.6f, 0.82f), Skin = new Color(0.74f, 0.6f, 0.84f), ChestSkin = new Color(0.52f, 0.36f, 0.64f),
-            HandSkin = new Color(0.33f, 0.21f, 0.43f), Nail = new Color(0.86f, 0.8f, 0.66f),
+        // Swamp palette (11-19): drawn from the Mudlands itself (swamp violet, mossy grey, mud, rust, bone, brass), with
+        // the glows (spine tips, lenses) as accents; his rage colours stay loud on purpose.
+        private static readonly Color Fur = new Color(0.31f, 0.22f, 0.38f), FurDark = new Color(0.2f, 0.14f, 0.25f),
+            Silver = new Color(0.5f, 0.48f, 0.52f), Skin = new Color(0.6f, 0.53f, 0.6f), ChestSkin = new Color(0.42f, 0.34f, 0.45f),
+            HandSkin = new Color(0.26f, 0.2f, 0.29f), Nail = new Color(0.86f, 0.8f, 0.66f),
             RageSkin = new Color(0.9f, 0.42f, 0.62f), RageChest = new Color(0.7f, 0.28f, 0.5f), Vein = new Color(1f, 0.25f, 0.45f),
             Ivory = new Color(0.9f, 0.85f, 0.72f), BoneDark = new Color(0.66f, 0.58f, 0.46f), SpineGlow = new Color(0.78f, 0.45f, 1f),
             EyeAmber = new Color(1f, 0.78f, 0.25f), EyeBlood = new Color(1f, 0.62f, 0.5f), Pupil = new Color(0.12f, 0.04f, 0.16f),
             RageEye = new Color(1f, 0.16f, 0.08f),
-            KartYellow = new Color(0.98f, 0.78f, 0.15f), KartRed = new Color(0.85f, 0.18f, 0.12f), Banana = new Color(1f, 0.88f, 0.25f),
-            BananaFlesh = new Color(0.98f, 0.94f, 0.75f), Gold = new Color(0.95f, 0.75f, 0.25f), Belt = new Color(0.14f, 0.12f, 0.12f),
-            Leather = new Color(0.36f, 0.24f, 0.15f), Chrome = new Color(0.78f, 0.8f, 0.83f), Lens = new Color(0.55f, 0.85f, 1f),
+            KartYellow = new Color(0.8f, 0.64f, 0.24f), KartRed = new Color(0.6f, 0.22f, 0.14f), Banana = new Color(1f, 0.88f, 0.25f),
+            BananaFlesh = new Color(0.98f, 0.94f, 0.75f), Gold = new Color(0.72f, 0.58f, 0.3f), Belt = new Color(0.14f, 0.12f, 0.12f),
+            Leather = new Color(0.36f, 0.24f, 0.15f), Chrome = new Color(0.78f, 0.8f, 0.83f), Lens = new Color(0.5f, 0.95f, 0.85f),
             // The scrap kart: rust, dented hull plate, alien planks, grey tape, glowing vine lashings.
             Rust = new Color(0.55f, 0.28f, 0.14f), RustDark = new Color(0.36f, 0.18f, 0.1f), Tape = new Color(0.62f, 0.62f, 0.6f),
             Plank = new Color(0.46f, 0.36f, 0.48f), PlankDark = new Color(0.3f, 0.23f, 0.33f), Sack = new Color(0.62f, 0.5f, 0.34f),
@@ -140,7 +142,7 @@ namespace SignalLost.Mudlands
             ShipPart = MudArt.Part(spine, "Auxiliary Starter Motor", new Vector3(0f, 0.72f, -0.92f), Quaternion.Euler(0f, 0f, 90f), "kong3_motor", MotorMesh);
             foreach ((Vector3 root, Vector3 dir, float length) in BackSpineLayout)
                 AddSpine(spine, root, dir, length, backSpines, "Back Spine");
-            scarfTail = MudArt.Pivot(spine, "Scarf Tail", new Vector3(0.32f, 1.16f, 0.4f), Quaternion.Euler(18f, 0f, 14f));
+            scarfTail = MudArt.Pivot(spine, "Scarf Tail", new Vector3(0.36f, 1.3f, 0.66f), Quaternion.Euler(18f, 0f, 14f));
             MudArt.Part(scarfTail, "Tail", Vector3.zero, Quaternion.identity, "kong3_scarf_tail", ScarfTailMesh);
             head = MudArt.Pivot(spine, "Head", NeckAt);
             BuildHead();
@@ -157,24 +159,19 @@ namespace SignalLost.Mudlands
 
         // ---------- Spines ----------
 
-        // Bone spines down his back: three down the middle of the neck and shoulders, then two rows of four over the
-        // shoulder blades (the starter motor sits between the rows). Root on the torso (spine frame), direction, length.
+        // Big bone spines down his back: three down the middle of the neck and shoulders, and one over each shoulder
+        // blade (the starter motor sits between those two). Root on the torso (spine frame), direction, length.
+        // Fewer and bigger since the 11-19 low-poly pass (it was 3 + two rows of 4).
         private static readonly (Vector3 root, Vector3 dir, float length)[] BackSpineLayout = MakeBackSpines();
 
-        private static (Vector3, Vector3, float)[] MakeBackSpines()
+        private static (Vector3, Vector3, float)[] MakeBackSpines() => new[]
         {
-            var list = new List<(Vector3, Vector3, float)>
-            {
-                (new Vector3(0f, 1.4f, -0.36f), new Vector3(0f, 0.8f, -0.6f), 0.46f),
-                (new Vector3(0f, 1.27f, -0.5f), new Vector3(0f, 0.65f, -0.76f), 0.56f),
-                (new Vector3(0f, 1.12f, -0.6f), new Vector3(0f, 0.5f, -0.87f), 0.5f),
-            };
-            float[] ys = { 1.06f, 0.86f, 0.64f, 0.44f }, zs = { -0.48f, -0.6f, -0.66f, -0.63f }, lengths = { 0.52f, 0.48f, 0.4f, 0.3f };
-            foreach (float s in new[] { -1f, 1f })
-                for (int i = 0; i < 4; i++)
-                    list.Add((new Vector3(0.6f * s, ys[i], zs[i]), new Vector3(0.42f * s, 0.6f - i * 0.12f, -0.75f), lengths[i]));
-            return list.ToArray();
-        }
+            (new Vector3(0f, 1.4f, -0.36f), new Vector3(0f, 0.8f, -0.6f), 0.6f),
+            (new Vector3(0f, 1.22f, -0.54f), new Vector3(0f, 0.6f, -0.8f), 0.72f),
+            (new Vector3(0f, 1.0f, -0.64f), new Vector3(0f, 0.45f, -0.9f), 0.6f),
+            (new Vector3(-0.58f, 0.92f, -0.56f), new Vector3(-0.42f, 0.55f, -0.75f), 0.62f),
+            (new Vector3(0.58f, 0.92f, -0.56f), new Vector3(0.42f, 0.55f, -0.75f), 0.62f),
+        };
 
         /// <summary>A spine on its own pivot at its root: local +Y runs up the spine, its tip curls back (toward -Z).</summary>
         private static void AddSpine(Transform parent, Vector3 root, Vector3 dir, float length, List<SpineBone> list, string name)
@@ -189,16 +186,13 @@ namespace SignalLost.Mudlands
             list.Add(new SpineBone { Pivot = pivot, Length = length, Rest = rest });
         }
 
-        /// <summary>One spine, 1 m long (scaled per spine): a fleshy collar, a curved bone shaft, a violet-glowing tip.</summary>
+        /// <summary>One spine, 1 m long (scaled per spine): a fleshy collar, a bent bone shaft, a violet-glowing tip.</summary>
         internal static void SpineMesh(MeshKit k)
         {
-            k.Smooth = true;
-            k.Ball(Vector3.zero, new Vector3(0.17f, 0.08f, 0.17f), Quaternion.identity, FurDark, 1);
-            Hoverbikes.Tusk(k, new[] { new Vector3(0f, -0.05f, 0f), new Vector3(0f, 0.45f, -0.05f), new Vector3(0f, 0.84f, -0.17f) }, 0.12f, 0.035f, Ivory);
-            for (int i = 0; i < 3; i++) // growth rings
-                k.Ball(new Vector3(0f, 0.12f + i * 0.17f, -0.01f - i * 0.02f), new Vector3(0.115f - i * 0.022f, 0.018f, 0.115f - i * 0.022f), Quaternion.identity, BoneDark, 1);
-            k.Smooth = false;
-            k.Cone(new Vector3(0f, 0.84f, -0.17f), Quaternion.Euler(-14f, 0f, 0f), 0.036f, 0.16f, 6, SpineGlow, 2.2f);
+            k.Ball(Vector3.zero, new Vector3(0.17f, 0.08f, 0.17f), Quaternion.identity, FurDark, 0);
+            k.Rod(new Vector3(0f, -0.05f, 0f), new Vector3(0f, 0.45f, -0.05f), 0.12f, 5, Ivory, 0f, 0.08f);
+            k.Rod(new Vector3(0f, 0.45f, -0.05f), new Vector3(0f, 0.84f, -0.17f), 0.08f, 5, Ivory, 0f, 0.036f);
+            k.Cone(new Vector3(0f, 0.84f, -0.17f), Quaternion.Euler(-14f, 0f, 0f), 0.036f, 0.16f, 5, SpineGlow, 2.2f);
         }
 
         private struct SpineBone
@@ -209,33 +203,21 @@ namespace SignalLost.Mudlands
         }
 
         // ---------- The kart: a go-kart he built himself out of scrap ----------
-        // Every piece is its own part, so when it breaks each one flies off on its own (no big slab of kart).
+        // Every piece is its own part, so when it breaks each one flies off on its own (no big slab of kart). A few
+        // big chunky pieces since the 11-19 low-poly pass (it was about twenty small ones).
 
         private void BuildKart(Transform visual)
         {
             kart = MudArt.Pivot(visual, "Kart", Vector3.zero);
-            for (int i = 0; i < 4; i++)
-            {
-                int piece = i;
-                MudArt.Part(kart, "Kart Frame " + i, Vector3.zero, Quaternion.identity, "kong3_kart_frame" + i, k => KartFrameMesh(k, piece));
-            }
-            for (int i = 0; i < 3; i++)
-            {
-                int plank = i;
-                MudArt.Part(kart, "Kart Floor " + i, Vector3.zero, Quaternion.identity, "kong3_kart_floor" + i, k => FloorPlankMesh(k, plank));
-            }
+            MudArt.Part(kart, "Kart Frame", Vector3.zero, Quaternion.identity, "kong3_kart_frame", KartFrameMesh);
+            MudArt.Part(kart, "Kart Floor", Vector3.zero, Quaternion.identity, "kong3_kart_floor", FloorMesh);
             MudArt.Part(kart, "Kart Side L", Vector3.zero, Quaternion.identity, "kong3_kart_side_l", HullSideMesh);
             MudArt.Part(kart, "Kart Side R", Vector3.zero, Quaternion.identity, "kong3_kart_side_r", TinSideMesh);
             MudArt.Part(kart, "Kart Nose", Vector3.zero, Quaternion.identity, "kong3_kart_nose", NoseMesh);
-            MudArt.Part(kart, "Kart Bumper", Vector3.zero, Quaternion.identity, "kong3_kart_bumper", BumperMesh);
             MudArt.Part(kart, "Kart Seat", Vector3.zero, Quaternion.identity, "kong3_kart_seat", SeatMesh);
-            MudArt.Part(kart, "Kart Backrest", Vector3.zero, Quaternion.identity, "kong3_kart_backrest", BackrestMesh);
             MudArt.Part(kart, "Kart Engine", Vector3.zero, Quaternion.identity, "kong3_kart_engine", EngineMesh);
             MudArt.Part(kart, "Kart Fuel Gourd", Vector3.zero, Quaternion.identity, "kong3_kart_gourd", GourdTankMesh);
-            MudArt.Part(kart, "Kart Exhaust", Vector3.zero, Quaternion.identity, "kong3_kart_exhaust", ExhaustMesh);
             MudArt.Part(kart, "Kart Tyre Bumper", Vector3.zero, Quaternion.identity, "kong3_kart_tyre_bumper", TyreBumperMesh);
-            MudArt.Part(kart, "Kart Antenna", Vector3.zero, Quaternion.identity, "kong3_kart_antenna", AntennaMesh);
-            MudArt.Part(kart, "Kart Horn", Vector3.zero, Quaternion.identity, "kong3_kart_horn", HornMesh);
             MudArt.Part(kart, "Kart Column", Vector3.zero, Quaternion.identity, "kong3_kart_column", ColumnMesh);
             steering = MudArt.Pivot(kart, "Steering Wheel", WheelAt, WheelTilt);
             MudArt.Part(steering, "Wheel", Vector3.zero, Quaternion.identity, "kong3_steering", SteeringMesh);
@@ -253,257 +235,141 @@ namespace SignalLost.Mudlands
             }
         }
 
-        // The frame, in four pieces: two bent pipe rails that don't quite match (0, 1), a pipe front axle (2) and a
-        // rebar back axle (3), lashed with glowing vine and twisted wire.
-        private static void KartFrameMesh(MeshKit k, int piece)
+        // The frame: two pipe rails that don't match, a pipe front axle lashed on with glowing vine, a rebar back axle.
+        private static void KartFrameMesh(MeshKit k)
         {
-            switch (piece)
+            k.Rod(new Vector3(-0.45f, 0.2f, -1.0f), new Vector3(-0.38f, 0.22f, 0.94f), 0.035f, 5, Rust);
+            k.Rod(new Vector3(0.45f, 0.19f, -1.0f), new Vector3(0.36f, 0.22f, 0.94f), 0.032f, 5, MudPalette.Metal);
+            k.Rod(new Vector3(-0.56f, 0.21f, 0.66f), new Vector3(0.56f, 0.21f, 0.66f), 0.03f, 5, RustDark);
+            k.Rod(new Vector3(-0.6f, 0.25f, -0.62f), new Vector3(0.6f, 0.25f, -0.62f), 0.032f, 5, MudPalette.DarkMetal);
+            foreach (float s in new[] { -1f, 1f }) Hoverbikes.Lash(k, new Vector3(0.44f * s, 0.205f, 0.66f), Vector3.right, 0.045f);
+        }
+
+        // The floor: three alien-wood planks, not the same length, laid crooked.
+        private static void FloorMesh(MeshKit k)
+        {
+            for (int i = 0; i < 3; i++)
             {
-                case 0:
-                    k.Tube(new[] { new Vector3(-0.45f, 0.2f, -1.0f), new Vector3(-0.43f, 0.19f, -0.3f), new Vector3(-0.46f, 0.2f, 0.35f), new Vector3(-0.38f, 0.22f, 0.94f) }, 0.032f, 6, Rust);
-                    k.Rod(new Vector3(-0.44f, 0.2f, -0.1f), new Vector3(0.45f, 0.2f, 0.05f), 0.018f, 5, RustDark); // a bent cross brace
-                    break;
-                case 1:
-                    k.Tube(new[] { new Vector3(0.45f, 0.19f, -1.0f), new Vector3(0.46f, 0.2f, -0.2f), new Vector3(0.43f, 0.185f, 0.42f), new Vector3(0.36f, 0.22f, 0.94f) }, 0.028f, 6, MudPalette.Metal);
-                    for (int i = 0; i < 4; i++) // wire twisted round the brace joint
-                        k.Box(new Vector3(0.44f, 0.2f, 0.01f + i * 0.018f), new Vector3(0.075f, 0.075f, 0.008f), Quaternion.Euler(0f, 0f, i * 25f), Tin);
-                    break;
-                case 2:
-                    k.Rod(new Vector3(-0.56f, 0.21f, 0.66f), new Vector3(0.56f, 0.21f, 0.66f), 0.022f, 6, RustDark);
-                    foreach (float s in new[] { -1f, 1f }) Hoverbikes.Lash(k, new Vector3(0.44f * s, 0.205f, 0.66f), Vector3.right, 0.036f);
-                    break;
-                default:
-                    k.Rod(new Vector3(-0.6f, 0.25f, -0.62f), new Vector3(0.6f, 0.25f, -0.62f), 0.026f, 6, MudPalette.DarkMetal);
-                    foreach (float s in new[] { -1f, 1f }) Hoverbikes.Lash(k, new Vector3(0.45f * s, 0.235f, -0.62f), Vector3.right, 0.036f);
-                    break;
+                float x = (i - 1) * 0.29f;
+                float z0 = i == 0 ? -0.82f : i == 1 ? -0.88f : -0.76f, z1 = i == 0 ? 0.56f : i == 1 ? 0.74f : 0.5f;
+                k.Box(new Vector3(x, 0.245f, (z0 + z1) * 0.5f), new Vector3(0.27f, 0.05f, z1 - z0), Quaternion.Euler(0f, (i - 1) * 2.5f, (i - 1) * -2f), i == 1 ? PlankDark : Plank);
             }
         }
 
-        // The floor: three alien-wood planks, not the same length, nailed down crooked.
-        private static void FloorPlankMesh(MeshKit k, int i)
-        {
-            float x = (i - 1) * 0.29f;
-            float z0 = i == 0 ? -0.82f : i == 1 ? -0.88f : -0.76f, z1 = i == 0 ? 0.56f : i == 1 ? 0.74f : 0.5f;
-            Color c = i == 1 ? PlankDark : Plank;
-            Quaternion r = Quaternion.Euler(0f, (i - 1) * 2.5f, (i - 1) * -2f);
-            Vector3 centre = new Vector3(x, 0.245f, (z0 + z1) * 0.5f);
-            k.Box(centre, new Vector3(0.27f, 0.04f, z1 - z0), r, c);
-            for (int g = 0; g < 2; g++) // grain
-                k.Box(centre + r * new Vector3(-0.06f + g * 0.1f, 0.021f, 0.05f * g), new Vector3(0.008f, 0.003f, (z1 - z0) * 0.7f), r, PlankDark);
-            foreach (float z in new[] { z0 + 0.1f, z1 - 0.1f })
-                for (int n = 0; n < 2; n++)
-                    k.Box(new Vector3(x - 0.08f + n * 0.16f, 0.268f, z), new Vector3(0.02f, 0.008f, 0.02f), MudPalette.DarkMetal);
-        }
-
-        // Left side: a dented hull panel off the wreck (orange stripe and all) with a smaller patch, taped at the seam.
+        // Left side: a hull panel off the wreck (orange stripe and all) with a darker patch.
         private static void HullSideMesh(MeshKit k)
         {
-            Quaternion outward = Quaternion.Euler(0f, -90f, 0f);
-            k.ScrapPanel(new Vector3(-0.5f, 0.35f, 0.02f), new Vector3(0.76f, 0.26f, 0.025f), outward * Quaternion.Euler(0f, 0f, 2f), MudPalette.Hull);
-            k.ScrapPanel(new Vector3(-0.52f, 0.33f, 0.28f), new Vector3(0.26f, 0.2f, 0.02f), outward * Quaternion.Euler(0f, 0f, -9f), MudPalette.HullDark, false);
-            k.Box(new Vector3(-0.535f, 0.35f, 0.15f), new Vector3(0.012f, 0.28f, 0.07f), Quaternion.Euler(0f, 0f, 4f), Tape);
-            k.Box(new Vector3(-0.515f, 0.42f, -0.2f), new Vector3(0.02f, 0.05f, 0.12f), Quaternion.Euler(20f, 0f, 0f), MudPalette.HullDark); // a dent
-            foreach (float z in new[] { -0.25f, 0.3f })
-                k.Rod(new Vector3(-0.5f, 0.24f, z), new Vector3(-0.44f, 0.2f, z), 0.012f, 4, RustDark); // brackets to the rail
+            Quaternion outward = Quaternion.Euler(0f, -90f, 0f) * Quaternion.Euler(0f, 0f, 2f);
+            k.Box(new Vector3(-0.5f, 0.35f, 0.02f), new Vector3(0.78f, 0.28f, 0.035f), outward, MudPalette.Hull);
+            k.Box(new Vector3(-0.52f, 0.42f, 0.02f), new Vector3(0.79f, 0.06f, 0.035f), outward, MudPalette.HullStripe);
+            k.Box(new Vector3(-0.53f, 0.33f, 0.3f), new Vector3(0.03f, 0.2f, 0.24f), Quaternion.Euler(0f, 0f, -9f), MudPalette.HullDark); // a patch
         }
 
-        // Right side: a rusty corrugated sheet with a hand-painted "1" and a patched hole.
+        // Right side: a rusty corrugated sheet with a hand-painted "1".
         private static void TinSideMesh(MeshKit k)
         {
-            for (int i = 0; i < 8; i++)
-                k.Box(new Vector3(0.5f + (i % 2) * 0.014f, 0.35f, -0.31f + i * 0.095f), new Vector3(0.02f, 0.26f + (i == 6 ? -0.04f : 0f), 0.1f), i % 3 == 1 ? RustDark : Rust);
-            k.Box(new Vector3(0.525f, 0.37f, 0.02f), new Vector3(0.008f, 0.17f, 0.035f), Quaternion.Euler(0f, 0f, 0f), MudPalette.White);
-            k.Box(new Vector3(0.525f, 0.44f, -0.01f), new Vector3(0.008f, 0.03f, 0.07f), Quaternion.Euler(35f, 0f, 0f), MudPalette.White);
-            k.Box(new Vector3(0.525f, 0.27f, 0.02f), new Vector3(0.008f, 0.025f, 0.09f), MudPalette.White);
-            k.Box(new Vector3(0.524f, 0.24f, 0.035f), new Vector3(0.006f, 0.05f, 0.012f), MudPalette.White); // a paint drip
-            k.ScrapPanel(new Vector3(0.53f, 0.33f, -0.22f), new Vector3(0.15f, 0.12f, 0.015f), Quaternion.Euler(0f, 90f, 6f), MudPalette.Hull, false);
-            k.Box(new Vector3(0.54f, 0.33f, -0.22f), new Vector3(0.008f, 0.03f, 0.2f), Quaternion.Euler(-30f, 0f, 0f), Tape);
-            foreach (float z in new[] { -0.25f, 0.3f })
-                k.Rod(new Vector3(0.5f, 0.24f, z), new Vector3(0.45f, 0.2f, z), 0.012f, 4, RustDark);
+            for (int i = 0; i < 4; i++)
+                k.Box(new Vector3(0.5f + (i % 2) * 0.025f, 0.35f, -0.27f + i * 0.19f), new Vector3(0.025f, 0.26f, 0.2f), i == 2 ? RustDark : Rust);
+            k.Box(new Vector3(0.54f, 0.35f, 0.02f), new Vector3(0.012f, 0.2f, 0.05f), MudPalette.White);                            // the painted "1"
+            k.Box(new Vector3(0.54f, 0.43f, -0.02f), new Vector3(0.012f, 0.04f, 0.09f), Quaternion.Euler(35f, 0f, 0f), MudPalette.White);
         }
 
-        // The nose: an old dish antenna off the ship bolted on the front, a "1" painted inside it, and a seed-pod headlamp.
+        // The nose: an old dish antenna off the ship bolted on the front, a glowing seed pod on its feed arm.
         private static void NoseMesh(MeshKit k)
         {
             Vector3 centre = new Vector3(0f, 0.4f, 0.96f);
             Quaternion facing = Quaternion.Euler(78f, 0f, 0f); // +Y of the dish points forward and a little up
-            var dish = new[] { new Vector2(0.0001f, 0f), new Vector2(0.1f, 0.01f), new Vector2(0.2f, 0.035f), new Vector2(0.26f, 0.07f) };
-            var back = new Vector2[dish.Length];
-            for (int i = 0; i < dish.Length; i++) back[i] = dish[dish.Length - 1 - i] - new Vector2(0f, 0.014f);
-            k.Lathe(centre, facing, dish, 16, MudPalette.Hull);
-            k.Lathe(centre, facing, back, 16, MudPalette.HullDark);
-            Hoverbikes.Torus(k, centre + facing * new Vector3(0f, 0.064f, 0f), facing, 0.262f, 0.012f, MudPalette.HullStripe, 0f, 20);
-            // The painted "1" inside the dish.
-            Vector3 face = centre + facing * new Vector3(0f, 0.022f, 0f);
-            k.Box(face + facing * new Vector3(0.01f, 0f, 0f), new Vector3(0.035f, 0.006f, 0.17f), facing, KartRed);
-            k.Box(face + facing * new Vector3(-0.025f, 0.002f, -0.065f), new Vector3(0.06f, 0.006f, 0.03f), facing * Quaternion.Euler(0f, 40f, 0f), KartRed);
-            // The feed arm and its horn, and two struts back to the floor.
-            k.Rod(centre + facing * new Vector3(0f, 0.06f, 0.25f), centre + facing * new Vector3(0f, 0.2f, 0f), 0.01f, 4, MudPalette.Metal);
-            k.Prism(centre + facing * new Vector3(0f, 0.19f, 0f), facing, 0.025f, 0.035f, 0.05f, 8, MudPalette.DarkMetal);
+            k.Lathe(centre, facing, new[] { new Vector2(0.0001f, 0f), new Vector2(0.18f, 0.025f), new Vector2(0.27f, 0.07f), new Vector2(0.25f, 0.05f), new Vector2(0.0001f, -0.02f) }, 8, MudPalette.Hull);
+            k.Rod(centre + facing * new Vector3(0f, 0.06f, 0.25f), centre + facing * new Vector3(0f, 0.2f, 0f), 0.018f, 4, MudPalette.Metal);
+            k.Ball(centre + facing * new Vector3(0f, 0.21f, 0f), 0.045f, MudPalette.Pod, 0, 1.5f); // a glowing seed pod on the feed arm
             foreach (float s in new[] { -1f, 1f })
-                k.Rod(centre + new Vector3(0.12f * s, -0.02f, -0.06f), new Vector3(0.14f * s, 0.26f, 0.68f), 0.016f, 5, Rust);
-            // A glowing seed pod for a headlamp, lashed on with vine.
-            Hoverbikes.SeedLamp(k, new Vector3(0.33f, 0.47f, 0.9f), Quaternion.identity, 0.055f, MudPalette.Pod);
-            k.Rod(new Vector3(0.33f, 0.45f, 0.84f), new Vector3(0.2f, 0.4f, 0.86f), 0.012f, 4, Reed);
-            Hoverbikes.Lash(k, new Vector3(0.26f, 0.42f, 0.85f), Vector3.right, 0.016f);
+                k.Rod(centre + new Vector3(0.12f * s, -0.02f, -0.06f), new Vector3(0.14f * s, 0.26f, 0.68f), 0.022f, 4, Rust);
         }
 
-        // A bent rusty pipe across the front with tape round the kinks, and a little hull-plate number plate.
-        private static void BumperMesh(MeshKit k)
-        {
-            k.Tube(new[] { new Vector3(-0.55f, 0.2f, 0.84f), new Vector3(-0.46f, 0.21f, 1.12f), new Vector3(0.08f, 0.18f, 1.14f), new Vector3(0.46f, 0.22f, 1.1f), new Vector3(0.55f, 0.2f, 0.84f) }, 0.033f, 6, Rust);
-            k.Box(new Vector3(-0.3f, 0.205f, 1.125f), new Vector3(0.07f, 0.08f, 0.08f), Tape);
-            k.Box(new Vector3(0.32f, 0.2f, 1.115f), new Vector3(0.07f, 0.08f, 0.08f), Tape);
-            k.ScrapPanel(new Vector3(0f, 0.12f, 1.15f), new Vector3(0.2f, 0.1f, 0.012f), Quaternion.Euler(-6f, 0f, 3f), MudPalette.Hull, false);
-            k.Box(new Vector3(0f, 0.12f, 1.159f), new Vector3(0.018f, 0.07f, 0.004f), MudPalette.Black);
-            k.Rod(new Vector3(0f, 0.17f, 1.15f), new Vector3(0.08f, 0.185f, 1.14f), 0.005f, 3, Tin); // its wire
-        }
 
-        // The seat: a crate of alien planks with a stuffed sack for a cushion.
+        // The seat: a crate of alien planks with a stuffed sack for a cushion, and a bent hull plate for a backrest.
         private static void SeatMesh(MeshKit k)
         {
             Vector3 c = new Vector3(0f, 0.355f, -0.42f);
+            k.Box(c, new Vector3(0.55f, 0.2f, 0.46f), Plank);                                    // the crate
+            k.Box(c + new Vector3(0f, 0f, 0.235f), new Vector3(0.56f, 0.06f, 0.02f), PlankDark);  // its slat
+            k.Box(c + new Vector3(0f, 0f, -0.235f), new Vector3(0.56f, 0.06f, 0.02f), PlankDark);
+            k.Ball(c + new Vector3(0f, 0.13f, 0f), new Vector3(0.28f, 0.07f, 0.23f), Quaternion.Euler(0f, 0f, 3f), Sack, 1); // the sack cushion
+            Quaternion lean = Quaternion.Euler(-12f, 0f, 0f);                                     // the backrest: hull plate on two struts
+            k.Box(new Vector3(0f, 0.66f, -0.68f), new Vector3(0.5f, 0.4f, 0.03f), lean, MudPalette.Hull);
+            k.Box(new Vector3(0f, 0.76f, -0.695f), new Vector3(0.51f, 0.07f, 0.03f), lean, MudPalette.HullStripe);
             foreach (float s in new[] { -1f, 1f })
-            {
-                for (int i = 0; i < 2; i++)
-                {
-                    k.Box(c + new Vector3(0f, -0.05f + i * 0.1f, 0.22f * s), new Vector3(0.55f, 0.07f, 0.02f), i == 0 ? Plank : PlankDark);
-                    k.Box(c + new Vector3(0.265f * s, -0.05f + i * 0.1f, 0f), new Vector3(0.02f, 0.07f, 0.44f), i == 1 ? Plank : PlankDark);
-                }
-                foreach (float t in new[] { -1f, 1f })
-                    k.Box(c + new Vector3(0.255f * s, 0f, 0.21f * t), new Vector3(0.04f, 0.18f, 0.04f), PlankDark);
-            }
-            k.Box(c + new Vector3(0f, -0.02f, 0.23f), new Vector3(0.06f, 0.06f, 0.006f), MudPalette.Black); // a stencilled crate mark
-            k.Smooth = true;
-            k.Ball(c + new Vector3(0f, 0.12f, 0f), new Vector3(0.28f, 0.06f, 0.23f), Quaternion.Euler(0f, 0f, 3f), Sack, 1);
-            k.Ball(c + new Vector3(0.2f, 0.13f, 0.15f), new Vector3(0.06f, 0.04f, 0.05f), Quaternion.identity, Sack, 1); // the tied corner
-            k.Smooth = false;
+                k.Rod(new Vector3(0.2f * s, 0.45f, -0.62f), new Vector3(0.2f * s, 0.86f, -0.72f), 0.02f, 4, Rust);
         }
 
-        // The backrest: a bent piece of hull plate on two struts.
-        private static void BackrestMesh(MeshKit k)
-        {
-            Quaternion lean = Quaternion.Euler(0f, 180f, 0f) * Quaternion.Euler(12f, 0f, 0f);
-            k.ScrapPanel(new Vector3(0f, 0.66f, -0.68f), new Vector3(0.5f, 0.4f, 0.025f), lean, MudPalette.Hull);
-            k.ScrapPanel(new Vector3(0.18f, 0.78f, -0.7f), new Vector3(0.16f, 0.12f, 0.02f), lean * Quaternion.Euler(0f, 0f, 14f), MudPalette.HullDark, false);
-            foreach (float s in new[] { -1f, 1f })
-                k.Rod(new Vector3(0.2f * s, 0.45f, -0.62f), new Vector3(0.2f * s, 0.86f, -0.72f), 0.016f, 5, Rust);
-        }
 
-        // The engine: a rusty block with tin cooling fins, a pull-start and a glowing coil salvaged from the ship.
+        // The engine: a rusty block with tin cooling fins and a glowing coil off the ship, and its stovepipe exhaust.
         private static void EngineMesh(MeshKit k)
         {
             k.Box(new Vector3(0.28f, 0.36f, -0.78f), new Vector3(0.28f, 0.22f, 0.26f), Rust);
-            for (int i = 0; i < 4; i++) k.Box(new Vector3(0.28f, 0.5f + i * 0.035f, -0.78f), new Vector3(0.26f - i * 0.03f, 0.012f, 0.24f), Tin);
-            k.Prism(new Vector3(0.14f, 0.36f, -0.78f), Quaternion.Euler(0f, 0f, 90f), 0.09f, 0.09f, 0.05f, 10, Tin); // pull-start housing
-            k.Rod(new Vector3(0.09f, 0.36f, -0.78f), new Vector3(0.04f, 0.42f, -0.74f), 0.006f, 3, MudPalette.White);
-            k.Box(new Vector3(0.04f, 0.42f, -0.74f), new Vector3(0.02f, 0.02f, 0.08f), KartRed);
-            Hoverbikes.Torus(k, new Vector3(0.28f, 0.36f, -0.64f), Quaternion.Euler(90f, 0f, 0f), 0.07f, 0.014f, MudPalette.ShipGlow, 2f, 14);
-            k.Rod(new Vector3(0.35f, 0.47f, -0.7f), new Vector3(0.44f, 0.58f, -0.66f), 0.008f, 4, KartRed); // spark-plug wire
-            k.Box(new Vector3(0.28f, 0.25f, -0.92f), new Vector3(0.08f, 0.06f, 0.05f), MudPalette.DarkMetal);
+            k.Box(new Vector3(0.28f, 0.5f, -0.78f), new Vector3(0.24f, 0.05f, 0.22f), Tin); // cooling fins
+            Hoverbikes.Torus(k, new Vector3(0.28f, 0.36f, -0.64f), Quaternion.Euler(90f, 0f, 0f), 0.07f, 0.02f, MudPalette.ShipGlow, 2f, 6);
+            // The exhaust: a bent stovepipe ending in a tin can.
+            k.Rod(new Vector3(0.4f, 0.38f, -0.88f), new Vector3(0.52f, 0.5f, -1.0f), 0.045f, 5, RustDark);
+            k.Rod(new Vector3(0.52f, 0.5f, -1.0f), new Vector3(0.52f, 0.58f, -1.02f), 0.045f, 5, RustDark);
+            k.Prism(new Vector3(0.52f, 0.56f, -1.02f), Quaternion.identity, 0.065f, 0.065f, 0.1f, 6, Tin);
         }
 
-        // Fuel: a gourd lashed on beside the engine, a cork in its stem and a reed fuel line.
+        // Fuel: a gourd lashed on beside the engine.
         private static void GourdTankMesh(MeshKit k)
         {
-            k.Smooth = true;
             k.Ball(new Vector3(-0.26f, 0.38f, -0.78f), new Vector3(0.15f, 0.13f, 0.16f), Quaternion.identity, Hoverbikes.Gourd, 1);
-            for (int i = 0; i < 4; i++)
-            {
-                Quaternion around = Quaternion.Euler(0f, i * 45f, 0f);
-                k.Ball(new Vector3(-0.26f, 0.38f, -0.78f), new Vector3(0.152f, 0.132f, 0.02f), around, Hoverbikes.GourdRib, 1);
-            }
-            k.Smooth = false;
-            k.Prism(new Vector3(-0.26f, 0.5f, -0.78f), Quaternion.identity, 0.03f, 0.025f, 0.06f, 6, Hoverbikes.Bark);
-            k.Prism(new Vector3(-0.26f, 0.555f, -0.78f), Quaternion.identity, 0.028f, 0.03f, 0.03f, 6, Sack);
-            k.Tube(new[] { new Vector3(-0.15f, 0.36f, -0.72f), new Vector3(0.0f, 0.3f, -0.7f), new Vector3(0.14f, 0.33f, -0.72f) }, 0.01f, 4, Reed);
+            k.Prism(new Vector3(-0.26f, 0.49f, -0.78f), Quaternion.identity, 0.035f, 0.03f, 0.08f, 5, Hoverbikes.Bark);
             Hoverbikes.Lash(k, new Vector3(-0.26f, 0.38f, -0.78f), Vector3.up, 0.155f);
         }
 
-        // The exhaust: a bent stovepipe ending in a tin can.
-        private static void ExhaustMesh(MeshKit k)
-        {
-            k.Tube(new[] { new Vector3(0.4f, 0.38f, -0.88f), new Vector3(0.5f, 0.42f, -0.96f), new Vector3(0.52f, 0.5f, -1.0f), new Vector3(0.52f, 0.58f, -1.02f) }, 0.042f, 8, RustDark);
-            k.Prism(new Vector3(0.52f, 0.56f, -1.02f), Quaternion.identity, 0.06f, 0.06f, 0.1f, 10, Tin);
-            k.Prism(new Vector3(0.52f, 0.59f, -1.02f), Quaternion.identity, 0.061f, 0.061f, 0.035f, 10, KartRed); // the can's label
-            k.Prism(new Vector3(0.52f, 0.655f, -1.02f), Quaternion.identity, 0.05f, 0.05f, 0.004f, 10, MudPalette.Black);
-        }
 
-        // An old tyre lashed across the back as a bumper.
+        // An old tyre lashed across the back as a bumper, and the reed flag pole.
         private static void TyreBumperMesh(MeshKit k)
         {
-            Hoverbikes.Torus(k, new Vector3(0f, 0.32f, -1.1f), Quaternion.Euler(90f, 0f, 0f), 0.2f, 0.08f, MudPalette.Rubber, 0f, 18);
-            Hoverbikes.Lash(k, new Vector3(0f, 0.53f, -1.1f), Vector3.forward, 0.05f);
-            foreach (float s in new[] { -1f, 1f })
-                k.Rod(new Vector3(0.45f * s, 0.2f, -0.99f), new Vector3(0.22f * s, 0.3f, -1.08f), 0.014f, 4, Tin);
+            Hoverbikes.Torus(k, new Vector3(0f, 0.32f, -1.1f), Quaternion.Euler(90f, 0f, 0f), 0.2f, 0.08f, MudPalette.Rubber, 0f, 8);
+            // The flag pole: a swamp reed taped to the back of the frame (the flag hangs off its top).
+            k.Rod(new Vector3(-0.52f, 0.3f, -0.86f), new Vector3(-0.52f, 1.95f, -0.97f), 0.022f, 4, Reed, 0f, 0.012f);
         }
 
-        // The whip antenna: a swamp reed taped to the frame.
-        private static void AntennaMesh(MeshKit k)
-        {
-            Vector3 a = new Vector3(-0.52f, 0.3f, -0.86f), b = new Vector3(-0.52f, 1.92f, -0.97f);
-            k.Rod(a, b, 0.018f, 5, Reed, 0f, 0.008f);
-            for (int i = 1; i < 4; i++) k.Ball(Vector3.Lerp(a, b, i / 4f), 0.02f - i * 0.003f, Hoverbikes.Vine, 0);
-            k.Box(new Vector3(-0.5f, 0.32f, -0.86f), new Vector3(0.06f, 0.1f, 0.06f), Tape);
-            k.Rod(new Vector3(-0.5f, 0.3f, -0.86f), new Vector3(-0.45f, 0.21f, -0.9f), 0.012f, 4, RustDark);
-        }
 
-        // A bicycle horn with a rubber bulb, on a bent wire off the side.
-        private static void HornMesh(MeshKit k)
-        {
-            k.Cone(new Vector3(0.42f, 0.5f, 0.66f), Quaternion.Euler(80f, 0f, 0f), 0.07f, 0.17f, 8, Gold);
-            k.Rod(new Vector3(0.42f, 0.5f, 0.66f), HornBulb, 0.015f, 5, Gold);
-            k.Smooth = true;
-            k.Ball(HornBulb, new Vector3(0.07f, 0.07f, 0.09f), Quaternion.identity, KartRed, 1);
-            k.Smooth = false;
-            k.Tube(new[] { new Vector3(0.5f, 0.46f, 0.38f), new Vector3(0.48f, 0.5f, 0.5f), new Vector3(0.43f, 0.5f, 0.62f) }, 0.008f, 4, Tin);
-        }
 
-        // The steering column: a bent pipe with tape round it, and the banana air freshener.
+        // The steering column: a bent pipe with tape round it, and the horn on its bracket.
         private static void ColumnMesh(MeshKit k)
         {
-            k.Tube(new[] { new Vector3(0f, 0.26f, 0.68f), new Vector3(0.02f, 0.62f, 0.5f), WheelAt }, 0.028f, 6, Rust);
-            k.Box(new Vector3(0.01f, 0.45f, 0.6f), new Vector3(0.07f, 0.09f, 0.07f), Quaternion.Euler(-30f, 0f, 0f), Tape);
-            k.Rod(new Vector3(0f, 0.86f, 0.36f), new Vector3(0.03f, 0.72f, 0.42f), 0.004f, 3, MudPalette.White);
-            k.Tube(new[] { new Vector3(0.0f, 0.72f, 0.42f), new Vector3(0.05f, 0.64f, 0.43f), new Vector3(0.05f, 0.56f, 0.42f) }, 0.022f, 6, Banana);
+            k.Rod(new Vector3(0f, 0.26f, 0.68f), new Vector3(0.02f, 0.62f, 0.5f), 0.03f, 5, Rust);
+            k.Rod(new Vector3(0.02f, 0.62f, 0.5f), WheelAt, 0.03f, 5, Rust);
+            k.Box(new Vector3(0.01f, 0.45f, 0.6f), new Vector3(0.08f, 0.1f, 0.08f), Quaternion.Euler(-30f, 0f, 0f), Tape);
+            // The horn: a gold bugle with a red rubber bulb (where the honks come from).
+            k.Cone(new Vector3(0.42f, 0.5f, 0.66f), Quaternion.Euler(80f, 0f, 0f), 0.08f, 0.18f, 5, Gold);
+            k.Rod(new Vector3(0.42f, 0.5f, 0.66f), HornBulb, 0.02f, 4, Gold);
+            k.Ball(HornBulb, new Vector3(0.075f, 0.075f, 0.09f), Quaternion.identity, KartRed, 0);
+            k.Rod(new Vector3(0.45f, 0.48f, 0.6f), new Vector3(0.38f, 0.24f, 0.62f), 0.012f, 4, Tin);
         }
 
-        // The steering wheel: a ring of bent rebar with grip tape, two flat-bar spokes and a tin-lid hub.
+        // The steering wheel: a ring of bent rebar, a flat-bar spoke, a tin-lid hub and yellow tape at the top.
         private static void SteeringMesh(MeshKit k)
         {
-            const int n = 18;
+            const int n = 8;
             for (int i = 0; i < n; i++)
             {
                 float a0 = i * Mathf.PI * 2f / n, a1 = (i + 1) * Mathf.PI * 2f / n;
-                float wobble0 = 1f + Mathf.Sin(a0 * 3f) * 0.04f, wobble1 = 1f + Mathf.Sin(a1 * 3f) * 0.04f;
-                k.Rod(new Vector3(Mathf.Cos(a0), Mathf.Sin(a0), 0f) * WheelRadius * wobble0, new Vector3(Mathf.Cos(a1), Mathf.Sin(a1), 0f) * WheelRadius * wobble1, 0.03f, 6, Rust);
+                k.Rod(new Vector3(Mathf.Cos(a0), Mathf.Sin(a0), 0f) * WheelRadius, new Vector3(Mathf.Cos(a1), Mathf.Sin(a1), 0f) * WheelRadius, 0.035f, 4, Rust);
             }
-            foreach (float deg in new[] { 160f, 200f, 340f, 20f })
-            {
-                float a = deg * Mathf.Deg2Rad;
-                var at = new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0f) * WheelRadius;
-                k.Box(at, new Vector3(0.075f, 0.075f, 0.075f), Quaternion.Euler(0f, 0f, deg), Tape);
-            }
-            k.Box(Vector3.zero, new Vector3(WheelRadius * 2f, 0.04f, 0.012f), MudPalette.Metal);
-            k.Box(Vector3.zero, new Vector3(0.04f, WheelRadius * 2f, 0.012f), Quaternion.Euler(0f, 0f, 8f), MudPalette.Metal);
-            k.Prism(new Vector3(0f, 0f, 0.01f), Quaternion.Euler(-90f, 0f, 0f), 0.07f, 0.07f, 0.03f, 10, Tin);
-            k.Prism(new Vector3(0f, 0f, 0.04f), Quaternion.Euler(-90f, 0f, 0f), 0.04f, 0.04f, 0.004f, 10, KartRed);
-            k.Box(new Vector3(0f, WheelRadius, -0.01f), new Vector3(0.05f, 0.05f, 0.075f), KartYellow); // the top marker: yellow tape
+            k.Box(Vector3.zero, new Vector3(WheelRadius * 2f, 0.05f, 0.015f), MudPalette.Metal);
+            k.Prism(new Vector3(0f, 0f, 0.01f), Quaternion.Euler(-90f, 0f, 0f), 0.07f, 0.07f, 0.035f, 6, Tin);
+            k.Box(new Vector3(0f, WheelRadius, -0.01f), new Vector3(0.07f, 0.07f, 0.08f), KartYellow); // the top marker: yellow tape
         }
 
         // A torn checkered rag on the antenna (one square gone, a corner patched).
         private static void FlagMesh(MeshKit k)
         {
-            for (int x = 0; x < 4; x++)
-                for (int y = 0; y < 3; y++)
+            for (int x = 0; x < 3; x++)
+                for (int y = 0; y < 2; y++)
                 {
-                    if (x == 3 && y == 2) continue;
-                    Color c = (x + y) % 2 == 0 ? MudPalette.Black : MudPalette.White;
-                    float sag = x * 0.012f;
-                    var centre = new Vector3(0f, -0.04f - y * 0.08f - sag, -0.04f - x * 0.08f);
-                    k.Box(centre, new Vector3(0.012f, 0.08f, 0.08f), Quaternion.Euler((x * 7 + y * 3) % 5 - 2f, 0f, 0f), c);
+                    if (x == 2 && y == 1) continue;
+                    k.Box(new Vector3(0f, -0.06f - y * 0.12f - x * 0.015f, -0.06f - x * 0.12f), new Vector3(0.015f, 0.12f, 0.12f), (x + y) % 2 == 0 ? MudPalette.Black : MudPalette.White);
                 }
-            k.Box(new Vector3(0.007f, -0.13f, -0.28f), new Vector3(0.006f, 0.05f, 0.05f), Sack);
         }
 
         // Four wheels, none matching: a little tyre with a dented hubcap, a wooden cart wheel, a fat patched tyre and
@@ -515,54 +381,46 @@ namespace SignalLost.Mudlands
             switch (index)
             {
                 case 0:
-                    TyreRing(k, radius, width, MudPalette.Rubber, 14);
-                    k.Prism(new Vector3(hub * 0.6f, 0f, 0f), outward * Quaternion.Euler(6f, 0f, 0f), radius * 0.62f, radius * 0.4f, 0.04f, 12, Chrome);
-                    k.Box(new Vector3(hub * 0.6f + side * 0.035f, radius * 0.2f, 0.02f), new Vector3(0.02f, 0.05f, 0.05f), Quaternion.Euler(30f, 0f, 0f), MudPalette.Metal); // the dent
+                    TyreRing(k, radius, width, MudPalette.Rubber, 0);
+                    k.Prism(new Vector3(hub * 0.6f, 0f, 0f), outward * Quaternion.Euler(6f, 0f, 0f), radius * 0.62f, radius * 0.4f, 0.05f, 6, Chrome);
                     break;
                 case 1:
-                    for (int i = 0; i < 12; i++) // the felloes: plank segments round the rim, with an iron band
+                    for (int i = 0; i < 8; i++) // the felloes: plank segments round the rim
                     {
-                        float a0 = i * Mathf.PI * 2f / 12f, a1 = (i + 1) * Mathf.PI * 2f / 12f;
+                        float a0 = i * Mathf.PI * 2f / 8f, a1 = (i + 1) * Mathf.PI * 2f / 8f;
                         Vector3 p0 = new Vector3(0f, Mathf.Cos(a0), Mathf.Sin(a0)) * (radius - 0.03f), p1 = new Vector3(0f, Mathf.Cos(a1), Mathf.Sin(a1)) * (radius - 0.03f);
-                        k.Plank(p0, p1, width * 0.7f, 0.06f, Plank, (p0 + p1).normalized);
-                        k.Plank(p0 * 1.16f, p1 * 1.16f, width * 0.75f, 0.012f, RustDark, (p0 + p1).normalized);
+                        k.Plank(p0, p1, width * 0.7f, 0.07f, i % 2 == 0 ? Plank : PlankDark, (p0 + p1).normalized);
                     }
-                    for (int i = 0; i < 6; i++)
+                    for (int i = 0; i < 2; i++)
                     {
-                        float a = i * Mathf.PI / 3f;
-                        k.Rod(Vector3.zero, new Vector3(0f, Mathf.Cos(a), Mathf.Sin(a)) * (radius - 0.05f), 0.018f, 5, PlankDark);
+                        float a = i * Mathf.PI * 0.5f;
+                        k.Box(Vector3.zero, new Vector3(0.04f, (radius - 0.04f) * 2f, 0.05f), Quaternion.Euler(a * Mathf.Rad2Deg, 0f, 0f), PlankDark);
                     }
-                    k.Prism(new Vector3(-width * 0.3f, 0f, 0f), Quaternion.Euler(0f, 0f, -90f), 0.05f, 0.05f, width * 0.6f, 8, Hoverbikes.BoneDark);
+                    k.Prism(new Vector3(-width * 0.3f, 0f, 0f), Quaternion.Euler(0f, 0f, -90f), 0.06f, 0.06f, width * 0.6f, 5, Hoverbikes.BoneDark);
                     break;
                 case 2:
-                    TyreRing(k, radius, width, MudPalette.Rubber, 16);
-                    k.Prism(new Vector3(hub * 0.4f, 0f, 0f), outward, radius * 0.5f, radius * 0.46f, 0.03f, 10, Rust);
-                    for (int i = 0; i < 4; i++)
-                    {
-                        float a = i * Mathf.PI * 0.5f + 0.4f;
-                        k.Box(new Vector3(hub * 0.45f + side * 0.02f, Mathf.Cos(a) * radius * 0.25f, Mathf.Sin(a) * radius * 0.25f), new Vector3(0.025f, 0.03f, 0.03f), MudPalette.DarkMetal);
-                    }
-                    k.Box(new Vector3(0f, radius - 0.01f, 0f), new Vector3(width * 1.02f, 0.03f, 0.09f), Tape); // a taped puncture
+                    TyreRing(k, radius, width, MudPalette.Rubber, 0);
+                    k.Prism(new Vector3(hub * 0.4f, 0f, 0f), outward, radius * 0.5f, radius * 0.46f, 0.04f, 6, Rust);
+                    k.Box(new Vector3(0f, radius - 0.01f, 0f), new Vector3(width * 1.04f, 0.04f, 0.1f), Tape); // a taped puncture
                     break;
                 default:
                     TyreRing(k, radius, width * 0.8f, new Color(0.26f, 0.25f, 0.27f), 0);
-                    k.Prism(new Vector3(-hub * 0.3f, 0f, 0f), outward, radius * 0.66f, radius * 0.66f, width * 0.5f, 14, MudPalette.Hull);
-                    k.Prism(new Vector3(hub * 0.22f, 0f, 0f), outward, radius * 0.5f, radius * 0.5f, 0.012f, 14, MudPalette.HullStripe);
-                    k.Prism(new Vector3(hub * 0.25f, 0f, 0f), outward, radius * 0.18f, radius * 0.18f, 0.02f, 8, MudPalette.HullDark);
+                    k.Prism(new Vector3(-hub * 0.3f, 0f, 0f), outward, radius * 0.66f, radius * 0.66f, width * 0.5f, 6, MudPalette.Hull);
+                    k.Prism(new Vector3(hub * 0.22f, 0f, 0f), outward, radius * 0.5f, radius * 0.5f, 0.015f, 6, MudPalette.HullStripe);
                     break;
             }
         }
 
-        // A tyre round local X: a torus with tread blocks.
+        // A tyre round local X: a chunky torus, with tread blocks if asked.
         private static void TyreRing(MeshKit k, float radius, float width, Color rubber, int treads)
         {
             float tube = Mathf.Min(width * 0.5f, radius * 0.38f);
-            Hoverbikes.Torus(k, Vector3.zero, Quaternion.Euler(0f, 0f, 90f), radius - tube, tube, rubber, 0f, 18);
+            Hoverbikes.Torus(k, Vector3.zero, Quaternion.Euler(0f, 0f, 90f), radius - tube, tube, rubber, 0f, 8);
             for (int i = 0; i < treads; i++)
             {
                 float a = i * Mathf.PI * 2f / treads;
                 var dir = new Vector3(0f, Mathf.Cos(a), Mathf.Sin(a));
-                k.Box(dir * (radius - 0.008f), new Vector3(width * 0.8f, 0.03f, 0.05f), Quaternion.LookRotation(Vector3.Cross(dir, Vector3.right), dir), rubber);
+                k.Box(dir * (radius - 0.008f), new Vector3(width * 0.8f, 0.035f, 0.07f), Quaternion.LookRotation(Vector3.Cross(dir, Vector3.right), dir), rubber);
             }
         }
 
@@ -570,86 +428,59 @@ namespace SignalLost.Mudlands
 
         private static void HipsMesh(MeshKit k)
         {
-            k.Smooth = true;
-            k.Ball(new Vector3(0f, 0.05f, 0.02f), new Vector3(0.82f, 0.6f, 0.7f), Quaternion.identity, Fur, 1);
-            k.Ball(new Vector3(0f, 0.12f, 0.36f), new Vector3(0.6f, 0.5f, 0.38f), Quaternion.identity, ChestSkin, 1); // pot belly
-            k.Ball(new Vector3(0f, 0.04f, 0.735f), new Vector3(0.035f, 0.03f, 0.02f), Quaternion.identity, FurDark, 1);
+            // One lofted lower body, the pot belly painted on the front.
+            k.Loft(new[] { new Vector3(0f, -0.5f, 0f), new Vector3(0f, -0.15f, 0.03f), new Vector3(0f, 0.25f, 0.03f), new Vector3(0f, 0.55f, 0f) },
+                new[] { new Vector2(1.2f, 1.0f), new Vector2(1.65f, 1.42f), new Vector2(1.6f, 1.4f), new Vector2(1.4f, 1.2f) }, Vector3.forward, 10,
+                (band, at) => band >= 1 && band <= 2 && at.y > 0.4f && Mathf.Abs(at.x) < 0.75f ? ChestSkin : Fur, 2.2f);
             // The champion's belt (self-awarded): black leather, a gold plate with a "1" and a red stone.
-            k.Prism(new Vector3(0f, -0.1f, 0.02f), Quaternion.identity, 0.84f, 0.8f, 0.18f, 22, Belt);
-            k.Smooth = false;
-            k.Box(new Vector3(0f, -0.01f, 0.8f), new Vector3(0.48f, 0.32f, 0.06f), Quaternion.Euler(-4f, 0f, 0f), Gold);
-            k.Box(new Vector3(0f, -0.01f, 0.835f), new Vector3(0.38f, 0.22f, 0.02f), Quaternion.Euler(-4f, 0f, 0f), new Color(0.75f, 0.55f, 0.15f));
-            k.Box(new Vector3(0.06f, -0.01f, 0.85f), new Vector3(0.05f, 0.18f, 0.02f), Quaternion.Euler(-4f, 0f, 0f), MudPalette.Black);
-            k.Box(new Vector3(0.03f, 0.065f, 0.85f), new Vector3(0.05f, 0.03f, 0.02f), Quaternion.Euler(-4f, 0f, 30f), MudPalette.Black);
-            k.Ball(new Vector3(-0.1f, 0.05f, 0.855f), 0.04f, KartRed, 1, 1.2f);
-            foreach (float s in new[] { -1f, 1f })
-            {
-                Vector3 side = new Vector3(Mathf.Sin(s * 0.75f) * 0.82f, -0.01f, Mathf.Cos(s * 0.75f) * 0.78f);
-                k.Box(side, new Vector3(0.18f, 0.22f, 0.05f), Quaternion.Euler(0f, s * 43f, 0f), Gold);
-            }
-            // Shaggy fur round the hips.
-            k.Smooth = true;
-            for (int i = 0; i < 10; i++)
-            {
-                float a = (i / 10f + 0.05f) * Mathf.PI * 2f;
-                if (Mathf.Cos(a) > 0.6f) continue; // not over the belt plate
-                var dir = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a));
-                k.Ball(dir * 0.76f + Vector3.down * 0.28f, new Vector3(0.13f, 0.17f, 0.1f), Quaternion.LookRotation(dir) * Quaternion.Euler(-20f, 0f, 0f), Fur, 1);
-            }
+            k.Prism(new Vector3(0f, -0.12f, 0.02f), Quaternion.identity, 0.86f, 0.82f, 0.2f, 8, Belt);
+            k.Box(new Vector3(0f, -0.01f, 0.8f), new Vector3(0.48f, 0.32f, 0.08f), Quaternion.Euler(-4f, 0f, 0f), Gold);
+            k.Box(new Vector3(0.05f, -0.01f, 0.845f), new Vector3(0.07f, 0.2f, 0.02f), Quaternion.Euler(-4f, 0f, 0f), MudPalette.Black);
+            k.Ball(new Vector3(-0.12f, 0.05f, 0.85f), 0.05f, KartRed, 0, 1.2f);
         }
 
         private static void TorsoMesh(MeshKit k)
         {
-            k.Smooth = true;
-            k.Ball(new Vector3(0f, 0.68f, 0f), new Vector3(1.0f, 0.82f, 0.72f), Quaternion.identity, Fur, 1);           // barrel chest
-            k.Ball(new Vector3(0f, 1.0f, -0.05f), new Vector3(0.95f, 0.5f, 0.6f), Quaternion.identity, Fur, 1);         // shoulders and traps
-            k.Ball(new Vector3(0f, 0.62f, -0.4f), new Vector3(0.86f, 0.62f, 0.4f), Quaternion.identity, Silver, 1);     // the silver saddle
-            k.Ball(new Vector3(0f, 0.75f, 0.42f), new Vector3(0.6f, 0.56f, 0.34f), Quaternion.identity, ChestSkin, 1);  // chest plate
-            foreach (float x in new[] { -0.28f, 0.28f })
-                k.Ball(new Vector3(x, 0.88f, 0.52f), new Vector3(0.31f, 0.22f, 0.22f), Quaternion.Euler(0f, 0f, x * 30f), ChestSkin, 1); // pecs
-            foreach (float x in new[] { -0.82f, 0.82f })
-                k.Ball(new Vector3(x, 1.12f, -0.08f), new Vector3(0.3f, 0.22f, 0.34f), Quaternion.Euler(0f, 0f, x * 32f), Fur, 1); // shoulder tufts
-            for (int i = 0; i < 8; i++) // shaggy fringe round the chest plate
+            // One lofted barrel of a chest up to the great shoulders, the chest plate painted on the front and the
+            // mossy saddle on the back (the desert bosses' way: one shape, coloured in regions).
+            k.Loft(new[] { new Vector3(0f, -0.05f, 0f), new Vector3(0f, 0.35f, 0.02f), new Vector3(0f, 0.75f, 0f), new Vector3(0f, 1.08f, -0.05f), new Vector3(0f, 1.32f, 0f), new Vector3(0f, 1.46f, 0.05f) },
+                new[] { new Vector2(1.5f, 1.2f), new Vector2(1.95f, 1.45f), new Vector2(2.05f, 1.5f), new Vector2(2.1f, 1.3f), new Vector2(1.3f, 0.95f), new Vector2(0.6f, 0.55f) },
+                Vector3.forward, 10, (band, at) =>
+                    band >= 1 && band <= 2 && at.y > 0.45f && Mathf.Abs(at.x) < 0.7f ? ChestSkin :
+                    band >= 1 && band <= 2 && at.y < -0.5f ? Silver : Fur, 2.2f);
+            // The checkered racing scarf: one ring of big checks, and its knot.
+            // (round the base of his neck, outside the lofted shoulders)
+            for (int i = 0; i < 10; i++)
             {
-                float a = Mathf.Lerp(-80f, 80f, i / 7f) * Mathf.Deg2Rad;
-                k.Ball(new Vector3(Mathf.Sin(a) * 0.68f, 0.3f + Mathf.Abs(Mathf.Sin(a)) * 0.2f, Mathf.Cos(a) * 0.55f), new Vector3(0.12f, 0.16f, 0.1f), Quaternion.Euler(-15f, a * Mathf.Rad2Deg, 0f), Fur, 1);
+                float a = i / 10f * Mathf.PI * 2f;
+                k.Box(new Vector3(Mathf.Sin(a) * 0.64f, 1.37f, Mathf.Cos(a) * 0.54f + 0.1f), new Vector3(0.42f, 0.24f, 0.16f), Quaternion.Euler(0f, a * Mathf.Rad2Deg, 0f), i % 2 == 0 ? MudPalette.Black : MudPalette.White);
             }
-            // The checkered racing scarf.
-            k.Smooth = false;
-            for (int i = 0; i < 16; i++)
-            {
-                float a = i / 16f * Mathf.PI * 2f;
-                k.Box(new Vector3(Mathf.Sin(a) * 0.52f, 1.22f, Mathf.Cos(a) * 0.46f + 0.12f), new Vector3(0.22f, 0.18f, 0.12f), Quaternion.Euler(0f, a * Mathf.Rad2Deg, 0f), i % 2 == 0 ? MudPalette.Black : MudPalette.White);
-                k.Box(new Vector3(Mathf.Sin(a) * 0.53f, 1.11f, Mathf.Cos(a) * 0.47f + 0.12f), new Vector3(0.22f, 0.06f, 0.12f), Quaternion.Euler(0f, a * Mathf.Rad2Deg, 0f), i % 2 == 1 ? MudPalette.Black : MudPalette.White);
-            }
-            k.Smooth = true;
-            k.Ball(new Vector3(0.32f, 1.16f, 0.5f), new Vector3(0.12f, 0.1f, 0.08f), Quaternion.identity, MudPalette.White, 1); // the knot
+            k.Ball(new Vector3(0.36f, 1.33f, 0.64f), new Vector3(0.14f, 0.12f, 0.1f), Quaternion.identity, MudPalette.White, 0); // the knot
             // A gold medal on a red ribbon (he gave it to himself).
-            k.Smooth = false;
-            k.Rod(new Vector3(-0.15f, 1.12f, 0.62f), new Vector3(0f, 0.82f, 0.79f), 0.025f, 4, KartRed);
-            k.Rod(new Vector3(0.15f, 1.12f, 0.62f), new Vector3(0f, 0.82f, 0.79f), 0.025f, 4, KartRed);
-            k.Prism(new Vector3(0f, 0.74f, 0.79f), Quaternion.Euler(80f, 0f, 0f), 0.13f, 0.13f, 0.035f, 14, Gold, 0.4f);
-            k.Box(new Vector3(0f, 0.75f, 0.83f), new Vector3(0.025f, 0.11f, 0.01f), Quaternion.Euler(-10f, 0f, 0f), new Color(0.6f, 0.42f, 0.1f));
+            k.Rod(new Vector3(-0.15f, 1.14f, 0.68f), new Vector3(0f, 0.84f, 0.8f), 0.03f, 3, KartRed);
+            k.Rod(new Vector3(0.15f, 1.14f, 0.68f), new Vector3(0f, 0.84f, 0.8f), 0.03f, 3, KartRed);
+            k.Prism(new Vector3(0f, 0.76f, 0.8f), Quaternion.Euler(80f, 0f, 0f), 0.14f, 0.14f, 0.04f, 6, Gold, 0.4f);
             // Backpack straps for the starter motor.
             foreach (float s in new[] { -1f, 1f })
-                k.Tube(new[] { new Vector3(0.42f * s, 0.45f, 0.55f), new Vector3(0.5f * s, 1.05f, 0.42f), new Vector3(0.5f * s, 1.32f, 0.05f), new Vector3(0.45f * s, 1.15f, -0.55f), new Vector3(0.4f * s, 0.55f, -0.85f) }, 0.045f, 6, Leather);
+            {
+                k.Rod(new Vector3(0.45f * s, 0.5f, 0.7f), new Vector3(0.55f * s, 1.3f, 0.3f), 0.05f, 4, Leather);
+                k.Rod(new Vector3(0.55f * s, 1.3f, 0.3f), new Vector3(0.45f * s, 0.6f, -0.72f), 0.05f, 4, Leather);
+            }
         }
 
         private static void ScarfTailMesh(MeshKit k)
         {
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 3; i++)
                 for (int x = 0; x < 2; x++)
-                    k.Box(new Vector3(-0.05f + x * 0.1f, -0.05f - i * 0.09f, 0f), new Vector3(0.1f, 0.09f, 0.03f), (i + x) % 2 == 0 ? MudPalette.Black : MudPalette.White);
-            for (int x = 0; x < 3; x++) k.Box(new Vector3(-0.07f + x * 0.07f, -0.5f, 0f), new Vector3(0.025f, 0.06f, 0.02f), MudPalette.White); // fringe
+                    k.Box(new Vector3(-0.065f + x * 0.13f, -0.07f - i * 0.14f, 0f), new Vector3(0.13f, 0.14f, 0.035f), (i + x) % 2 == 0 ? MudPalette.Black : MudPalette.White);
         }
 
         private static void MotorMesh(MeshKit k)
         {
-            k.Prism(new Vector3(0f, -0.35f, 0f), Quaternion.identity, 0.28f, 0.28f, 0.7f, 12, MudPalette.Metal);
-            k.Prism(new Vector3(0f, 0.35f, 0f), Quaternion.identity, 0.15f, 0.1f, 0.2f, 8, MudPalette.DarkMetal);
-            for (int i = 0; i < 4; i++) k.Prism(new Vector3(0f, -0.25f + i * 0.15f, 0f), Quaternion.identity, 0.3f, 0.3f, 0.04f, 12, new Color(0.25f, 0.6f, 0.9f));
-            k.Ball(new Vector3(0f, 0.1f, 0.3f), 0.06f, new Color(0.3f, 0.9f, 1f), 0, 3f);
-            k.Rod(new Vector3(0.2f, -0.4f, 0.15f), new Vector3(0.28f, 0.3f, 0.18f), 0.02f, 5, KartRed); // a wire
+            k.Prism(new Vector3(0f, -0.35f, 0f), Quaternion.identity, 0.28f, 0.28f, 0.7f, 6, MudPalette.Metal);
+            k.Prism(new Vector3(0f, 0.35f, 0f), Quaternion.identity, 0.16f, 0.1f, 0.2f, 6, MudPalette.DarkMetal);
+            for (int i = 0; i < 2; i++) k.Prism(new Vector3(0f, -0.2f + i * 0.3f, 0f), Quaternion.identity, 0.31f, 0.31f, 0.06f, 6, new Color(0.25f, 0.6f, 0.9f));
+            k.Ball(new Vector3(0f, 0.1f, 0.3f), 0.07f, new Color(0.3f, 0.9f, 1f), 0, 3f);
         }
 
         // ---------- Head ----------
@@ -671,11 +502,9 @@ namespace SignalLost.Mudlands
                 BrowTravel = 0.05f, Idle = Mood.Laugh, Fight = Mood.Angry,
             };
             MudArt.Part(head, "Helmet", Vector3.zero, Quaternion.identity, "kong3_helmet", HelmetMesh);
-            // Spines along his crest, poking up through the helmet, and two down the back of his skull.
-            AddSpine(head, new Vector3(0f, 0.66f, -0.06f), new Vector3(0f, 1f, -0.3f), 0.4f, headSpines, "Crest Spine");
-            AddSpine(head, new Vector3(0f, 0.68f, -0.28f), new Vector3(0f, 1f, -0.7f), 0.48f, headSpines, "Crest Spine");
-            AddSpine(head, new Vector3(0f, 0.55f, -0.48f), new Vector3(0f, 0.6f, -1f), 0.4f, headSpines, "Crest Spine");
-            AddSpine(head, new Vector3(0f, 0.3f, -0.57f), new Vector3(0f, 0.3f, -1f), 0.28f, headSpines, "Crest Spine");
+            // Two big spines along his crest, poking up through the helmet.
+            AddSpine(head, new Vector3(0f, 0.66f, -0.1f), new Vector3(0f, 1f, -0.4f), 0.55f, headSpines, "Crest Spine");
+            AddSpine(head, new Vector3(0f, 0.6f, -0.4f), new Vector3(0f, 0.75f, -1f), 0.5f, headSpines, "Crest Spine");
             // The anger mark that throbs on his temple once he's enraged.
             rageMark = MudArt.Pivot(head, "Rage Mark", new Vector3(0.42f, 0.36f, 0.22f), Quaternion.LookRotation(new Vector3(0.65f, 0.2f, 0.73f)));
             MudArt.Part(rageMark, "Mark", Vector3.zero, Quaternion.identity, "kong3_rage_mark", RageMarkMesh, false);
@@ -727,47 +556,25 @@ namespace SignalLost.Mudlands
         private static void HeadMesh(MeshKit k, bool rage)
         {
             Color skin = rage ? RageSkin : Skin;
-            k.Smooth = true;
             k.Ball(new Vector3(0f, 0.05f, -0.05f), new Vector3(0.55f, 0.52f, 0.5f), Quaternion.identity, Fur, 1);
             k.Ball(new Vector3(0f, 0.36f, -0.18f), new Vector3(0.3f, 0.32f, 0.42f), Quaternion.identity, Fur, 1); // the crest
-            foreach (float x in new[] { -0.15f, 0.15f })
-                k.Ball(new Vector3(x, 0.14f, 0.3f), new Vector3(0.24f, 0.2f, 0.22f), Quaternion.identity, skin, 1);
-            k.Ball(new Vector3(0f, -0.17f, 0.34f), new Vector3(0.43f, 0.3f, 0.32f), Quaternion.identity, skin, 1); // muzzle
-            k.Ball(new Vector3(0f, -0.05f, 0.56f), new Vector3(0.2f, 0.11f, 0.12f), Quaternion.identity, skin, 1); // nose bridge
+            k.Ball(new Vector3(0f, -0.13f, 0.36f), new Vector3(0.45f, 0.36f, 0.34f), Quaternion.identity, skin, 1); // face and muzzle
+            k.Ball(new Vector3(0f, -0.05f, 0.58f), new Vector3(0.2f, 0.12f, 0.12f), Quaternion.identity, skin, 0); // nose bridge
             // The heavy brow ridge: lower and knotted when he's enraged.
-            if (rage)
-            {
-                k.Ball(new Vector3(0f, 0.25f, 0.42f), new Vector3(0.4f, 0.1f, 0.17f), Quaternion.identity, FurDark, 1);
-                k.Ball(new Vector3(0f, 0.27f, 0.52f), new Vector3(0.05f, 0.06f, 0.06f), Quaternion.identity, FurDark, 1); // the knot between the brows
-            }
-            else k.Ball(new Vector3(0f, 0.27f, 0.4f), new Vector3(0.38f, 0.09f, 0.15f), Quaternion.identity, FurDark, 1);
+            if (rage) k.Ball(new Vector3(0f, 0.25f, 0.44f), new Vector3(0.42f, 0.11f, 0.17f), Quaternion.Euler(8f, 0f, 0f), FurDark, 0);
+            else k.Ball(new Vector3(0f, 0.27f, 0.42f), new Vector3(0.4f, 0.1f, 0.15f), Quaternion.identity, FurDark, 0);
             foreach (float x in new[] { -0.08f, 0.08f }) // slit nostrils
-            {
-                k.Ball(new Vector3(x * 1.3f, -0.07f, 0.62f), new Vector3(rage ? 0.09f : 0.08f, 0.06f, 0.06f), Quaternion.Euler(0f, 0f, x * 200f), skin, 1);
-                k.Ball(new Vector3(x, -0.07f, 0.665f), new Vector3(0.018f, rage ? 0.05f : 0.042f, 0.03f), Quaternion.Euler(0f, 0f, x * 250f), new Color(0.16f, 0.07f, 0.18f), 1);
-            }
+                k.Ball(new Vector3(x, -0.07f, 0.67f), new Vector3(0.025f, rage ? 0.055f : 0.045f, 0.03f), Quaternion.Euler(0f, 0f, x * 250f), new Color(0.16f, 0.07f, 0.18f), 0);
             foreach (float s in new[] { -1f, 1f }) // long pointed ears swept back
-            {
-                Quaternion sweep = Quaternion.LookRotation(new Vector3(0.75f * s, 0.35f, -0.6f));
-                k.Ball(new Vector3(0.48f * s, 0.1f, -0.1f), new Vector3(0.05f, 0.1f, 0.26f), sweep, skin, 1);
-                k.Ball(new Vector3(0.5f * s, 0.1f, -0.09f), new Vector3(0.025f, 0.06f, 0.18f), sweep, rage ? new Color(0.72f, 0.2f, 0.36f) : ChestSkin, 1);
-            }
-            foreach (float x in new[] { -0.36f, 0.36f }) // jowl fur
-                k.Ball(new Vector3(x, -0.22f, 0.12f), new Vector3(0.16f, 0.2f, 0.16f), Quaternion.Euler(0f, 0f, x * 40f), Fur, 1);
-            k.Ball(new Vector3(0f, -0.4f, 0.28f), new Vector3(0.24f, 0.08f, 0.14f), Quaternion.identity, skin, 1); // chin
-            Color crease = rage ? new Color(0.5f, 0.14f, 0.3f) : new Color(0.6f, 0.44f, 0.7f);
+                k.Ball(new Vector3(0.48f * s, 0.1f, -0.1f), new Vector3(0.06f, 0.11f, 0.28f), Quaternion.LookRotation(new Vector3(0.75f * s, 0.35f, -0.6f)), skin, 0);
             if (rage)
                 foreach (float s in new[] { -1f, 1f }) // snarl lines down the muzzle
-                    for (int i = 0; i < 2; i++)
-                        k.Ball(new Vector3(s * (0.2f + i * 0.05f), -0.06f - i * 0.05f, 0.56f - i * 0.04f), new Vector3(0.008f, 0.07f, 0.02f), Quaternion.Euler(0f, s * 30f, s * 35f), crease, 0);
-            for (int i = 0; i < 3; i++) // wrinkles on the muzzle
-                k.Ball(new Vector3(0f, 0.04f + i * 0.04f, 0.5f), new Vector3(0.1f - i * 0.02f, rage ? 0.012f : 0.008f, 0.02f), Quaternion.identity, crease, 0);
+                    k.Box(new Vector3(s * 0.22f, -0.08f, 0.58f), new Vector3(0.02f, 0.14f, 0.03f), Quaternion.Euler(0f, s * 30f, s * 35f), new Color(0.5f, 0.14f, 0.3f));
             // Tusks: up out of the lower jaw, past the muzzle, curving out and back in.
             foreach (float s in new[] { -1f, 1f })
             {
-                k.Ball(new Vector3(0.25f * s, -0.32f, 0.5f), new Vector3(0.07f, 0.05f, 0.07f), Quaternion.identity, rage ? RageChest : ChestSkin, 1); // the gum
-                Hoverbikes.Tusk(k, new[] { new Vector3(0.25f * s, -0.33f, 0.5f), new Vector3(0.31f * s, -0.2f, 0.62f), new Vector3(0.36f * s, -0.03f, 0.64f), new Vector3(0.33f * s, 0.1f, 0.58f) }, 0.055f, 0.016f, Ivory);
-                k.Ball(new Vector3(0.31f * s, -0.2f, 0.62f), 0.052f, BoneDark, 0); // a chip and a ring of wear
+                k.Rod(new Vector3(0.25f * s, -0.33f, 0.5f), new Vector3(0.34f * s, -0.1f, 0.65f), 0.06f, 5, Ivory, 0f, 0.042f);
+                k.Rod(new Vector3(0.34f * s, -0.1f, 0.65f), new Vector3(0.33f * s, 0.12f, 0.58f), 0.042f, 5, Ivory, 0f, 0.012f);
             }
         }
 
@@ -780,31 +587,28 @@ namespace SignalLost.Mudlands
                 var d = new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0f);
                 var across = new Vector3(-d.y, d.x, 0f);
                 Vector3 corner = d * 0.055f;
-                k.Tube(new[] { corner + across * 0.04f - d * 0.01f, corner + d * 0.012f, corner - across * 0.04f - d * 0.01f }, 0.012f, 5, Vein, 3f);
+                k.Rod(corner + across * 0.04f - d * 0.01f, corner + d * 0.012f, 0.014f, 3, Vein, 3f);
+                k.Rod(corner + d * 0.012f, corner - across * 0.04f - d * 0.01f, 0.014f, 3, Vein, 3f);
             }
         }
 
         // A racing helmet pushed back on his head (much too small), with goggles on the brim. His crest spines poke
-        // up through holes he punched in the top.
+        // up through the top.
         private static void HelmetMesh(MeshKit k)
         {
-            k.Smooth = true;
             Quaternion tip = Quaternion.Euler(-20f, 0f, 0f);
-            k.Ball(new Vector3(0f, 0.52f, -0.22f), new Vector3(0.33f, 0.22f, 0.33f), tip, KartRed, 1);
-            k.Smooth = false;
-            k.Box(new Vector3(0.12f, 0.6f, -0.14f), new Vector3(0.06f, 0.16f, 0.38f), tip, MudPalette.White);
-            k.Box(new Vector3(0f, 0.56f, 0.08f), new Vector3(0.4f, 0.03f, 0.12f), Quaternion.Euler(-35f, 0f, 0f), MudPalette.Black); // visor peak
-            k.Prism(new Vector3(0f, 0.735f, -0.08f), Quaternion.Euler(12f, 0f, 0f), 0.07f, 0.06f, 0.02f, 8, MudPalette.Black); // the torn holes
-            k.Prism(new Vector3(0f, 0.715f, -0.31f), Quaternion.Euler(-12f, 0f, 0f), 0.075f, 0.065f, 0.02f, 8, MudPalette.Black);
-            k.Prism(new Vector3(0f, 0.575f, -0.52f), Quaternion.Euler(-50f, 0f, 0f), 0.065f, 0.055f, 0.02f, 8, MudPalette.Black);
-            k.Tube(new[] { new Vector3(-0.33f, 0.43f, -0.05f), new Vector3(-0.3f, 0.47f, 0.12f), new Vector3(0f, 0.5f, 0.24f), new Vector3(0.3f, 0.47f, 0.12f), new Vector3(0.33f, 0.43f, -0.05f) }, 0.025f, 5, Leather);
+            k.Ball(new Vector3(0f, 0.52f, -0.22f), new Vector3(0.34f, 0.23f, 0.34f), tip, KartRed, 1);
+            k.Box(new Vector3(0.12f, 0.6f, -0.14f), new Vector3(0.08f, 0.17f, 0.4f), tip, MudPalette.White);
+            k.Box(new Vector3(0f, 0.56f, 0.08f), new Vector3(0.42f, 0.04f, 0.14f), Quaternion.Euler(-35f, 0f, 0f), MudPalette.Black); // visor peak
+            // The goggles on the brim: a leather strap and two chrome rims with blue lenses.
+            k.Rod(new Vector3(-0.33f, 0.43f, -0.05f), new Vector3(-0.2f, 0.5f, 0.22f), 0.03f, 3, Leather);
+            k.Rod(new Vector3(0.33f, 0.43f, -0.05f), new Vector3(0.2f, 0.5f, 0.22f), 0.03f, 3, Leather);
             foreach (float x in new[] { -0.12f, 0.12f })
             {
                 Quaternion face = Quaternion.Euler(-60f, 0f, 0f);
-                k.Prism(new Vector3(x, 0.5f, 0.23f), face, 0.085f, 0.085f, 0.04f, 12, Chrome);
-                k.Prism(new Vector3(x, 0.52f, 0.24f), face, 0.065f, 0.065f, 0.035f, 12, Lens, 0.4f);
+                k.Prism(new Vector3(x, 0.5f, 0.23f), face, 0.09f, 0.09f, 0.045f, 6, Chrome);
+                k.Prism(new Vector3(x, 0.52f, 0.24f), face, 0.07f, 0.07f, 0.04f, 6, Lens, 0.4f);
             }
-            k.Box(new Vector3(0f, 0.5f, 0.24f), new Vector3(0.06f, 0.03f, 0.03f), Chrome);
         }
 
         // ---------- Arms, hands, legs ----------
@@ -820,58 +624,35 @@ namespace SignalLost.Mudlands
             return shoulder;
         }
 
-        private static void UpperArmMesh(MeshKit k)
-        {
-            k.Smooth = true;
-            k.Ball(Vector3.zero, 0.38f, Fur, 1);
-            k.Rod(Vector3.zero, new Vector3(0f, -UpperArm, 0f), 0.33f, 12, Fur, 0f, 0.26f);
-            k.Ball(new Vector3(0f, -UpperArm, 0f), 0.27f, Fur, 1);
-            for (int i = 0; i < 3; i++) // shaggy fur down the back of the arm
-                k.Ball(new Vector3(0f, -0.25f - i * 0.25f, -0.26f + i * 0.02f), new Vector3(0.14f, 0.2f, 0.1f), Quaternion.Euler(25f, 0f, 0f), Fur, 1);
-            for (int i = 0; i < 2; i++) // two spines on the back of the arm
-                ArmSpine(k, new Vector3(0f, -0.32f - i * 0.28f, -0.3f), 0.22f - i * 0.04f);
-        }
+        private static void UpperArmMesh(MeshKit k) =>
+            k.Loft(new[] { new Vector3(0f, 0.22f, 0f), new Vector3(0f, 0f, 0f), new Vector3(0f, -0.4f, 0f), new Vector3(0f, -0.75f, 0f), new Vector3(0f, -UpperArm - 0.06f, 0f) },
+                new[] { new Vector2(0.5f, 0.45f), new Vector2(0.82f, 0.78f), new Vector2(0.74f, 0.66f), new Vector2(0.58f, 0.52f), new Vector2(0.5f, 0.46f) },
+                Vector3.forward, 8, Fur, 2.2f);
 
-        // A small spine sticking back (-Z) and up the arm (+Y) from a point on its back.
-        private static void ArmSpine(MeshKit k, Vector3 root, float length)
-        {
-            k.Smooth = true;
-            Hoverbikes.Tusk(k, new[] { root, root + new Vector3(0f, 0.25f, -0.6f) * length, root + new Vector3(0f, 0.6f, -0.85f) * length }, 0.2f * length, 0.05f * length, Ivory);
-            k.Smooth = false;
-            k.Cone(root + new Vector3(0f, 0.6f, -0.85f) * length, Quaternion.FromToRotation(Vector3.up, new Vector3(0f, 0.7f, -0.7f)), 0.05f * length, 0.18f * length, 6, SpineGlow, 2f);
-        }
 
         private static void ForearmMesh(MeshKit k)
         {
-            k.Smooth = true;
-            k.Rod(Vector3.zero, new Vector3(0f, -Forearm + 0.06f, 0f), 0.27f, 12, Fur, 0f, 0.29f); // gorilla forearms: thicker at the wrist
-            for (int i = 0; i < 2; i++)
-                k.Ball(new Vector3(0f, -0.3f - i * 0.25f, -0.25f), new Vector3(0.13f, 0.18f, 0.1f), Quaternion.Euler(25f, 0f, 0f), Fur, 1);
-            k.Ball(new Vector3(0f, -Forearm + 0.1f, 0f), new Vector3(0.33f, 0.13f, 0.33f), Quaternion.identity, Fur, 1); // shaggy cuff
-            for (int i = 0; i < 3; i++) // a row of spines down the back of the forearm
-                ArmSpine(k, new Vector3(0f, -0.18f - i * 0.2f, -0.27f - i * 0.005f), 0.26f - i * 0.04f);
-            k.Smooth = false;
-            k.Prism(new Vector3(0f, -Forearm + 0.0f, 0f), Quaternion.identity, 0.27f, 0.28f, 0.08f, 14, KartRed); // racing glove cuff
-            k.Prism(new Vector3(0f, -Forearm + 0.03f, 0f), Quaternion.identity, 0.285f, 0.285f, 0.02f, 14, MudPalette.White);
+            // Gorilla forearms: thicker at the wrist.
+            k.Loft(new[] { new Vector3(0f, 0.12f, 0f), new Vector3(0f, -0.15f, 0f), new Vector3(0f, -0.55f, 0f), new Vector3(0f, -Forearm + 0.04f, 0f) },
+                new[] { new Vector2(0.44f, 0.42f), new Vector2(0.56f, 0.52f), new Vector2(0.62f, 0.56f), new Vector2(0.6f, 0.56f) },
+                Vector3.forward, 8, Fur, 2.2f);
+            k.Prism(new Vector3(0f, -Forearm, 0f), Quaternion.identity, 0.3f, 0.32f, 0.12f, 7, KartRed); // racing glove cuff
+            k.Prism(new Vector3(0f, -Forearm + 0.12f, 0f), Quaternion.identity, 0.325f, 0.325f, 0.03f, 7, MudPalette.White);
         }
 
         // A huge knuckly fist in a fingerless racing glove: three thick fingers with bone claws. Fingers point down the
         // hand's -Y; the palm faces +Z.
         private static void HandMesh(MeshKit k, float side)
         {
-            k.Smooth = true;
-            k.Ball(new Vector3(0f, -0.2f, 0.02f), new Vector3(0.27f, 0.23f, 0.22f), Quaternion.identity, HandSkin, 1);
-            k.Ball(new Vector3(0f, -0.17f, -0.07f), new Vector3(0.28f, 0.2f, 0.16f), Quaternion.identity, KartRed, 1); // glove back
-            k.Ball(new Vector3(0f, -0.15f, -0.22f), new Vector3(0.08f, 0.1f, 0.01f), Quaternion.identity, MudPalette.White, 0); // a white "K" patch
+            k.Ball(new Vector3(0f, -0.2f, 0.02f), new Vector3(0.28f, 0.24f, 0.23f), Quaternion.identity, HandSkin, 1);
+            k.Ball(new Vector3(0f, -0.17f, -0.07f), new Vector3(0.29f, 0.2f, 0.17f), Quaternion.identity, KartRed, 0); // glove back
             for (int i = 0; i < 3; i++)
             {
                 float x = (i - 1f) * 0.165f;
-                k.Ball(new Vector3(x, -0.39f, 0.03f), new Vector3(0.092f, 0.085f, 0.095f), Quaternion.identity, HandSkin, 1); // knuckles
-                k.Ball(new Vector3(x * 0.95f, -0.36f, 0.14f), new Vector3(0.08f, 0.075f, 0.1f), Quaternion.identity, HandSkin, 1); // curled fingers
-                k.Cone(new Vector3(x * 0.95f, -0.31f, 0.21f), Quaternion.Euler(60f, 0f, 0f), 0.032f, 0.085f, 6, Nail); // claws
+                k.Ball(new Vector3(x, -0.38f, 0.08f), new Vector3(0.095f, 0.09f, 0.13f), Quaternion.identity, HandSkin, 0); // knuckly curled fingers
+                k.Cone(new Vector3(x * 0.95f, -0.31f, 0.21f), Quaternion.Euler(60f, 0f, 0f), 0.036f, 0.09f, 3, Nail); // claws
             }
-            k.Ball(new Vector3(-0.22f * side, -0.26f, 0.15f), new Vector3(0.08f, 0.12f, 0.08f), Quaternion.Euler(0f, 0f, 25f * side), HandSkin, 1); // thumb
-            k.Cone(new Vector3(-0.25f * side, -0.33f, 0.2f), Quaternion.Euler(50f, 0f, 20f * side), 0.026f, 0.07f, 6, Nail);
+            k.Ball(new Vector3(-0.22f * side, -0.26f, 0.15f), new Vector3(0.085f, 0.13f, 0.085f), Quaternion.Euler(0f, 0f, 25f * side), HandSkin, 0); // thumb
         }
 
         private Transform BuildLeg(float side, out Transform knee, out Transform foot)
@@ -879,17 +660,14 @@ namespace SignalLost.Mudlands
             Transform hip = MudArt.Pivot(body, side < 0f ? "Leg L" : "Leg R", new Vector3(HipJointAt.x * side, HipJointAt.y, HipJointAt.z));
             MudArt.Part(hip, "Thigh", Vector3.zero, Quaternion.identity, "kong3_thigh", k =>
             {
-                k.Smooth = true;
-                k.Ball(Vector3.zero, 0.3f, Fur, 1);
-                k.Rod(Vector3.zero, new Vector3(0f, -Thigh, 0f), 0.29f, 12, Fur, 0f, 0.23f);
+                k.Loft(new[] { new Vector3(0f, 0.2f, 0f), new Vector3(0f, 0f, 0f), new Vector3(0f, -0.3f, 0f), new Vector3(0f, -Thigh - 0.05f, 0f) },
+                    new[] { new Vector2(0.45f, 0.45f), new Vector2(0.64f, 0.62f), new Vector2(0.56f, 0.54f), new Vector2(0.44f, 0.44f) }, Vector3.forward, 8, Fur, 2.2f);
             });
             knee = MudArt.Pivot(hip, "Knee", new Vector3(0f, -Thigh, 0f));
             MudArt.Part(knee, "Shin", Vector3.zero, Quaternion.identity, "kong3_shin", k =>
             {
-                k.Smooth = true;
-                k.Ball(Vector3.zero, 0.23f, Fur, 1);
-                k.Rod(Vector3.zero, new Vector3(0f, -Shin, 0f), 0.22f, 12, Fur, 0f, 0.17f);
-                k.Ball(new Vector3(0f, -Shin + 0.06f, 0f), new Vector3(0.22f, 0.1f, 0.22f), Quaternion.identity, Fur, 1);
+                k.Loft(new[] { new Vector3(0f, 0.12f, 0f), new Vector3(0f, -0.18f, 0f), new Vector3(0f, -Shin - 0.02f, 0f) },
+                    new[] { new Vector2(0.42f, 0.42f), new Vector2(0.44f, 0.42f), new Vector2(0.34f, 0.34f) }, Vector3.forward, 8, Fur, 2.2f);
             });
             foot = MudArt.Pivot(knee, "Foot", new Vector3(0f, -Shin, 0f));
             MudArt.Part(foot, "Sole", Vector3.zero, Quaternion.identity, side < 0f ? "kong3_foot_l" : "kong3_foot_r", k => FootMesh(k, side));
@@ -899,16 +677,13 @@ namespace SignalLost.Mudlands
         // Toes along +Z, sole at y = -Ankle, the big grabbing toe out to the inside.
         private static void FootMesh(MeshKit k, float side)
         {
-            k.Smooth = true;
-            k.Ball(new Vector3(0f, -0.05f, 0.1f), new Vector3(0.2f, 0.08f, 0.27f), Quaternion.identity, HandSkin, 1);
-            k.Ball(new Vector3(0f, -0.02f, -0.05f), new Vector3(0.16f, 0.1f, 0.16f), Quaternion.identity, HandSkin, 1);
+            k.Ball(new Vector3(0f, -0.04f, 0.06f), new Vector3(0.2f, 0.1f, 0.3f), Quaternion.identity, HandSkin, 1);
             for (int i = 0; i < 3; i++) // three clawed toes
             {
                 float x = (i - 0.8f) * 0.11f * side * -1f;
-                k.Ball(new Vector3(x, -0.08f, 0.36f), new Vector3(0.062f, 0.05f, 0.08f), Quaternion.identity, HandSkin, 1);
-                k.Cone(new Vector3(x, -0.08f, 0.43f), Quaternion.Euler(80f, 0f, 0f), 0.024f, 0.06f, 6, Nail);
+                k.Ball(new Vector3(x, -0.08f, 0.36f), new Vector3(0.065f, 0.055f, 0.085f), Quaternion.identity, HandSkin, 0);
             }
-            k.Ball(new Vector3(-0.2f * side, -0.08f, 0.24f), new Vector3(0.06f, 0.05f, 0.1f), Quaternion.Euler(0f, -35f * side, 0f), HandSkin, 1);
+            k.Ball(new Vector3(-0.2f * side, -0.08f, 0.24f), new Vector3(0.065f, 0.055f, 0.1f), Quaternion.Euler(0f, -35f * side, 0f), HandSkin, 0);
         }
 
         // ---------- Held things ----------
@@ -918,9 +693,7 @@ namespace SignalLost.Mudlands
             banana = MudArt.Pivot(held, "Banana", Vector3.zero);
             MudArt.Part(banana, "Skin", Vector3.zero, Quaternion.identity, "kong3_banana_skin", k =>
             {
-                k.Smooth = true;
                 k.Tube(new[] { new Vector3(0f, -0.25f, 0.05f), new Vector3(0f, -0.12f, 0f), new Vector3(0f, 0f, 0f) }, 0.07f, 8, Banana);
-                k.Smooth = false;
                 k.Cone(new Vector3(0f, -0.25f, 0.05f), Quaternion.Euler(180f, 0f, 0f), 0.05f, 0.06f, 6, new Color(0.3f, 0.22f, 0.1f));
             });
             bananaFlesh = MudArt.Part(banana, "Flesh", Vector3.zero, Quaternion.identity, "kong3_banana_flesh", k =>
@@ -943,7 +716,7 @@ namespace SignalLost.Mudlands
         // The Kart Wheel: the fat patched tyre off his kart, on its rusty rim.
         protected override Action<MeshKit> KeyItemModel() => k =>
         {
-            TyreRing(k, 0.3f, 0.22f, MudPalette.Rubber, 14);
+            TyreRing(k, 0.3f, 0.22f, MudPalette.Rubber, 6);
             k.Prism(new Vector3(-0.1f, 0f, 0f), Quaternion.Euler(0f, 0f, -90f), 0.15f, 0.15f, 0.2f, 10, Rust);
             k.Box(new Vector3(0f, 0.29f, 0f), new Vector3(0.23f, 0.03f, 0.1f), Tape);
         };
