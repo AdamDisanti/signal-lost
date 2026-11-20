@@ -37,8 +37,8 @@ namespace SignalLost.Mudlands
     /// damage).</item>
     /// <item><b>The getaway:</b> at 15% he stops taking damage and pulls a wheelie up the Gator Causeway. Drunk Driving
     /// is free for the chase; ram him before the jump ramp short of the County Line and he goes over the handlebars.
-    /// If he reaches it he lines up, hits the nitro and jumps the County Line out of bounds (slow motion over the banner,
-    /// a whip and a wave at the top, gone over the ridge's treeline with a twinkle), heals back to 33% and roars back
+    /// If he reaches it he lines up, hits the nitro and jumps out of bounds (slow motion off the lip, a whip and a
+    /// wave at the top, gone over the ridge's treeline with a twinkle), heals back to 33% and roars back
     /// into the lot.</item>
     /// </list>
     /// 1100 HP. Drops the Landing Gear (the stage's main part) and Clutch's Aviators (a camp trophy).
@@ -57,7 +57,7 @@ namespace SignalLost.Mudlands
         [SerializeField] private Transform[] gangDoors = Array.Empty<Transform>();
         [Tooltip("The dirt jump ramp's lip (its forward is the jump direction).")]
         [SerializeField] private Transform ramp;
-        [Tooltip("The getaway road, from the lot out to the County Line gate.")]
+        [Tooltip("The getaway road, from the lot out to the county line (where his escape ramp goes).")]
         [SerializeField] private Transform[] escapeRoute = Array.Empty<Transform>();
         [Tooltip("Solid things a ram can wipe out on (the gas pumps).")]
         [SerializeField] private Transform[] wipeOutProps = Array.Empty<Transform>();
@@ -1439,19 +1439,19 @@ namespace SignalLost.Mudlands
 
         // ---------- The escape ramp: his way out, over the County Line and off the map ----------
 
-        // His way out is a plank ramp on the causeway just short of the County Line, angled a little off the road toward
-        // the edge of the map. On the last stretch he stops weaving, lines up on it and hits the nitro; he rides up the
-        // planks (placed on the ramp's own slope, no ground probes, so nothing to stutter on), launches over the County
-        // Line's banner in slow motion, whips the bike at the top of the arc while he twists round and waves you
-        // goodbye, then tucks in and sails over the ridge's treeline: out of bounds, gone with a twinkle.
+        // His way out is a plank ramp at the end of the causeway (the county line; its gate was removed 11-20), angled a
+        // little off the road toward the edge of the map. On the last stretch he stops weaving, lines up on it and hits
+        // the nitro; he rides up the planks (placed on the ramp's own slope, no ground probes, so nothing to stutter on),
+        // launches in slow motion, whips the bike at the top of the arc while he twists round and waves you goodbye,
+        // then tucks in and sails over the ridge's treeline: out of bounds, gone with a twinkle.
         private enum Run { Road, LineUp, Climb, Air }
 
-        // The lip sits on the road this far short of the County Line; the jump bends at most this far off the road (so it
-        // still crosses the banner well inside the posts); he commits to the ramp this far out.
+        // The lip sits on the road this far short of the causeway's end; the jump bends at most this far off the road
+        // (so the ramp still sits on the road); he commits to the ramp this far out.
         private const float LipBeforeLine = 9f, JumpBend = 15f, LineUpFrom = 35f, CommitAt = 12f, RampSpeed = 22f;
         // MudModels.Kind.Ramp: 8 m long, 2.6 m high at the lip (+Z), so an 18 degree slope.
         private const float RampLength = 8f, RampHeight = 2.6f;
-        // The flight (m/s, m/s, m/s^2, s): clears the banner by about 3.5 m, peaks about 24 m up at 2 s.
+        // The flight (m/s, m/s, m/s^2, s): about 9 m up 9 m out, peaks about 24 m up at 2 s.
         private const float FlightForward = 28f, FlightUp = 24f, FlightGravity = 12f, FlightMax = 3.2f;
         // Gone once the ground under him is this close (the ridge rising under its trees, up to 20 m tall), checked from
         // 1.3 s on (by then he's about 24 m up over the flat).
@@ -1480,8 +1480,8 @@ namespace SignalLost.Mudlands
             if (escapeRamp != null || escapeRoute.Length < 2) return;
             Vector3 end = escapeRoute[escapeRoute.Length - 1].position, before = escapeRoute[escapeRoute.Length - 2].position;
             Vector3 road = (end - before).Flatten().normalized;
-            // Bent toward the map's edge (the Mudlands are centred on the world origin), only as far as keeps the jump
-            // over the County Line's banner: 9 m on at 15 degrees is 2.4 m off centre, the posts are 5 m out.
+            // Bent toward the map's edge (the Mudlands are centred on the world origin), only as far as keeps the ramp on
+            // the road (its foot is about 2 m off the road's centre line at 15 degrees).
             Vector3 outward = end.Flatten();
             float bend = outward.sqrMagnitude > 1f ? Mathf.Clamp(Vector3.SignedAngle(road, outward, Vector3.up), -JumpBend, JumpBend) : 0f;
             Vector3 dir = Quaternion.Euler(0f, bend, 0f) * road;
@@ -1632,7 +1632,7 @@ namespace SignalLost.Mudlands
             Dust(transform.position - JumpDir * 1.5f, 35, 1.1f);
             ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, transform.position, -JumpDir + Vector3.up * 0.4f, 12, 0.08f, 6f, 30f, Nitro);
             MudHud.Shout("HE'S JUMPING THE COUNTY LINE!", new Color(1f, 0.5f, 0.3f), 2.2f);
-            // Slow motion over the banner, if you're close enough to see it.
+            // Slow motion off the lip, if you're close enough to see it.
             slowJump = Target != null && Flat(Target.position - transform.position) < 90f;
         }
 
