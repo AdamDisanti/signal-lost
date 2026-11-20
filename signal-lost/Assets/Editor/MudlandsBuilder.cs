@@ -73,7 +73,7 @@ namespace SignalLost.Editor
             new[] { Flats, new Vector2(45f, -60f), new Vector2(64f, -78f), new Vector2(100f, -82f), new Vector2(138f, -62f), new Vector2(146f, -20f), Chapel, new Vector2(124f, 34f), Dojo + new Vector2(-14f, 0f) },
             new[] { Dojo + new Vector2(-14f, 0f), new Vector2(110f, 82f), new Vector2(92f, 104f), WitchClearing + new Vector2(8f, -14f) },
             new[] { Rotwood, new Vector2(-114f, -58f), new Vector2(-125f, -80f), HaulEnd },
-            // The Gator Causeway: out of the lot's west side to the County Line gate.
+            // The Gator Causeway: out of the lot's west side to the county line (Clutch's escape ramp).
             new[] { Lot + new Vector2(-22f, 6f), new Vector2(-84f, 134f), new Vector2(-120f, 112f), new Vector2(-144f, 80f), new Vector2(-152f, 44f), new Vector2(-156f, 18f) }
         };
         private static readonly Vector2[] Creek = { new Vector2(-190f, -4f), new Vector2(-122f, 2f), new Vector2(-62f, 14f), new Vector2(-12f, 24f), new Vector2(30f, 18f), new Vector2(62f, -8f), new Vector2(78f, -34f) };
@@ -574,7 +574,7 @@ namespace SignalLost.Editor
             Prop(world, MudModels.Kind.WitchHut, WitchClearing + new Vector2(4f, 20f), 190f, "Witch Hut", parent: props);
             Prop(world, MudModels.Kind.Cauldron, WitchClearing, 0f, "Cauldron", parent: props);
 
-            // The Greasy Spoon: the roadhouse, gas pumps, a ramp, the gate, the county line.
+            // The Greasy Spoon: the roadhouse, gas pumps, a ramp, the gate.
             Prop(world, MudModels.Kind.Roadhouse, Lot + new Vector2(0f, 24f), 180f, "The Greasy Spoon", sign: "THE GREASY SPOON", parent: props);
             var pumps = new List<Transform>();
             foreach (float x in new[] { -16f, -11f })
@@ -605,7 +605,7 @@ namespace SignalLost.Editor
             Transform right = GateLeaf(gate.transform, new Vector3(4f, 0f, 0f), -1f);
             world.Gate = gate.AddComponent<RoadhouseGate>();
             world.Gate.Configure(left, right);
-            Prop(world, MudModels.Kind.CountyLine, Roads[8][Roads[8].Length - 1], Yaw(Roads[8][Roads[8].Length - 2], Roads[8][Roads[8].Length - 1]), "County Line", sign: "COUNTY LINE", parent: props);
+            // (No County Line gate any more (11-20): the causeway just ends where Clutch's escape ramp throws him off the map.)
             for (int i = 0; i < 10; i++)
             {
                 float a = i / 10f * Mathf.PI * 2f;

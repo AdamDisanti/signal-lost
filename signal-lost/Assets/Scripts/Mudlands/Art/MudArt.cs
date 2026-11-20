@@ -23,8 +23,22 @@ namespace SignalLost.Mudlands
         private readonly List<int> groups = new List<int>(); // per vertex: 0 = flat, else a smoothing group
         private int group, nextGroup = 1;
 
-        /// <summary>Round shapes added while this is on are finer and smooth-shaded (characters); off: faceted.</summary>
-        public bool Smooth { get; set; }
+        private bool smooth;
+
+        /// <summary>
+        /// Round shapes added while this is on are finer and smooth-shaded (characters); off: faceted. Always off while
+        /// <see cref="Faceted"/> is set.
+        /// </summary>
+        public bool Smooth { get => smooth && !Faceted; set => smooth = value; }
+
+        /// <summary>
+        /// The low-poly budget of the desert bosses (11-19): never smooth, and round shapes capped by size (balls at 80
+        /// faces, 20 for small ones; prisms, rods and lathes at 4-8 sides) whatever the builder asks for.
+        /// </summary>
+        public bool Faceted { get; set; }
+
+        // Faceted: the most sides a round shape of this radius gets.
+        private static int SideCap(float radius) => radius < 0.03f ? 4 : radius < 0.1f ? 5 : radius < 0.3f ? 6 : 8;
 
         private void BeginShape(bool round) => group = round && Smooth ? nextGroup++ : 0;
         private void EndShape() => group = 0;
@@ -89,6 +103,7 @@ namespace SignalLost.Mudlands
         {
             sides = Mathf.Max(3, sides);
             if (Smooth && sides >= 6) sides = Mathf.Max(sides, 16);
+            if (Faceted) sides = Mathf.Max(3, Mathf.Min(sides, SideCap(Mathf.Max(bottomRadius, topRadius))));
             var bottom = new Vector3[sides];
             var top = new Vector3[sides];
             for (int i = 0; i < sides; i++)
@@ -131,6 +146,7 @@ namespace SignalLost.Mudlands
         public void Ball(Vector3 centre, Vector3 radii, Quaternion rotation, Color color, int detail = 1, float glow = 0f)
         {
             if (Smooth) detail = Mathf.Max(detail + 1, 2);
+            if (Faceted) detail = Mathf.Min(detail, Mathf.Max(radii.x, Mathf.Max(radii.y, radii.z)) < 0.08f ? 0 : 1);
             (Vector3[] points, int[] tris) = Icosphere(Mathf.Clamp(detail, 0, 3));
             BeginShape(true);
             for (int i = 0; i < tris.Length; i += 3)
@@ -149,6 +165,12 @@ namespace SignalLost.Mudlands
         public void Lathe(Vector3 centre, Quaternion rotation, Vector2[] profile, int sides, Color color, float glow = 0f)
         {
             if (Smooth) sides = Mathf.Max(sides, 20);
+            if (Faceted)
+            {
+                float widest = 0f;
+                foreach (Vector2 p in profile) widest = Mathf.Max(widest, p.x);
+                sides = Mathf.Max(3, Mathf.Min(sides, SideCap(widest)));
+            }
             BeginShape(true);
             for (int k = 0; k < profile.Length - 1; k++)
                 for (int i = 0; i < sides; i++)
@@ -165,6 +187,72 @@ namespace SignalLost.Mudlands
                 }
             EndShape();
         }
+
+        /// <summary>
+        /// A lofted body (the desert bosses' way of building a torso or a limb): one continuous faceted shape through a
+        /// row of rounded-rectangle sections (superellipses, <paramref name="power"/> 2 = ellipse, higher = boxier),
+        /// each <c>sizes[i].x</c> wide along the side axis and <c>sizes[i].y</c> tall along the up axis. The side axis
+        /// is <paramref name="up"/> × the loft direction; for a loft running up Y pass <c>Vector3.forward</c> as
+        /// <paramref name="up"/> (then x is the width along X and y the depth along Z). <paramref name="paint"/> colours
+        /// each face from its section band and where it sits round the ring (x, y in -1..1; y = +1 is the up side).
+        /// </summary>
+        public void Loft(Vector3[] centres, Vector2[] sizes, Vector3 up, int sides, Func<int, Vector2, Color> paint, float power = 2.4f,
+            bool capStart = true, bool capEnd = true)
+        {
+            int n = centres.Length;
+            if (n < 2) return;
+            sides = Mathf.Max(3, sides);
+            EndShape();
+            var rings = new Vector3[n][];
+            var axes = new Vector3[n];
+            for (int k = 0; k < n; k++)
+            {
+                Vector3 t = (centres[Mathf.Min(k + 1, n - 1)] - centres[Mathf.Max(k - 1, 0)]).normalized;
+                Vector3 u = Vector3.Cross(up, t);
+                if (u.sqrMagnitude < 1e-6f) u = Vector3.Cross(Vector3.right, t);
+                u.Normalize();
+                Vector3 v = Vector3.Cross(t, u).normalized;
+                axes[k] = t;
+                rings[k] = new Vector3[sides];
+                for (int i = 0; i < sides; i++)
+                {
+                    float a = (i + 0.5f) * Mathf.PI * 2f / sides, c = Mathf.Cos(a), s = Mathf.Sin(a);
+                    float x = Mathf.Sign(c) * Mathf.Pow(Mathf.Abs(c), 2f / power), y = Mathf.Sign(s) * Mathf.Pow(Mathf.Abs(s), 2f / power);
+                    rings[k][i] = centres[k] + u * (x * sizes[k].x * 0.5f) + v * (y * sizes[k].y * 0.5f);
+                }
+            }
+            for (int k = 0; k < n - 1; k++)
+            {
+                Vector3 mid = (centres[k] + centres[k + 1]) * 0.5f;
+                for (int i = 0; i < sides; i++)
+                {
+                    int j = (i + 1) % sides;
+                    float a = (i + 1f) * Mathf.PI * 2f / sides;
+                    Color color = paint(k, new Vector2(Mathf.Cos(a), Mathf.Sin(a)));
+                    Vector3 p0 = rings[k][i], p1 = rings[k][j], p2 = rings[k + 1][j], p3 = rings[k + 1][i];
+                    Vector3 outward = (p0 + p1 + p2 + p3) * 0.25f - mid;
+                    if (Vector3.Dot(Vector3.Cross(p1 - p0, p2 - p0), outward) >= 0f) Quad(p0, p1, p2, p3, color);
+                    else Quad(p3, p2, p1, p0, color);
+                }
+            }
+            void Cap(int k, Vector3 outward)
+            {
+                for (int i = 0; i < sides; i++)
+                {
+                    int j = (i + 1) % sides;
+                    Color color = paint(k, Vector2.zero);
+                    Vector3 a = centres[k], b = rings[k][i], c = rings[k][j];
+                    if (Vector3.Dot(Vector3.Cross(b - a, c - a), outward) >= 0f) Tri(a, b, c, color);
+                    else Tri(a, c, b, color);
+                }
+            }
+            if (capStart) Cap(0, -axes[0]);
+            if (capEnd) Cap(n - 1, axes[n - 1]);
+        }
+
+        /// <summary>A lofted body in one colour.</summary>
+        public void Loft(Vector3[] centres, Vector2[] sizes, Vector3 up, int sides, Color color, float power = 2.4f) =>
+            Loft(centres, sizes, up, sides, (k, at) => color, power);
 
         /// <summary>A tube following a path (open ends capped with fans).</summary>
         public void Tube(Vector3[] path, float radius, int sides, Color color, float glow = 0f)
@@ -384,11 +472,25 @@ namespace SignalLost.Mudlands
             return material;
         }
 
+        /// <summary>
+        /// Mesh key prefixes built to the <see cref="MeshKit.Faceted"/> low-poly budget even where their builders ask for
+        /// smooth shading or finer shapes: the bosses brought in line with the desert bosses (11-19). Kart Kong (kong*),
+        /// Clutch McCheddar with his hovercycle (clutch*) and the Sloth Witch (witch*).
+        /// </summary>
+        public static readonly string[] FacetedKeys = { "kong", "clutch", "witch" };
+
+        private static bool IsFaceted(string key)
+        {
+            foreach (string prefix in FacetedKeys)
+                if (key.StartsWith(prefix, StringComparison.Ordinal)) return true;
+            return false;
+        }
+
         /// <summary>The mesh built by <paramref name="build"/>, built once per session under <paramref name="key"/>.</summary>
         public static (Mesh mesh, Material[] materials) Cached(string key, Action<MeshKit> build)
         {
             if (Meshes.TryGetValue(key, out var found) && found.mesh != null) return found;
-            var kit = new MeshKit();
+            var kit = new MeshKit { Faceted = IsFaceted(key) };
             build(kit);
             found = (kit.Build(key), kit.Materials());
             found.mesh.hideFlags = HideFlags.DontSave;
