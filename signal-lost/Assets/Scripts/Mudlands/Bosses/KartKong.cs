@@ -900,7 +900,7 @@ namespace SignalLost.Mudlands
                 case State.Swipe: Say("!", Angry, 0.6f, 6f); break;
                 case State.Pound:
                     poundLanded = false;
-                    ring = GroundRing.Spawn(transform.position + transform.forward * 1.2f, PoundRadius, new Color(1f, 0.55f, 0.25f, 0.5f));
+                    ring = GroundRing.Spawn(transform.position + transform.forward * 1.2f, PoundRadius, new Color(1f, 0.55f, 0.25f, 0.5f), this);
                     Say("HRRRNGH!", Angry, 0.9f, 6f);
                     break;
                 case State.Rush: rushHit = false; break;
@@ -1035,7 +1035,7 @@ namespace SignalLost.Mudlands
             {
                 Enter(State.Donut);
                 Halt();
-                ring = GroundRing.Spawn(transform.position, DonutRadius, new Color(0.55f, 0.4f, 0.25f, 0.5f));
+                ring = GroundRing.Spawn(transform.position, DonutRadius, new Color(0.55f, 0.4f, 0.25f, 0.5f), this);
                 Sfx.PlayAt("rev", transform.position, 1f, 1.2f, 40f);
                 Say("WHEEE!", Happy, 1f, 6f);
                 return;
@@ -1404,7 +1404,7 @@ namespace SignalLost.Mudlands
             if (NavMesh.SamplePosition(target, out NavMeshHit hit, 3f, NavMesh.AllAreas)) target = hit.position;
             leapTo = target;
             poundLanded = false;
-            ring = GroundRing.Spawn(leapTo, LeapRadius, new Color(0.85f, 0.35f, 1f, 0.5f));
+            ring = GroundRing.Spawn(leapTo, LeapRadius, new Color(0.85f, 0.35f, 1f, 0.5f), this);
             Say("HRAAH!", Angry, 0.8f, 6f);
         }
 

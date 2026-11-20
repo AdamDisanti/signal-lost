@@ -1026,7 +1026,7 @@ namespace SignalLost.Mudlands
                 LinkClone(copy);
                 ParticleBurst.Spawn(ParticleBurst.Kind.Mist, spot, Vector3.zero, 30, 1f, 3f, 80f, Arcane);
             }
-            beamRing = GroundRing.Spawn(PlayerPosition, 2f, new Color(0.6f, 1f, 0.35f, 0.5f));
+            beamRing = GroundRing.Spawn(PlayerPosition, 2f, new Color(0.6f, 1f, 0.35f, 0.5f), this);
             Sfx.PlayAt("magic_charge", transform.position, 1f, 0.8f, 60f);
         }
 

@@ -1219,7 +1219,7 @@ namespace SignalLost.Mudlands
             if (Flat(ramp.position - transform.position) > 1.5f && stateTime < 7f) return;
             jumpFrom = transform.position;
             jumpTo = Ground(PlayerPosition);
-            ring = GroundRing.Spawn(jumpTo, 4f, new Color(1f, 0.35f, 0.2f, 0.55f));
+            ring = GroundRing.Spawn(jumpTo, 4f, new Color(1f, 0.35f, 0.2f, 0.55f), this);
             if (Agent != null) Agent.enabled = false;
             Sfx.PlayAt("rev", transform.position, 1f, 1.3f, 60f);
             engineBlast = 1f;
