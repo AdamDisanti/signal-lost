@@ -18,6 +18,8 @@ namespace SignalLost.Progression
     {
         public const string Desert = "Desert";
         public const string Tutorial = "Tutorial";
+        /// <summary>The final level: the crash-site island laid waste, and Cavendish's mech (docs/final-boss.md).</summary>
+        public const string Finale = "Finale";
 
         private static readonly HashSet<string> Cleared = new HashSet<string>();
         private static readonly HashSet<string> Unlocked = new HashSet<string>();

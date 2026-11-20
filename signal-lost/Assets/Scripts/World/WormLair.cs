@@ -62,6 +62,9 @@ namespace SignalLost.World
         [SerializeField, Min(0.5f)] private float growTime = 2.6f;
         [Tooltip("The rock face holding it all up, under the sand lid; it gives way when it all comes down.")]
         [SerializeField] private GameObject ceilingCap;
+        [Tooltip("The sand packed round the choked rocks. It crumbles and falls piece by piece as they come loose: its " +
+                 "mesh's third UV holds each piece's middle, its fourth when (from the start of the fall) and how fast it goes.")]
+        [SerializeField] private MeshFilter chokeSand;
         [Tooltip("The patch of desert sand covering the gash (in the environment), which drops through.")]
         [SerializeField] private GameObject surfaceLid;
         [Tooltip("The red warning on the floor: where the debris and every rock will land or roll (hidden until the warning).")]
@@ -255,6 +258,7 @@ namespace SignalLost.World
             Falling = true;
             CameraShake.Add(1f);
             if (ceilingCap != null) ceilingCap.SetActive(false);
+            StartCoroutine(Drain());
             if (surfaceLid != null) StartCoroutine(DropLid(surfaceLid.transform, floor));
             ParticleBurst.Spawn(ParticleBurst.Kind.Sand, top + Vector3.down * 4f, Vector3.down, 80, 3f, 10f, 50f);
             ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, top + Vector3.down * 6f, Vector3.down, 40, 4f, 4f, 70f);
@@ -390,6 +394,47 @@ namespace SignalLost.World
                 player.position = top.point + Vector3.up * 0.1f;
                 playerBody.enabled = true;
             }
+        }
+
+        // The sand packed round the choked rocks crumbles away: clump by clump it breaks loose (each patch just as the
+        // rocks in it come loose, the clumps in a patch a little apart), drops and crumbles to nothing as it falls.
+        private IEnumerator Drain()
+        {
+            if (chokeSand == null) yield break;
+            Mesh final = chokeSand.sharedMesh;
+            var middles = new List<Vector3>();
+            var timing = new List<Vector2>();
+            if (final != null)
+            {
+                final.GetUVs(2, middles);
+                final.GetUVs(3, timing);
+            }
+            Vector3[] rest = final != null ? final.vertices : Array.Empty<Vector3>();
+            if (final == null || middles.Count != rest.Length || timing.Count != rest.Length)
+            {
+                chokeSand.gameObject.SetActive(false);
+                yield break;
+            }
+            float end = 0f;
+            foreach (Vector2 when in timing) end = Mathf.Max(end, when.x + when.y);
+            Mesh working = Instantiate(final);
+            working.MarkDynamic();
+            chokeSand.sharedMesh = working;
+            var moved = new Vector3[rest.Length];
+            for (float t = 0f; t < end; t += Time.deltaTime)
+            {
+                for (int i = 0; i < rest.Length; i++)
+                {
+                    float since = Mathf.Max(0f, t - timing[i].x), k = Mathf.Clamp01(since / timing[i].y);
+                    moved[i] = Vector3.Lerp(rest[i], middles[i], k * k) + Vector3.down * (4.9f * since * since);
+                }
+                working.vertices = moved;
+                working.RecalculateBounds();
+                yield return null;
+            }
+            chokeSand.gameObject.SetActive(false);
+            chokeSand.sharedMesh = final;
+            Destroy(working);
         }
 
         // Dust boiling up off the growing cone.

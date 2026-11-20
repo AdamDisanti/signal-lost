@@ -1,0 +1,517 @@
+{
+ "boss": "Cindermaw",
+ "colorSpace": "linear",
+ "clips": [
+  {
+   "name": "Idle",
+   "length": 2.0,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Walk",
+   "length": 1.3333,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Run",
+   "length": 0.6,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Roar",
+   "length": 2.3333,
+   "loop": false,
+   "events": [
+    {
+     "name": "roar",
+     "times": [
+      0.6667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "ClawCombo",
+   "length": 2.7333,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.5333,
+      1.2,
+      1.9333
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.4,
+      1.0667,
+      1.8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "TailSpin",
+   "length": 2.0,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit_end",
+     "times": [
+      1.2
+     ]
+    },
+    {
+     "name": "hit_start",
+     "times": [
+      0.7333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "LungeWindup",
+   "length": 1.0,
+   "loop": false,
+   "events": []
+  },
+  {
+   "name": "Charge",
+   "length": 0.4,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Skid",
+   "length": 2.5333,
+   "loop": false,
+   "events": [
+    {
+     "name": "recovered",
+     "times": [
+      2.2
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Breath",
+   "length": 2.8667,
+   "loop": false,
+   "events": [
+    {
+     "name": "breath_end",
+     "times": [
+      2.2
+     ]
+    },
+    {
+     "name": "breath_start",
+     "times": [
+      0.9333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Vent",
+   "length": 1.6667,
+   "loop": false,
+   "events": [
+    {
+     "name": "smoke",
+     "times": [
+      0.5333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "RearSlam",
+   "length": 2.1333,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      1.2
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      1.0333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Overheat",
+   "length": 0.6667,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "Stagger",
+   "length": 1.3333,
+   "loop": false,
+   "events": []
+  },
+  {
+   "name": "Death",
+   "length": 2.3333,
+   "loop": false,
+   "events": []
+  },
+  {
+   "name": "RakeCombo",
+   "length": 3.0667,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.5333,
+      1.2,
+      2.2
+     ]
+    },
+    {
+     "name": "move",
+     "times": [
+      0.4,
+      1.0667,
+      2.0667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "PounceStart",
+   "length": 0.6667,
+   "loop": false,
+   "events": [
+    {
+     "name": "launch",
+     "times": [
+      0.5667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "PounceAir",
+   "length": 0.6,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "PounceLand",
+   "length": 1.2,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit",
+     "times": [
+      0.1333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "TailWhip",
+   "length": 2.1333,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit_end",
+     "times": [
+      0.7333,
+      1.4667
+     ]
+    },
+    {
+     "name": "hit_start",
+     "times": [
+      0.4667,
+      1.1333
+     ]
+    }
+   ]
+  },
+  {
+   "name": "FireLob",
+   "length": 2.0667,
+   "loop": false,
+   "events": [
+    {
+     "name": "spit",
+     "times": [
+      0.6667,
+      1.0667,
+      1.4667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "DashL",
+   "length": 0.6,
+   "loop": false,
+   "events": [
+    {
+     "name": "go",
+     "times": [
+      0.1
+     ]
+    }
+   ]
+  },
+  {
+   "name": "DashR",
+   "length": 0.6,
+   "loop": false,
+   "events": [
+    {
+     "name": "go",
+     "times": [
+      0.1
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SkidSweep",
+   "length": 1.7333,
+   "loop": false,
+   "events": [
+    {
+     "name": "hit_end",
+     "times": [
+      0.6
+     ]
+    },
+    {
+     "name": "hit_start",
+     "times": [
+      0.2
+     ]
+    }
+   ]
+  },
+  {
+   "name": "SupernovaCharge",
+   "length": 0.5,
+   "loop": true,
+   "events": []
+  },
+  {
+   "name": "SupernovaBlast",
+   "length": 1.3333,
+   "loop": false,
+   "events": [
+    {
+     "name": "blast",
+     "times": [
+      0.2
+     ]
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "name": "CindermawHide",
+   "key": "Hide",
+   "color": [
+    0.0343,
+    0.0273,
+    0.0273
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.1
+  },
+  {
+   "name": "CindermawPlate",
+   "key": "Plate",
+   "color": [
+    0.016,
+    0.0137,
+    0.0152
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  },
+  {
+   "name": "CindermawBelly",
+   "key": "Belly",
+   "color": [
+    0.117,
+    0.0887,
+    0.0762
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.1
+  },
+  {
+   "name": "CindermawEmber",
+   "key": "Ember",
+   "color": [
+    1.0,
+    0.1878,
+    0.013
+   ],
+   "emission": [
+    1.0,
+    0.1559,
+    0.0097
+   ],
+   "emissionStrength": 3.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  },
+  {
+   "name": "CindermawHorn",
+   "key": "Horn",
+   "color": [
+    0.0091,
+    0.008,
+    0.0091
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.65
+  },
+  {
+   "name": "CindermawMetal",
+   "key": "Metal",
+   "color": [
+    0.1878,
+    0.1746,
+    0.162
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.75,
+   "smoothness": 0.55
+  },
+  {
+   "name": "CindermawMetalDark",
+   "key": "MetalDark",
+   "color": [
+    0.0545,
+    0.0423,
+    0.0369
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.7,
+   "smoothness": 0.45
+  },
+  {
+   "name": "CindermawFire",
+   "key": "Fire",
+   "color": [
+    1.0,
+    0.5149,
+    0.0802
+   ],
+   "emission": [
+    1.0,
+    0.305,
+    0.0212
+   ],
+   "emissionStrength": 5.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  },
+  {
+   "name": "CindermawTeeth",
+   "key": "Teeth",
+   "color": [
+    0.7605,
+    0.6724,
+    0.5149
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.5
+  },
+  {
+   "name": "CindermawMaw",
+   "key": "Maw",
+   "color": [
+    0.1022,
+    0.0103,
+    0.006
+   ],
+   "emission": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissionStrength": 0.0,
+   "metallic": 0.0,
+   "smoothness": 0.2
+  },
+  {
+   "name": "CindermawEye",
+   "key": "Eye",
+   "color": [
+    1.0,
+    0.402,
+    0.0212
+   ],
+   "emission": [
+    1.0,
+    0.402,
+    0.0212
+   ],
+   "emissionStrength": 5.0,
+   "metallic": 0.0,
+   "smoothness": 0.25
+  }
+ ]
+}

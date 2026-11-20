@@ -84,7 +84,7 @@ namespace SignalLost.Editor
         // ---------- Arena materials ----------
 
         private enum AM { Hull, Burnt, Scorch, Oil, Rust, Bone, Feather, FeatherTip, Stick, Egg, Rock, RockDark, Sandstone, Checker, CheckerDark,
-            Red, Brass, Girder, CaveRock, CaveFloor, Crystal, Fang, Amber, Sand, RubbleDark, RubbleDust, Debris }
+            Red, Brass, Girder, CaveRock, CaveFloor, Crystal, Fang, Amber, Sand, RubbleDark, RubbleDust, Debris, DuneShade }
 
         private static Dictionary<AM, Material> arenaMats;
 
@@ -119,6 +119,7 @@ namespace SignalLost.Editor
                 [AM.RubbleDark] = ArenaMaterial("LairRubble", new Color(0.44f, 0.31f, 0.23f), 0.05f),
                 [AM.RubbleDust] = ArenaMaterial("LairRubbleDust", new Color(0.74f, 0.58f, 0.41f), 0.03f),
                 [AM.Debris] = ArenaMaterial("LairDebris", new Color(0.56f, 0.42f, 0.3f), 0.03f),
+                [AM.DuneShade] = mats["Shade"],
             };
         }
 
@@ -870,6 +871,7 @@ namespace SignalLost.Editor
             lairData.FindProperty("reposeTan").floatValue = ReposeTan;
             lairData.FindProperty("holeSize").vector2Value = new Vector2(GashHalf * 2f, GashLength);
             lairData.FindProperty("ceilingCap").objectReferenceValue = collapse.Cap;
+            lairData.FindProperty("chokeSand").objectReferenceValue = collapse.ChokeSand;
             lairData.FindProperty("crushZone").objectReferenceValue = collapse.Zone;
             lairData.FindProperty("crushOrigin").vector2Value = collapse.ZoneOrigin;
             lairData.FindProperty("crushCell").floatValue = ZoneCell;
@@ -962,32 +964,197 @@ namespace SignalLost.Editor
             kit.Quad(a, b, c, d, -inward, AM.CaveRock);
         }
 
-        // The gash's rough rock walls, from the cavern roof up to just under the dunes: rocks bounce off them, and the
-        // player climbing the debris is kept inside them.
+        // The gash's walls (11-10): from the hole's very edge in the dunes (the points the dunes are cut along, so there is
+        // no gap between them) down to the opening in the cavern roof. At the top the sand rolls over a rounded brink in
+        // the dunes' own colours, then turns to sandstone and, lower down, the cavern's rock, flaring out to meet the
+        // roof. Rocks bounce off them and the player climbing the debris is kept inside them.
         private static void BuildShaft(Transform parent, Vector3 centre)
         {
             var kit = new FlatMeshKit<AM>();
-            const int sides = 32, bands = 3;
-            Vector3 W(int i, int band)
+            foreach ((Vector3 p, Vector3 q) in HoleEdge())
             {
-                Vector2 smooth = GashOutline(i, sides, ShaftMargin);
-                float wobble = Noise(smooth.x, smooth.y + band * 7f, 6f, 1.7f, 3.3f) * 0.7f;
-                Vector2 p = GashOutline(i, sides, ShaftMargin + wobble);
-                float bottom = DomeY(p.x, p.y) - 1.5f, top = Ground(centre.x + p.x, centre.z + p.y) - centre.y - 0.15f;
-                return new Vector3(p.x, Mathf.Lerp(bottom, top, band / (float)bands), p.y);
-            }
-            Vector3 middle = new Vector3(HoleLocal.x, 0f, HoleLocal.y);
-            for (int i = 0; i < sides; i++)
-                for (int band = 0; band < bands; band++)
+                Vector3[] a = WallProfile(p - centre, centre), b = WallProfile(q - centre, centre);
+                AM top = SandKind(p);
+                for (int k = 0; k < a.Length - 1; k++)
                 {
-                    Vector3 A = W(i, band), B = W(i + 1, band), C = W(i + 1, band + 1), D = W(i, band + 1);
-                    Vector3 inward = middle - (A + B) * 0.5f;
-                    inward.y = 0f;
-                    kit.Quad(A, B, C, D, inward, AM.CaveRock);
-                    kit.Quad(A, B, C, D, -inward, AM.CaveRock);
+                    AM material = k == 0 ? top : k == 1 ? (top == AM.Sand ? AM.DuneShade : top) : k < 4 ? AM.Sandstone : AM.CaveRock;
+                    Vector3 mid = (a[k] + b[k] + a[k + 1] + b[k + 1]) * 0.25f;
+                    Vector2 axis = GashAxisPoint(new Vector2(mid.x, mid.z));
+                    var inward = new Vector3(axis.x - mid.x, 0f, axis.y - mid.z);
+                    kit.Quad(a[k], b[k], b[k + 1], a[k + 1], inward, material);
+                    kit.Quad(a[k], b[k], b[k + 1], a[k + 1], -inward, material);
                 }
+            }
             GameObject shaft = KitProp("LairShaft", () => kit, "Shaft", parent, centre, Quaternion.identity, Vector3.one, true);
             shaft.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.TwoSided;
+        }
+
+        /// <summary>The nearest point of the gash's centre line (relative to the lair).</summary>
+        private static Vector2 GashAxisPoint(Vector2 local)
+        {
+            Vector2 a = LairExitDir * (ApexDist - GashHalf), b = LairExitDir * (ApexDist - GashLength + GashHalf);
+            Vector2 ab = b - a;
+            return a + ab * Mathf.Clamp01(Vector2.Dot(local - a, ab) / ab.sqrMagnitude);
+        }
+
+        // The wall's profile down from one point of the hole's edge (relative to the lair): the rounded brink, the
+        // sandstone, and the rock flaring out to the roof's opening. Lumps come from the point's position, so neighbours
+        // along the edge share them.
+        private static Vector3[] WallProfile(Vector3 p, Vector3 centre)
+        {
+            Vector2 flat = new Vector2(p.x, p.z), axis = GashAxisPoint(flat);
+            Vector2 inward = (axis - flat).normalized;
+            Vector3 n = new Vector3(inward.x, 0f, inward.y);
+            float lump = Noise(p.x, p.z, 4f, 1.7f, 3.3f), lump2 = Noise(p.x, p.z, 2.5f, 7.1f, 0.4f);
+            Vector3 Out(float radius, float y)
+            {
+                Vector2 at = axis - inward * radius;
+                return new Vector3(at.x, y, at.y);
+            }
+            float roof = DomeY(axis.x - inward.x * (GashHalf + ShaftMargin - 0.4f), axis.y - inward.y * (GashHalf + ShaftMargin - 0.4f)) - 1.2f;
+            Vector3 low = p + n * (0.55f + lump * 0.2f) + Vector3.down * 2.8f;
+            return new[]
+            {
+                p,
+                p + n * 0.28f + Vector3.down * 0.2f,
+                p + n * 0.5f + Vector3.down * 0.6f,
+                p + n * (0.6f + lump2 * 0.15f) + Vector3.down * 1.4f,
+                low,
+                Out(GashHalf + 1.3f + lump * 0.6f, Mathf.Lerp(low.y, roof, 0.5f)),
+                Out(GashHalf + ShaftMargin - 0.4f, roof),
+            };
+        }
+
+        // The dunes' colour at a point of the hole's edge: flat sand, slope or rock, the way the terrain picks it.
+        private static AM SandKind(Vector3 world)
+        {
+            const float d = 0.5f;
+            var normal = new Vector3(Ground(world.x - d, world.z) - Ground(world.x + d, world.z), 2f * d, Ground(world.x, world.z - d) - Ground(world.x, world.z + d)).normalized;
+            float slope = Mathf.Acos(Mathf.Clamp01(normal.y)) * Mathf.Rad2Deg;
+            return slope < 16f ? AM.Sand : slope < 38f ? AM.DuneShade : AM.Sandstone;
+        }
+
+        /// <summary>How far from the gash's centre line its wall stands, at a height (relative to the lair) over a point.</summary>
+        private static float WallRadius(Vector2 local, float y, Vector3 centre)
+        {
+            float ground = Ground(centre.x + local.x, centre.z + local.y) - centre.y;
+            float top = ground - 2.8f, bottom = DomeY(local.x, local.y) - 1.2f;
+            if (y >= top) return GashHalf;
+            return Mathf.Lerp(GashHalf, GashHalf + ShaftMargin - 0.4f, Mathf.InverseLerp(top, bottom, y));
+        }
+        // A point on the gash's outline grown to `radius` from its centre line, `u` of the way round it (0..1, by
+        // distance, so the straight sides are sampled as finely as the round ends). Relative to the lair.
+        private static Vector2 StadiumPoint(float u, float radius)
+        {
+            Vector2 a = LairExitDir * (ApexDist - GashHalf), b = LairExitDir * (ApexDist - GashLength + GashHalf);
+            float straight = (a - b).magnitude, arc = Mathf.PI * radius, total = 2f * straight + 2f * arc;
+            float d = Mathf.Repeat(u, 1f) * total;
+            Vector2 along = LairExitDir, across = LairAcross;
+            if (d < straight) return b + along * d + across * radius;
+            d -= straight;
+            if (d < arc) { float t = d / radius; return a + across * (radius * Mathf.Cos(t)) + along * (radius * Mathf.Sin(t)); }
+            d -= arc;
+            if (d < straight) return a - along * d - across * radius;
+            d -= straight;
+            float s = d / radius;
+            return b - across * (radius * Mathf.Cos(s)) - along * (radius * Mathf.Sin(s));
+        }
+
+        /// <summary>
+        /// The sand packed in round the choked rocks (11-10). It fills the gash from the cracked face down to just below
+        /// the lowest rocks, so from the cavern you see a sandy ceiling with the rocks' undersides bedded in it, not rocks
+        /// hanging in the air. When the roof gives way it crumbles and falls piece by piece (WormLair), each patch just
+        /// as the rocks in it come loose: the mesh's third UV holds every piece's middle, its fourth when (from the
+        /// start of the fall) and how fast it goes.
+        /// </summary>
+        private static MeshFilter BuildChokeSand(Transform group, Vector3 centre, Random rng, List<Transform> rocks, CollapseBake bake)
+        {
+            const int around = 72, rings = 14;
+            float outer = GashHalf + ShaftMargin + 0.3f;
+            var bedded = new List<(Vector3 at, float radius)>();
+            foreach (Transform rock in rocks) bedded.Add((rock.position - centre, rock.localScale.x * 0.46f));
+            // The sand's underside follows the rocks: no higher than the middle of the lowest rock near, so every rock is
+            // at least half bedded in it (none hangs in the air), and it rises gently away from them.
+            Vector3 Point(int ring, int s)
+            {
+                float radius = Mathf.Lerp(0f, outer, ring / (float)rings);
+                Vector2 q = StadiumPoint(s / (float)around, radius);
+                float edge = GashDistance(q);
+                float bulge = 4.2f * Mathf.Max(0f, 1f - (edge / (GashHalf + 2f)) * (edge / (GashHalf + 2f)));
+                float floorOf = Mathf.Max(DomeY(q.x, q.y) - bulge, MoundHeight(q) + 0.4f) + 0.1f;
+                float cap = Ground(centre.x + q.x, centre.z + q.y) - centre.y - 1.0f;
+                float under = cap;
+                foreach ((Vector3 at, float r) in bedded)
+                {
+                    float d = Mathf.Max(0f, new Vector2(at.x - q.x, at.z - q.y).magnitude - r * 0.6f);
+                    under = Mathf.Min(under, at.y + d * d * 0.8f);
+                }
+                under += Noise(q.x, q.y, 1.6f, 4.4f, 9.1f) * 0.12f;
+                return new Vector3(q.x, Mathf.Clamp(under, Mathf.Min(floorOf, cap), cap), q.y);
+            }
+            var starts = new List<(Vector2 at, float time)>();
+            for (int i = 0; i < rocks.Count && i < bake.RockCount; i++)
+            {
+                Vector3 local = rocks[i].position - centre;
+                starts.Add((new Vector2(local.x, local.z), bake.StartTime(i)));
+            }
+            float When(Vector3 middle)
+            {
+                var flat = new Vector2(middle.x, middle.z);
+                float near = float.MaxValue, nearest = 0f, best = float.MaxValue;
+                foreach ((Vector2 at, float time) in starts)
+                {
+                    float d = (at - flat).magnitude;
+                    if (d < 2.5f) near = Mathf.Min(near, time);
+                    if (d < best) { best = d; nearest = time; }
+                }
+                return near < float.MaxValue ? near : nearest;
+            }
+            var vertices = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var middles = new List<Vector3>();
+            var timing = new List<Vector2>();
+            var triangles = new List<int>();
+            void Piece(Vector3 a, Vector3 b, Vector3 c)
+            {
+                if (Vector3.Cross(b - a, c - a).sqrMagnitude < 1e-8f) return;
+                Vector3 middle = (a + b + c) / 3f;
+                var when = new Vector2(Mathf.Max(0f, When(middle) - 0.6f + Range(rng, 0f, 0.9f)), Range(rng, 0.45f, 0.8f));
+                Vector3 n = Vector3.Cross(b - a, c - a).normalized;
+                if (n.y > 0f) { (b, c) = (c, b); n = -n; }
+                // Both faces: the underside the cavern sees, and the top, seen from above once the lid has gone.
+                foreach ((Vector3 x, Vector3 y, Vector3 z, Vector3 normal) in new[] { (a, b, c, n), (a, c, b, -n) })
+                {
+                    int start = vertices.Count;
+                    vertices.Add(x); vertices.Add(y); vertices.Add(z);
+                    for (int k = 0; k < 3; k++) { normals.Add(normal); middles.Add(middle); timing.Add(when); }
+                    triangles.Add(start); triangles.Add(start + 1); triangles.Add(start + 2);
+                }
+            }
+            for (int ring = 0; ring < rings; ring++)
+                for (int s = 0; s < around; s++)
+                {
+                    Vector3 a = Point(ring, s), b = Point(ring, s + 1), c = Point(ring + 1, s + 1), d = Point(ring + 1, s);
+                    Piece(a, b, c);
+                    Piece(a, c, d);
+                }
+            var mesh = new Mesh { name = "LairChokeSand" };
+            mesh.SetVertices(vertices);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(2, middles);
+            mesh.SetUVs(3, timing);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateBounds();
+            mesh = SaveMesh(mesh);
+            var sand = new GameObject("Choke Sand");
+            sand.transform.SetParent(group, false);
+            sand.transform.position = centre;
+            var filter = sand.AddComponent<MeshFilter>();
+            filter.sharedMesh = mesh;
+            var renderer = sand.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = arenaMats[AM.Sand];
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            return filter;
         }
 
         // A tall rock column, narrower in the middle, 16 m (scaled to reach the roof).
@@ -1021,6 +1188,7 @@ namespace SignalLost.Editor
             public Vector3 PourPoint;
             public readonly List<Vector3> Path = new List<Vector3>();
             public GameObject Cap;
+            public MeshFilter ChokeSand;
             public MeshFilter Zone;
             public Vector2 ZoneOrigin;
             public int ZoneColumns;
@@ -1260,6 +1428,7 @@ namespace SignalLost.Editor
                     float low = Mathf.Max(DomeY(q.x, q.y) - bulge, MoundHeight(q) + 0.4f) + radius, high = GroundAt(q) - 1.5f - radius;
                     if (high < low) continue;
                     var at = new Vector3(q.x, Range(rng, low, high), q.y);
+                    if (edge + radius > WallRadius(q, at.y + radius * 0.7f, centre) - 0.3f) continue; // inside the walls
                     bool clear = true;
                     foreach ((Vector3 other, float otherRadius) in placed)
                         if ((other - at).sqrMagnitude < (radius + otherRadius) * (radius + otherRadius)) { clear = false; break; }
@@ -1289,6 +1458,7 @@ namespace SignalLost.Editor
                 if (!baked.Alive[i]) Object.DestroyImmediate(jam.GetChild(i).gameObject);
             foreach (Transform rock in jam) parts.Rocks.Add(rock);
             parts.Bake = baked.Asset;
+            parts.ChokeSand = BuildChokeSand(group, centre, rng, parts.Rocks, baked.Asset);
             parts.Path.AddRange(baked.Path);
             Vector2 beyond = apex + LairExitDir * 5f;
             parts.Path.Add(new Vector3(beyond.x, GroundAt(beyond) + 0.1f, beyond.y));
@@ -1909,9 +2079,9 @@ namespace SignalLost.Editor
             new GameObject("Fodder Status Overlay").AddComponent<FodderStatusOverlay>();
 
             // The Chop Shop, each at home in its arena, hidden until its task is done.
-            DesertMiniBoss buzzard = PlaceBoss(DesertMiniBossBuilder.BuzzardPath, "Old Buzzard", DesertMiniBossBuilder.Theme.WreckField, Encounters[0].Center, chopShop);
-            DesertMiniBoss burnout = PlaceBoss(DesertMiniBossBuilder.BurnoutPath, "Burnout", DesertMiniBossBuilder.Theme.MesaPass, Encounters[1].Center, chopShop);
-            DesertMiniBoss sludge = PlaceBoss(DesertMiniBossBuilder.SludgePath, "Sludge", DesertMiniBossBuilder.Theme.BuriedHull, Encounters[2].Center, chopShop);
+            DesertMiniBoss buzzard = PlaceBoss(DesertDuelBossBuilder.BriarwingPath, "Briarwing", DesertMiniBossBuilder.Theme.WreckField, Encounters[0].Center, chopShop);
+            DesertMiniBoss burnout = PlaceBoss(DesertDuelBossBuilder.CindermawPath, "Cindermaw", DesertMiniBossBuilder.Theme.MesaPass, Encounters[1].Center, chopShop);
+            DesertMiniBoss sludge = PlaceBoss(DesertDuelBossBuilder.PitchclawPath, "Pitchclaw", DesertMiniBossBuilder.Theme.BuriedHull, Encounters[2].Center, chopShop);
 
             // The tasks along the way to each.
             var feathers = new[] { new Vector2(-12f, -104f), new Vector2(-30f, -92f), new Vector2(-45f, -79f) };
@@ -1980,17 +2150,17 @@ namespace SignalLost.Editor
             SerializedProperty jobs = data.FindProperty("jobs");
             jobs.arraySize = 3;
             Job(jobs.GetArrayElementAtIndex(0), "Picked Clean", buzzard, "old_buzzard_feathers", "the Wreck Field, west of camp", featherTasks,
-                "Old Buzzard has been moulting all over the dunes west of camp. Follow its trail and pick up the feathers.", "Feathers",
-                "Old Buzzard roosts in the Wreck Field, west of camp. Go and find it.",
-                "Defeat Old Buzzard. Step out of its shadow when it dives; knock it down with charged shots at its wings.");
+                "Briarwing has been shedding all over the dunes west of camp. Follow its trail and pick up what it dropped.", "Trail followed",
+                "Briarwing, the thorn wyvern, roosts in the Wreck Field, west of camp. Go and find it.",
+                "Defeat Briarwing. Dodge through its swipes, shoot its glowing throat while it barrages, and get out of its shadow when it climbs.");
             Job(jobs.GetArrayElementAtIndex(1), "Burning Rubber", burnout, "burnout_thorns", "the Scorch Raceway in the Mesa Pass, east of camp", fireTasks,
-                "Burnout set the dunes alight on its way east. Smother its fires with sand.", "Fires out",
-                "Burnout is tearing round the Scorch Raceway in the Mesa Pass, east of camp. Go and stop it.",
-                "Defeat Burnout. Sidestep late on its dashes and crash it into the pillars.");
+                "Cindermaw set the dunes alight on its way east. Smother its fires with sand.", "Fires out",
+                "Cindermaw, the ash drake, is tearing round the Scorch Raceway in the Mesa Pass, east of camp. Go and stop it.",
+                "Defeat Cindermaw. Dodge late when its thruster flares, watch the smoke for the glow, and shoot the thruster.");
             Job(jobs.GetArrayElementAtIndex(2), "Oil and Trouble", sludge, "sludge_stinger", "its fuel sump, north-west of camp", leakTasks,
-                "Seal the three leaking fuel lines round Sludge's sump, north-west of camp. That will bring it out.", "Leaks sealed",
-                "Sludge has crawled out of the sump!",
-                "Defeat Sludge. Get behind cover when it charges its cannon; hit its tank with a charged shot to backfire it.");
+                "Seal the three leaking fuel lines round Pitchclaw's sump, north-west of camp. That will bring it out.", "Leaks sealed",
+                "Pitchclaw has crawled out of the sump!",
+                "Defeat Pitchclaw. Get out of its fuel when its claws spark; a charged shot to its fuel tank staggers it.");
             SetObjects(data.FindProperty("rack"), rack);
             data.FindProperty("wormAmbush").objectReferenceValue = exit;
             data.FindProperty("lair").objectReferenceValue = lair;

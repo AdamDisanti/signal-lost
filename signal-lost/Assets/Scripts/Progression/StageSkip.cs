@@ -7,7 +7,7 @@ namespace SignalLost.Progression
     /// <summary>
     /// TESTING TOOL (Lawson, 11-08): jump to the next stage (right arrow, the "stage_next" key binding) or the one
     /// before (left arrow, "stage_previous") in the order the islands are sailed: Crash Meadow (the tutorial), then the
-    /// Desert Dunes. Arriving this way counts every stage before the one you land in as finished, the way playing it
+    /// Desert Dunes, then the Wasteland (the finale, always last; Adam, 11-09). Arriving this way counts every stage before the one you land in as finished, the way playing it
     /// through would have left things:
     /// <list type="bullet">
     /// <item>the stage is cleared, unlocking the next (so its boat sails);</item>
@@ -15,7 +15,7 @@ namespace SignalLost.Progression
     /// <item>its bosses' trophies are on the camp's stands (the camp save remembers these, like real ones).</item>
     /// </list>
     /// The stage you land in starts fresh, with its own quests from the beginning. Going back to the tutorial has nothing
-    /// before it to finish. A stage that isn't built yet (the Fog Forest) gives a message instead. The upgrades and
+    /// before it to finish. Past the last stage (the ending isn't built) gives a message instead. The upgrades and
     /// pockets don't carry between scenes yet for anyone (the save system's job), so the tool doesn't add them either.
     /// </summary>
     public static class StageSkip
@@ -43,9 +43,16 @@ namespace SignalLost.Progression
                 Parts = new[] { ("Wing panels", StageProgress.Desert), ("Rocket thruster", StageProgress.Desert), ("Fuel tank", StageProgress.Desert) },
                 Trophies = new[] { "old_buzzard_feathers", "burnout_thorns", "sludge_stinger", "core_worm_fang" }, Stands = new[] { 3, 4, 5, 1 }
             },
+            // The finale stays last; the islands in between (Mudlands, Fog Forest, Crystal Caves) go above it once
+            // their order is decided (Adam, 11-09).
+            new StageInfo
+            {
+                Id = StageProgress.Finale, Scene = "Wasteland", Name = "the Wasteland (finale)",
+                Parts = new (string, string)[0], Trophies = new string[0], Stands = new int[0]
+            },
         };
 
-        private const string NotBuilt = "the Fog Forest";
+        private const string NotBuilt = "the ending";
         private static bool loading;
 
         /// <summary>The stage the open scene belongs to, or -1 (the menu, a test scene).</summary>
@@ -66,7 +73,7 @@ namespace SignalLost.Progression
             int current = CurrentIndex;
             if (current < 0)
             {
-                MiniBossHud.Message("TESTING TOOL: stage skip only works in a stage (Crash Meadow or the Desert Dunes).", new Color(1f, 0.85f, 0.3f), 3f);
+                MiniBossHud.Message("TESTING TOOL: stage skip only works in a stage scene (Crash Meadow, the Desert Dunes, the Wasteland).", new Color(1f, 0.85f, 0.3f), 3f);
                 return;
             }
             int target = current + step;
