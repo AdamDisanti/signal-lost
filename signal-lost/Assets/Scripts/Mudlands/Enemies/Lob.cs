@@ -48,6 +48,12 @@ namespace SignalLost.Mudlands
             return lob;
         }
 
+        // Destroyed some other way (a fight reset, the scene ending) before it landed: take its ring with it.
+        private void OnDestroy()
+        {
+            if (!done && ring != null) Destroy(ring.gameObject);
+        }
+
         private void Update()
         {
             if (done) return;
@@ -69,22 +75,35 @@ namespace SignalLost.Mudlands
         }
     }
 
-    /// <summary>A telegraph ring on the ground that fills from the middle as the attack comes (red unless told otherwise).</summary>
+    /// <summary>
+    /// A telegraph ring on the ground that fills from the middle as the attack comes (red unless told otherwise).
+    /// Given an owner (the creature or boss making the attack), it removes itself as soon as the owner dies or is
+    /// gone, so an attack cut short by a kill never leaves its ring behind (11-20), and after <see cref="MaxLife"/>
+    /// seconds whatever happens.
+    /// </summary>
     public sealed class GroundRing : MonoBehaviour
     {
+        /// <summary>No telegraph lasts this long; an owned ring still here by then was forgotten.</summary>
+        public const float MaxLife = 10f;
+
         private Transform fill;
-        private float radius;
+        private float radius, born;
+        private bool owned;
+        private Health owner;
 
         /// <summary>0 to 1: how close the attack is.</summary>
         public float Progress { get; set; }
 
-        public static GroundRing Spawn(Vector3 point, float radius, Color color)
+        public static GroundRing Spawn(Vector3 point, float radius, Color color, Component owner = null)
         {
             var go = new GameObject("Ground Ring");
             if (GroundProbe.Find(point, 3f, 5f, out Vector3 ground)) point = ground;
             go.transform.position = point + Vector3.up * 0.06f;
             var ring = go.AddComponent<GroundRing>();
             ring.radius = radius;
+            ring.born = Time.time;
+            ring.owned = owner != null;
+            ring.owner = owner != null ? owner.GetComponentInParent<Health>() : null;
             Material edge = MudArt.Clear(new Color(color.r, color.g, color.b, Mathf.Min(1f, color.a + 0.3f)), 1.5f);
             Material inner = MudArt.Clear(new Color(color.r, color.g, color.b, color.a * 0.55f), 1f);
             Transform outline = Disc(go.transform, "Edge", edge, 1f, 0.9f);
@@ -119,6 +138,11 @@ namespace SignalLost.Mudlands
 
         private void Update()
         {
+            if (owned && (owner == null || owner.IsDead || !owner.gameObject.activeInHierarchy || Time.time - born > MaxLife))
+            {
+                Destroy(gameObject);
+                return;
+            }
             fill.localScale = Vector3.one * radius * Mathf.Clamp01(Progress);
             float pulse = 1f + Mathf.Sin(Time.time * (8f + Progress * 14f)) * 0.03f;
             transform.localScale = Vector3.one * pulse;

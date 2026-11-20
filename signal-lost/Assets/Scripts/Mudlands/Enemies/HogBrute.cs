@@ -146,7 +146,7 @@ namespace SignalLost.Mudlands
                 case State.Chase:
                     if (GaveUp() || !TargetAlive) { Enter(State.Idle); break; }
                     float distance = PlayerDistance;
-                    if (distance < 2.8f) { Enter(State.Raise); ring = GroundRing.Spawn(transform.position + transform.forward * 1.8f, 2.8f, new Color(1f, 0.35f, 0.2f, 0.5f)); break; }
+                    if (distance < 2.8f) { Enter(State.Raise); ring = GroundRing.Spawn(transform.position + transform.forward * 1.8f, 2.8f, new Color(1f, 0.35f, 0.2f, 0.5f), this); break; }
                     if (distance > 5f && distance < 16f && Time.time >= nextCharge && CanSee(18f)) { Enter(State.Paw); Halt(); break; }
                     MoveTo(PlayerPosition, Defaults.Speed);
                     break;

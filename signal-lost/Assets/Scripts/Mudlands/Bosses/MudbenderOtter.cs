@@ -417,7 +417,7 @@ namespace SignalLost.Mudlands
                 if (Time.time >= nextStomp)
                 {
                     Enter(State.Stomp);
-                    ring = GroundRing.Spawn(transform.position, StompRadius, new Color(1f, 0.55f, 0.2f, 0.5f));
+                    ring = GroundRing.Spawn(transform.position, StompRadius, new Color(1f, 0.55f, 0.2f, 0.5f), this);
                     return;
                 }
             }
@@ -644,7 +644,7 @@ namespace SignalLost.Mudlands
             TurnToward(heard, 300f * dt);
             if (stateTime < 1.4f) return;
             leapTo = Ground(OnDojo(heard));
-            ring = GroundRing.Spawn(leapTo, 3.5f, new Color(1f, 0.4f, 0.2f, 0.55f));
+            ring = GroundRing.Spawn(leapTo, 3.5f, new Color(1f, 0.4f, 0.2f, 0.55f), this);
             Enter(State.Leap);
             Say("HAAA!", new Color(0.8f, 1f, 0.8f), 1f, 6f);
         }
