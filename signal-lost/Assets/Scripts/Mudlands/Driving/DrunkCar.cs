@@ -185,6 +185,8 @@ namespace SignalLost.Mudlands
                     if (kind == MudZone.Kind.Mud) mud = Mathf.Max(mud, strength);
                     else water = Mathf.Max(water, strength);
                 }
+                // The sea off the Mudlands' beach (11-20) drowns the engine like bog water does.
+                if (SignalLost.World.Ocean.Current != null && SignalLost.World.Ocean.Current.IsUnderwater(hit.point, 0.3f)) water = 1f;
             }
 
             Grounded = grounded >= 2;
@@ -454,6 +456,7 @@ namespace SignalLost.Mudlands
             if (stuckFor > 3f) { End(EndReason.Stalled, null); return; }
             waterFor = water > 0.6f && Speed < 4f ? waterFor + dt : 0f;
             if (waterFor > 1.2f) { End(EndReason.Stalled, null); return; }
+            if (SignalLost.World.Ocean.Current != null && SignalLost.World.Ocean.Current.IsUnderwater(transform.position, 0.9f)) { End(EndReason.Stalled, null); return; }
             if (transform.position.y < -40f) End(EndReason.Flipped, null);
         }
 

@@ -225,6 +225,13 @@ namespace SignalLost.Editor
 
         private enum DockPart { Plank, PlankDark, Beam, Post, Rope, Iron, Lamp, Barrel, Crate }
 
+        /// <summary>
+        /// How a dock is dressed: the plain timber jetty, or the Mudlands' swamp dock (11-20, Christian): the same jetty
+        /// in the swamp's alien lavender-grey wood with violet-brown posts, vine rope, rusty fittings, gourd barrels, a
+        /// husk crate and a glowing mint seed-pod lantern (the Mudlands builder adds the moss, reeds and lily pads).
+        /// </summary>
+        public enum DockLook { Timber, Swamp }
+
         /// <summary>What a dock is for and where it goes.</summary>
         public sealed class DockSpec
         {
@@ -236,6 +243,7 @@ namespace SignalLost.Editor
             public string IslandName = "";
             public string DestinationScene = "", DestinationName = "the next island", RequiredStage = "";
             public string LockedMessage = "The boat isn't ready to sail yet.";
+            public DockLook Look = DockLook.Timber;
         }
 
         private const float DeckWidth = 2.8f, EndWidth = 6.4f, EndLength = 5f;
@@ -342,7 +350,7 @@ namespace SignalLost.Editor
             deck.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = deck.AddComponent<MeshRenderer>();
             var materials = new Material[mesh.subMeshCount];
-            for (int s = 0; s < materials.Length; s++) materials[s] = DockMaterial(FlatMeshKit<DockPart>.MaterialOf(mesh, s));
+            for (int s = 0; s < materials.Length; s++) materials[s] = DockMaterial(FlatMeshKit<DockPart>.MaterialOf(mesh, s), spec.Look);
             renderer.sharedMaterials = materials;
             foreach ((Vector3 centre, Vector3 size) in colliders)
             {
@@ -356,7 +364,7 @@ namespace SignalLost.Editor
             light.transform.SetParent(root.transform, false);
             light.transform.localPosition = lamp + new Vector3(0.48f, 1.85f, 0f);
             light.type = LightType.Point;
-            light.color = new Color(1f, 0.74f, 0.42f);
+            light.color = spec.Look == DockLook.Swamp ? new Color(0.5f, 1f, 0.75f) : new Color(1f, 0.74f, 0.42f);
             light.range = 8f;
             light.intensity = 1.6f;
 
@@ -396,8 +404,9 @@ namespace SignalLost.Editor
             return dock;
         }
 
-        private static Material DockMaterial(DockPart part)
+        private static Material DockMaterial(DockPart part, DockLook look)
         {
+            if (look == DockLook.Swamp) return SwampDockMaterial(part);
             switch (part)
             {
                 case DockPart.Plank: return Lit("DockPlank", new Color(0.64f, 0.45f, 0.28f), 0.08f);
@@ -414,6 +423,28 @@ namespace SignalLost.Editor
                     lamp.SetColor("_EmissionColor", new Color(1f, 0.7f, 0.35f) * 2.2f);
                     lamp.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
                     return lamp;
+            }
+        }
+
+        // The Mudlands' colours (MudModels' alien wood and MudPalette's pod glow).
+        private static Material SwampDockMaterial(DockPart part)
+        {
+            switch (part)
+            {
+                case DockPart.Plank: return Lit("SwampDockPlank", new Color(0.52f, 0.45f, 0.58f), 0.06f);
+                case DockPart.PlankDark: return Lit("SwampDockPlankDark", new Color(0.4f, 0.34f, 0.46f), 0.06f);
+                case DockPart.Beam: return Lit("SwampDockBeam", new Color(0.28f, 0.22f, 0.32f), 0.04f);
+                case DockPart.Post: return Lit("SwampDockPost", new Color(0.32f, 0.26f, 0.38f), 0.04f);
+                case DockPart.Rope: return Lit("SwampDockVine", new Color(0.27f, 0.42f, 0.33f), 0.05f);
+                case DockPart.Iron: return Lit("SwampDockRust", new Color(0.42f, 0.27f, 0.18f), 0.25f);
+                case DockPart.Barrel: return Lit("SwampDockGourd", new Color(0.7f, 0.45f, 0.2f), 0.1f);
+                case DockPart.Crate: return Lit("SwampDockHusk", new Color(0.56f, 0.5f, 0.62f), 0.06f);
+                default:
+                    Material pod = Lit("SwampDockPod", new Color(0.5f, 1f, 0.75f), 0.3f);
+                    pod.EnableKeyword("_EMISSION");
+                    pod.SetColor("_EmissionColor", new Color(0.5f, 1f, 0.75f) * 2.2f);
+                    pod.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                    return pod;
             }
         }
 

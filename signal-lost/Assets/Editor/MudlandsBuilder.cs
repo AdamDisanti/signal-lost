@@ -28,6 +28,8 @@ namespace SignalLost.Editor
     /// ring); scenery and buildings are <see cref="MudProp"/> and <see cref="MudScenery"/> objects whose models are
     /// built from code; the NavMesh is baked before any creature or breakable thing is placed. Then the base camp,
     /// Cavendish and Eugene, the quest objects, the encounters, the four bosses and the story are put in.
+    /// Outside the ridge ring the land drops to a beach and the open sea (11-20): the Mudlands is an island, and a pass
+    /// south of camp leads down to the swamp dock where the boat from the Desert Dunes comes in.
     /// Like the tutorial builder it replaces the scene: make edits here, not in the scene.
     /// Menu: Signal Lost > Mudlands > Build Mudlands Level.
     /// </summary>
@@ -41,10 +43,22 @@ namespace SignalLost.Editor
         private const string MerchantPath = "Assets/Prefabs/NPC/MerchantCrab.prefab";
         private const string TrophyFolder = "Assets/Resources/SignalLost/Trophies";
 
-        private const float MapSize = 400f;
-        private const int Cells = 100;
+        // 520 m (was 400 m before the sea, 11-20): the same 4 m cells, and room for the ridge's outer slope, the beach
+        // and the shallows round the island.
+        private const float MapSize = 520f;
+        private const int Cells = 130;
         private const float PlayRadius = 178f;
         public const float WaterY = -0.55f;
+
+        // ---------- The sea and the landing (11-20) ----------
+        // The sea is level with the swamp water. The ridge ring's outer side comes down (from 196 m to 214 m out) to a
+        // beach all round the island (IslandKit.Shore, its coastline at Coast). South of camp the ridge opens into a pass
+        // (Pass) down to a small bay, whose beach is closer in (BayCoast, along -z), and the swamp dock runs out from it.
+        // The pass floor stays well above the sea, so the open sea can't flood into the swamp through it; everything
+        // inside the ridge (r under 174 m) is exactly as before.
+        private const float SeaLevel = WaterY;
+        private const float Coast = 222f, BayCoast = 198f, PassFloor = 1.4f;
+        private const float PassStart = -174.5f; // the pass only changes ground south of this (outside every inland scatter radius)
 
         // ---------- The map (x east, y north) ----------
 
@@ -91,7 +105,7 @@ namespace SignalLost.Editor
             (Dojo + new Vector2(0f, 19f), new Vector2(7f, 3f)), (Dojo + new Vector2(0f, -19f), new Vector2(7f, 3f)), (Dojo + new Vector2(19f, 0f), new Vector2(3f, 7f))
         };
 
-        private enum Ground { Grass, DarkGrass, Moss, Road, Mud, Bed, Rock, Cliff }
+        private enum Ground { Grass, DarkGrass, Moss, Road, Mud, Bed, Rock, Cliff, Sand, SeaFloor }
 
         [MenuItem("Signal Lost/Mudlands/Build Mudlands Level")]
         public static void BuildFromMenu()
@@ -105,6 +119,8 @@ namespace SignalLost.Editor
 
         public static void Build()
         {
+            meshGrid = null;
+            BridgeSpans.Clear();
             EnsureFolder(Folder + "/Materials");
             EnsureFolder(Folder + "/Meshes");
             EnsureFolder(EnemyFolder);
@@ -125,6 +141,8 @@ namespace SignalLost.Editor
             var world = new World { Level = level, Random = random, Clear = clear };
             BuildSolidProps(world);
             BuildScenery(world);
+            BuildLanding(world);
+            BuildRoadSurfaces(world);
             Physics.SyncTransforms();
             BakeNavigation(level);
 
@@ -202,9 +220,26 @@ namespace SignalLost.Editor
                 else h = Mathf.Lerp(bank, h, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(1f, 1.3f, flood)));
             }
 
-            // The ridge ring: tall and too steep to climb.
+            // The ridge ring: tall and too steep to climb. Its outer side drops to the beach (11-20).
             float r = p.magnitude;
-            if (r > PlayRadius) h += Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(PlayRadius, PlayRadius + 12f, r)) * 22f + Mathf.Max(0f, Noise(x, z, 9f, 3f)) * 4f;
+            if (r > PlayRadius)
+            {
+                float down = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(196f, 214f, r));
+                h += (Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(PlayRadius, PlayRadius + 12f, r)) * 22f + Mathf.Max(0f, Noise(x, z, 9f, 3f)) * 4f) * down;
+            }
+
+            // The pass south of camp: the ridge opens into a level trail down to the bay.
+            float pass = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(20f, 7f, Mathf.Abs(x))) * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(PassStart, PassStart - 7.5f, z));
+            if (pass > 0f) h = Mathf.Lerp(h, PassFloor, pass);
+
+            // The beach and the sea floor, all round the island and closer in at the bay.
+            if (r > 180f)
+            {
+                float coast = r - Coast;
+                float bay = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(26f, 10f, Mathf.Abs(x))) * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-180f, -190f, z));
+                coast = Mathf.Lerp(coast, -z - BayCoast, bay);
+                h = IslandKit.Shore(h, coast, SeaLevel);
+            }
             return h;
         }
 
@@ -245,18 +280,65 @@ namespace SignalLost.Editor
             return best;
         }
 
-        public static Vector3 GroundAt(Vector2 p) => new Vector3(p.x, Height(p.x, p.y), p.y);
+        // On the terrain as it is drawn and collides (11-20): the 4 m triangles, not the smooth Height() they were sampled
+        // from. Everything set on the ground (props, trees, rocks, plants) uses this, so nothing floats or sinks on slopes.
+        public static Vector3 GroundAt(Vector2 p) => new Vector3(p.x, MeshHeight(p.x, p.y), p.y);
+
+        private static float[,] meshGrid;
+
+        /// <summary>The height of the terrain mesh at (x, z): the same grid and the same a-c diagonals as BuildTerrain.</summary>
+        public static float MeshHeight(float x, float z)
+        {
+            float step = MapSize / Cells, origin = -MapSize * 0.5f;
+            if (meshGrid == null)
+            {
+                meshGrid = new float[Cells + 1, Cells + 1];
+                for (int i = 0; i <= Cells; i++)
+                    for (int j = 0; j <= Cells; j++)
+                        meshGrid[i, j] = Height(origin + i * step, origin + j * step);
+            }
+            float gx = Mathf.Clamp((x - origin) / step, 0f, Cells - 0.0001f), gz = Mathf.Clamp((z - origin) / step, 0f, Cells - 0.0001f);
+            int ci = (int)gx, cj = (int)gz;
+            float fx = gx - ci, fz = gz - cj;
+            float a = meshGrid[ci, cj], b = meshGrid[ci + 1, cj], c = meshGrid[ci + 1, cj + 1], d = meshGrid[ci, cj + 1];
+            return fx >= fz ? a + (b - a) * fx + (c - b) * fz : a + (c - d) * fx + (d - a) * fz;
+        }
+
+        // The terrain's slope normal round p (over a few metres, so one odd triangle doesn't decide it).
+        private static Vector3 SlopeNormal(Vector2 p, float reach = 1.5f)
+        {
+            float hx = (MeshHeight(p.x + reach, p.y) - MeshHeight(p.x - reach, p.y)) / (2f * reach);
+            float hz = (MeshHeight(p.x, p.y + reach) - MeshHeight(p.x, p.y - reach)) / (2f * reach);
+            return new Vector3(-hx, 1f, -hz).normalized;
+        }
+
+        /// <summary>
+        /// Where a tree, rock, stump or log stands (11-20): on the terrain as drawn, a little sunk, with the ground's slope
+        /// under it so MudScenery drapes the bottom of the model (a tree's flared base and knees, a whole rock or log)
+        /// onto the bank. Trunks stay upright, so nothing leans out over air.
+        /// </summary>
+        private static (Vector3 at, Vector2 slope) Footing(MudModels.Kind kind, Vector2 p, float scale)
+        {
+            Vector3 normal = SlopeNormal(p, 1.5f);
+            var slope = new Vector2(-normal.x / normal.y, -normal.z / normal.y);
+            float sink = 0.2f + Mathf.Min(0.4f, slope.magnitude * 0.25f);
+            return (new Vector3(p.x, MeshHeight(p.x, p.y) - sink, p.y), slope);
+        }
 
         private static Ground Surface(Vector3 centre, Vector3 normal)
         {
             var p = new Vector2(centre.x, centre.z);
             if (normal.y < 0.6f) return Ground.Cliff;
             if (normal.y < 0.8f) return Ground.Rock;
+            // The beach and the sea floor outside the ridge, and the trail from camp down through the pass (11-20).
+            if (p.magnitude > PlayRadius + 8f || (p.y < PassStart - 1f && Mathf.Abs(p.x) < 24f))
+            {
+                if (centre.y < SeaLevel - 0.1f) return Ground.SeaFloor;
+                if (centre.y < SeaLevel + 1.7f) return Ground.Sand;
+            }
             if (centre.y < WaterY - 0.2f) return Ground.Bed;
-            if (DistanceToRoads(p) < 3.4f + Noise(p.x, p.y, 3f) * 0.6f) return Ground.Road;
-            float e = Ellipse(p, Speedway, new Vector2(22f, 13f));
-            if (e > 0.78f && e < 1.22f) return Ground.Road; // the go-kart track
-            if (Vector2.Distance(p, Lot) < 30f || Vector2.Distance(p, Camp) < 9f) return Ground.Road;
+            // Roads, the trail, the go-kart track, the lot and the camp yard are drawn over the terrain as smooth-edged
+            // overlays (BuildRoadSurfaces, 11-20); colouring the 4 m triangles gave them sawtooth edges.
             foreach ((Vector2 c, Vector2 radii) in MudPatches) if (Ellipse(p, c, radii) < 1.05f) return Ground.Mud;
             if (Ellipse(p, Chapel, FloodRadii) < 0.97f) return Ground.Mud; // the flood's bed (bare once it drains)
             if (centre.y < WaterY + 0.35f) return Ground.Mud; // muddy shores
@@ -275,6 +357,8 @@ namespace SignalLost.Editor
             Ground.Mud => new Color(0.24f, 0.17f, 0.11f),
             Ground.Bed => new Color(0.16f, 0.13f, 0.1f),
             Ground.Rock => new Color(0.38f, 0.4f, 0.38f),
+            Ground.Sand => new Color(0.4f, 0.35f, 0.27f),      // grey-brown swamp sand
+            Ground.SeaFloor => new Color(0.46f, 0.41f, 0.3f),  // under the clear sea
             _ => new Color(0.3f, 0.31f, 0.3f)
         };
 
@@ -316,7 +400,17 @@ namespace SignalLost.Editor
         {
             Vector3 normal = Vector3.Cross(b - a, c - a).normalized;
             if (normal.y < 0f) { (b, c) = (c, b); normal = -normal; }
-            kit.Tri(a, b, c, GroundColor(Surface((a + b + c) / 3f, normal)));
+            Vector3 centre = (a + b + c) / 3f;
+            kit.Tri(a, b, c, Shade(GroundColor(Surface(centre, normal)), centre));
+        }
+
+        // A slightly lighter or darker take on a ground colour for each facet (three steps, by position), so the low-poly
+        // ground reads as facets rather than flat colour fields.
+        private static Color Shade(Color color, Vector3 at)
+        {
+            float hash = Mathf.Abs(Mathf.Sin(at.x * 12.9898f + at.z * 78.233f) * 43758.547f) % 1f;
+            float shade = hash < 0.33f ? 0.93f : hash < 0.66f ? 1f : 1.06f;
+            return new Color(Mathf.Round(color.r * shade * 255f) / 255f, Mathf.Round(color.g * shade * 255f) / 255f, Mathf.Round(color.b * shade * 255f) / 255f, 1f);
         }
 
         private static readonly Dictionary<Color, Material> GroundMaterials = new Dictionary<Color, Material>();
@@ -431,16 +525,28 @@ namespace SignalLost.Editor
             if (shader != null)
             {
                 material.shader = shader;
-                material.SetColor("_DeepColor", new Color(0.05f, 0.16f, 0.15f, 0.95f));
-                material.SetColor("_ShallowColor", new Color(0.18f, 0.3f, 0.24f, 0.8f));
-                material.SetColor("_HorizonColor", new Color(0.32f, 0.45f, 0.45f, 1f));
-                // Still, murky swamp water: barely any swell, few sparkles.
-                material.SetFloat("_WaveHeight", 0.015f);
+                // Dark, murky swamp water (11-20, Christian: the sea outside stays clear, the water in the level is dark):
+                // olive-brown and nearly opaque a hand's depth down, no caustics or shore wash lines, a dull greenish
+                // scum where it meets the banks instead of white foam, barely any swell and few sparkles.
+                // 18:31: "too murky ... more of a blue grey brown water, rn it pure black": lighter, a blue-grey murk
+                // over brown shallows, still not clear.
+                material.SetColor("_DeepColor", new Color(0.2f, 0.25f, 0.28f, 0.94f));
+                material.SetColor("_ShallowColor", new Color(0.36f, 0.34f, 0.27f, 0.82f));
+                material.SetColor("_HorizonColor", new Color(0.42f, 0.5f, 0.52f, 1f));
+                material.SetColor("_FoamColor", new Color(0.5f, 0.52f, 0.46f, 1f));
+                material.SetFloat("_WaveHeight", 0.012f);
                 material.SetFloat("_WaveScale", 0.18f);
-                material.SetFloat("_WaveSpeed", 0.35f);
-                material.SetFloat("_Sparkle", 0.1f);
+                material.SetFloat("_WaveSpeed", 0.3f);
+                material.SetFloat("_Sparkle", 0.08f);
                 material.SetFloat("_Smoothness", 0.2f); // low: the moon sits in front of most views, and a glossy surface turns into a white sheet
-                material.SetFloat("_FoamWidth", 0.05f);
+                material.SetFloat("_FoamWidth", 0.04f);
+                material.SetFloat("_UseDepth", 1f);
+                material.SetFloat("_DepthFade", 1.2f);
+                material.SetFloat("_Clarity", 0.35f);
+                material.SetFloat("_EdgeFoam", 0.12f);
+                material.SetFloat("_WashLines", 0f);
+                material.SetFloat("_CausticStrength", 0f);
+                material.SetFloat("_Facets", 0.4f);
             }
             else
             {
@@ -455,6 +561,263 @@ namespace SignalLost.Editor
             }
             EditorUtility.SetDirty(material);
             return material;
+        }
+
+        // ---------- The landing: the sea, the swamp dock and the pass (11-20) ----------
+
+        // Where the trail from camp comes down to the bay, and the line it follows (straight south, x = 0).
+        private static readonly Vector2 BayTop = new Vector2(0f, -186f);
+
+        /// <summary>
+        /// The sea round the island (clear, the same as every island's), the arrival dock in the bay below camp (the boat
+        /// from the Desert Dunes comes in here) dressed for the swamp, lanterns down the pass, and the dressing round the
+        /// bay. Runs after the scenery and before the NavMesh bake, with its own random numbers, so nothing inland moves.
+        /// </summary>
+        private static void BuildLanding(World world)
+        {
+            var root = new GameObject("Landing").transform;
+            root.SetParent(world.Level, false);
+            IslandKit.BuildOcean(root, SeaLevel, Vector2.zero, MapSize * 0.5f, 2f, Height, Vector3.zero, "MudlandsOcean");
+
+            Vector2 start = IslandKit.ShoreStart(BayTop, Vector2.down, Height, SeaLevel);
+            global::SignalLost.World.IslandDock dock = IslandKit.BuildDock(root, new IslandKit.DockSpec
+            {
+                Name = "MudlandsDock", Start = start, Seaward = Vector2.down, Length = 16f,
+                Role = global::SignalLost.World.IslandDock.Role.Arrival, IslandName = "The Mudlands", Look = IslandKit.DockLook.Swamp
+            }, SeaLevel, Height, 20261120);
+            DockMoss(dock.transform);
+            var noParking = new GameObject("No Parking (dock)");
+            noParking.transform.SetParent(dock.transform, false);
+            noParking.transform.localPosition = new Vector3(0f, 0f, 9f);
+            noParking.AddComponent<NoParkingZone>().Configure(14f, "No parking on the dock. It's barely holding itself up.");
+
+            // Nothing walks the sea floor: the ground under the water outside the ridge is left out of the NavMesh (it never
+            // reaches inland, where the creek and bog beds stay walkable).
+            float floor = SeaLevel - 0.5f, depth = 30f, far = MapSize * 0.5f + 10f, edge = 185f;
+            foreach ((Vector2 centre, Vector2 size) in new[]
+            {
+                (new Vector2(0f, -(edge + far) * 0.5f), new Vector2(far * 2f, far - edge)), (new Vector2(0f, (edge + far) * 0.5f), new Vector2(far * 2f, far - edge)),
+                (new Vector2(-(edge + far) * 0.5f, 0f), new Vector2(far - edge, far * 2f)), (new Vector2((edge + far) * 0.5f, 0f), new Vector2(far - edge, far * 2f))
+            })
+            {
+                var volume = new GameObject("Sea Floor (not walkable)").AddComponent<NavMeshModifierVolume>();
+                volume.transform.SetParent(root, false);
+                volume.transform.position = new Vector3(centre.x, floor - depth * 0.5f, centre.y);
+                volume.size = new Vector3(size.x, depth, size.y);
+                volume.center = Vector3.zero;
+                volume.area = NavMesh.GetAreaFromName("Not Walkable");
+            }
+
+            // Props: a sign at camp, lanterns down the trail, torches at the foot of the dock, a rowboat pulled up on
+            // the sand. Their own random numbers and clear list, so the inland props keep their looks.
+            var props = new World { Level = root, Random = new System.Random(20261121), Clear = new List<Vector3>() };
+            Prop(props, MudModels.Kind.RoadSign, Camp + new Vector2(3.6f, -15f), 180f, "Sign", sign: "DOCK", parent: root);
+            for (int i = 0; i < 4; i++)
+            {
+                float side = i % 2 == 0 ? 1f : -1f;
+                Vector2 at = new Vector2(side * 3.4f, Camp.y - 22f - i * 6.5f);
+                Prop(props, MudModels.Kind.LanternPost, at, Yaw(at, new Vector2(0f, at.y)), "Trail Lantern", parent: root);
+            }
+            foreach (float side in new[] { -1f, 1f })
+                Prop(props, MudModels.Kind.TikiTorch, start + new Vector2(side * 2.4f, 1.2f), 0f, "Dock Torch", parent: root);
+            Prop(props, MudModels.Kind.RoadSign, start + new Vector2(4.2f, 3.5f), 0f, "Sign", sign: "NO SWIMMING", parent: root);
+            Prop(props, MudModels.Kind.Rowboat, start + new Vector2(9f, 4.5f), 28f, "Beached Rowboat", parent: root, yOffset: -0.25f);
+
+            // Swamp dressing round the bay: mossy cypresses on the slopes either side, reeds and cattails along the
+            // waterline, a few glowing mushrooms, lily pads off to the sides (clear of the boat's way in).
+            var scenery = new GameObject("Landing Scenery").AddComponent<MudScenery>();
+            scenery.transform.SetParent(root, false);
+            var colliders = new GameObject("Landing Scenery Colliders").transform;
+            colliders.SetParent(root, false);
+            var random = new System.Random(20261122);
+            float R(float a, float b) => a + (float)random.NextDouble() * (b - a);
+            void Tree(MudModels.Kind kind, Vector2 p, float scale)
+            {
+                (Vector3 at, Vector2 slope) = Footing(kind, p, scale);
+                scenery.Place(kind, random.Next(4), at, R(0f, 360f), scale, slope);
+                foreach ((Vector3 centre, Vector3 size) in MudModels.Colliders(kind))
+                {
+                    var go = new GameObject(kind + " Collider");
+                    go.transform.SetParent(colliders, false);
+                    go.transform.position = at;
+                    go.transform.localScale = Vector3.one * scale;
+                    var box = go.AddComponent<BoxCollider>();
+                    box.center = centre;
+                    box.size = size;
+                }
+            }
+            foreach (Vector2 at in new[] { new Vector2(-11f, -190f), new Vector2(12f, -193f), new Vector2(-15f, -199f), new Vector2(16f, -201f), new Vector2(-9f, -181f), new Vector2(10f, -183f) })
+                Tree(MudModels.Kind.Cypress, at + new Vector2(R(-1f, 1f), R(-1f, 1f)), R(0.95f, 1.2f));
+            Tree(MudModels.Kind.DeadTree, new Vector2(-19f, -206f), 1.1f);
+            Tree(MudModels.Kind.Willow, new Vector2(20f, -197f), 1f);
+            for (int i = 0; i < 260; i++)
+            {
+                Vector2 p = new Vector2(R(-30f, 30f), R(-232f, -176f));
+                if (Mathf.Abs(p.x) < 4f && p.y > start.y - 2f) continue; // the trail
+                if (p.x > -12f && p.x < 4f && p.y < start.y + 1f) continue; // the dock and the boat's way in
+                float h = Height(p.x, p.y);
+                if (h < SeaLevel - 0.6f)
+                {
+                    if (random.NextDouble() < 0.25f) scenery.Place(MudModels.Kind.LilyPads, random.Next(4), new Vector3(p.x, SeaLevel, p.y), R(0f, 360f), R(0.8f, 1.3f));
+                }
+                else if (h < SeaLevel + 0.15f) scenery.Place(MudModels.Kind.Cattails, random.Next(4), GroundAt(p), R(0f, 360f), R(0.8f, 1.3f));
+                else if (h < SeaLevel + 1.3f && random.NextDouble() < 0.35f) scenery.Place(MudModels.Kind.Reeds, random.Next(4), GroundAt(p), R(0f, 360f), R(0.8f, 1.2f));
+                else if (h < PassFloor + 4f && Mathf.Abs(p.x) > 6f && random.NextDouble() < 0.12f) scenery.Place(MudModels.Kind.Mushrooms, random.Next(4), GroundAt(p), R(0f, 360f), R(0.8f, 1.4f));
+            }
+            scenery.Generate();
+
+            // No grass on the trail.
+            for (float z = Camp.y - 10f; z > PassStart; z -= 3f) world.Clear.Add(new Vector3(0f, z, 3f));
+        }
+
+        // Violet hanging moss on the dock's standing posts (the same strips as on the swamp trees), in the dock's space.
+        // The posts are where IslandKit.BuildDock puts them: every other pair along the walk, and the far corners.
+        private static void DockMoss(Transform dock)
+        {
+            var kit = new MeshKit();
+            var moss = new Color(0.52f, 0.4f, 0.64f);
+            void Strands(Vector3 top, float length, float side)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    Vector3 t = top + new Vector3(side * 0.12f, 0f, i * 0.13f - 0.13f);
+                    kit.Plank(t, t + new Vector3(side * (0.04f + 0.03f * i), -length + i * 0.25f, 0.03f * i), 0.11f, 0.02f, moss);
+                }
+            }
+            for (int row = 1; row * 3f + 0.4f < 16f; row += 2)
+                foreach (float side in new[] { -1f, 1f })
+                    Strands(new Vector3(side * 1.5f, 0.55f, row * 3f + 0.4f), 1.3f, side);
+            foreach (float side in new[] { -1f, 1f }) Strands(new Vector3(side * 3.3f, 0.85f, 20.9f), 1.6f, side);
+            Mesh mesh = SaveMesh(kit.Build("DockMoss"), Folder + "/Meshes/DockMoss.asset");
+            var go = new GameObject("Hanging Moss");
+            go.transform.SetParent(dock, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var materials = new Material[kit.SubmeshCount];
+            for (int s = 0; s < materials.Length; s++) materials[s] = GroundMaterial(kit.SubmeshLook(s).color);
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterials = materials;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+        }
+
+        // ---------- Road surfaces (11-20) ----------
+
+        /// <summary>
+        /// The roads, the trail down to the dock, the go-kart track, the lot and the camp yard, drawn as thin overlays
+        /// following the terrain 8 cm above it, with smooth slightly wobbly edges. (They used to be the terrain's own 4 m
+        /// triangles coloured brown, which gave every road a sawtooth edge.) No collider: you walk and drive on the
+        /// terrain just under them. They stop at the bridges and wherever the ground dips under the road (the fords).
+        /// </summary>
+        private static void BuildRoadSurfaces(World world)
+        {
+            var kit = new MeshKit();
+            Color dirt = GroundColor(Ground.Road);
+            foreach (Vector2[] road in Roads) Ribbon(kit, road, 3.3f, dirt, true);
+            Vector2 trailEnd = IslandKit.ShoreStart(BayTop, Vector2.down, Height, SeaLevel);
+            Ribbon(kit, new[] { Camp + new Vector2(0f, -7f), new Vector2(0f, PassStart), BayTop, trailEnd }, 1.9f, dirt, false);
+            Pad(kit, Camp, new Vector2(9f, 9f), 0f, 1f, dirt);
+            Pad(kit, Lot, new Vector2(30f, 30f), 0f, 1f, dirt);
+            Pad(kit, Speedway, new Vector2(22f, 13f), 0.78f, 1.22f, dirt);
+            Mesh mesh = SaveMesh(kit.Build("RoadSurfaces"), Folder + "/Meshes/RoadSurfaces.asset");
+            var go = new GameObject("Road Surfaces");
+            go.transform.SetParent(world.Level, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var materials = new Material[kit.SubmeshCount];
+            for (int s = 0; s < materials.Length; s++) materials[s] = GroundMaterial(kit.SubmeshLook(s).color);
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterials = materials;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            go.isStatic = true;
+        }
+
+        private const float SurfaceLift = 0.08f;
+
+        private static Vector3 OnSurface(Vector2 p) => new Vector3(p.x, MeshHeight(p.x, p.y) + SurfaceLift, p.y);
+
+        private static void UpTri(MeshKit kit, Vector3 a, Vector3 b, Vector3 c, Color color)
+        {
+            if (Vector3.Cross(b - a, c - a).y < 0f) (b, c) = (c, b);
+            kit.Tri(a, b, c, color);
+        }
+
+        private static bool OnBridge(Vector2 p)
+        {
+            foreach ((Vector2 a, Vector2 b) in BridgeSpans)
+            {
+                Vector2 ab = b - a;
+                float length = ab.magnitude;
+                if (length < 0.01f) continue;
+                Vector2 dir = ab / length;
+                float t = Vector2.Dot(p - a, dir), side = Mathf.Abs(dir.x * (p - a).y - dir.y * (p - a).x);
+                if (t > -0.2f && t < length + 0.2f && side < 4f) return true;
+            }
+            return false;
+        }
+
+        // A strip along a path, 1 m steps, five lanes across (so it follows the ground's bends), edges wobbling a little.
+        private static void Ribbon(MeshKit kit, Vector2[] path, float halfWidth, Color color, bool atRoadLevel)
+        {
+            var points = new List<Vector2>();
+            for (int i = 0; i < path.Length - 1; i++)
+            {
+                float length = Vector2.Distance(path[i], path[i + 1]);
+                int steps = Mathf.Max(1, Mathf.CeilToInt(length));
+                for (int k = 0; k < steps; k++) points.Add(Vector2.Lerp(path[i], path[i + 1], k / (float)steps));
+            }
+            points.Add(path[path.Length - 1]);
+            float[] lanes = { -1f, -0.5f, 0f, 0.5f, 1f };
+            var rows = new Vector3[points.Count][];
+            var keep = new bool[points.Count];
+            for (int k = 0; k < points.Count; k++)
+            {
+                Vector2 dir = (points[Mathf.Min(k + 1, points.Count - 1)] - points[Mathf.Max(k - 1, 0)]).normalized;
+                var side = new Vector2(-dir.y, dir.x);
+                Vector2 p = points[k];
+                float ground = MeshHeight(p.x, p.y);
+                keep[k] = !OnBridge(p) && (atRoadLevel ? ground >= RoadLevel(p.x, p.y) - 0.6f : ground >= SeaLevel + 0.3f);
+                rows[k] = new Vector3[lanes.Length];
+                for (int m = 0; m < lanes.Length; m++)
+                {
+                    float wobble = m == 0 || m == lanes.Length - 1 ? 1f + 0.07f * Noise(p.x, p.y, 4f, 31f + m) : 1f;
+                    rows[k][m] = OnSurface(p + side * lanes[m] * halfWidth * wobble);
+                }
+            }
+            for (int k = 0; k < points.Count - 1; k++)
+            {
+                if (!keep[k] || !keep[k + 1]) continue;
+                for (int m = 0; m < lanes.Length - 1; m++)
+                {
+                    UpTri(kit, rows[k][m], rows[k + 1][m], rows[k + 1][m + 1], color);
+                    UpTri(kit, rows[k][m], rows[k + 1][m + 1], rows[k][m + 1], color);
+                }
+            }
+        }
+
+        // An (elliptical) disc, or a ring between inner and outer (fractions of the radii), with a wobbling rim.
+        private static void Pad(MeshKit kit, Vector2 centre, Vector2 radii, float inner, float outer, Color color)
+        {
+            const int segments = 72, rings = 5;
+            var grid = new Vector3[segments, rings + 1];
+            for (int s = 0; s < segments; s++)
+            {
+                float a = s / (float)segments * Mathf.PI * 2f;
+                var unit = new Vector2(Mathf.Cos(a) * radii.x, Mathf.Sin(a) * radii.y);
+                for (int r = 0; r <= rings; r++)
+                {
+                    float f = Mathf.Lerp(inner, outer, r / (float)rings);
+                    if (r == rings || (r == 0 && inner > 0f)) f *= 1f + 0.03f * Noise(unit.x * 3f, unit.y * 3f, 4f, 47f + r);
+                    grid[s, r] = OnSurface(centre + unit * f);
+                }
+            }
+            for (int s = 0; s < segments; s++)
+            {
+                int n = (s + 1) % segments;
+                for (int r = 0; r < rings; r++)
+                {
+                    if (inner <= 0f && r == 0) { UpTri(kit, OnSurface(centre), grid[s, 1], grid[n, 1], color); continue; }
+                    UpTri(kit, grid[s, r], grid[n, r], grid[n, r + 1], color);
+                    UpTri(kit, grid[s, r], grid[n, r + 1], grid[s, r + 1], color);
+                }
+            }
         }
 
         // ---------- The camp ----------
@@ -516,7 +879,22 @@ namespace SignalLost.Editor
             props.SetParent(world.Level, false);
 
             // Camp: boardwalk north to the road, torches.
-            for (int i = 0; i < 2; i++) Prop(world, MudModels.Kind.Boardwalk, Camp + new Vector2(0f, 10f + i * 6f), 0f, "Camp Boardwalk", parent: props, yOffset: 0.2f);
+            // The boardwalk north to the road: one straight run (two pieces end to end) from the camp yard onto the road,
+            // tilted to sit on the ground at both ends (11-20: it was two level pieces with a step between them).
+            {
+                Vector2 from = Camp + new Vector2(0f, 7f), to = Camp + new Vector2(0f, 19.5f);
+                var a = new Vector3(from.x, MeshHeight(from.x, from.y) + SurfaceLift + 0.04f, from.y);
+                var b = new Vector3(to.x, MeshHeight(to.x, to.y) + SurfaceLift + 0.04f, to.y);
+                Quaternion rotation = Quaternion.LookRotation(b - a, Vector3.up);
+                float piece = Vector3.Distance(a, b) * 0.5f;
+                for (int i = 0; i < 2; i++)
+                {
+                    int clearIndex = world.Clear.Count;
+                    MudProp walk = Prop(world, MudModels.Kind.Boardwalk, Camp + new Vector2(0f, 10f + i * 6f), 0f, "Camp Boardwalk", piece / 6f, parent: props);
+                    world.Clear[clearIndex] = new Vector3(Camp.x, Camp.y + 10f + i * 6f, 5f); // as before, so the scenery doesn't move
+                    walk.transform.SetPositionAndRotation(Vector3.Lerp(a, b, 0.25f + 0.5f * i) - rotation * Vector3.up * 0.05f, rotation); // deck top 0.05 above its pivot
+                }
+            }
             foreach (Vector2 t in new[] { new Vector2(-5f, 9f), new Vector2(5f, 9f), new Vector2(-9f, -2f), new Vector2(9f, -3f) })
                 Prop(world, MudModels.Kind.TikiTorch, Camp + t, 0f, "Camp Torch", parent: props);
             Prop(world, MudModels.Kind.StiltShack, Camp + new Vector2(-13f, 6f), 120f, "Camp Shack", parent: props);
@@ -540,7 +918,7 @@ namespace SignalLost.Editor
                 for (int i = 0; i < road.Length - 1; i++)
                     for (int c = 0; c < Creek.Length - 1; c++)
                         if (SegmentsCross(road[i], road[i + 1], Creek[c], Creek[c + 1], out Vector2 hit) && bridges.TrueForAll(b => Vector2.Distance(b, hit) > 8f) && Add(bridges, hit))
-                            Prop(world, MudModels.Kind.Bridge, hit, Yaw(road[i], road[i + 1]), "Bridge", 1.4f, parent: props, yOffset: Mathf.Max(0f, RoadLevel(hit.x, hit.y) - Height(hit.x, hit.y)) + 0.05f);
+                            Bridge(world, props, hit, (road[i + 1] - road[i]).normalized);
 
             // The Banana Speedway: tyre walls round the oval, a grandstand, the banana stand, a barrel pile.
             for (int i = 0; i < 22; i++)
@@ -654,6 +1032,39 @@ namespace SignalLost.Editor
             return true;
         }
 
+        // Where the bridges span (each end where the deck leaves the road), for the road overlays to stop at.
+        private static readonly List<(Vector2 a, Vector2 b)> BridgeSpans = new List<(Vector2 a, Vector2 b)>();
+
+        /// <summary>
+        /// A bridge sized to its gap and flush with the road at both ends (11-20): along the road from the crossing, each
+        /// end is where the drawn ground comes back up to the road; the deck runs 0.9 m onto the road past it, tilted so
+        /// its top sits on the road surface at both ends.
+        /// </summary>
+        private static void Bridge(World world, Transform parent, Vector2 hit, Vector2 along)
+        {
+            Vector2 Edge(Vector2 dir)
+            {
+                for (float d = 1f; d < 18f; d += 0.25f)
+                {
+                    Vector2 p = hit + dir * d;
+                    if (MeshHeight(p.x, p.y) >= RoadLevel(p.x, p.y) - 0.1f) return p;
+                }
+                return hit + dir * 8f;
+            }
+            Vector2 edgeA = Edge(-along), edgeB = Edge(along);
+            BridgeSpans.Add((edgeA, edgeB));
+            Vector2 endA = edgeA - along * 0.9f, endB = edgeB + along * 0.9f;
+            var a = new Vector3(endA.x, MeshHeight(endA.x, endA.y) + SurfaceLift + 0.03f, endA.y); // on top of the road overlay
+            var b = new Vector3(endB.x, MeshHeight(endB.x, endB.y) + SurfaceLift + 0.03f, endB.y);
+            float length = Vector3.Distance(a, b);
+            int clearIndex = world.Clear.Count;
+            MudProp bridge = Prop(world, MudModels.Kind.Bridge, (endA + endB) * 0.5f, Yaw(endA, endB), "Bridge", length / 10f, parent: parent);
+            // Keep the clear radius the old fixed-size bridge had, so the scenery placed after it doesn't move.
+            world.Clear[clearIndex] = new Vector3(hit.x, hit.y, 3f + 1.4f * 2f);
+            Quaternion rotation = Quaternion.LookRotation(b - a, Vector3.up);
+            bridge.transform.SetPositionAndRotation((a + b) * 0.5f - rotation * Vector3.up * 0.06f, rotation); // deck top 0.06 above its pivot
+        }
+
         private static bool SegmentsCross(Vector2 a, Vector2 b, Vector2 c, Vector2 d, out Vector2 hit)
         {
             hit = default;
@@ -691,8 +1102,8 @@ namespace SignalLost.Editor
 
             void Tree(MudModels.Kind kind, Vector2 p, float scale)
             {
-                Vector3 at = GroundAt(p) + Vector3.down * 0.2f;
-                scenery.Place(kind, random.Next(4), at, R(0f, 360f), scale);
+                (Vector3 at, Vector2 slope) = Footing(kind, p, scale);
+                scenery.Place(kind, random.Next(4), at, R(0f, 360f), scale, slope);
                 foreach ((Vector3 centre, Vector3 size) in MudModels.Colliders(kind))
                 {
                     var go = new GameObject(kind + " Collider");
@@ -711,6 +1122,14 @@ namespace SignalLost.Editor
                 float a = i / 160f * Mathf.PI * 2f + R(-0.01f, 0.01f);
                 Vector2 p = new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * R(PlayRadius - 4f, PlayRadius + 10f);
                 if (DistanceToRoads(p) < 7f) continue;
+                if (p.y < -168f && Mathf.Abs(p.x) < 14f)
+                {
+                    // The pass to the landing stays open. Draw what the tree would have, so everything after is unchanged.
+                    R(1.1f, 1.5f);
+                    random.Next(4);
+                    R(0f, 360f);
+                    continue;
+                }
                 Tree(MudModels.Kind.Cypress, p, R(1.1f, 1.5f));
             }
             // The swamp forest.
@@ -1402,7 +1821,23 @@ namespace SignalLost.Editor
                 AssetDatabase.CreateAsset(mesh, path);
                 return mesh;
             }
-            EditorUtility.CopySerialized(mesh, existing);
+            // Copy through the Mesh API, not EditorUtility.CopySerialized: CopySerialized updates the asset's data (and the
+            // collider cooks from it) but the editor kept drawing the old geometry when the vertex count / index format
+            // changed (11-20: the terrain grew from 60k to 101k vertices, and the old 400 m terrain stayed on screen,
+            // see-through past its edge and with a cliff where the new pass is). Setting it through the API refreshes the
+            // renderers as well.
+            existing.Clear();
+            existing.indexFormat = mesh.indexFormat;
+            existing.vertices = mesh.vertices;
+            existing.normals = mesh.normals;
+            if (mesh.colors.Length == mesh.vertexCount) existing.colors = mesh.colors;
+            if (mesh.uv.Length == mesh.vertexCount) existing.uv = mesh.uv;
+            if (mesh.tangents.Length == mesh.vertexCount) existing.tangents = mesh.tangents;
+            existing.subMeshCount = mesh.subMeshCount;
+            for (int s = 0; s < mesh.subMeshCount; s++) existing.SetTriangles(mesh.GetTriangles(s), s, false);
+            existing.RecalculateBounds();
+            existing.name = mesh.name;
+            existing.MarkModified();
             EditorUtility.SetDirty(existing);
             Object.DestroyImmediate(mesh);
             return existing;
