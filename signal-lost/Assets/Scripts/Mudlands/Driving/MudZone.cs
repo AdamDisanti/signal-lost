@@ -27,7 +27,11 @@ namespace SignalLost.Mudlands
         public float FootSlow => footSlow;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => Active.Clear();
+        private static void ResetStatics()
+        {
+            Active.Clear();
+            Dry.Clear();
+        }
 
         public void Configure(Kind type, Vector2 halfWidths, float slow)
         {
@@ -81,9 +85,24 @@ namespace SignalLost.Mudlands
             return e >= 1f ? 0f : Mathf.Clamp01((1f - e) * 3f);
         }
 
+        /// <summary>
+        /// Dry ground over the water (the bog's Spirit Road once it has risen): boxes in which no mud or water zone
+        /// counts, so walking or driving on top of them is like being on land.
+        /// </summary>
+        public static readonly List<Bounds> Dry = new List<Bounds>();
+
+        private static bool OnDry(Vector3 point)
+        {
+            foreach (Bounds box in Dry)
+                if (point.x >= box.min.x && point.x <= box.max.x && point.z >= box.min.z && point.z <= box.max.z &&
+                    point.y >= box.min.y - 0.4f && point.y <= box.max.y + 2.5f) return true;
+            return false;
+        }
+
         /// <summary>The strongest mud/water effect at a point: (kind, strength 0-1, foot slow at that strength).</summary>
         public static (Kind kind, float strength, float slow) At(Vector3 point)
         {
+            if (Dry.Count > 0 && OnDry(point)) return (Kind.Mud, 0f, 0f);
             Kind best = Kind.Mud;
             float strength = 0f, slow = 0f;
             foreach (MudZone zone in Active)

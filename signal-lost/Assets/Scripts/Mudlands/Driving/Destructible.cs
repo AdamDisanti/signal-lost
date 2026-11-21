@@ -15,12 +15,21 @@ namespace SignalLost.Mudlands
     /// still and moonshine barrels. It has a <see cref="Health"/>, so the laser breaks it like anything else (it just
     /// takes a few hits); the Drunk Driving car smashes straight through it at speed. Broken, its parts fly off as
     /// tumbling debris and fade. Explosive ones (barrels, the still) blow up when they break, and fire lights them.
-    /// Quests listen to <see cref="Broken"/>.
+    /// Quests listen to <see cref="Broken"/>. Quest pieces can be made tougher (<see cref="Toughness"/>): car-only (the
+    /// Practical's barricades: bolts bounce off, the car or its explosion goes through) or blast-only (the dam: only an
+    /// explosion hurts it, and driving into it crashes the car).
     /// </summary>
     [RequireComponent(typeof(Health))]
     public sealed class Destructible : MonoBehaviour, IIgnitable
     {
         public enum Substance { Wood, Hay, Metal, Glass }
+
+        /// <summary>What can break it: anything, only the car (ramming it or the car's explosion), or only explosions.</summary>
+        public enum Toughness { Any, CarOnly, BlastOnly }
+
+        // The explosion being applied right now (only explosions may hurt car-only and blast-only things).
+        private enum Blast { None, Car, Other }
+        private static Blast blasting;
 
         [SerializeField] private Substance kind = Substance.Wood;
         [Tooltip("The car smashes through it at this speed (m/s) or faster; slower, it is a solid bump.")]
@@ -33,6 +42,10 @@ namespace SignalLost.Mudlands
         [SerializeField, Min(0f)] private float blastDamage = 30f;
         [Tooltip("Seconds of fire left behind after an explosion (0: none).")]
         [SerializeField, Min(0f)] private float fireSeconds = 3f;
+        [Header("Quest pieces")]
+        [SerializeField] private Toughness toughness = Toughness.Any;
+        [Tooltip("Shown when the player hits it with something that can't break it.")]
+        [SerializeField] private string toughHint = "";
 
         private Health health;
         private bool broken;
@@ -47,9 +60,48 @@ namespace SignalLost.Mudlands
         public float CarSpeedLoss => carSpeedLoss;
         public bool Explosive => explosive;
         public Health Health => health;
+        public Toughness Tough => toughness;
+        /// <summary>Driving into it crashes the car (blast-only things): the explosion is what breaks it.</summary>
+        public bool CrashesCar => toughness == Toughness.BlastOnly;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => AnyBroken = null;
+        private static void ResetStatics()
+        {
+            AnyBroken = null;
+            blasting = Blast.None;
+        }
+
+        /// <summary>Makes it car-only or blast-only (the level builder). <paramref name="hint"/> explains it to the player.</summary>
+        public void SetToughness(Toughness value, string hint)
+        {
+            toughness = value;
+            toughHint = hint;
+        }
+
+        /// <summary>Wraps an explosion's damage pass, so car-only and blast-only things know an explosion hit them.</summary>
+        public static void BeginBlast(bool fromCar) => blasting = fromCar ? Blast.Car : Blast.Other;
+        public static void EndBlast() => blasting = Blast.None;
+
+        private float nextHint;
+
+        // Health.DamageModifier for tough pieces: lets through only what may break them, and tells the player why not.
+        private float Filter(float amount, GameObject source)
+        {
+            bool allowed = toughness == Toughness.Any || (toughness == Toughness.BlastOnly && blasting != Blast.None) ||
+                           (toughness == Toughness.CarOnly && blasting == Blast.Car);
+            if (allowed) return amount;
+            bool player = source != null && source.GetComponentInParent<SignalLost.Player.PlayerLife>() != null;
+            if (player && !broken)
+            {
+                Wobble(0.1f);
+                if (Time.time >= nextHint && !string.IsNullOrEmpty(toughHint))
+                {
+                    nextHint = Time.time + 3f;
+                    MudHud.Toast(toughHint, new Color(1f, 0.82f, 0.45f), 2.6f);
+                }
+            }
+            return 0f;
+        }
 
         /// <summary>Sets one up in code (the level builder and runtime props).</summary>
         public void Configure(Substance material, float hp, bool isExplosive = false, float radius = 4f, float damage = 30f)
@@ -63,7 +115,11 @@ namespace SignalLost.Mudlands
             health.Restore();
         }
 
-        private void Awake() => health = GetComponent<Health>();
+        private void Awake()
+        {
+            health = GetComponent<Health>();
+            if (toughness != Toughness.Any) health.DamageModifier = Filter;
+        }
 
         private void OnEnable()
         {
@@ -177,14 +233,20 @@ namespace SignalLost.Mudlands
             CameraShake.Add(0.35f);
             Sfx.PlayAt("car_explode", centre, 0.7f, Random.Range(1.15f, 1.3f), 50f);
             var hit = new HashSet<Health>();
-            foreach (Collider collider in Physics.OverlapSphere(centre, blastRadius, ~0, QueryTriggerInteraction.Ignore))
+            Blast outer = blasting;
+            BeginBlast(false);
+            try
             {
-                Health target = collider.GetComponentInParent<Health>();
-                if (target == null || target == health || target.IsDead || !hit.Add(target)) continue;
-                if (!SignalLost.Enemies.EnemyAllegiance.CanHurt(attacker, target)) continue;
-                float share = Mathf.Lerp(1f, 0.4f, Mathf.Clamp01(Vector3.Distance(centre, collider.ClosestPoint(centre)) / blastRadius));
-                target.TakeDamage(blastDamage * share, attacker);
+                foreach (Collider collider in Physics.OverlapSphere(centre, blastRadius, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    Health target = collider.GetComponentInParent<Health>();
+                    if (target == null || target == health || target.IsDead || !hit.Add(target)) continue;
+                    if (!SignalLost.Enemies.EnemyAllegiance.CanHurt(attacker, target)) continue;
+                    float share = Mathf.Lerp(1f, 0.4f, Mathf.Clamp01(Vector3.Distance(centre, collider.ClosestPoint(centre)) / blastRadius));
+                    target.TakeDamage(blastDamage * share, attacker);
+                }
             }
+            finally { blasting = outer; }
             foreach (Collider collider in Physics.OverlapSphere(centre, blastRadius, ~0, QueryTriggerInteraction.Collide))
             {
                 var vent = collider.GetComponentInParent<BogGasVent>();
