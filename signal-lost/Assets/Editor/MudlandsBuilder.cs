@@ -90,6 +90,33 @@ namespace SignalLost.Editor
             // The Gator Causeway: out of the lot's west side to the county line (Clutch's escape ramp).
             new[] { Lot + new Vector2(-22f, 6f), new Vector2(-84f, 134f), new Vector2(-120f, 112f), new Vector2(-144f, 80f), new Vector2(-152f, 44f), new Vector2(-156f, 18f) }
         };
+        // Quest rework (11-20): two short cuts off the camp road, as narrower dirt tracks. They are kept out of Roads, which
+        // also drives the scatter (trees, rocks, plants, road lights), so everything else keeps its place; the scatter
+        // skips anything that would land on them (QuestBlocked) after drawing its numbers as before.
+        private static readonly Vector2[][] Shortcuts =
+        {
+            // The Logging Chute: north-west to the driving school. A log jam blocks it until the car shifts it.
+            new[] { new Vector2(2.9f, -116f), new Vector2(-30f, -100f), new Vector2(-62f, -78f), new Vector2(-79f, -63f) },
+            // The Spirit Trail: north-east to the bog road, where the Spirit Road starts across the bog.
+            new[] { new Vector2(3.6f, -113f), new Vector2(30f, -96f), new Vector2(56f, -70.4f) },
+            // From the Spirit Road's far end up to the mud dam (drive it and you crash into the dam).
+            new[] { new Vector2(124f, -20f), new Vector2(124.5f, -11f) }
+        };
+        // The Spirit Road: a causeway straight across the bog, from the bog road to the far shore below the dam.
+        private static readonly Vector2 SpiritA = new Vector2(62f, -75f), SpiritB = new Vector2(124f, -20f);
+        private const float SpiritWidth = 5.6f;
+        private static readonly Vector2 LogJamAt = new Vector2(-11.5f, -109f);
+        // The stilt shack by the Lantern Road bridge (a hex lantern on its roof).
+        private static readonly Vector2 BridgeShack = new Vector2(27f, 31f);
+        // North-east of the fire, between the tutorial's stand (north) and the desert's (east).
+        private static readonly Vector2 SafeKeepingAt = Camp + new Vector2(4f, 4.5f);
+        // Things placed for the quests that the scatter should keep clear of: (x, z, radius).
+        private static readonly Vector2 SawmillAt = Rotwood + new Vector2(-17f, -20f);
+        private static readonly Vector3[] QuestClear =
+        {
+            new Vector3(BridgeShack.x, BridgeShack.y, 6f), new Vector3(SafeKeepingAt.x, SafeKeepingAt.y, 2.5f), new Vector3(SawmillAt.x, SawmillAt.y, 7f)
+        };
+
         private static readonly Vector2[] Creek = { new Vector2(-190f, -4f), new Vector2(-122f, 2f), new Vector2(-62f, 14f), new Vector2(-12f, 24f), new Vector2(30f, 18f), new Vector2(62f, -8f), new Vector2(78f, -34f) };
         private static readonly Vector2[] HaulBarricades = { new Vector2(-109f, -45f), new Vector2(-116f, -61f), new Vector2(-122f, -74f), new Vector2(-127f, -87f) };
         // Where each gong's guards come out of the reeds when it rings (on the bog's shore, off the roads).
@@ -132,6 +159,7 @@ namespace SignalLost.Editor
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var random = new System.Random(20261108);
+            questRandom = new System.Random(20261120);
             var level = new GameObject("Level").transform;
             GameObject ground = BuildTerrain(level);
             BuildWater(level);
@@ -170,6 +198,12 @@ namespace SignalLost.Editor
             public SpiritGong[] Gongs;
             public CursedLantern[] Lanterns;
             public GameObject Flood;
+            // The quest rework (11-20).
+            public Destructible LogJam;
+            public SpiritRoad SpiritRoad;
+            public CursedLantern[] HexLanterns;
+            public GameObject[] Relit;
+            public Transform Pile;
             public RoadhouseGate Gate;
             public Transform Ramp;
             public Transform[] Pumps, Doors, Route;
@@ -201,6 +235,8 @@ namespace SignalLost.Editor
             // Roads are smoothed in.
             float road = DistanceToRoads(p);
             if (road < 6f) h = Mathf.Lerp(RoadLevel(x, z), h, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(3.2f, 6f, road)));
+            float track = DistanceToShortcuts(p);
+            if (track < 4.8f) h = Mathf.Lerp(RoadLevel(x, z), h, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(2.6f, 4.8f, track)));
 
             // The creek and the bog are carved out after the roads, so bridges span the gaps.
             float creek = DistanceToPath(p, Creek);
@@ -269,6 +305,24 @@ namespace SignalLost.Editor
             return best;
         }
 
+        private static float DistanceToShortcuts(Vector2 p)
+        {
+            float best = float.MaxValue;
+            foreach (Vector2[] track in Shortcuts) best = Mathf.Min(best, DistanceToPath(p, track));
+            return best;
+        }
+
+        // Roads and the short cut tracks (for the ground; the scatter keeps using DistanceToRoads, see Shortcuts).
+        private static float DistanceToAnyRoad(Vector2 p) => Mathf.Min(DistanceToRoads(p), DistanceToShortcuts(p));
+
+        // Somewhere a quest piece goes: the short cuts, the Spirit Road, the quest buildings.
+        private static bool QuestBlocked(Vector2 p)
+        {
+            if (DistanceToShortcuts(p) < 5f || DistanceToPath(p, new[] { SpiritA, SpiritB }) < SpiritWidth * 0.5f + 2f) return true;
+            foreach (Vector3 c in QuestClear) if (Vector2.Distance(p, new Vector2(c.x, c.y)) < c.z) return true;
+            return false;
+        }
+
         private static float DistanceToPath(Vector2 p, Vector2[] path)
         {
             float best = float.MaxValue;
@@ -294,7 +348,7 @@ namespace SignalLost.Editor
         private static bool[,] detailed;
 
         private static bool Detailed(Vector2 c) =>
-            DistanceToRoads(c) < 11f || Vector2.Distance(c, Camp) < 32f || (Mathf.Abs(c.x) < 14f && c.y < Camp.y && c.y > -214f);
+            DistanceToAnyRoad(c) < 11f || Vector2.Distance(c, Camp) < 32f || (Mathf.Abs(c.x) < 14f && c.y < Camp.y && c.y > -214f);
 
         private static void EnsureGrid()
         {
@@ -757,6 +811,7 @@ namespace SignalLost.Editor
             var kit = new MeshKit();
             Color dirt = GroundColor(Ground.Road), verge = new Color(0.29f, 0.23f, 0.17f), mud = GroundColor(Ground.Mud);
             foreach (Vector2[] road in Roads) Ribbon(kit, road, 3.3f, 1.6f, dirt, verge, true);
+            foreach (Vector2[] track in Shortcuts) Ribbon(kit, track, 2.4f, 1.2f, dirt, verge, true);
             Vector2 trailEnd = IslandKit.ShoreStart(BayTop, Vector2.down, Height, SeaLevel);
             Ribbon(kit, new[] { Camp + new Vector2(0f, -8.6f), new Vector2(0f, PassStart), BayTop, trailEnd }, 1.9f, 1f, dirt, verge, false);
             Pad(kit, Camp, new Vector2(9f, 9f), 0f, 1f, dirt);
@@ -868,7 +923,7 @@ namespace SignalLost.Editor
                     if (p.magnitude > PlayRadius) continue;
                     float band = MeshHeight(p.x, p.y) - WaterY + 0.18f * Noise(p.x, p.y, 3f, 61f);
                     if (band < -0.35f || band > 0.5f) continue;
-                    if (DistanceToRoads(p) < 6f || OnBridge(p)) continue;
+                    if (DistanceToAnyRoad(p) < 6f || OnBridge(p)) continue;
                     Vector2 o = p - Vector2.one * (cell * 0.5f);
                     Vector3 a = OnShore(o), b = OnShore(o + new Vector2(cell, 0f)), c = OnShore(o + new Vector2(cell, cell)), d = OnShore(o + new Vector2(0f, cell));
                     UpTri(kit, a, b, c, mud);
@@ -886,7 +941,7 @@ namespace SignalLost.Editor
             void Tri(Vector3 a, Vector3 b, Vector3 c)
             {
                 Vector3 mid = (a + b + c) / 3f;
-                if (offRoads && DistanceToRoads(new Vector2(mid.x, mid.z)) < 6f) return; // a road and its verge go over it
+                if (offRoads && DistanceToAnyRoad(new Vector2(mid.x, mid.z)) < 6f) return; // a road and its verge go over it
                 UpTri(kit, a, b, c, color);
             }
             const int segments = 72, rings = 5;
@@ -945,6 +1000,25 @@ namespace SignalLost.Editor
             return prop;
         }
 
+        // Quest pieces (11-20) draw their variants from their own random numbers and add no clearings, so adding them
+        // changes no other prop's variant and no tree's place.
+        private static System.Random questRandom = new System.Random(20261120);
+
+        private static MudProp QuestProp(World world, MudModels.Kind kind, Vector2 at, float yaw, string name, string sign = "", Transform parent = null,
+            float yOffset = 0f, bool solid = true, float size = 1f)
+        {
+            System.Random saved = world.Random;
+            List<Vector3> clear = world.Clear;
+            world.Random = questRandom;
+            world.Clear = new List<Vector3>();
+            try { return Prop(world, kind, at, yaw, name, size, sign, parent, yOffset, solid); }
+            finally
+            {
+                world.Random = saved;
+                world.Clear = clear;
+            }
+        }
+
         // Boxes shaped to the model (MudModels.Solids). Rotated boxes (sloped roofs) and roof pieces go on child
         // objects; roof pieces are left out of the NavMesh so nothing paths, spawns or drops onto a roof.
         private static void AddColliders(GameObject go, MudModels.Kind kind, float size)
@@ -1001,11 +1075,36 @@ namespace SignalLost.Editor
             Prop(world, MudModels.Kind.Windmill, Flats + new Vector2(28f, 10f), 30f, "Broken Windmill", parent: props);
             Prop(world, MudModels.Kind.Cabin, Flats + new Vector2(-30f, 14f), 160f, "Flats Cabin", parent: props);
 
+            // Quest rework (11-20): the stilt shack by the Lantern Road bridge (a hex lantern goes on its roof), signs where
+            // the short cuts leave the camp road, lanterns along them, and the safe-keeping sign by Cavendish.
+            QuestProp(world, MudModels.Kind.StiltShack, BridgeShack, Yaw(BridgeShack, new Vector2(18f, 36f)), "Bridge Shack", parent: props);
+            QuestProp(world, MudModels.Kind.RoadSign, new Vector2(-3f, -118.5f), 0f, "Sign", sign: "SHORT CUT: ROTWOOD", parent: props);
+            QuestProp(world, MudModels.Kind.RoadSign, new Vector2(10f, -117f), 0f, "Sign", sign: "SHORT CUT: THE BOG", parent: props);
+            Vector2 keepSign = SafeKeepingAt + (SafeKeepingAt - Camp).normalized * 1.5f;
+            QuestProp(world, MudModels.Kind.RoadSign, keepSign, Yaw(keepSign, Camp), "Sign", sign: "SAFE KEEPING", parent: props);
+            int trackLamp = 0;
+            foreach (Vector2[] track in Shortcuts)
+                for (int i = 0; i < track.Length - 1; i++)
+                {
+                    float length = Vector2.Distance(track[i], track[i + 1]);
+                    for (float d = 14f; d < length - 6f; d += 24f)
+                    {
+                        Vector2 p = Vector2.Lerp(track[i], track[i + 1], d / length);
+                        Vector2 side = new Vector2(-(track[i + 1] - track[i]).y, (track[i + 1] - track[i]).x).normalized * 3.8f * (trackLamp++ % 2 == 0 ? 1f : -1f);
+                        if (Ellipse(p + side, Bog, BogRadii) < 1.3f || DistanceToRoads(p + side) < 5f) continue;
+                        QuestProp(world, MudModels.Kind.LanternPost, p + side, Yaw(p + side, p), "Track Light", parent: props);
+                    }
+                }
+
             // Rotwood: stilt shacks, the sawmill, the driving school.
             Prop(world, MudModels.Kind.DrivingSchool, School, Yaw(School, Rotwood), "Bayou Driving School", sign: "BAYOU DRIVING SCHOOL", parent: props);
             foreach ((Vector2 at, float yaw) in new[] { (Rotwood + new Vector2(-12f, 10f), 140f), (Rotwood + new Vector2(10f, 14f), 200f), (Rotwood + new Vector2(-18f, -8f), 80f), (Rotwood + new Vector2(14f, -14f), 300f) })
                 Prop(world, MudModels.Kind.StiltShack, at, yaw, "Rotwood Shack", parent: props);
-            Prop(world, MudModels.Kind.Sawmill, Rotwood + new Vector2(-6f, -22f), 20f, "Sawmill", parent: props);
+            // The sawmill (11-20): moved 11 m west, off the haul road; its posts stood on the road and wrecked the car on the
+            // Practical. Its scatter clearing stays where it was, so no tree moves; QuestClear keeps its new spot clear.
+            int sawClear = world.Clear.Count;
+            Prop(world, MudModels.Kind.Sawmill, SawmillAt, 20f, "Sawmill", parent: props);
+            world.Clear[sawClear] = new Vector3(Rotwood.x - 6f, Rotwood.y - 22f, world.Clear[sawClear].z);
             Prop(world, MudModels.Kind.RoadSign, Rotwood + new Vector2(6f, -4f), 230f, "Sign", sign: "HAUL ROAD", parent: props);
             Prop(world, MudModels.Kind.RoadSign, HaulBarricades[0] + new Vector2(4f, 2f), 200f, "Sign", sign: "PROPERTY OF KART KONG RACEWAY", parent: props);
 
@@ -1200,7 +1299,10 @@ namespace SignalLost.Editor
             void Tree(MudModels.Kind kind, Vector2 p, float scale)
             {
                 (Vector3 at, Vector2 slope) = Footing(kind, p, scale);
-                scenery.Place(kind, random.Next(4), at, R(0f, 360f), scale, slope);
+                int variant = random.Next(4);
+                float yaw = R(0f, 360f);
+                if (QuestBlocked(p)) return; // drawn as before, so everything after is unchanged
+                scenery.Place(kind, variant, at, yaw, scale, slope);
                 foreach ((Vector3 centre, Vector3 size) in MudModels.Colliders(kind))
                 {
                     var go = new GameObject(kind + " Collider");
@@ -1252,6 +1354,10 @@ namespace SignalLost.Editor
                 Tree(roll < 0.45f ? MudModels.Kind.Rock : roll < 0.65f ? MudModels.Kind.Boulder : roll < 0.85f ? MudModels.Kind.Stump : MudModels.Kind.Log, p, R(0.8f, 1.3f));
             }
             // Water plants: cattails on the shores, lily pads on the water, glowing mushrooms in the gloom.
+            void Plant(MudModels.Kind kind, int variant, Vector3 at, float yaw, float scale)
+            {
+                if (!QuestBlocked(new Vector2(at.x, at.z))) scenery.Place(kind, variant, at, yaw, scale);
+            }
             for (int i = 0; i < 700; i++)
             {
                 Vector2 p = Random(random, PlayRadius - 4f);
@@ -1259,11 +1365,11 @@ namespace SignalLost.Editor
                 if (DistanceToRoads(p) < 4.5f) continue;
                 if (h < WaterY - 0.25f)
                 {
-                    if (random.NextDouble() < 0.5f) scenery.Place(MudModels.Kind.LilyPads, random.Next(4), new Vector3(p.x, WaterY, p.y), R(0f, 360f), R(0.8f, 1.4f));
+                    if (random.NextDouble() < 0.5f) Plant(MudModels.Kind.LilyPads, random.Next(4), new Vector3(p.x, WaterY, p.y), R(0f, 360f), R(0.8f, 1.4f));
                 }
-                else if (h < WaterY + 0.6f) scenery.Place(MudModels.Kind.Cattails, random.Next(4), GroundAt(p), R(0f, 360f), R(0.8f, 1.3f));
-                else if (random.NextDouble() < 0.2f && !Blocked(p, -3f)) scenery.Place(MudModels.Kind.Mushrooms, random.Next(4), GroundAt(p), R(0f, 360f), R(0.8f, 1.6f));
-                else if (random.NextDouble() < 0.25f && !Blocked(p, -3f)) scenery.Place(MudModels.Kind.Reeds, random.Next(4), GroundAt(p), R(0f, 360f), R(0.8f, 1.3f));
+                else if (h < WaterY + 0.6f) Plant(MudModels.Kind.Cattails, random.Next(4), GroundAt(p), R(0f, 360f), R(0.8f, 1.3f));
+                else if (random.NextDouble() < 0.2f && !Blocked(p, -3f)) Plant(MudModels.Kind.Mushrooms, random.Next(4), GroundAt(p), R(0f, 360f), R(0.8f, 1.6f));
+                else if (random.NextDouble() < 0.25f && !Blocked(p, -3f)) Plant(MudModels.Kind.Reeds, random.Next(4), GroundAt(p), R(0f, 360f), R(0.8f, 1.3f));
             }
             scenery.Generate(); // show it in the editor now (it was enabled before any entries existed)
         }
@@ -1331,6 +1437,16 @@ namespace SignalLost.Editor
                         marker.transform.SetParent(foliage.transform, false);
                         marker.transform.position = new Vector3(p.x, 0f, p.y);
                         marker.AddComponent<SphereCollider>().radius = 3.6f;
+                    }
+            foreach (Vector2[] track in Shortcuts)
+                for (int i = 0; i < track.Length - 1; i++)
+                    for (float d = 0f, length = Vector2.Distance(track[i], track[i + 1]); d < length; d += 2.5f)
+                    {
+                        Vector2 p = Vector2.Lerp(track[i], track[i + 1], d / length);
+                        var marker = new GameObject("Clear Track");
+                        marker.transform.SetParent(foliage.transform, false);
+                        marker.transform.position = new Vector3(p.x, 0f, p.y);
+                        marker.AddComponent<SphereCollider>().radius = 2.8f;
                     }
             // No grass under the water.
             void Marker(Vector2 p, float radius)
@@ -1443,15 +1559,38 @@ namespace SignalLost.Editor
             // Line 1: the kiosk, the haul road's barricades, the still.
             MudProp kiosk = Prop(world, MudModels.Kind.Kiosk, School + new Vector2(0f, 7f), Yaw(School, Rotwood), "Driving Test Kiosk", sign: "TEST", parent: gameplay);
             world.Kiosk = kiosk.gameObject.AddComponent<DrivingTestKiosk>();
+            world.Kiosk.Configure(creatures[typeof(Mudpuppy)]);
             kiosk.gameObject.AddComponent<QuestSignalSource>().enabled = false;
             world.Barricades = HaulBarricades.Select((b, i) =>
             {
                 Vector2 dir = i + 1 < HaulBarricades.Length ? HaulBarricades[i + 1] - b : b - HaulBarricades[i - 1];
                 MudProp prop = Prop(world, MudModels.Kind.Barricade, b, Yaw(Vector2.zero, dir), "Haul Road Barricade", sign: "ROAD CLOSED", parent: gameplay);
-                return Breakable(prop.gameObject, Destructible.Substance.Wood, 45f, false, true);
+                Destructible barricade = Breakable(prop.gameObject, Destructible.Substance.Wood, 45f, false, true);
+                barricade.SetToughness(Destructible.Toughness.CarOnly, PlatedHint);
+                return barricade;
             }).ToArray();
             MudProp still = Prop(world, MudModels.Kind.MoonshineStill, HaulEnd, Yaw(HaulEnd, Rotwood), "Moonshine Still", parent: gameplay);
-            world.Still = Breakable(still.gameObject, Destructible.Substance.Metal, 140f, true, true, 6f, 40f);
+            world.Still = Breakable(still.gameObject, Destructible.Substance.Metal, 60f, true, true, 6f, 40f);
+            world.Still.SetToughness(Destructible.Toughness.CarOnly, PlatedHint);
+
+            // The log jam on the Logging Chute (a short cut to Rotwood once the car shifts it).
+            {
+                var jam = new GameObject("Log Jam");
+                jam.transform.SetParent(gameplay, false);
+                float yaw = Yaw(Shortcuts[0][0], Shortcuts[0][1]);
+                jam.transform.SetPositionAndRotation(GroundAt(LogJamAt), Quaternion.Euler(0f, yaw, 0f));
+                foreach ((Vector3 offset, float turn) in new[] { (new Vector3(0f, 0f, -0.55f), 4f), (new Vector3(0.3f, 0f, 0.55f), -6f), (new Vector3(-0.2f, 0.72f, 0f), 2f) })
+                {
+                    MudProp log = QuestProp(world, MudModels.Kind.Log, LogJamAt, yaw + turn, "Jammed Log", parent: jam.transform, solid: false, size: 1.25f);
+                    log.transform.localPosition = offset;
+                    log.transform.localRotation = Quaternion.Euler(0f, turn, offset.y > 0f ? 3f : 0f);
+                }
+                var block = jam.AddComponent<BoxCollider>();
+                block.center = new Vector3(0f, 0.75f, 0f);
+                block.size = new Vector3(5.6f, 1.5f, 2.2f);
+                world.LogJam = Breakable(jam, Destructible.Substance.Wood, 60f, false, false);
+                world.LogJam.SetToughness(Destructible.Toughness.CarOnly, "A proper log jam. Your laser won't shift it: a car would.");
+            }
 
             // Breakable fences and hay on the Flats, crates and barrels around Rotwood: things to smash.
             for (int i = 0; i < 14; i++)
@@ -1471,8 +1610,9 @@ namespace SignalLost.Editor
 
             // Line 2: gongs on the islands, stepping stones, the dam with its barrels, the flooded chapel road.
             var gongs = new List<SpiritGong>();
-            foreach (Vector2 g in GongSpots)
+            for (int gi = 0; gi < GongSpots.Length; gi++)
             {
+                Vector2 g = GongSpots[gi];
                 var root = new GameObject("Spirit Gong");
                 root.transform.SetParent(gameplay, false);
                 root.transform.SetPositionAndRotation(new Vector3(g.x, WaterY + 0.92f, g.y), Quaternion.Euler(0f, Yaw(g, Bog), 0f));
@@ -1484,7 +1624,7 @@ namespace SignalLost.Editor
                 guards.transform.SetParent(gameplay, false);
                 guards.transform.position = root.transform.position;
                 var gong = root.AddComponent<SpiritGong>();
-                gong.Configure(guards, prop.Moving);
+                gong.Configure(guards, prop.Moving, gi + 1); // rung in order: NW island, south island, east island
                 gongs.Add(gong);
                 // Stepping stones from the nearest shore.
                 Vector2 toShore = (g - Bog).normalized;
@@ -1504,7 +1644,8 @@ namespace SignalLost.Editor
             world.Gongs = gongs.ToArray();
             Vector2 damAt = new Vector2(Chapel.x - 2f, Chapel.y - 16f);
             MudProp dam = Prop(world, MudModels.Kind.Dam, damAt, 70f, "Mud Dam", parent: gameplay);
-            world.Dam = Breakable(dam.gameObject, Destructible.Substance.Wood, 120f, false, true);
+            world.Dam = Breakable(dam.gameObject, Destructible.Substance.Wood, 30f, false, true);
+            world.Dam.SetToughness(Destructible.Toughness.BlastOnly, "The mud soaks up bolts. It needs an explosion: the barrels at its foot, or crash the car into it.");
             for (int i = 0; i < 4; i++)
                 Breakable(Prop(world, MudModels.Kind.MoonshineBarrel, damAt + new Vector2(-3f + i * 1.1f, -3.2f + (i % 2) * 0.6f), 0f, "Dam Barrel", parent: gameplay).gameObject,
                     Destructible.Substance.Metal, 10f, true, false, 5f, 45f);
@@ -1514,6 +1655,7 @@ namespace SignalLost.Editor
             AddWaterDisc(flood.transform, "Flood Water", flood.transform.position, FloodRadii, WaterMaterial());
             AddZone(flood.transform, "Flood Zone", flood.transform.position, new Vector2(12f, 8.5f), MudZone.Kind.BogWater, 0.7f);
             world.Flood = flood;
+            world.SpiritRoad = BuildSpiritRoad(gameplay);
 
             // Line 3: the cursed lanterns.
             world.Lanterns = LanternSpots.Select((p, i) =>
@@ -1527,7 +1669,107 @@ namespace SignalLost.Editor
                 lantern.Configure(group);
                 return lantern;
             }).ToArray();
+            // Warm lanterns that go up where the cursed ones stood, once the witch is beaten (inactive until then).
+            world.Relit = LanternSpots.Select(p =>
+            {
+                MudProp post = QuestProp(world, MudModels.Kind.LanternPost, p + new Vector2(5f, 0f), 270f, "Relit Lantern", parent: gameplay);
+                post.gameObject.SetActive(false); // lit once the witch is beaten (MudlandsStory)
+                return post.gameObject;
+            }).ToArray();
+            world.HexLanterns = BuildHexLanterns(world, gameplay, creatures);
+
+            // The safe-keeping pile: where Cavendish keeps the ship parts you bring him.
+            var pile = new GameObject("Safe Keeping").transform;
+            pile.SetParent(gameplay, false);
+            pile.SetPositionAndRotation(GroundAt(SafeKeepingAt), Quaternion.Euler(0f, Yaw(SafeKeepingAt, Camp), 0f));
+            world.Pile = pile;
             return gameplay;
+        }
+
+        private const string PlatedHint = "Plated with ship scrap: bolts bounce off. A car would go straight through.";
+
+        // The Spirit Road (11-20): slabs from the bog road straight across the bog to the far shore below the dam, each
+        // tilted so its top meets the next and the banks at both ends; split into three sections that the three gongs raise.
+        private static SpiritRoad BuildSpiritRoad(Transform gameplay)
+        {
+            var root = new GameObject("Spirit Road");
+            root.transform.SetParent(gameplay, false);
+            float total = Vector2.Distance(SpiritA, SpiritB);
+            Vector2 dir = (SpiritB - SpiritA) / total;
+            float Top(Vector2 p) => Mathf.Max(WaterY + 0.38f, MeshHeight(p.x, p.y) + 0.06f);
+            bool Wet(Vector2 p) => MeshHeight(p.x, p.y) < WaterY + 0.3f;
+            // The wet stretch, with a slab's length of bank at each end.
+            float first = -1f, last = -1f;
+            for (float d = 0f; d <= total; d += 0.5f)
+                if (Wet(SpiritA + dir * d)) { if (first < 0f) first = d; last = d; }
+            if (first < 0f) { Debug.LogWarning("Spirit Road: no water between its ends."); first = 0f; last = total; }
+            first = Mathf.Max(0f, first - 5f);
+            last = Mathf.Min(total, last + 5f);
+            int count = Mathf.Max(3, Mathf.CeilToInt((last - first) / 6f));
+            float step = (last - first) / count;
+            var sections = new Transform[3];
+            for (int s = 0; s < 3; s++)
+            {
+                sections[s] = new GameObject("Section " + (s + 1)).transform;
+                sections[s].SetParent(root.transform, false);
+            }
+            const float thickness = 0.7f;
+            for (int i = 0; i < count; i++)
+            {
+                Vector2 a2 = SpiritA + dir * (first + i * step), b2 = SpiritA + dir * (first + (i + 1) * step);
+                var a = new Vector3(a2.x, Top(a2), a2.y);
+                var b = new Vector3(b2.x, Top(b2), b2.y);
+                Quaternion rotation = Quaternion.LookRotation(b - a, Vector3.up);
+                var slab = new GameObject("Slab");
+                slab.transform.SetParent(sections[Mathf.Min(2, i * 3 / count)], false);
+                slab.transform.SetPositionAndRotation((a + b) * 0.5f - rotation * Vector3.up * (thickness * 0.5f), rotation);
+                slab.transform.localScale = new Vector3(SpiritWidth, thickness, Vector3.Distance(a, b) + 0.25f);
+                slab.AddComponent<BoxCollider>();
+            }
+            var road = root.AddComponent<SpiritRoad>();
+            road.Configure(sections);
+            return road;
+        }
+
+        // The hex lanterns (11-20, quest "Hex Lanterns"): on top of the windmill and the Flats cabin, and on the roof of the
+        // shack by the Lantern Road bridge. Hidden until the curse jumps to them; each with a few guards that turn up then.
+        private static CursedLantern[] BuildHexLanterns(World world, Transform gameplay, Dictionary<Type, GameObject> creatures)
+        {
+            var spots = new (Vector2 at, float roof, float yaw, string name)[]
+            {
+                (Flats + new Vector2(28f, 10f), 9f, 30f, "Hex Lantern (Windmill)"),
+                (Flats + new Vector2(-30f, 14f), 3.9f, 160f, "Hex Lantern (Flats Cabin)"),
+                (BridgeShack, 5.5f, Yaw(BridgeShack, new Vector2(18f, 36f)), "Hex Lantern (Bridge Shack)")
+            };
+            var result = new List<CursedLantern>();
+            for (int i = 0; i < spots.Length; i++)
+            {
+                (Vector2 at, float roof, float yaw, string name) = spots[i];
+                MudProp pole = QuestProp(world, MudModels.Kind.CursedLantern, at, yaw, name, parent: gameplay, yOffset: roof, size: 1.25f);
+                Destructible piece = Breakable(pole.gameObject, Destructible.Substance.Wood, 30f, false, true, smash: 99f);
+                Object.DestroyImmediate(pole.GetComponent<NavMeshObstacle>()); // up on a roof: nothing to carve
+                var guards = new GameObject("Hex Guards " + (i + 1));
+                guards.transform.SetParent(gameplay, false);
+                guards.transform.position = GroundAt(at);
+                CombatZone zone = Zone(guards.transform, "Hex Zone", at, 18f);
+                Vector2 front = at + new Vector2(Mathf.Sin(yaw * Mathf.Deg2Rad), Mathf.Cos(yaw * Mathf.Deg2Rad)) * 7f;
+                if (i == 0)
+                {
+                    Spawn(creatures, typeof(BanjoToad), guards.transform, front, -1f, zone);
+                    for (int p = 0; p < 3; p++) Spawn(creatures, typeof(Mudpuppy), guards.transform, front + new Vector2(p * 1.5f - 1.5f, 2.5f), -1f, zone);
+                }
+                else
+                {
+                    Possum(creatures, guards.transform, GroundAt(front + new Vector2(-4f, 1f)), false);
+                    Possum(creatures, guards.transform, GroundAt(front + new Vector2(4f, -1f)), false);
+                    if (i == 1) for (int p = 0; p < 2; p++) Spawn(creatures, typeof(Mudpuppy), guards.transform, front + new Vector2(p * 1.5f, -3f), -1f, zone);
+                }
+                var lantern = pole.gameObject.AddComponent<CursedLantern>();
+                lantern.Configure(guards, true, 3.8f * 1.25f); // the flame of a size-1.25 lantern
+                pole.gameObject.SetActive(false); // hidden until the curse jumps to it (MudlandsStory)
+                result.Add(lantern);
+            }
+            return result.ToArray();
         }
 
         private static Destructible Breakable(GameObject go, Destructible.Substance substance, float hp, bool explosive, bool signal, float radius = 4f, float damage = 30f, float smash = 4f)
@@ -1643,7 +1885,11 @@ namespace SignalLost.Editor
             Den(creatures, enemies, School + new Vector2(9f, 8f), 5);
             // The haul road: a turtle behind barricade 2, possums on a shack porch, two brutes arguing by the still.
             CombatZone haul = Zone(enemies, "Haul Road Zone", Vector2.Lerp(HaulBarricades[1], HaulBarricades[3], 0.5f), 18f);
-            Spawn(creatures, typeof(RoadblockTurtle), enemies, HaulBarricades[1] + (HaulBarricades[2] - HaulBarricades[1]).normalized * 4f, Yaw(HaulBarricades[2], HaulBarricades[1]), haul);
+            // The turtle (11-20): beside the road between barricades 2 and 3, where you see it coming, instead of 4 m behind
+            // barricade 2, where the car smashed the barricade straight into its shell on the Practical's timed run.
+            Vector2 haulDir = (HaulBarricades[2] - HaulBarricades[1]).normalized;
+            Vector2 turtleAt = Vector2.Lerp(HaulBarricades[1], HaulBarricades[2], 0.5f) + new Vector2(haulDir.y, -haulDir.x) * 5.5f;
+            Spawn(creatures, typeof(RoadblockTurtle), enemies, turtleAt, Yaw(turtleAt, Vector2.Lerp(HaulBarricades[1], HaulBarricades[2], 0.5f)), haul);
             Possum(creatures, enemies, GroundAt(HaulBarricades[2] + new Vector2(8f, 3f)), false);
             Possum(creatures, enemies, GroundAt(HaulBarricades[3] + new Vector2(-7f, 2f)), false);
             Spawn(creatures, typeof(HogBrute), enemies, HaulEnd + new Vector2(5f, 6f), 0f);
@@ -1723,8 +1969,9 @@ namespace SignalLost.Editor
             var actor = new SerializedObject(cavendish);
             actor.FindProperty("quest").objectReferenceValue = story;
             actor.ApplyModifiedPropertiesWithoutUndo();
-            story.Configure(cavendish, gameplay.GetComponentInChildren<MerchantCrab>(true), world.Kiosk, world.Barricades, world.Still, kong,
-                world.Gongs, world.Dam, world.Flood, otter, world.Lanterns, witch, world.Gate, clutch);
+            story.Configure(cavendish, gameplay.GetComponentInChildren<MerchantCrab>(true), world.Pile, world.Kiosk, world.Barricades, world.Still,
+                world.LogJam, kong, world.Gongs, world.SpiritRoad, world.Dam, world.Flood, otter, world.Lanterns, world.HexLanterns, world.Relit,
+                witch, world.Gate, clutch);
             EditorUtility.SetDirty(story);
         }
 

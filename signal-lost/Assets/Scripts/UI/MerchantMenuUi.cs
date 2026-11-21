@@ -33,6 +33,11 @@ namespace SignalLost.UI
         /// <summary>The area whose stock is on the shelves (only the tutorial's so far).</summary>
         public UpgradeRegion Region { get; set; } = UpgradeRegion.Tutorial;
 
+        /// <summary>Optional, set by a level whose story restocks the shelves (the Mudlands): false hides an upgrade for now.</summary>
+        public System.Func<Upgrade, bool> Stocked { get; set; }
+        /// <summary>Shown instead of "Sold out!" when a tab is empty only because <see cref="Stocked"/> is holding things back.</summary>
+        public string RestockNote { get; set; }
+
         private static MerchantMenuUi instance;
 
         private GameObject root;
@@ -158,19 +163,21 @@ namespace SignalLost.UI
             foreach (Upgrade listing in Listings(inventory)) rows.Add(Row(listing, slot++, inventory));
             listContent.sizeDelta = new Vector2(0f, rows.Count * (RowHeight + RowGap));
             listContent.anchoredPosition = Vector2.zero; // back to the top
-            emptyText.text = rows.Count > 0 ? "" : showPurchased ? "Nothing bought yet." : "Sold out! Everything here is already yours: see Purchased.";
+            emptyText.text = rows.Count > 0 ? "" : showPurchased ? "Nothing bought yet." :
+                Stocked != null && !string.IsNullOrEmpty(RestockNote) && Listings(inventory, false).Any() ? RestockNote : "Sold out! Everything here is already yours: see Purchased.";
             RefreshBalance();
         }
 
         // The current filter's listings: by type and not yet bought, or (Purchased) everything bought, sorted by type.
-        private IEnumerable<Upgrade> Listings(PlayerInventory inventory)
+        private IEnumerable<Upgrade> Listings(PlayerInventory inventory, bool stockedOnly = true)
         {
             if (showPurchased)
                 return inventory == null ? Enumerable.Empty<Upgrade>() : UpgradeCatalog.Installed(inventory.Upgrades).OrderBy(u => u.Slot);
             UpgradeSlot type = Filters[tab].slot;
             // Only the next tier of each upgrade: the first one not owned yet.
             return UpgradeCatalog.All.Where(u => u.Slot == type && (u.Region == Region || !u.OneOff) &&
-                !(u.OneOff && inventory != null && (inventory.Owns(u.Id) || (u.Requires != null && !inventory.Owns(u.Requires)))));
+                !(u.OneOff && inventory != null && (inventory.Owns(u.Id) || (u.Requires != null && !inventory.Owns(u.Requires)))) &&
+                (!stockedOnly || Stocked == null || Stocked(u)));
         }
 
         private void Update()

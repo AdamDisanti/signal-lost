@@ -80,40 +80,45 @@ namespace SignalLost.Mudlands
             Struck.Clear();
             int hurt = 0;
             int count = Physics.OverlapSphereNonAlloc(centre, radius, Overlaps, ~0, QueryTriggerInteraction.Collide);
-            for (int i = 0; i < count; i++)
+            Destructible.BeginBlast(true); // car-only quest pieces (the Practical's barricades) give way to the car's blast
+            try
             {
-                Collider collider = Overlaps[i];
-                if (collider == null) continue;
-                // Gas vents and barrels go up in a chain.
-                var vent = collider.GetComponentInParent<BogGasVent>();
-                if (vent != null) vent.Ignite(source);
-                if (collider.isTrigger) continue;
-                Health target = collider.GetComponentInParent<Health>();
-                if (target == null || target.IsDead || !Struck.Add(target)) continue;
-                if (source != null && target.transform.IsChildOf(source.transform)) continue;
-                if (target.GetComponentInParent<DrunkCar>() != null) continue;
-
-                float distance = Vector3.Distance(centre, collider.ClosestPoint(centre));
-                float share = Mathf.Lerp(1f, 0.5f, Mathf.Clamp01(distance / radius));
-                float amount = damage * share;
-                var boss = target.GetComponentInParent<ICarBlastReactive>();
-                if (boss != null)
+                for (int i = 0; i < count; i++)
                 {
-                    amount = boss.OnCarBlast(new CarBlastInfo
+                    Collider collider = Overlaps[i];
+                    if (collider == null) continue;
+                    // Gas vents and barrels go up in a chain.
+                    var vent = collider.GetComponentInParent<BogGasVent>();
+                    if (vent != null) vent.Ignite(source);
+                    if (collider.isTrigger) continue;
+                    Health target = collider.GetComponentInParent<Health>();
+                    if (target == null || target.IsDead || !Struck.Add(target)) continue;
+                    if (source != null && target.transform.IsChildOf(source.transform)) continue;
+                    if (target.GetComponentInParent<DrunkCar>() != null) continue;
+
+                    float distance = Vector3.Distance(centre, collider.ClosestPoint(centre));
+                    float share = Mathf.Lerp(1f, 0.5f, Mathf.Clamp01(distance / radius));
+                    float amount = damage * share;
+                    var boss = target.GetComponentInParent<ICarBlastReactive>();
+                    if (boss != null)
                     {
-                        Centre = centre, Radius = radius, Damage = amount, StunSeconds = stunSeconds, Distance = distance,
-                        Rammed = target == rammed, Source = source
-                    });
+                        amount = boss.OnCarBlast(new CarBlastInfo
+                        {
+                            Centre = centre, Radius = radius, Damage = amount, StunSeconds = stunSeconds, Distance = distance,
+                            Rammed = target == rammed, Source = source
+                        });
+                    }
+                    if (amount > 0f && target.TakeDamage(amount, source)) hurt++;
+                    if (target.IsDead) continue;
+                    if (boss == null) target.GetComponentInParent<IStunnable>()?.Stun(stunSeconds);
+                    var agent = target.GetComponent<NavMeshAgent>();
+                    Vector3 away = target.transform.position - centre;
+                    away.y = 0f;
+                    if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh && away.sqrMagnitude > 0.001f)
+                        agent.Move(away.normalized * 1.5f * share);
                 }
-                if (amount > 0f && target.TakeDamage(amount, source)) hurt++;
-                if (target.IsDead) continue;
-                if (boss == null) target.GetComponentInParent<IStunnable>()?.Stun(stunSeconds);
-                var agent = target.GetComponent<NavMeshAgent>();
-                Vector3 away = target.transform.position - centre;
-                away.y = 0f;
-                if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh && away.sqrMagnitude > 0.001f)
-                    agent.Move(away.normalized * 1.5f * share);
             }
+            finally { Destructible.EndBlast(); }
 
             ParticleBurst.Explosion(centre, radius * 0.8f);
             ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, centre + Vector3.up * 0.8f, Vector3.up, 60, 1.1f, 9f);

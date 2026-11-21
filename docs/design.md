@@ -674,6 +674,11 @@ Adam's request and answers; see [melee, rage and Moon Shoes](melee-rage.md).
 - Not done yet: the biker mice and the four bosses (suggested: salvage kart for Kart Kong, gill frills for Silt, ship running light on the witch's broom, salvage chopper for Clutch).
 - Second pass (Christian, same day): "give the world a more alien feel especially the houses, avoid the overuse of metal, ensure the collision of all buildings works". Houses became the swamp folk's own architecture (pod husk, ribs, mushroom caps, leaf roofs, root stilts, mint-glowing round windows) on their old footprints; ship salvage is kept to the test kiosk and gas pumps; every building's collision follows its shape, with roofs kept out of the NavMesh. Details in [Mudlands](mudlands.md), Status.
 
+## Mudlands quests one at a time (11-20-26)
+
+- Christian: the scanner pointed at the nearest objective of any of three parallel quest lines, so it flipped between them. Decision: the Mudlands runs one quest at a time (10 in a chain), and every quest ends with a trip back to Cavendish. He chose to keep the walk back as the loop rather than radio check-ins, and to make it worth it (pay, Eugene restocking, ship parts on a pile at camp, world changes) with short cuts on the way. Details in [Mudlands](mudlands.md), section 4.
+- Shared code: the scanner, `QuestSignalSource` and `QuestTask` are unchanged (one quest's signals at a time is enough). One small hook in `MerchantMenuUi` (`Stocked`, `RestockNote`) lets a level hold back shop stock; it does nothing unless a level sets it.
+
 ## Desert boss revamp (11-10)
 
 Lawson asked for the three desert mini-bosses to be rebuilt as harder, Souls-leaning fights with 3-4 phases each. The design and his answers are in [desert-bosses.md](desert-bosses.md). Briarwing, Cindermaw and Pitchclaw replace Old Buzzard, Burnout and Sludge in the desert story; the old prefabs and scripts stay in the project, unused by the story.

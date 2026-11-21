@@ -313,6 +313,13 @@ namespace SignalLost.Mudlands
             if (prop != null && !prop.IsBroken)
             {
                 if (speed < prop.CarSmashSpeed) return; // a solid bump; physics handles it
+                if (prop.CrashesCar)
+                {
+                    // Blast-only (the mud dam): the car can't smash it, it crashes into it, and the explosion does the job.
+                    Rammed?.Invoke(this, null);
+                    End(EndReason.Crash, null);
+                    return;
+                }
                 prop.SmashByCar(this, body.linearVelocity);
                 body.linearVelocity *= 1f - prop.CarSpeedLoss;
                 CameraShake.Add(0.18f);
@@ -397,6 +404,8 @@ namespace SignalLost.Mudlands
         {
             if (ended) return;
             Collider other = collision.collider;
+            // Flying wreckage of something the car just smashed (logs, planks) is a bump, never a crash (11-20).
+            if (other.GetComponent<Debris>() != null) return;
             Health creature = other.GetComponentInParent<Health>();
             bool handledElsewhere = other.GetComponentInParent<Destructible>() != null ||
                                     (creature != null && (CarBlast.IsEnemy(creature.gameObject) || creature.GetComponentInParent<IVehicleReactive>() != null));
