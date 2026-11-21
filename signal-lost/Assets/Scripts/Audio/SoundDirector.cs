@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SignalLost.Combat;
 using SignalLost.Core;
 using SignalLost.Effects;
 using SignalLost.Enemies;
@@ -19,6 +20,7 @@ namespace SignalLost.Audio
     /// Starts itself when the game runs (no scene setup needed) and adds sound to whatever is in the current scene:
     /// <list type="bullet">
     /// <item>a background ambience loop chosen by scene name, and the title screen's music (looping seamlessly);</item>
+    /// <item>quiet camp music near Cavendish (at each camp and on the boat), which fades out in fights;</item>
     /// <item><see cref="PlayerAudio"/> on the player and <see cref="CreatureAudio"/> on every hermit crab;</item>
     /// <item>crackling loops on fires, a fizzing loop on electrical fires and sparks, lapping water at the pond;</item>
     /// <item>hover/click sounds on every UI button, open/close sounds for menus, a cha-ching when the shop opens;</item>
@@ -36,8 +38,26 @@ namespace SignalLost.Audio
         private const float AmbienceVolume = 0.22f;
         private const float MusicLevel = 0.8f;
 
+        // Camp music: plays quietly while the player is near Cavendish (he's at every camp, and rides the boat), never in a fight.
+        private const string CampTrack = "signal_lost_campgrounds";
+        /// <summary>Camp music volume before the Music slider. Kept low so it sits in the background.</summary>
+        private const float CampMusicLevel = 0.3f;
+        /// <summary>Full volume within CampNear metres of Cavendish, fading to silent at CampFar.</summary>
+        private const float CampNear = 18f, CampFar = 30f;
+        /// <summary>Damage to the player, or to anything this close to them, counts as a fight.</summary>
+        private const float FightRadius = 30f;
+        /// <summary>Seconds of calm after the last hit before the camp music comes back.</summary>
+        private const float CalmAfterFight = 8f;
+        /// <summary>Seconds to fade out (quick, so a fight cuts it) and back in (slow, so it drifts back).</summary>
+        private const float CampFadeOut = 1.5f, CampFadeIn = 5f;
+
         private SfxLoop ambience;
         private AudioSource music;
+        private AudioSource campMusic;
+        private float campLevel, lastFight = float.NegativeInfinity;
+        private bool campStarted;
+        private Transform player;
+        private readonly List<Transform> cavendishes = new List<Transform>();
         private float sceneStarted, nextScan;
         private bool menusWereOpen, shopWasOpen;
         private TutorialStory story;
@@ -64,6 +84,15 @@ namespace SignalLost.Audio
             music.playOnAwake = false;
             music.spatialBlend = 0f;
             music.ignoreListenerPause = true;
+            // Camp music: a second 2D loop. It pauses rather than stops when it fades out, so it picks up where it left off.
+            campMusic = new GameObject("Camp Music").AddComponent<AudioSource>();
+            campMusic.transform.SetParent(transform, false);
+            campMusic.loop = true;
+            campMusic.playOnAwake = false;
+            campMusic.spatialBlend = 0f;
+            campMusic.volume = 0f;
+            campMusic.clip = Sfx.Clip(CampTrack);
+            Health.AnyDamaged += OnAnyDamaged;
             SceneManager.sceneLoaded += OnSceneLoaded;
             StageProgress.MainPartRecovered += OnMainPartRecovered;
             SetUpScene(SceneManager.GetActiveScene());
@@ -73,6 +102,7 @@ namespace SignalLost.Audio
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
             StageProgress.MainPartRecovered -= OnMainPartRecovered;
+            Health.AnyDamaged -= OnAnyDamaged;
             if (story != null) story.StageChanged -= OnStageChanged;
             if (Instance == this) Instance = null;
         }
@@ -89,6 +119,10 @@ namespace SignalLost.Audio
             hooked.Clear();
             if (story != null) story.StageChanged -= OnStageChanged;
             story = null;
+            player = null;
+            cavendishes.Clear();
+            campLevel = 0f;
+            lastFight = float.NegativeInfinity;
 
             string track = MusicFor(scene.name);
             AudioClip clip = track != null ? Sfx.Clip(track) : null;
@@ -126,6 +160,7 @@ namespace SignalLost.Audio
         {
             if (ambience != null) ambience.Level = Mathf.MoveTowards(ambience.Level, 1f, Time.unscaledDeltaTime / 2.5f);
             if (music != null) music.volume = MusicLevel * GameSettings.MusicVolume;
+            UpdateCampMusic();
             if (Time.unscaledTime >= nextScan)
             {
                 // Every second at first, then every 3 s (scanning is cheap but not free in big scenes).
@@ -139,8 +174,13 @@ namespace SignalLost.Audio
 
         private void Scan()
         {
-            var player = FindAnyObjectByType<FirstPersonController>();
-            if (player != null && player.GetComponent<PlayerAudio>() == null) player.gameObject.AddComponent<PlayerAudio>();
+            var fps = FindAnyObjectByType<FirstPersonController>();
+            if (fps != null && fps.GetComponent<PlayerAudio>() == null) fps.gameObject.AddComponent<PlayerAudio>();
+            player = fps != null ? fps.transform : null;
+
+            cavendishes.Clear();
+            foreach (NpcActor npc in FindObjectsByType<NpcActor>())
+                if (npc.Kind == NpcActor.Role.Cavendish) cavendishes.Add(npc.transform);
 
             foreach (HermitCrab crab in FindObjectsByType<HermitCrab>(FindObjectsInactive.Include))
                 if (crab.GetComponent<CreatureAudio>() == null) crab.gameObject.AddComponent<CreatureAudio>();
@@ -213,6 +253,53 @@ namespace SignalLost.Audio
                 float reach = Mathf.Max(renderer.bounds.extents.x, renderer.bounds.extents.z);
                 Sfx.AddLoop(anchor, "water_lap", 0.5f, true, reach * 0.6f, reach + 25f, childName: "Lapping");
             }
+        }
+
+        // ---------- Camp music ----------
+
+        private void UpdateCampMusic()
+        {
+            if (campMusic == null || campMusic.clip == null) return;
+
+            float target = 0f;
+            bool otherMusic = music != null && music.clip != null; // the title screen has its own track
+            if (!otherMusic && player != null)
+            {
+                float nearest = float.PositiveInfinity;
+                foreach (Transform cavendish in cavendishes)
+                    if (cavendish != null) nearest = Mathf.Min(nearest, Vector3.Distance(player.position, cavendish.position));
+                target = Mathf.InverseLerp(CampFar, CampNear, nearest);
+                if (InFight()) target = 0f;
+            }
+
+            float seconds = target < campLevel ? CampFadeOut : CampFadeIn;
+            campLevel = Mathf.MoveTowards(campLevel, target, Time.unscaledDeltaTime / seconds);
+            campMusic.volume = campLevel * CampMusicLevel * GameSettings.MusicVolume;
+
+            if (campLevel <= 0f)
+            {
+                if (campMusic.isPlaying) campMusic.Pause();
+            }
+            else if (!campMusic.isPlaying)
+            {
+                if (campStarted) campMusic.UnPause();
+                else
+                {
+                    campMusic.Play();
+                    campStarted = true;
+                }
+            }
+        }
+
+        /// <summary>A boss is engaged, the final fight's horde is out, or something was hurt near the player recently.</summary>
+        private bool InFight() =>
+            SignalLost.Enemies.Desert.MiniBossHud.AnyEngaged || SignalLost.Finale.FinaleEncounter.Adds.Count > 0 || Time.time - lastFight < CalmAfterFight;
+
+        private void OnAnyDamaged(Health victim, float amount, GameObject source)
+        {
+            if (amount <= 0f || victim == null || player == null) return;
+            if (victim.transform == player || Vector3.Distance(victim.transform.position, player.position) < FightRadius)
+                lastFight = Time.time;
         }
 
         // ---------- Menus ----------

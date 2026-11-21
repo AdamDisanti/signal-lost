@@ -407,6 +407,7 @@ Adam's "Final tutorial tweaking" notes, with his answers. See [tutorial](tutoria
 ## Demo round (meeting notes 10-23-26, second list)
 
 - **Music:** the title screen plays "Signal lost main menu music" on a seamless loop (imported uncompressed so the loop has no gap); the Music slider controls it.
+- **Camp music (11-21):** Nicole's "signal_lost_campgrounds" (synth, 118 BPM, 36-bar loop) plays quietly near Cavendish: at every camp and on the boat. It is full volume within 18 m of him, fading out by 30 m, at 0.3 of the Music slider so it stays in the background. It never plays in a fight: it fades out in 1.5 s when the player is hurt, anything within 30 m of them is hurt, a boss bar is up, or the final fight's horde is out. It drifts back in over 5 s after 8 s of calm, and pauses rather than restarts, so it picks up where it left off (`SoundDirector`, the "Camp music" constants).
 - **Low health:** at 30 health or less, a pulsing red vignette, a heartbeat and a "drink [F]" reminder.
 - **Chief Toad in the tutorial:** spawned only after Cavendish's quest; a short rise-from-the-pond cutscene with his boss bar; 3-5 frogs kept alive during the fight (no scrap from them); beaten, he drops a loot pile including his crown.
 - **Base camp and trophies:** the camp is one prefab (`Prefabs/Core/BaseCamp.prefab`) with three trophy stands, to be placed in every later level. Boss trophies are picked up from the loot and set on a stand; placed trophies are saved to disk (`CampSave`), and New Game clears them. This is the game's first real save data.

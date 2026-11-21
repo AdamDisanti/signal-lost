@@ -56,6 +56,9 @@ namespace SignalLost.Enemies.Desert
 
         public static void Unregister(IBossBar boss) => Engaged.Remove(boss);
 
+        /// <summary>True while any boss with a health bar is fighting the player (the camp music stays out of fights).</summary>
+        public static bool AnyEngaged => Engaged.Count > 0;
+
         /// <param name="below">Optional extra line in its own box under the message, so long text doesn't clip.</param>
         public static void Message(string text, Color color, float seconds = 3f, string below = null)
         {
