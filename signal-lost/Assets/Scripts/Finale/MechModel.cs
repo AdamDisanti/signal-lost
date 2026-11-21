@@ -118,18 +118,34 @@ namespace SignalLost.Finale
 
         private static bool Same(Color a, Color b) => Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b) < 0.02f;
 
-        // Cavendish, about 1.7 m tall, sitting so his head and shoulders fill the canopy.
+        // Cavendish in the canopy. The upright model sat about 1.7 m tall so his head and shoulders filled it; the
+        // four-legged capybara (11-13) stands in it, scaled to fit the glass bubble, his helmeted head at the front.
         private static Transform SeatPilot(Transform cockpit, GameObject prefab)
         {
             GameObject pilot = Object.Instantiate(prefab, cockpit);
             pilot.name = "Cavendish (pilot)";
             pilot.transform.localPosition = Vector3.zero;
             pilot.transform.localRotation = Quaternion.identity;
-            foreach (Collider c in pilot.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            foreach (Collider c in pilot.GetComponentsInChildren<Collider>(true))
+            {
+                if (Application.isPlaying) Object.Destroy(c);
+                else Object.DestroyImmediate(c); // (the editor's check shots build the mech outside Play mode)
+            }
             foreach (MonoBehaviour b in pilot.GetComponentsInChildren<MonoBehaviour>(true)) b.enabled = false;
             Bounds bounds = Measure(pilot.transform);
-            float scale = bounds.size.y > 0.01f ? 1.7f / bounds.size.y : 1f;
-            pilot.transform.localScale = Vector3.one * scale;
+            bool fourLegged = pilot.GetComponent<SignalLost.NPC.CavendishPose>() != null;
+            if (fourLegged)
+            {
+                // The canopy is a bubble about 1.6 m deep and 1.8 m tall round (0, 0.05, 0.45).
+                float scale = Mathf.Min(1.15f / Mathf.Max(0.01f, bounds.size.y), 1.35f / Mathf.Max(0.01f, bounds.size.z));
+                pilot.transform.localScale = Vector3.one * scale;
+                bounds = Measure(pilot.transform);
+                Vector3 middle = cockpit.TransformPoint(new Vector3(0f, -0.05f, 0.45f));
+                pilot.transform.position += middle - bounds.center;
+                return pilot.transform;
+            }
+            float upright = bounds.size.y > 0.01f ? 1.7f / bounds.size.y : 1f;
+            pilot.transform.localScale = Vector3.one * upright;
             bounds = Measure(pilot.transform);
             Vector3 top = cockpit.TransformPoint(new Vector3(0f, 0.75f, 0.35f));
             pilot.transform.position += new Vector3(top.x - bounds.center.x, top.y - bounds.max.y, top.z - bounds.center.z);

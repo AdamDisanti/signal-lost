@@ -192,9 +192,10 @@ namespace SignalLost.Editor
                             throw new InvalidOperationException("Missing mesh: " + filter.name);
                     if (Mathf.Abs(bounds.min.y) > 0.025f)
                         throw new InvalidOperationException("Ground pivot/axis error: " + name + " " + bounds);
-                    float minHeight = name == "CapybaraAstronaut" ? 2.1f : name == "BurntRockBasin" ? 0.9f :
+                    float minHeight = name == "CapybaraAstronaut" ? 1.4f : // the capybara Cavendish (CavendishEverywhere, 11-13)
+                        name == "BurntRockBasin" ? 0.9f :
                         name == "AlcoholFlask" ? 0.30f : 3.1f;
-                    float maxHeight = name == "CapybaraAstronaut" ? 2.4f : name == "BurntRockBasin" ? 1.15f :
+                    float maxHeight = name == "CapybaraAstronaut" ? 1.9f : name == "BurntRockBasin" ? 1.15f :
                         name == "AlcoholFlask" ? 0.34f : 3.3f;
                     if (bounds.size.y < minHeight || bounds.size.y > maxHeight)
                         throw new InvalidOperationException("Incorrect import scale/axis: " + name + " " + bounds);

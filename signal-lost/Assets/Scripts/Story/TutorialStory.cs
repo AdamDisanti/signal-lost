@@ -610,10 +610,11 @@ namespace SignalLost.Story
             Vector3 window = cockpitWindow.position;
             Vector3 outward = Vector3.ProjectOnPlane(cockpitWindow.forward, Vector3.up).normalized;
             float head = CavendishHeadHeight();
+            float reach = SignalLost.NPC.CavendishPose.ReachOf(cavendish); // the capybara's face is well ahead of his feet
             Quaternion facingIn = Quaternion.LookRotation(-outward);
 
             // He clambers up outside the window and peers in; the mechanic's eyes drift toward him.
-            Vector3 peek = window + outward * 0.8f + Vector3.up * (0.1f - head);
+            Vector3 peek = window + outward * (reach > 0f ? reach + 0.15f : 0.8f) + Vector3.up * (0.1f - head);
             Vector3 below = peek + Vector3.down * 0.7f;
             Vector3 eyeStart = view.position;
             Quaternion lookStart = view.rotation;
@@ -634,7 +635,7 @@ namespace SignalLost.Story
             landing.y = GroundBelow(landing) + 0.55f;
             Vector3 over = window + outward * 0.7f + Vector3.up * 0.35f;
             Quaternion lookOut = Quaternion.LookRotation(Vector3.up * 1.2f - outward, outward);
-            Vector3 standing = landing + outward * 0.9f;
+            Vector3 standing = landing + outward * (0.9f + reach);
             standing.y = GroundBelow(standing);
             for (float t = 0f; t < 1f && !CheckSkip(); t += Time.deltaTime / 1.5f)
             {
@@ -673,7 +674,7 @@ namespace SignalLost.Story
                 eye.y = GroundBelow(eye) + 0.55f;
                 float sway = Mathf.Sin(Time.time * 4.2f);
                 PlaceEyes(eye, look * Quaternion.Euler(sway * 1.5f, 0f, sway * 2.5f));
-                Vector3 at = eye - back * 0.95f;
+                Vector3 at = eye - back * (0.95f + SignalLost.NPC.CavendishPose.ReachOf(cavendish) * 0.8f);
                 at.y = GroundBelow(at) + Mathf.Abs(sway) * 0.06f;
                 cav.SetPositionAndRotation(at, Quaternion.LookRotation(back) * Quaternion.Euler(12f, 0f, sway * 4f));
                 yield return null;
