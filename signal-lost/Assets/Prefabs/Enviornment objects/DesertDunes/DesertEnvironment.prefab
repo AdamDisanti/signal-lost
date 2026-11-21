@@ -41687,7 +41687,7 @@ GameObject:
   - component: {fileID: 383051041706702594}
   - component: {fileID: 1294247543539286099}
   m_Layer: 0
-  m_Name: Dock (boat to the Fog Forest)
+  m_Name: Dock (boat to the Mudlands)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -41733,8 +41733,8 @@ MonoBehaviour:
   landing: {fileID: 8399835692296044944}
   boarding: {fileID: 8596871870517890707}
   alsoDeparts: 0
-  destinationScene: 
-  destinationName: the Fog Forest
+  destinationScene: Mudlands
+  destinationName: the Mudlands
   requiredStage: Desert
   lockedMessage: Recover the Engine Core before you set sail.
 --- !u!1 &5876219938769760283

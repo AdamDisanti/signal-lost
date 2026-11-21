@@ -27,23 +27,23 @@ Material:
     m_Ints: []
     m_Floats:
     - _CausticScale: 0.45
-    - _CausticStrength: 0.75
-    - _Clarity: 2.2
-    - _DepthFade: 3.5
-    - _EdgeFoam: 0.45
-    - _Facets: 0.6
-    - _FoamWidth: 0.05
+    - _CausticStrength: 0
+    - _Clarity: 0.35
+    - _DepthFade: 1.2
+    - _EdgeFoam: 0.12
+    - _Facets: 0.4
+    - _FoamWidth: 0.04
     - _Smoothness: 0.2
-    - _Sparkle: 0.1
+    - _Sparkle: 0.08
     - _UseDepth: 1
-    - _WashLines: 0.7
-    - _WaveHeight: 0.015
+    - _WashLines: 0
+    - _WaveHeight: 0.012
     - _WaveScale: 0.18
-    - _WaveSpeed: 0.35
+    - _WaveSpeed: 0.3
     m_Colors:
-    - _DeepColor: {r: 0.05, g: 0.16, b: 0.15, a: 0.95}
-    - _FoamColor: {r: 0.95, g: 0.96999997, b: 0.95, a: 1}
-    - _HorizonColor: {r: 0.32, g: 0.45, b: 0.45, a: 1}
-    - _ShallowColor: {r: 0.18, g: 0.3, b: 0.24, a: 0.8}
+    - _DeepColor: {r: 0.2, g: 0.25, b: 0.28, a: 0.94}
+    - _FoamColor: {r: 0.5, g: 0.52, b: 0.46, a: 1}
+    - _HorizonColor: {r: 0.42, g: 0.5, b: 0.52, a: 1}
+    - _ShallowColor: {r: 0.36, g: 0.34, b: 0.27, a: 0.82}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
