@@ -86,6 +86,11 @@ namespace SignalLost.World
         private static void DressCavendish(Transform root)
         {
             Transform visual = Find(root, "Visual") ?? root;
+            if (Find(visual, "CavendishHead") != null)
+            {
+                DressCapybara(visual);
+                return;
+            }
             Recolour(visual, "SuitIvory", Sand);
             Recolour(visual, "SuitTeal", Terracotta);
             foreach (string part in new[] { "Helmet lamp", "Lamp lens", "Raised helmet frame" })
@@ -132,6 +137,68 @@ namespace SignalLost.World
                 AddMesh(scarf, "Knot", Lathe(new[] { new Vector2(radius, -0.05f), new Vector2(radius + 0.02f, 0f), new Vector2(radius, 0.05f) }, 10, false), Rust);
                 AddMesh(scarf, "Point", Triangle(new Vector3(-0.18f, 0.02f, radius - 0.02f), new Vector3(0.18f, 0.02f, radius - 0.02f), new Vector3(0f, -0.22f, radius + 0.03f)), Rust);
             }
+        }
+
+        /// <summary>
+        /// The four-legged capybara Cavendish (11-13): a sand suit with terracotta trim, his helmet off, a straw sun hat
+        /// on the back of his head (his ears poke up behind the crown) and wraparound sunglasses on the sides of his
+        /// head, over his eyes. The hat and glasses ride on his head, so they follow it as he looks around.
+        /// </summary>
+        private static void DressCapybara(Transform visual)
+        {
+            Recolour(visual, "CavSuit", Sand);
+            Recolour(visual, "CavAccent", Terracotta);
+            Transform helmet = Find(visual, "CavendishHelmet");
+            if (helmet != null) helmet.gameObject.SetActive(false);
+            Transform head = Find(visual, "CavendishHead");
+            Renderer headPart = head.GetComponent<Renderer>();
+            Renderer earL = Part(visual, "CavendishEarL"), earR = Part(visual, "CavendishEarR");
+            if (headPart == null || earL == null || earR == null) return;
+            Bounds skull = LocalBounds(visual, headPart);
+            Bounds l = LocalBounds(visual, earL), r = LocalBounds(visual, earR);
+            float earZ = (l.center.z + r.center.z) * 0.5f, earGap = Mathf.Abs(l.center.x - r.center.x);
+
+            // The hat sits just in front of his ears, on top of his head.
+            float crownZ = earZ + 0.14f;
+            float topY = HighestNear(visual, headPart, crownZ, 0.06f);
+            Transform hat = Empty(visual, "Sun Hat", new Vector3(skull.center.x, topY - 0.015f, crownZ), Quaternion.Euler(-8f, 0f, 0f));
+            float crown = Mathf.Max(0.08f, earGap * 0.5f - 0.06f), brim = earGap * 0.5f + 0.16f;
+            AddMesh(hat, "Brim", Lathe(new[] { new Vector2(crown, -0.01f), new Vector2(brim, -0.035f), new Vector2(brim + 0.01f, 0f), new Vector2(crown, 0.025f) }, 10, true), Straw);
+            AddMesh(hat, "Crown", Lathe(new[] { new Vector2(crown, 0f), new Vector2(crown * 0.97f, 0.15f), new Vector2(crown * 0.8f, 0.22f), new Vector2(crown * 0.38f, 0.24f), new Vector2(0f, 0.23f) }, 10, false), Straw);
+            AddMesh(hat, "Band", Lathe(new[] { new Vector2(crown * 1.04f, 0.015f), new Vector2(crown * 1.04f, 0.07f) }, 10, false), Rust);
+            hat.SetParent(head, true);
+
+            // Sunglasses: a dark lens over each eye on the side of his head, an arm running back toward each ear.
+            foreach (string name in new[] { "CavendishEyeL", "CavendishEyeR" })
+            {
+                Renderer eye = Part(visual, name);
+                if (eye == null) continue;
+                Bounds e = LocalBounds(visual, eye);
+                float side = Mathf.Sign(e.center.x - skull.center.x);
+                float outside = e.center.x + side * (e.extents.x + 0.012f);
+                Transform lens = Box(visual, "Sunglass Lens", Shade, new Vector3(outside, e.center.y + 0.005f, e.center.z), new Vector3(0.018f, 0.085f, 0.14f), Quaternion.identity);
+                Transform arm = Box(visual, "Sunglass Arm", Shade, new Vector3(outside + side * 0.004f, e.center.y + 0.03f, (e.center.z + earZ) * 0.5f),
+                    new Vector3(0.014f, 0.016f, Mathf.Max(0.05f, Mathf.Abs(e.center.z - earZ))), Quaternion.identity);
+                lens.SetParent(head, true);
+                arm.SetParent(head, true);
+            }
+        }
+
+        /// <summary>The top of a part's mesh near <paramref name="z"/> (within <paramref name="band"/>), in <paramref name="space"/>.</summary>
+        private static float HighestNear(Transform space, Renderer part, float z, float band)
+        {
+            var filter = part.GetComponent<MeshFilter>();
+            float best = float.NegativeInfinity;
+            if (filter != null && filter.sharedMesh != null && filter.sharedMesh.isReadable)
+            {
+                Matrix4x4 toSpace = space.worldToLocalMatrix * part.transform.localToWorldMatrix;
+                foreach (Vector3 v in filter.sharedMesh.vertices)
+                {
+                    Vector3 p = toSpace.MultiplyPoint3x4(v);
+                    if (Mathf.Abs(p.z - z) <= band && p.y > best) best = p.y;
+                }
+            }
+            return float.IsNegativeInfinity(best) ? LocalBounds(space, part).max.y : best;
         }
 
         private static void DressMerchant(Transform root)

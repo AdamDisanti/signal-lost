@@ -8196,10 +8196,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Cavendish
       objectReference: {fileID: 0}
-    - target: {fileID: 4300542032749232922, guid: 532e4906e73f021449a737d382eb957f, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.55
-      objectReference: {fileID: 0}
     - target: {fileID: 8638909446331276707, guid: 532e4906e73f021449a737d382eb957f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -57
@@ -12606,7 +12602,7 @@ Transform:
   m_GameObject: {fileID: 263826731}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.45, z: 0}
+  m_LocalPosition: {x: 0, y: 1.902, z: 0.60925937}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -30708,9 +30704,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6860099280184028994, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
       insertIndex: -1
       addedObject: {fileID: 743165954}
-    - targetCorrespondingSourceObject: {fileID: 6969824034062157794, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: 717a3fd787a4140d4bdc747e37b17e28, type: 3}
 --- !u!4 &743165951 stripped
 Transform:

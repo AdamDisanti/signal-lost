@@ -20280,6 +20280,7 @@ MonoBehaviour:
   mooring: {fileID: 844140607}
   landing: {fileID: 810948806}
   boarding: {fileID: 948849870}
+  alsoDeparts: 0
   destinationScene: 
   destinationName: the next island
   requiredStage: 
