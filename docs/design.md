@@ -679,6 +679,12 @@ Adam's request and answers; see [melee, rage and Moon Shoes](melee-rage.md).
 - Christian: the scanner pointed at the nearest objective of any of three parallel quest lines, so it flipped between them. Decision: the Mudlands runs one quest at a time (10 in a chain), and every quest ends with a trip back to Cavendish. He chose to keep the walk back as the loop rather than radio check-ins, and to make it worth it (pay, Eugene restocking, ship parts on a pile at camp, world changes) with short cuts on the way. Details in [Mudlands](mudlands.md), section 4.
 - Shared code: the scanner, `QuestSignalSource` and `QuestTask` are unchanged (one quest's signals at a time is enough). One small hook in `MerchantMenuUi` (`Stocked`, `RestockNote`) lets a level hold back shop stock; it does nothing unless a level sets it.
 
+## Mudlands buildings in Blender (11-22-26)
+
+- Lawson: the Mudlands buildings had nonsensical designs (structure built in front of windows), disjointed pieces (see-through roof undersides, parts that don't meet) and z-fighting on a roof. Decision: rebuild every building as a closed low-poly Blender model in Christian's look and on his footprints, and fix z-fighting across the whole level. Details in [Mudlands](mudlands.md), Status.
+- Choices made without a ruling, to confirm: the sunken chapel gets its own model (the cabin plus a taller cap and a bell turret; it was the Flats cabin's model before); the Greasy Spoon's porch awning was raised above its front windows (it crossed them) and its porch deck now sits in front of the wall; the shelf fungi on the hall walls take the building's cap colour.
+- Left alone (shared with other levels, flagged for whoever owns them): the boat's trim and hull, the base camp's supplies crate against the tent and the tent's logs, the trophy stands' insets, the swamp dock's posts and beams (2 cm), and the held flask, scanner and Cavendish models have coplanar or nearly coplanar faces.
+
 ## Desert boss revamp (11-10)
 
 Lawson asked for the three desert mini-bosses to be rebuilt as harder, Souls-leaning fights with 3-4 phases each. The design and his answers are in [desert-bosses.md](desert-bosses.md). Briarwing, Cindermaw and Pitchclaw replace Old Buzzard, Burnout and Sludge in the desert story; the old prefabs and scripts stay in the project, unused by the story.
