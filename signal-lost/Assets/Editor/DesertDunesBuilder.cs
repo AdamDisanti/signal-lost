@@ -688,6 +688,12 @@ namespace SignalLost.Editor
                 engine.transform.SetParent(root.transform, false);
                 engine.transform.SetPositionAndRotation(OnGround(BossArena.Center.x + 6f, BossArena.Center.y + 8f, 0.6f), Quaternion.Euler(28f, 140f, 12f));
                 engine.transform.localScale = Vector3.one * 2.2f;
+                // (11-11) The bowl's sand had swallowed it almost whole, leaving grey slivers poking out that read as stray
+                // geometry: lift it so its middle sits at the sand and a clear half of the engine shows.
+                var wreckBounds = new Bounds(engine.transform.position, Vector3.zero);
+                foreach (Renderer part in engine.GetComponentsInChildren<Renderer>()) wreckBounds.Encapsulate(part.bounds);
+                float sand = Ground(wreckBounds.center.x, wreckBounds.center.z);
+                engine.transform.position += Vector3.up * (sand + wreckBounds.size.y * 0.08f - wreckBounds.center.y);
             }
 
             return EnemyTestBuilder.SavePrefab(root, EnvironmentPrefabPath);

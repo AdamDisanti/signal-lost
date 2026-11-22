@@ -19,7 +19,7 @@ namespace SignalLost.World
     /// <item><b>The collapse</b> (11-09: the same every time, with real physics between the rocks). Along one side of
     /// the roof runs a long gash choked with broken rock under a cracked face, with the desert's sand above (a separate
     /// lid in the dunes). <see cref="BeginCollapse"/>, started by the desert's story once the Engine Core and the trophy
-    /// are picked up, brings it down. First the floor where it will land flashes red while the roof rumbles and sheds
+    /// are picked up, brings it down. First the floor where it will land is marked solid red while the roof rumbles and sheds
     /// grit. Then the face gives way: sand pours through and piles into a debris cone under the gash, and the rocks come
     /// down onto it. Their fall is a <see cref="CollapseBake"/>: a physics simulation the level builder ran once and
     /// recorded, so every bounce and knock is the physics engine's, and it lands the same way every time, leaving a
@@ -236,7 +236,7 @@ namespace SignalLost.World
             Vector3 across = Vector3.Cross(Vector3.up, along);
             MiniBossHud.Message("THE CEILING IS COMING DOWN! GET OUT OF THE RED!", new Color(1f, 0.45f, 0.3f), warningTime);
 
-            // Warning: the floor where it will land flashes red, faster and faster; the roof rumbles and sheds grit
+            // Warning: the floor where it will land is marked solid red (draped over the ground); the roof rumbles and sheds grit
             // from between the choked rocks.
             Zone zone = crushZone != null ? Zone.Attach(crushZone) : null;
             for (float t = 0f; t < warningTime; t += Time.deltaTime)
@@ -522,14 +522,19 @@ namespace SignalLost.World
                 line.transform.SetParent(root.transform, false);
                 line.sharedMaterial = EffectMaterials.Additive(EffectMaterials.Look.Glow);
                 line.useWorldSpace = true;
-                line.positionCount = 2;
+                // It starts below the rim and fades in on the way down, so from the dunes nothing stands out of the hole.
+                line.positionCount = 3;
                 Vector3 from = top + along * offset * holeSize.y;
-                line.SetPosition(0, from + Vector3.up * 2f);
-                line.SetPosition(1, new Vector3(from.x, floor + 3f, from.z) + Flat(Centre - top).normalized * 5f);
+                Vector3 bottom = new Vector3(from.x, floor + 3f, from.z) + Flat(Centre - top).normalized * 5f;
+                line.SetPosition(0, from + Vector3.down * 2.5f);
+                line.SetPosition(1, Vector3.Lerp(from + Vector3.down * 2.5f, bottom, 0.3f));
+                line.SetPosition(2, bottom);
                 line.startWidth = width * 0.8f;
                 line.endWidth = width;
-                line.startColor = new Color(1f, 0.92f, 0.7f, alpha);
-                line.endColor = new Color(1f, 0.85f, 0.6f, alpha * 0.3f);
+                var fade = new Gradient();
+                fade.SetKeys(new[] { new GradientColorKey(new Color(1f, 0.92f, 0.7f), 0f), new GradientColorKey(new Color(1f, 0.85f, 0.6f), 1f) },
+                    new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(alpha, 0.3f), new GradientAlphaKey(alpha * 0.3f, 1f) });
+                line.colorGradient = fade;
                 line.shadowCastingMode = ShadowCastingMode.Off;
                 line.receiveShadows = false;
             }
@@ -566,13 +571,16 @@ namespace SignalLost.World
             return v;
         }
 
-        /// <summary>The red crush zone on the floor, flashing faster as the fall nears.</summary>
+        /// <summary>
+        /// The red crush zone (11-11, after Lawson's look: solid, projected onto the ground, no flashing). When it appears,
+        /// every corner of it drops onto whatever is below (floor, rubble, the foot of a pillar), so it lies on the ground
+        /// like a projection. It glows a steady red, a little stronger as the fall nears; the edge is brightest.
+        /// </summary>
         private sealed class Zone : MonoBehaviour
         {
             private Mesh mesh;
             private Color[] baseColors, colors;
             private Light glow;
-            private float phase;
 
             public static Zone Attach(MeshFilter filter)
             {
@@ -587,8 +595,9 @@ namespace SignalLost.World
                     for (int i = 0; i < zone.baseColors.Length; i++) zone.baseColors[i] = Color.white;
                 }
                 zone.colors = new Color[zone.baseColors.Length];
+                zone.Project(filter.transform);
                 if (!filter.TryGetComponent(out MeshRenderer renderer)) renderer = filter.gameObject.AddComponent<MeshRenderer>();
-                renderer.sharedMaterial = EffectMaterials.Additive(EffectMaterials.Look.Glow);
+                renderer.sharedMaterial = EffectMaterials.AlphaBlended(EffectMaterials.Look.Glow);
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
                 zone.glow = new GameObject("Red Light").AddComponent<Light>();
@@ -602,19 +611,43 @@ namespace SignalLost.World
                 return zone;
             }
 
-            /// <summary>Flashes on and off, from slow (0) to frantic (1). The edge (bright in the base colours) stays brightest.</summary>
+            /// <summary>Drops each corner onto the first solid thing below it (not people or creatures), just above it.</summary>
+            private void Project(Transform frame)
+            {
+                Vector3[] vertices = mesh.vertices;
+                var uv = new Vector2[vertices.Length];
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    uv[i] = new Vector2(0.5f, 0.5f); // the middle of the glow texture: solid colour
+                    Vector3 world = frame.TransformPoint(vertices[i]);
+                    float best = float.MaxValue;
+                    Vector3 hitPoint = world;
+                    foreach (RaycastHit hit in Physics.RaycastAll(world + Vector3.up * 3f, Vector3.down, 12f, ~0, QueryTriggerInteraction.Ignore))
+                    {
+                        if (hit.collider is CharacterController || hit.collider.GetComponentInParent<Health>() != null) continue;
+                        if (hit.distance < best)
+                        {
+                            best = hit.distance;
+                            hitPoint = hit.point;
+                        }
+                    }
+                    if (best < float.MaxValue) vertices[i] = frame.InverseTransformPoint(hitPoint + Vector3.up * 0.07f);
+                }
+                mesh.vertices = vertices;
+                mesh.uv = uv;
+                mesh.RecalculateBounds();
+            }
+
+            /// <summary>Steady red; a little brighter as the fall nears (0 to 1). The edge is brightest.</summary>
             public void Flash(float urgency)
             {
-                phase += Time.deltaTime * Mathf.Lerp(2.5f, 9f, urgency) * Mathf.PI * 2f;
-                float on = 0.5f + 0.5f * Mathf.Sin(phase);
-                on *= on;
                 for (int i = 0; i < colors.Length; i++)
                 {
                     float edge = baseColors[i].a;
-                    colors[i] = new Color(1f, 0.08f + 0.25f * edge * on, 0.05f, (0.25f + 0.75f * edge) * (0.35f + 0.65f * on));
+                    colors[i] = new Color(1f, 0.07f + 0.12f * edge, 0.05f, Mathf.Lerp(0.42f, 0.9f, edge) * Mathf.Lerp(0.85f, 1f, urgency));
                 }
                 mesh.colors = colors;
-                glow.intensity = Mathf.Lerp(5f, 60f, on);
+                glow.intensity = Mathf.Lerp(18f, 32f, urgency);
             }
 
             private void OnDestroy()

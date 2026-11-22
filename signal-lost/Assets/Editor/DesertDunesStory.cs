@@ -754,6 +754,7 @@ namespace SignalLost.Editor
                         tiles.Add(tile.transform);
                     }
             KitProp("LairRim", RimKit, "Floor Rim", floorGroup, centre, Quaternion.identity, Vector3.one, true);
+            BuildLavaPit(a, centre);
 
             // The wall: a ring of boulders, then the rocky dome over everything.
             Transform walls = Group("Walls", a);
@@ -857,6 +858,7 @@ namespace SignalLost.Editor
             data.FindProperty("fodderSpawner").objectReferenceValue = spawner;
             data.FindProperty("warningMaterial").objectReferenceValue = DesertFodderBuilder.Unlit("BossWarning", new Color(1f, 0.3f, 0.15f));
             data.FindProperty("stormFog").colorValue = new Color(0.45f, 0.33f, 0.22f);
+            data.FindProperty("lavaDepth").floatValue = LavaDepth;
             data.ApplyModifiedPropertiesWithoutUndo();
 
             var lair = root.AddComponent<WormLair>();
@@ -1022,7 +1024,116 @@ namespace SignalLost.Editor
                 low,
                 Out(GashHalf + 1.3f + lump * 0.6f, Mathf.Lerp(low.y, roof, 0.5f)),
                 Out(GashHalf + ShaftMargin - 0.4f, roof),
+                // (11-11) A lip out under the roof's collar, so no slit is left between the shaft's foot and the roof.
+                Out(GashHalf + ShaftMargin + 0.9f, Lip(axis, inward, GashHalf + ShaftMargin + 0.9f)),
             };
+        }
+
+        // The height of the lip at the shaft's foot: just above the roof's collar there (the collar sinks 0.9 m below the
+        // dome at its inner edge, 0.15 m at its outer).
+        private static float Lip(Vector2 axis, Vector2 inward, float radius)
+        {
+            Vector2 at = axis - inward * radius;
+            return DomeY(at.x, at.y) - 0.55f;
+        }
+
+        // ---------- The lava pit (11-11) ----------
+
+        private const float LavaDepth = 7f;
+
+        // Under the arena floor: rock walls down to a lake of lava (the flowing-oil shader in lava colours, its pulses
+        // rippling out from the middle), lit from below. When phase 3 drops the floor tiles, they fall into it.
+        private static void BuildLavaPit(Transform parent, Vector3 centre)
+        {
+            Transform pit = Group("Lava Pit", parent);
+            var wall = new FlatMeshKit<AM>();
+            const int sides = 48;
+            for (int i = 0; i < sides; i++)
+            {
+                float a0 = i * Mathf.PI * 2f / sides, a1 = (i + 1) * Mathf.PI * 2f / sides;
+                Vector3 d0 = new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0)), d1 = new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1));
+                float j0 = 35f + Noise(d0.x * 9f, d0.z * 9f, 1f, 2.1f, 0.7f) * 0.4f, j1 = 35f + Noise(d1.x * 9f, d1.z * 9f, 1f, 2.1f, 0.7f) * 0.4f;
+                Vector3 t0 = d0 * 35f + Vector3.down, t1 = d1 * 35f + Vector3.down;
+                Vector3 b0 = d0 * j0 + Vector3.down * (LavaDepth + 1.5f), b1 = d1 * j1 + Vector3.down * (LavaDepth + 1.5f);
+                wall.Quad(b0, b1, t1, t0, -d0, AM.CaveRock);
+            }
+            KitProp("LairPitWall", () => wall, "Pit Wall", pit, centre, Quaternion.identity);
+
+            // The lava: rings of vertices out to the wall, gently lumpy, UV.x running outward for the shader's ripples.
+            float[] rings = { 0f, 3f, 6f, 9f, 12f, 15f, 18f, 21f, 24f, 27f, 30f, 33f, 35.6f };
+            const int around = 40;
+            var vertices = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var triangles = new List<int>();
+            var lumps = new Random(77);
+            foreach (float r in rings)
+                for (int s = 0; s < around; s++)
+                {
+                    float angle = (s + (r > 0f ? 0.5f * ((int)(r / 3f) % 2) : 0f)) * Mathf.PI * 2f / around;
+                    float y = -LavaDepth + (r > 0f && r < 35f ? Range(lumps, -0.12f, 0.12f) : 0f);
+                    vertices.Add(new Vector3(Mathf.Cos(angle) * r, y, Mathf.Sin(angle) * r));
+                    uvs.Add(new Vector2(r, s / (float)around));
+                }
+            for (int ring = 0; ring < rings.Length - 1; ring++)
+                for (int s = 0; s < around; s++)
+                {
+                    int a = ring * around + s, b = ring * around + (s + 1) % around, c = (ring + 1) * around + (s + 1) % around, d = (ring + 1) * around + s;
+                    triangles.AddRange(new[] { a, b, c, a, c, d }); // clockwise seen from above: the face points up
+                }
+            var lavaMesh = new Mesh { name = "LairLava" };
+            lavaMesh.SetVertices(vertices);
+            lavaMesh.SetUVs(0, uvs);
+            lavaMesh.SetTriangles(triangles, 0);
+            lavaMesh.RecalculateNormals();
+            lavaMesh.RecalculateBounds();
+            lavaMesh = SaveMesh(lavaMesh);
+            var lava = new GameObject("Lava");
+            lava.transform.SetParent(pit, false);
+            lava.transform.position = centre;
+            lava.AddComponent<MeshFilter>().sharedMesh = lavaMesh;
+            var lavaRenderer = lava.AddComponent<MeshRenderer>();
+            lavaRenderer.sharedMaterial = LavaMaterial();
+            lavaRenderer.shadowCastingMode = ShadowCastingMode.Off;
+
+            // The glow coming up through the gaps.
+            for (int i = 0; i < 5; i++)
+            {
+                var light = new GameObject("Lava Glow").AddComponent<Light>();
+                light.transform.SetParent(pit, false);
+                light.transform.position = centre + (i == 0 ? Vector3.zero : Quaternion.Euler(0f, i * 90f + 45f, 0f) * Vector3.forward * 18f)
+                    + Vector3.down * (LavaDepth - 2f);
+                light.type = LightType.Point;
+                light.color = new Color(1f, 0.42f, 0.12f);
+                light.range = 24f;
+                light.intensity = 45f;
+                light.shadows = LightShadows.None;
+            }
+        }
+
+        private static Material LavaMaterial()
+        {
+            string path = MaterialFolder + "/LairLava.mat";
+            Shader shader = Shader.Find("Signal Lost/Flowing Oil");
+            if (shader == null) throw new InvalidOperationException("Shader Signal Lost/Flowing Oil missing.");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader) { name = "LairLava" };
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+            material.SetColor("_BaseColor", new Color(0.28f, 0.05f, 0.02f));
+            material.SetColor("_SheenColor", new Color(1f, 0.45f, 0.1f));
+            material.SetColor("_GlowColor", new Color(1f, 0.5f, 0.12f));
+            material.SetFloat("_Glow", 1.7f);
+            material.SetFloat("_FlowSpeed", 0.9f);
+            material.SetFloat("_PulseSpacing", 4.5f);
+            material.SetFloat("_PulseSharpness", 3f);
+            material.SetFloat("_Swell", 0.1f);
+            material.SetFloat("_Smoothness", 0.35f);
+            material.SetFloat("_Facets", 0.85f);
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         // The dunes' colour at a point of the hole's edge: flat sand, slope or rock, the way the terrain picks it.

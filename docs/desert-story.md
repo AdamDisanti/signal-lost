@@ -29,7 +29,7 @@ Cavendish's camp is by the arrival dock (see [islands](islands.md)). He gives ev
    1. Beaten, the worm leaves the **Engine Core** and a **Core Worm Fang**.
    2. Once both are picked up, the ceiling comes down (11-09, Lawson's third redesign: it plays out the same every time, with physics-faithful rubble, looks natural, and always leaves a way out):
       - A long gash in the roof on the north side has been choked with broken rock since the fight began; you can see it up there.
-      - Now the floor where it will land flashes **red**, faster and faster, for 4.5 s. The roof rumbles and sheds grit.
+      - Now the floor where it will land is marked **solid red**, draped over the ground, for 4.5 s. The roof rumbles and sheds grit.
       - The rock face holding it gives way. The dunes above pour through as a curtain of sand and pile into a **debris cone** under the gash.
       - About 220 angular blocks, slabs and shards of roof rock come down onto it. They bounce off the gash's walls, the pillars and each other, tumble down the cone in puffs of dust and come to rest.
       - It is a recording of a real physics simulation, so every knock is physically right and it lands exactly the same way every time. The whole fall lasts 14 s.
@@ -99,12 +99,20 @@ They are part of `DesertEnvironment.prefab`, so the NavMesh walks round them. Ea
   - The clean run is stored: each rock's position and rotation 30 times a second, and the hard knocks, which drive the dust puffs and tremors.
   - Rebuilding gives the same recording, because the build is seeded.
   - In the game the rocks are moved along their recorded paths. No physics runs, so it cannot come out differently. They are solid again once they rest.
-- **The red zone:** flashing red with a brighter edge and a red light. Being in it while the fall is dangerous kills.
+- **The red zone:** solid red with a brighter edge and a steady red light (11-11: it used to flash). Being in it while the fall is dangerous kills.
+  - It is projected onto the ground: when it appears, every corner of it drops onto whatever is below (the floor, the foot of a pillar), so it lies on the ground like a projection.
   - It covers the floor where the debris ends up more than 4 m deep, plus everywhere a rock lands or rolls (the recording knows).
   - **It always leaves room to stand** (11-09, after it covered the whole arena): it is 53% of the arena floor in this build, all on the gash's side.
     - Nothing comes within 10 m of the middle on the far (south) side. The recording leaves out any rock that strays past that line, and the rocks roll less (more damping). This build needed 13 runs and keeps 184 rocks.
     - The build fails if the zone crosses the line or covers more than 55% of the floor.
   - The cone's shallow skirt is outside the zone. Someone standing there is lifted onto the debris as it settles, not buried.
+- **The lava pit** (11-11, after Lawson saw the floor's gaps drop into nothing): under the arena floor, rock walls run down 7 m to a lake of lava, lit from below.
+  - The lava uses the flowing-oil shader in lava colours, with molten bands rippling out from the middle across a darker crust.
+  - When the Core Worm's phase 3 drops floor tiles, they fall into the lava, splash fire and sparks, and sink.
+  - Falling in burns (20 damage, "You fell into the lava!") and puts you back on the nearest solid floor.
+- **The shaft's foot** (11-11): the gash's walls now end in a lip that runs out under the cavern roof's collar, so there is no slit between the shaft and the roof.
+- **The sunbeam** down the open gash starts below the rim and fades in on the way down (11-11): from the dunes nothing stands up out of the hole.
+- **The engine wreck** in the bowl (11-11): the bowl's sand had swallowed it so far that only grey slivers poked out, which read as stray geometry. It now sits with its middle at the sand, a clear half of the engine showing.
 - **Cave light:** while you are down there, `WormLair` dims the sun and the sky light, and the fog turns dark and dusty. It eases back to daylight as you climb out (or respawn on the surface).
 
 ## Trophies and the rack
@@ -152,7 +160,7 @@ Small changes to existing code:
 6. Place the stinger: the ground shakes, and the worm erupts east of camp and swallows you.
 7. In the cavern it is dim and orange-lit. Die once: you are back on the surface in daylight. Walk to the rack: swallowed again.
 8. Beat the worm. Pick up the Engine Core and the fang:
-   - The north part of the floor flashes red under the choked gash.
+   - The north part of the floor is marked red under the choked gash.
    - Stay in it and you're crushed and respawn up top. Step out and watch the sand pour and the rocks tumble down.
    - Do it twice (the stage-skip testing tool gets you back quickly): every rock lands in the same place both times.
 9. Walk up the rubble into the bowl, between the rocks, with the sky showing through the gash. Daylight returns.
