@@ -1571,7 +1571,7 @@ GameObject:
   - component: {fileID: 47346400}
   - component: {fileID: 47346399}
   m_Layer: 0
-  m_Name: DesertIslandSilhouette
+  m_Name: MudlandsIslandSilhouette
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -37712,8 +37712,8 @@ MonoBehaviour:
   landing: {fileID: 1401041925}
   boarding: {fileID: 1701976826}
   alsoDeparts: 0
-  destinationScene: DesertDunes
-  destinationName: the Desert Dunes
+  destinationScene: Mudlands
+  destinationName: the Mudlands
   requiredStage: Tutorial
   lockedMessage: Cavendish still needs you here before you can sail.
 --- !u!1001 &894536367

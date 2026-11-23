@@ -20,6 +20,8 @@ The flask heals without a fixed use limit; excessive drinking affects visibility
 | Crystal Caverns | Crystal-infused Cave Beast / Flight Control Module |
 | Return to crash site | Cavendish in a mech / Reactor Core |
 
+**Stage order as built (11-22):** Crash Meadow (the tutorial), the Mudlands, the Desert Dunes, the Crystal Caves, then the finale (the Wasteland). The Mudlands is not in the table above, and the Fog Forest isn't built; see [stage order, themed cars and wyvern flight](#stage-order-themed-cars-and-wyvern-flight-11-22).
+
 Win by recovering all four components, defeating the bosses, repairing the ship, and escaping. Levels are handcrafted. HUD includes health, scanner direction/strength, scrap, and objectives. Planned options include control adjustments, audio, save, and quit. Mouse/keyboard is planned; controller support is conditional. Playtesting metrics include play time, deaths, biome times, boss attempts, and resource collection.
 
 ## Scope as written
@@ -679,6 +681,12 @@ Adam's request and answers; see [melee, rage and Moon Shoes](melee-rage.md).
 - Christian: the scanner pointed at the nearest objective of any of three parallel quest lines, so it flipped between them. Decision: the Mudlands runs one quest at a time (10 in a chain), and every quest ends with a trip back to Cavendish. He chose to keep the walk back as the loop rather than radio check-ins, and to make it worth it (pay, Eugene restocking, ship parts on a pile at camp, world changes) with short cuts on the way. Details in [Mudlands](mudlands.md), section 4.
 - Shared code: the scanner, `QuestSignalSource` and `QuestTask` are unchanged (one quest's signals at a time is enough). One small hook in `MerchantMenuUi` (`Stocked`, `RestockNote`) lets a level hold back shop stock; it does nothing unless a level sets it.
 
+## Mudlands buildings in Blender (11-22-26)
+
+- Lawson: the Mudlands buildings had nonsensical designs (structure built in front of windows), disjointed pieces (see-through roof undersides, parts that don't meet) and z-fighting on a roof. Decision: rebuild every building as a closed low-poly Blender model in Christian's look and on his footprints, and fix z-fighting across the whole level. Details in [Mudlands](mudlands.md), Status.
+- Choices made without a ruling, to confirm: the sunken chapel gets its own model (the cabin plus a taller cap and a bell turret; it was the Flats cabin's model before); the Greasy Spoon's porch awning was raised above its front windows (it crossed them) and its porch deck now sits in front of the wall; the shelf fungi on the hall walls take the building's cap colour.
+- Left alone (shared with other levels, flagged for whoever owns them): the boat's trim and hull, the base camp's supplies crate against the tent and the tent's logs, the trophy stands' insets, the swamp dock's posts and beams (2 cm), and the held flask, scanner and Cavendish models have coplanar or nearly coplanar faces.
+
 ## Desert boss revamp (11-10)
 
 Lawson asked for the three desert mini-bosses to be rebuilt as harder, Souls-leaning fights with 3-4 phases each. The design and his answers are in [desert-bosses.md](desert-bosses.md). Briarwing, Cindermaw and Pitchclaw replace Old Buzzard, Burnout and Sludge in the desert story; the old prefabs and scripts stay in the project, unused by the story.
@@ -687,3 +695,45 @@ Lawson asked for the three desert mini-bosses to be rebuilt as harder, Souls-lea
 - **Open, until the rewards pass:** the trophies (Old Buzzard's Tail Feathers, Burnout's Thorn Crest, Sludge's Stinger) and Cavendish's lines about them keep their old names; the post-boss upgrades and items are not designed yet.
 - **Open, until the quest pass:** the tasks before each fight (pick up what Briarwing dropped, put out Cindermaw's fires, seal the leaks round Pitchclaw's sump) are the old ones with new names. The pickups along Briarwing's trail are still the old feather props.
 - **Open:** whether the old Chop Shop prefabs (and their test scenes) should be deleted once the new fights are approved.
+
+## Stage order, themed cars and wyvern flight (11-22)
+
+The user's three requests, built together. See [islands](islands.md#the-stages), [trophy stands](trophy-stands.md), [the Mudlands](mudlands.md) and [desert bosses](desert-bosses.md#briarwing-the-thorn-wyvern-the-wreck-field).
+
+- **The Mudlands is the second stage.** The user: "make the marsh stage the second stage so that the player has access to the car on the following stages". The islands are now sailed Crash Meadow, the Mudlands, the Desert Dunes, the Crystal Caves, then the finale. This settles the Mudlands' "where in the order" question (it was an open question).
+  - **Boats:** the tutorial's boat sails to the Mudlands. The Mudlands' dock, which was only an arrival dock, also departs, to the desert, once Clutch is beaten (`StageProgress` "Mudlands"). The desert's north boat sails to the Crystal Caves (it went to the Mudlands since 11-20). The caves' boat still has nowhere to go: the Fog Forest isn't built.
+  - **The desert's stage exit** (`DesertStageExit.nextStageScene`) names the Crystal Caves. In the desert scene the exit hands over to the boat (`returnAfterCore` is off), so this only matters if that changes. **Signal Lost > Islands > Link Stage Order** sets every boat and the exit in the scenes as they stand. It replaces **Signal Lost > Mudlands > Link Desert Exit To Mudlands**. **Validate Stage Order** checks them.
+  - **The car carries over.** The pockets don't carry between scenes yet, so earning the Learner's Permit also sets a session flag (`MudlandsProgress.PermitFlag`). Drunk Driving stays unlocked on every later island in that Play session. Car upgrades bought in the Mudlands still don't carry over; that's the save system's job.
+  - **On islands with the car (my calls):** each island camp is a no-parking zone (`IslandCamp` adds one). The Core Worm's ambush and the Cave Axolotl's entrance park the car first.
+  - **Camps:** every camp shows the stands of the islands sailed before it, in sailing order. The Mudlands camp has the tutorial's stand and Clutch's; the desert camp adds Clutch's; the caves camp has all ten. Save slots are unchanged (0 tutorial, 1-4 desert, 5-8 caves, 9 Mudlands), so saves stay valid. The Mudlands stand moved round the ring to 48 degrees (north-east), between the tutorial's and the desert's, so the ring still reads in the order earned.
+  - **Text:** Cavendish's last tutorial line ("Tomorrow: the Mudlands"), his Mudlands wrap-up and the Mudlands' last objective name the next island. The desert's homecoming still says "the next island"; it's left alone because the desert story is being reworked on another branch.
+  - **Stage-skip tool:** tutorial, Mudlands, desert, caves, Wasteland. Skipping past the Mudlands counts the permit as earned.
+  - **Checked against the old order, not changed (open):**
+    - **Difficulty by rank:** the Mudlands' numbers were set as the stage after the desert. Its fodder (Mudpuppy 20 HP) now comes before the desert's (Spark Tick 8), and its bosses before the desert's harder duel bosses. The Geode Bear was tuned "a step above Pitchclaw, since the caves come after the desert and before the Mudlands": the caves are still after the desert. Rebalancing is a playtest question.
+    - **Upgrades:** tiers are per line and regions are per island, so nothing depends on the order. Shop stock doesn't carry between scenes, as before.
+    - **Finale:** each island's main part is one of the mech's weapons, whatever the order; unchanged.
+    - **The design document's biome list:** Desert, Fog Forest, Crystal Caverns, then the return to the crash site. The Mudlands isn't in it and the Fog Forest isn't built. Whether the Fog Forest comes after the caves is still open.
+    - **The tutorial horizon:** the island on it is renamed for the Mudlands, but its silhouette is still the desert-coloured one.
+- **A car for each island.** The car is dressed for the island it is called on (`CarModel.Style`, picked from the scene). The driving, colliders, seat, steering wheel, headlight and wheel spots are the same for all of them.
+  - **The Mudlands** keeps the beaten-up muscle car.
+  - **The Desert Dunes: the Dune Mule.** From the user's reference, a white open-top off-roader crawling over red rock. White, boxy and doorless, with a flat bonnet, round headlights either side of a seven-slot grille, black flares, big lugged all-terrain tyres on black wheels, a black roll bar, an upright windscreen frame, a tailgate spare and a jerry can. It's an original design with no maker's names or badges.
+  - **The Crystal Caves: the Geode Crawler** (my call). A hazard-yellow mining buggy over slate armour, with an open roll cage and lamp bar, glowing cave crystals growing off it, an ore bin of crystals, and brighter, cooler headlights for the dark.
+  - **The Wasteland: the Scrap Runner** (my call). A soot-and-rust rat rod armoured with the crashed ship's hull panels, with a blower and stacks, a spiked ram, a grille windscreen and a roof rack.
+  - The tutorial never has the car. Test scenes get the muscle car unless their `StageTheme` is the desert.
+- **Briarwing's flight.** It flew "strongly", too stiff and too powerful. The user's reference was a dragon-flight video. The flight clips are now solved from what the wing does (stroke angle, sweep, fold), not typed joint angles (`tools/blender/desert_wyvern.py`, `wing_pose`).
+  - **Flap:** a full, wide downstroke that drives the body up, then a slower upstroke with the wing folded at the elbow and wrist. One beat every 1.2 s for an animal about 19 m across the wings.
+  - **Glide:** wings held open, with the fingers working.
+  - **Hover:** the body raised, the wings sweeping forward and back.
+  - **Takeoff:** a crouch and spring into two full beats.
+  - **Plunge:** wings folding back in stages.
+  - **Land:** the flare, two braking beats, the touchdown taken in the legs, and the wings folded away.
+  - **The code follows the beats.** The climb surges on each downstroke and nearly stalls on the upstroke. It climbs at about 5.5 m/s (it was a 15 m lift in about a second), flies where it is heading at up to 9 m/s, and banks into turns and pitches with its climb. It flaps to catch up, glides at speed and hovers over its prey before the stoop. The stoop now accelerates rather than sliding at a constant speed.
+  - **Landing:** if it loses its target in the air it now flares and lands instead of diving at nothing (my call).
+  - **Wingspan:** the open wing is about 19 m across (the doc said about 14 m, which was the half-open pose).
+  - **Timing:** the climb to 13 m now takes about 3.4 s (it was about 1.2 s to 15 m). The whole dive bomb took 9.6 s in the Play Mode check, so it gives about 2 s more warning. Damage and the other moves are unchanged.
+- **Checked (Unity 6000.6.2f1, a disposable copy under %TEMP%, smokes in `tools/unity/`):**
+  - **Compiles.**
+  - **Link Stage Order:** the second run changes nothing. Validate Stage Order passes.
+  - **Rebuilt:** the desert camp, the caves' camp and story (its validation passes), the Mudlands level (no scenery moved; only the camp's stands and the dock changed) and Briarwing.
+  - **Play mode** (`StageChainSmoke`): the real voyages, tutorial to Mudlands to desert to caves, then the stage skip to the Wasteland, with each camp's stands as above. The permit carried over: the Dune Mule, the Geode Crawler and the Scrap Runner spawn with the usual colliders and seat.
+  - **Not checked:** driving each car by hand, the car in the Core Worm ambush or the Axolotl entrance, and playing the Mudlands right after the tutorial for difficulty.

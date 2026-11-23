@@ -1645,7 +1645,7 @@ namespace SignalLost.Enemies.Desert
                 core.SetParent(null, true);
                 foreach (Collider collider in core.GetComponentsInChildren<Collider>(true)) Destroy(collider);
                 foreach (Health box in core.GetComponentsInChildren<Health>(true)) Destroy(box);
-                EngineCorePickup.Create(core, partName, dropAt);
+                EngineCorePickup.Create(core, partName, dropAt, SignalLost.Progression.StageProgress.CrystalCaves); // the desert's next island (11-22)
                 coreRenderer = null; // it's the pickup's now
                 coreLight = null;
                 core = null;

@@ -783,7 +783,8 @@ namespace SignalLost.Editor
         }
 
         // The sea, the arrival dock on the south beach where the player starts, the departure dock on the north beach
-        // past the biome exit (its boat waits for the Engine Core, then sails to the Mudlands: Christian, 11-20), and the islands on
+        // past the biome exit (its boat waits for the Engine Core, then sails on to the Crystal Caves: the stage order of
+        // 11-22, tutorial, Mudlands, desert, caves), and the islands on
         // the horizon: the forest ahead, the meadow behind.
         private static void BuildShore(Transform root)
         {
@@ -803,7 +804,7 @@ namespace SignalLost.Editor
             {
                 Name = "DesertDepartureDock", Start = departure, Seaward = Vector2.up, Length = 16f,
                 Role = SignalLost.World.IslandDock.Role.Departure, IslandName = "The Desert Dunes",
-                DestinationScene = "Mudlands", DestinationName = "the Mudlands", RequiredStage = SignalLost.Progression.StageProgress.Desert,
+                DestinationScene = StageOrderLinker.CavesScene, DestinationName = "the Crystal Caves", RequiredStage = SignalLost.Progression.StageProgress.Desert,
                 LockedMessage = "Recover the Engine Core before you set sail."
             }, SeaLevel, Ground, 20261110);
 

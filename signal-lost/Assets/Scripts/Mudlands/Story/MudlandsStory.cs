@@ -229,7 +229,8 @@ namespace SignalLost.Mudlands
         {
             "The landing gear! Ha! Clutch McCheddar, face down in his own mud.",
             "I'll keep that safe with the rest, naturally. And those aviators would look splendid on the trophy stand.",
-            "The Mudlands is quiet for the first time in, well, ever. Rest up by the fire, mechanic. You've earned it."
+            "The Mudlands is quiet for the first time in, well, ever. Rest up by the fire, mechanic. You've earned it.",
+            "When you're ready, the boat at the dock sails on to the Desert Dunes. Bring the car. I hear the sand is very forgiving."
         };
         private const string CaughtUpLine = "Hang on. You've already done it? You're quicker than you look.";
 
@@ -706,7 +707,7 @@ namespace SignalLost.Mudlands
             int number = QuestNumber(step);
             if (step == Step.Done)
             {
-                GameplayOverlay.Instance.SetQuest(LevelTitle, "The Mudlands is clear. Set Clutch's aviators on a trophy stand, and rest by the fire.", true);
+                GameplayOverlay.Instance.SetQuest(LevelTitle, "The Mudlands is clear. Set Clutch's aviators on a trophy stand, then take the boat at the dock south of camp on to the Desert Dunes.", true);
                 ApplySignals();
                 return;
             }

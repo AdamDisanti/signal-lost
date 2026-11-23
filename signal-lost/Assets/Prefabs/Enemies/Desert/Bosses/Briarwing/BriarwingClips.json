@@ -156,27 +156,91 @@
    ]
   },
   {
-   "name": "Hop",
-   "length": 0.8,
-   "loop": false,
+   "name": "Flap",
+   "length": 1.2,
+   "loop": true,
    "events": [
     {
-     "name": "launch",
+     "name": "downstroke",
      "times": [
-      0.5
+      0.0
+     ]
+    },
+    {
+     "name": "flap",
+     "times": [
+      0.0667
+     ]
+    },
+    {
+     "name": "upstroke",
+     "times": [
+      0.4333
      ]
     }
    ]
   },
   {
+   "name": "Glide",
+   "length": 3.0,
+   "loop": true,
+   "events": []
+  },
+  {
    "name": "Hover",
-   "length": 0.6,
+   "length": 1.0,
    "loop": true,
    "events": [
     {
+     "name": "downstroke",
+     "times": [
+      0.0
+     ]
+    },
+    {
      "name": "flap",
      "times": [
-      0.3
+      0.0667
+     ]
+    },
+    {
+     "name": "upstroke",
+     "times": [
+      0.3667
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Takeoff",
+   "length": 2.4,
+   "loop": false,
+   "events": [
+    {
+     "name": "downstroke",
+     "times": [
+      0.5333,
+      1.4667
+     ]
+    },
+    {
+     "name": "flap",
+     "times": [
+      0.5667,
+      1.5
+     ]
+    },
+    {
+     "name": "launch",
+     "times": [
+      0.5333
+     ]
+    },
+    {
+     "name": "upstroke",
+     "times": [
+      0.8333,
+      1.7667
      ]
     }
    ]
@@ -201,23 +265,75 @@
    ]
   },
   {
-   "name": "Takeoff",
-   "length": 1.5333,
+   "name": "Hop",
+   "length": 0.8333,
    "loop": false,
    "events": [
+    {
+     "name": "downstroke",
+     "times": [
+      0.5
+     ]
+    },
+    {
+     "name": "flap",
+     "times": [
+      0.5333
+     ]
+    },
     {
      "name": "launch",
      "times": [
       0.5
+     ]
+    },
+    {
+     "name": "upstroke",
+     "times": [
+      0.8333
      ]
     }
    ]
   },
   {
    "name": "Plunge",
-   "length": 0.4667,
+   "length": 0.6,
    "loop": false,
    "events": []
+  },
+  {
+   "name": "Land",
+   "length": 1.8667,
+   "loop": false,
+   "events": [
+    {
+     "name": "downstroke",
+     "times": [
+      0.3333,
+      0.7667
+     ]
+    },
+    {
+     "name": "flap",
+     "times": [
+      0.3667,
+      0.8
+     ]
+    },
+    {
+     "name": "touchdown",
+     "times": [
+      1.1333
+     ]
+    },
+    {
+     "name": "upstroke",
+     "times": [
+      0.5667,
+      0.9667
+     ]
+    }
+   ]
   },
   {
    "name": "Impact",

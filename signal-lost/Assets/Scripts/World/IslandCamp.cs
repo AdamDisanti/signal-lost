@@ -50,6 +50,13 @@ namespace SignalLost.World
             for (int i = 0; i < pieces.Length; i++) if (pieces[i] != null) scales[i] = pieces[i].localScale;
             // Arriving by boat: everything is still in the boat.
             if (IslandVoyage.InProgress) Pack();
+            // No calling the car in camp, on every island it can reach (the Mudlands is the second stage since 11-22).
+            if (GetComponentInChildren<SignalLost.Mudlands.NoParkingZone>(true) == null)
+            {
+                var zone = new GameObject("No Parking (camp)");
+                zone.transform.SetParent(transform, false);
+                zone.AddComponent<SignalLost.Mudlands.NoParkingZone>().Configure(16f, "No parking at camp. Everyone's sleeping.");
+            }
         }
 
         private void OnEnable() => All.Add(this);

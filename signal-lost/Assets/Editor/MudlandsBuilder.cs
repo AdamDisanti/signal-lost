@@ -668,8 +668,9 @@ namespace SignalLost.Editor
         private static readonly Vector2 BayTop = new Vector2(0f, -186f);
 
         /// <summary>
-        /// The sea round the island (clear, the same as every island's), the arrival dock in the bay below camp (the boat
-        /// from the Desert Dunes comes in here) dressed for the swamp, lanterns down the pass, and the dressing round the
+        /// The sea round the island (clear, the same as every island's), the dock in the bay below camp (the boat from
+        /// Crash Meadow comes in here, and sails on to the Desert Dunes once the Mudlands is cleared: the stage order of
+        /// 11-22) dressed for the swamp, lanterns down the pass, and the dressing round the
         /// bay. Runs after the scenery and before the NavMesh bake, with its own random numbers, so nothing inland moves.
         /// </summary>
         private static void BuildLanding(World world)
@@ -682,7 +683,9 @@ namespace SignalLost.Editor
             global::SignalLost.World.IslandDock dock = IslandKit.BuildDock(root, new IslandKit.DockSpec
             {
                 Name = "MudlandsDock", Start = start, Seaward = Vector2.down, Length = 16f,
-                Role = global::SignalLost.World.IslandDock.Role.Arrival, IslandName = "The Mudlands", Look = IslandKit.DockLook.Swamp
+                Role = global::SignalLost.World.IslandDock.Role.Arrival, IslandName = "The Mudlands", Look = IslandKit.DockLook.Swamp,
+                AlsoDeparts = true, DestinationScene = StageOrderLinker.DesertScene, DestinationName = StageOrderLinker.DesertName,
+                RequiredStage = MudlandsProgress.Stage, LockedMessage = StageOrderLinker.MudlandsLocked
             }, SeaLevel, Height, 20261120);
             DockMoss(dock.transform);
             var noParking = new GameObject("No Parking (dock)");
@@ -819,8 +822,10 @@ namespace SignalLost.Editor
             Pad(kit, Speedway, new Vector2(22f, 13f), 0.78f, 1.22f, dirt);
             // Soft mud (11-20): the mud patches and the chapel flood's bed as smooth-edged pads, and a wet, blotchy band of
             // mud along every shore of the swamp water (the bog, the creek, the shallows), clear of the roads' verges.
-            foreach ((Vector2 c, Vector2 radii) in MudPatches) Pad(kit, c, radii * 1.05f, 0f, 1f, mud, true);
-            Pad(kit, Chapel, FloodRadii * 0.97f, 0f, 1f, mud, true);
+            // 11-22: the mud pads lie a layer above the dirt pads (the lot, the yard, the track), which they overlap in the
+            // lot and at the speedway: at the same height the two colours z-fought.
+            foreach ((Vector2 c, Vector2 radii) in MudPatches) Pad(kit, c, radii * 1.05f, 0f, 1f, mud, true, MudPadLift);
+            Pad(kit, Chapel, FloodRadii * 0.97f, 0f, 1f, mud, true, MudPadLift);
             Shores(kit, mud);
             Mesh mesh = SaveMesh(kit.Build("RoadSurfaces"), Folder + "/Meshes/RoadSurfaces.asset");
             var go = new GameObject("Road Surfaces");
@@ -834,7 +839,9 @@ namespace SignalLost.Editor
             go.isStatic = true;
         }
 
-        private const float SurfaceLift = 0.08f;
+        // The ground overlays' layers (11-22, z-fighting fix), lowest first: verges and shores 4-6 cm above the ground,
+        // roads and the dirt pads 8 cm, mud pads 11 cm. Different colours never share a height where they overlap.
+        private const float SurfaceLift = 0.08f, VergeLift = 0.05f, MudPadLift = 0.11f;
 
         private static Vector3 OnSurface(Vector2 p) => new Vector3(p.x, MeshHeight(p.x, p.y) + SurfaceLift, p.y);
 
@@ -873,6 +880,8 @@ namespace SignalLost.Editor
             float[] lanes = { -1f, -1f, -0.5f, 0f, 0.5f, 1f, 1f }; // the first and last are the verges' outer edges
             var rows = new Vector3[points.Count][];
             var keep = new bool[points.Count];
+            var innerLeft = new Vector3[points.Count];
+            var innerRight = new Vector3[points.Count];
             for (int k = 0; k < points.Count; k++)
             {
                 Vector2 dir = (points[Mathf.Min(k + 1, points.Count - 1)] - points[Mathf.Max(k - 1, 0)]).normalized;
@@ -892,7 +901,15 @@ namespace SignalLost.Editor
                     }
                     Vector2 at = p + side * offset;
                     // The verge's outer edge sits a little lower, so where it runs under another road that road wins.
-                    rows[k][m] = m == 0 || m == lanes.Length - 1 ? new Vector3(at.x, MeshHeight(at.x, at.y) + 0.05f, at.y) : OnSurface(at);
+                    rows[k][m] = m == 0 || m == lanes.Length - 1 ? new Vector3(at.x, MeshHeight(at.x, at.y) + VergeLift, at.y) : OnSurface(at);
+                }
+                // The verge's inner edge (11-22): 3 cm under the road's edge and tucked 0.3 m under it, so where a verge runs
+                // across another road it is never at that road's height (it used to start at road height and z-fought).
+                for (int m = 0; m < 2; m++)
+                {
+                    int edge = m == 0 ? 1 : lanes.Length - 2;
+                    Vector2 at = new Vector2(rows[k][edge].x, rows[k][edge].z) - side * Mathf.Sign(lanes[edge]) * 0.3f;
+                    (m == 0 ? innerLeft : innerRight)[k] = new Vector3(at.x, MeshHeight(at.x, at.y) + VergeLift, at.y);
                 }
             }
             for (int k = 0; k < points.Count - 1; k++)
@@ -903,8 +920,11 @@ namespace SignalLost.Editor
                     bool isVerge = m == 0 || m == lanes.Length - 2;
                     if (isVerge && InYard((points[k] + points[k + 1]) * 0.5f)) continue; // no verge across the camp yard or the lot
                     Color c = isVerge ? vergeColor : color;
-                    UpTri(kit, rows[k][m], rows[k + 1][m], rows[k + 1][m + 1], c);
-                    UpTri(kit, rows[k][m], rows[k + 1][m + 1], rows[k][m + 1], c);
+                    Vector3 a0 = rows[k][m], a1 = rows[k + 1][m], b0 = rows[k][m + 1], b1 = rows[k + 1][m + 1];
+                    if (m == 0) { b0 = innerLeft[k]; b1 = innerLeft[k + 1]; }
+                    else if (m == lanes.Length - 2) { a0 = innerRight[k]; a1 = innerRight[k + 1]; }
+                    UpTri(kit, a0, a1, b1, c);
+                    UpTri(kit, a0, b1, b0, c);
                 }
             }
         }
@@ -936,8 +956,9 @@ namespace SignalLost.Editor
         private static Vector3 OnShore(Vector2 p) => new Vector3(p.x, MeshHeight(p.x, p.y) + 0.06f, p.y);
 
         // An (elliptical) disc, or a ring between inner and outer (fractions of the radii), with a wobbling rim.
-        private static void Pad(MeshKit kit, Vector2 centre, Vector2 radii, float inner, float outer, Color color, bool offRoads = false)
+        private static void Pad(MeshKit kit, Vector2 centre, Vector2 radii, float inner, float outer, Color color, bool offRoads = false, float lift = SurfaceLift)
         {
+            Vector3 OnSurface(Vector2 p) => new Vector3(p.x, MeshHeight(p.x, p.y) + lift, p.y);
             void Tri(Vector3 a, Vector3 b, Vector3 c)
             {
                 Vector3 mid = (a + b + c) / 3f;
@@ -975,8 +996,8 @@ namespace SignalLost.Editor
         {
             Transform camp = Instance(BaseCampBuilder.PrefabPath, level).transform;
             camp.position = GroundAt(Camp);
-            // The last island so far: every earlier level's stands join the tutorial's, plus Clutch's.
-            foreach (var set in new[] { BaseCampBuilder.StandSet.Desert, BaseCampBuilder.StandSet.Caves, BaseCampBuilder.StandSet.Mudlands })
+            // The second island (11-22): Clutch's stand joins the tutorial's. The desert's and the caves' come later.
+            foreach (var set in BaseCampBuilder.SetsUpTo(BaseCampBuilder.StandSet.Mudlands))
                 BaseCampBuilder.AddStands(camp, set);
             clear.Add(new Vector3(Camp.x, Camp.y, 12f));
             var noParking = new GameObject("No Parking (camp)");
@@ -995,9 +1016,94 @@ namespace SignalLost.Editor
             go.transform.SetPositionAndRotation(GroundAt(at) + Vector3.up * yOffset, Quaternion.Euler(0f, yaw, 0f));
             var prop = go.AddComponent<MudProp>();
             prop.Configure(kind, world.Random.Next(4), size, sign);
+            UseBuildingModel(prop, kind, name);
             if (solid) AddColliders(go, kind, size);
             world.Clear.Add(new Vector3(at.x, at.y, 3f + size * 2f));
             return prop;
+        }
+
+        // ---------- The buildings' Blender models (11-22) ----------
+        // Every building is a closed low-poly model made in Blender (tools/blender/mudlands_buildings.py, one FBX each in
+        // Mudlands/Models) on the old footprint, so placements, colliders and quest hooks are unchanged. The FBX's material
+        // names (MB_*) pick the builder's own URP materials; MB_Cap is the variant's mushroom-cap colour.
+        private const string ModelFolder = Folder + "/Models";
+
+        private static readonly Dictionary<MudModels.Kind, string> BuildingModels = new Dictionary<MudModels.Kind, string>
+        {
+            [MudModels.Kind.StiltShack] = "MudStiltShack", [MudModels.Kind.Cabin] = "MudCabin", [MudModels.Kind.DrivingSchool] = "MudDrivingSchool",
+            [MudModels.Kind.Kiosk] = "MudKiosk", [MudModels.Kind.Sawmill] = "MudSawmill", [MudModels.Kind.Outhouse] = "MudOuthouse",
+            [MudModels.Kind.WitchHut] = "MudWitchHut", [MudModels.Kind.Roadhouse] = "MudRoadhouse", [MudModels.Kind.Windmill] = "MudWindmill",
+            [MudModels.Kind.Grandstand] = "MudGrandstand", [MudModels.Kind.BananaStand] = "MudBananaStand", [MudModels.Kind.DojoGate] = "MudDojoGate",
+            [MudModels.Kind.GasPump] = "MudGasPump",
+        };
+
+        // Colour, glow and smoothness of each Blender material name (the colours MudModels used, so nothing changes hue).
+        private static readonly Dictionary<string, (Color color, float glow)> BuildingColours = new Dictionary<string, (Color, float)>
+        {
+            ["MB_Husk"] = (new Color(0.56f, 0.5f, 0.62f), 0f), ["MB_HuskDark"] = (new Color(0.36f, 0.3f, 0.44f), 0f),
+            ["MB_Rib"] = (new Color(0.84f, 0.8f, 0.7f), 0f), ["MB_Gill"] = (new Color(0.86f, 0.7f, 0.78f), 0f),
+            ["MB_Spot"] = (new Color(0.75f, 1f, 0.88f), 1.6f), ["MB_Window"] = (MudPalette.Pod, 2.2f),
+            ["MB_Wood"] = (new Color(0.52f, 0.45f, 0.58f), 0f), ["MB_DarkWood"] = (new Color(0.32f, 0.26f, 0.38f), 0f),
+            ["MB_GreyWood"] = (new Color(0.62f, 0.6f, 0.68f), 0f), ["MB_Bark"] = (new Color(0.28f, 0.22f, 0.32f), 0f),
+            ["MB_Leaf"] = (new Color(0.16f, 0.4f, 0.42f), 0f), ["MB_LeafDark"] = (new Color(0.12f, 0.27f, 0.36f), 0f),
+            ["MB_Moss"] = (new Color(0.52f, 0.4f, 0.64f), 0f), ["MB_Orange"] = (new Color(0.93f, 0.45f, 0.12f), 0f),
+            ["MB_Stone"] = (MudPalette.Stone, 0f), ["MB_Metal"] = (MudPalette.Metal, 0f), ["MB_DarkMetal"] = (MudPalette.DarkMetal, 0f),
+            ["MB_Black"] = (MudPalette.Black, 0f), ["MB_Hull"] = (MudPalette.Hull, 0f), ["MB_HullDark"] = (MudPalette.HullDark, 0f),
+            ["MB_HullStripe"] = (MudPalette.HullStripe, 0f), ["MB_Teal"] = (new Color(0.3f, 0.95f, 0.85f), 2f), ["MB_ShipGlow"] = (MudPalette.ShipGlow, 1.5f),
+            ["MB_Red"] = (new Color(0.8f, 0.2f, 0.15f), 0f), ["MB_Cream"] = (MudPalette.Cream, 0f), ["MB_Rust"] = (MudPalette.Rust, 0f),
+            ["MB_Banana"] = (new Color(1f, 0.86f, 0.25f), 0f), ["MB_Awning"] = (new Color(0.85f, 0.15f, 0.1f), 0f),
+            ["MB_Lacquer"] = (new Color(0.45f, 0.2f, 0.12f), 0f), ["MB_WitchHat"] = (new Color(0.36f, 0.2f, 0.46f), 0f),
+            ["MB_Gourd"] = (new Color(0.86f, 0.55f, 0.22f), 0f), ["MB_Rubber"] = (MudPalette.Rubber, 0f),
+        };
+
+        private static readonly Dictionary<string, Material> BuildingMaterials = new Dictionary<string, Material>();
+
+        private static void UseBuildingModel(MudProp prop, MudModels.Kind kind, string name)
+        {
+            if (!BuildingModels.TryGetValue(kind, out string model)) return;
+            if (kind == MudModels.Kind.Cabin && name == "Sunken Chapel") model = "MudChapel";
+            string path = ModelFolder + "/" + model + ".fbx";
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (asset == null) throw new InvalidOperationException($"{path} is missing. Run tools/blender/mudlands_buildings.py in Blender.");
+            Mesh mesh = asset.GetComponentInChildren<MeshFilter>().sharedMesh;
+            Material[] source = asset.GetComponentInChildren<MeshRenderer>().sharedMaterials;
+            int cap = prop.Variant + (kind == MudModels.Kind.Sawmill ? 1 : 0); // the sawmill always took the next cap colour
+            var materials = new Material[source.Length];
+            for (int i = 0; i < source.Length; i++) materials[i] = BuildingMaterial(source[i] != null ? source[i].name : "", cap);
+            prop.UseModel(mesh, materials);
+        }
+
+        private static Material BuildingMaterial(string key, int cap)
+        {
+            bool isCap = key == "MB_Cap";
+            string id = isCap ? "Cap" + (((cap % 4) + 4) % 4) : key.Replace("MB_", "");
+            if (BuildingMaterials.TryGetValue(id, out Material found) && found != null) return found;
+            (Color color, float glow) look = isCap ? (MudModels.CapColor(cap), 0f)
+                : BuildingColours.TryGetValue(key, out var known) ? known : (Color.magenta, 0f);
+            string path = Folder + "/Materials/MudBuilding" + id + ".mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                var template = AssetDatabase.LoadAssetAtPath<Material>("Assets/Resources/SignalLost/" + (look.glow > 0f ? "MudlandsGlow" : "MudlandsLit") + ".mat");
+                material = new Material(template != null ? template : new Material(Shader.Find("Universal Render Pipeline/Lit")));
+                AssetDatabase.CreateAsset(material, path);
+            }
+            // As MudArt.Paint and MudArt.Glow: matte, flat colour; glows have no highlight (the project's bloom is unclamped).
+            material.SetColor("_BaseColor", look.color);
+            material.SetFloat("_Smoothness", look.glow > 0f ? 0f : 0.12f);
+            if (look.glow > 0f)
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", look.color * look.glow);
+                material.SetFloat("_SpecularHighlights", 0f);
+                material.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+                material.SetFloat("_EnvironmentReflections", 0f);
+                material.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            }
+            EditorUtility.SetDirty(material);
+            BuildingMaterials[id] = material;
+            return material;
         }
 
         // Quest pieces (11-20) draw their variants from their own random numbers and add no clearings, so adding them
@@ -2200,28 +2306,6 @@ namespace SignalLost.Editor
             int slash = path.LastIndexOf('/');
             EnsureFolder(path.Substring(0, slash));
             AssetDatabase.CreateFolder(path.Substring(0, slash), path.Substring(slash + 1));
-        }
-
-        /// <summary>
-        /// Points the desert's stage exit at the Mudlands, so beating the Coreworm and taking off lands you here instead
-        /// of on the demo end card. A separate, optional step because it edits the desert scene (close it first).
-        /// </summary>
-        [MenuItem("Signal Lost/Mudlands/Link Desert Exit To Mudlands")]
-        public static void LinkDesertExit()
-        {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-            Scene desert = EditorSceneManager.OpenScene(CoreSceneSetup.DesertPath, OpenSceneMode.Single);
-            int linked = 0;
-            foreach (DesertStageExit exit in Object.FindObjectsByType<DesertStageExit>(FindObjectsInactive.Include))
-            {
-                var data = new SerializedObject(exit);
-                data.FindProperty("nextStageScene").stringValue = "Mudlands";
-                data.ApplyModifiedPropertiesWithoutUndo();
-                linked++;
-            }
-            EditorSceneManager.MarkSceneDirty(desert);
-            EditorSceneManager.SaveScene(desert);
-            Debug.Log($"Linked {linked} desert stage exit(s) to the Mudlands.");
         }
 
         /// <summary>Batch entry: builds everything and saves the scene.</summary>

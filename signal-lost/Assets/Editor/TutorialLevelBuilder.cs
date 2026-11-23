@@ -804,12 +804,12 @@ namespace SignalLost.Editor
             {
                 Name = "TutorialDock", Start = start, Seaward = DockDirection, Length = 18f,
                 Role = SignalLost.World.IslandDock.Role.Departure, IslandName = "Crash Meadow",
-                DestinationScene = "DesertDunes", DestinationName = "the Desert Dunes",
+                DestinationScene = StageOrderLinker.MudlandsScene, DestinationName = "the Mudlands", // the second stage (11-22)
                 RequiredStage = SignalLost.Progression.StageProgress.Tutorial,
                 LockedMessage = "Cavendish still needs you here before you can sail."
             }, SeaLevel, Height, 20261107);
             Vector2 far = start + DockDirection * 720f;
-            IslandKit.DistantIsland(shore, "DesertIslandSilhouette", new Vector3(far.x, SeaLevel, far.y), 150f, 38f, false, 20261108);
+            IslandKit.DistantIsland(shore, StageOrderLinker.TutorialHorizonIsland, new Vector3(far.x, SeaLevel, far.y), 150f, 38f, false, 20261108);
 
             // The trail: no trees or rocks from the camp down to the dock.
             Vector2[] path = DockPath;

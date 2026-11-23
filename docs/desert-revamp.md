@@ -34,7 +34,7 @@ The map grows by 60 m on every side. To keep the risk low, the three arenas, the
 | **The Dry Wash** | From the canyon mouth south-east across the middle to the sea | A dried riverbed: a sunken, pebbled channel with dead trees and bleached driftwood, crossing the old crash streak | Travel, scenery |
 | **Table Mesa** | North-east, (130, 110) | A big flat-topped mesa with a ramp path up; a lookout over the whole map | Scenery, short cut down to the Speedway |
 | **Core Worm's bowl** | (38, 92), unchanged | Arena and lair unchanged. Gus's **thumper** is set up on the rim | The Thumper |
-| **Departure dock** | North shore | Unchanged (the boat to the Mudlands) | The end |
+| **Departure dock** | North shore | Unchanged; since 11-22 its boat sails on to the Crystal Caves (the Mudlands is now sailed before the desert) | The end |
 
 **Desert trees** are scattered by area: alien palms at the oasis, spiky Joshua-like "spindle trees" on the plateau and the flats, dead thorn trees in the Wash and round the Roost. The existing cacti, mesas, boulders and wreckage stay.
 
@@ -96,7 +96,7 @@ Each job ends with a report to Cavendish. He pays scrap, and Eugene restocks if 
     - It thumps. The bowl ripples. The worm comes up under the thumper and swallows you, and the lair fight runs as built.
 
     Dying sends you back up with the thumper still running, ready to call the worm again. This replaces "set the third trophy on the rack".
-11. **Daylight.** The way out as built (collapse, climb), then home: the fang on the rack, Cavendish's wrap-up, and the boat to the Mudlands.
+11. **Daylight.** The way out as built (collapse, climb), then home: the fang on the rack, Cavendish's wrap-up, and the boat to the Crystal Caves.
 
 ## How it's built (plan)
 

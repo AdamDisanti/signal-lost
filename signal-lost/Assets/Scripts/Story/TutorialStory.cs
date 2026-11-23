@@ -118,7 +118,7 @@ namespace SignalLost.Story
             "You did it! The Chief Toad, beaten by a space mechanic with a rusty laser. Splendid.",
             "And that crown looks rather fetching on the stand. Every chief we topple goes up there, I say.",
             "That cooling system's a start on the ship, too. There are plenty more parts out there, mind.",
-            "Rest up by the fire, mechanic. Tomorrow: the desert."
+            "Rest up by the fire, mechanic. Tomorrow: the Mudlands. Bring boots."
         };
         private const string GearUpTitle = "Kitted Out";
         private const string PondTitle = "Pond Life";
@@ -494,8 +494,8 @@ namespace SignalLost.Story
         {
             SetStage(Stage.DemoComplete);
             Signal(cavendish, false);
-            // The boat at the south-west dock sails to the next island from now on (islands, 11-07).
-            SignalLost.Progression.StageProgress.ClearStage(SignalLost.Progression.StageProgress.Tutorial, SignalLost.Progression.StageProgress.Desert);
+            // The boat at the south-west dock sails to the next island, the Mudlands, from now on (islands 11-07; order 11-22).
+            SignalLost.Progression.StageProgress.ClearStage(SignalLost.Progression.StageProgress.Tutorial, SignalLost.Progression.StageProgress.Mudlands);
             GameplayOverlay.Instance.SetQuest(ToadTitle, "Chief Toad defeated. Thanks for playing the demo! The boat at the dock past camp can take you to the next island.", true);
             DemoEndCard.Show(Timer.Finish(), Timer.Deaths);
         }

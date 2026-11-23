@@ -103,6 +103,8 @@ namespace SignalLost.Enemies.Caves
         private IEnumerator Entrance()
         {
             stage = Stage.Cutscene;
+            // The car can reach the caves (the Mudlands is sailed first since 11-22): park it for the entrance.
+            if (SignalLost.Mudlands.DrunkDriving.Instance != null) SignalLost.Mudlands.DrunkDriving.Instance.ForceEnd(false);
             var shot = new BossEntrance(this);
             shot.Begin();
             Vector3 lair = axolotl.DisguisePosition;

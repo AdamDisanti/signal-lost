@@ -21,10 +21,14 @@ namespace SignalLost.Mudlands
         [SerializeField] private float size = 1f;
         [Tooltip("Text on the kind's sign, if it has one (driving school, road signs, the roadhouse, the county line).")]
         [SerializeField] private string sign = "";
+        [Tooltip("A Blender model (tools/blender/mudlands_buildings.py) shown instead of the code-built one: the buildings, set by the level builder.")]
+        [SerializeField] private Mesh blenderModel;
+        [SerializeField] private Material[] blenderMaterials;
 
         private Transform model;
 
         public MudModels.Kind Kind => kind;
+        public int Variant => variant;
         /// <summary>A moving part made for this kind (the gong's disc), or null.</summary>
         public Transform Moving { get; private set; }
 
@@ -34,6 +38,14 @@ namespace SignalLost.Mudlands
             variant = propVariant;
             size = propSize;
             sign = signText;
+            Rebuild();
+        }
+
+        /// <summary>Shows a Blender model (and its materials) instead of the code-built one.</summary>
+        public void UseModel(Mesh mesh, Material[] materials)
+        {
+            blenderModel = mesh;
+            blenderMaterials = materials;
             Rebuild();
         }
 
@@ -54,8 +66,18 @@ namespace SignalLost.Mudlands
             OnDisable();
             model = new GameObject("Model") { hideFlags = HideFlags.DontSave }.transform;
             model.SetParent(transform, false);
-            string key = $"prop_{kind}_{variant % 4}_{size:0.00}";
-            MudArt.Part(model, "Mesh", Vector3.zero, Quaternion.identity, key, k => MudModels.Build(k, kind, variant % 4, size)).gameObject.hideFlags = HideFlags.DontSave;
+            if (blenderModel != null)
+            {
+                var mesh = new GameObject("Mesh") { hideFlags = HideFlags.DontSave };
+                mesh.transform.SetParent(model, false);
+                mesh.AddComponent<MeshFilter>().sharedMesh = blenderModel;
+                mesh.AddComponent<MeshRenderer>().sharedMaterials = blenderMaterials;
+            }
+            else
+            {
+                string key = $"prop_{kind}_{variant % 4}_{size:0.00}";
+                MudArt.Part(model, "Mesh", Vector3.zero, Quaternion.identity, key, k => MudModels.Build(k, kind, variant % 4, size)).gameObject.hideFlags = HideFlags.DontSave;
+            }
             Extras();
             foreach (Transform child in model.GetComponentsInChildren<Transform>(true)) child.gameObject.hideFlags = HideFlags.DontSave;
         }

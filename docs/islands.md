@@ -51,10 +51,16 @@ Lawson, 11-08:
 
 | Stage | Departure dock | Arrival dock | Boat needs |
 |---|---|---|---|
-| Tutorial (Crash Meadow) | Straight out behind Cavendish's camp (south-west), at the end of a cleared dirt trail | None: the game starts at the crash | The tutorial finished (`StageProgress.Tutorial` cleared, set when the demo-complete step runs) |
-| Desert Dunes | North beach past the biome exit marker; it sails to the Mudlands (Christian, 11-20; it was the Fog Forest, not built) | South beach at the player's start | The desert cleared (the Engine Core) |
-| Mudlands ([page](mudlands.md)) | None yet | The swamp dock (`DockLook.Swamp`) in a bay through the pass south of the camp | n/a |
-| Crystal Caves ([page](crystal-caves.md)) | None yet (the level's flow is still to be designed) | South-east, at the foot of a rocky cove below the camp | n/a |
+The islands are sailed in this order since 11-22 (the user: the Mudlands second, so the car is there on every stage after it): Crash Meadow, the Mudlands, the Desert Dunes, the Crystal Caves, then the finale. See [design](design.md#stage-order-themed-cars-and-wyvern-flight-11-22).
+
+| Stage | Departure dock | Arrival dock | Boat needs |
+|---|---|---|---|
+| Tutorial (Crash Meadow) | Straight out behind Cavendish's camp (south-west), at the end of a cleared dirt trail; it sails to the Mudlands | None: the game starts at the crash | The tutorial finished (`StageProgress.Tutorial` cleared, set when the demo-complete step runs) |
+| Mudlands ([page](mudlands.md)) | The same swamp dock (`alsoDeparts`); it sails to the Desert Dunes | The swamp dock (`DockLook.Swamp`) in a bay through the pass south of the camp | The Mudlands cleared (Clutch beaten, `StageProgress` "Mudlands") |
+| Desert Dunes | North beach past the biome exit marker; it sails to the Crystal Caves | South beach at the player's start | The desert cleared (the Engine Core) |
+| Crystal Caves ([page](crystal-caves.md)) | The same dock (`alsoDeparts`); nowhere yet (the Fog Forest isn't built) | South-east, at the foot of a rocky cove below the camp | Cavendish's caves wrap-up ("CrystalCavesHome") |
+
+**Signal Lost > Islands > Link Stage Order** (`Editor/StageOrderLinker.cs`) sets these boats, and the desert's stage exit, in the scenes as they stand. **Validate Stage Order** checks them. The builders set the same links when they rebuild.
 
 The tutorial's mountain ring and the desert's perimeter dunes and entrance canyon are gone. The forest belt in the tutorial now stands behind the beach.
 

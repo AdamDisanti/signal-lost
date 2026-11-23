@@ -60786,8 +60786,8 @@ MonoBehaviour:
   landing: {fileID: 5434871603325525909}
   boarding: {fileID: 4793515551834303693}
   alsoDeparts: 0
-  destinationScene: Mudlands
-  destinationName: the Mudlands
+  destinationScene: CrystalCaves
+  destinationName: the Crystal Caves
   requiredStage: Desert
   lockedMessage: Recover the Engine Core before you set sail.
 --- !u!1 &5864836075622245788

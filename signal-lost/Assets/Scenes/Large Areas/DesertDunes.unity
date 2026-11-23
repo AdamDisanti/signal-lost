@@ -12167,8 +12167,8 @@ MonoBehaviour:
   requiredParts: 0
   assumePartsCollected: 0
   returnPoint: {fileID: 2080054724}
-  nextStageScene: 
-  nextStageName: NextStage
+  nextStageScene: CrystalCaves
+  nextStageName: the Crystal Caves
   waitForArming: 1
   returnAfterCore: 0
   ambushLine: Hold on... why is the ground shaking?

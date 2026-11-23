@@ -15,7 +15,13 @@ namespace SignalLost.Mudlands
         public const string Stage = "Mudlands";
         /// <summary>The stage's main ship part (from the stage boss).</summary>
         public const string MainPart = "Landing Gear";
-        public const string NextStage = "NextStage";
+        /// <summary>The stage the Mudlands' boat sails on to (11-22: the Mudlands is the second stage, then the desert).</summary>
+        public const string NextStage = SignalLost.Progression.StageProgress.Desert;
+        /// <summary>
+        /// Set once the Learner's Permit has been earned. The pockets don't carry between scenes yet (the save system's
+        /// job), so this flag is what keeps Drunk Driving unlocked on every stage after the Mudlands in the same session.
+        /// </summary>
+        public const string PermitFlag = "permit";
 
         private static readonly HashSet<string> Flags = new HashSet<string>();
 

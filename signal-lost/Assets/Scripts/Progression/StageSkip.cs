@@ -6,13 +6,14 @@ namespace SignalLost.Progression
 {
     /// <summary>
     /// TESTING TOOL (Lawson, 11-08): jump to the next stage (right arrow, the "stage_next" key binding) or the one
-    /// before (left arrow, "stage_previous") in the order the islands are sailed: Crash Meadow (the tutorial), then the
-    /// Desert Dunes, then the Wasteland (the finale, always last; Adam, 11-09). Arriving this way counts every stage before the one you land in as finished, the way playing it
-    /// through would have left things:
+    /// before (left arrow, "stage_previous") in the order the islands are sailed (11-22): Crash Meadow (the tutorial), the
+    /// Mudlands, the Desert Dunes, the Crystal Caves, then the Wasteland (the finale, always last; Adam, 11-09). Arriving
+    /// this way counts every stage before the one you land in as finished, the way playing it through would have left things:
     /// <list type="bullet">
     /// <item>the stage is cleared, unlocking the next (so its boat sails);</item>
     /// <item>its bosses' ship parts are recovered, and its main ship part (the desert's Engine Core);</item>
-    /// <item>its bosses' trophies are on the camp's stands (the camp save remembers these, like real ones).</item>
+    /// <item>its bosses' trophies are on the camp's stands (the camp save remembers these, like real ones);</item>
+    /// <item>past the Mudlands, the Learner's Permit counts as earned, so Drunk Driving works.</item>
     /// </list>
     /// The stage you land in starts fresh, with its own quests from the beginning. Going back to the tutorial has nothing
     /// before it to finish. Past the last stage (the ending isn't built) gives a message instead. The upgrades and
@@ -23,9 +24,13 @@ namespace SignalLost.Progression
         private sealed class StageInfo
         {
             public string Id, Scene, Name, Unlocks, MainPart;
+            /// <summary>Other stage flags the stage's ending clears (the caves' dock waits for "CrystalCavesHome").</summary>
+            public string[] AlsoClears = new string[0];
+            /// <summary>Finishing it earns the Learner's Permit (the Mudlands).</summary>
+            public bool Permit;
             public (string part, string stage)[] Parts;
             public string[] Trophies;
-            /// <summary>Stands to prefer for the trophies (the tutorial's is stand 0, the desert's are 1-4).</summary>
+            /// <summary>Stands to prefer for the trophies (save slots: the tutorial's is 0, the desert's 1-4, the caves' 5-8, the Mudlands' 9).</summary>
             public int[] Stands;
         }
 
@@ -33,18 +38,30 @@ namespace SignalLost.Progression
         {
             new StageInfo
             {
-                Id = StageProgress.Tutorial, Scene = Core.SceneNames.FirstLevel, Name = "Crash Meadow", Unlocks = StageProgress.Desert,
+                Id = StageProgress.Tutorial, Scene = Core.SceneNames.FirstLevel, Name = "Crash Meadow", Unlocks = StageProgress.Mudlands,
                 Parts = new[] { ("Cooling system", StageProgress.Tutorial) },
                 Trophies = new[] { "chief_toad_crown" }, Stands = new[] { 0 }
             },
             new StageInfo
             {
-                Id = StageProgress.Desert, Scene = "DesertDunes", Name = "the Desert Dunes", Unlocks = "NextStage", MainPart = "Engine Core",
+                Id = StageProgress.Mudlands, Scene = "Mudlands", Name = "the Mudlands", Unlocks = StageProgress.Desert, MainPart = "Landing Gear",
+                Parts = new[] { ("Auxiliary Starter Motor", StageProgress.Mudlands), ("Gyro Stabilizer", StageProgress.Mudlands), ("Antigrav Coil", StageProgress.Mudlands) },
+                Trophies = new[] { "clutch_aviators" }, Stands = new[] { 9 }, Permit = true
+            },
+            new StageInfo
+            {
+                Id = StageProgress.Desert, Scene = "DesertDunes", Name = "the Desert Dunes", Unlocks = StageProgress.CrystalCaves, MainPart = "Engine Core",
                 Parts = new[] { ("Wing panels", StageProgress.Desert), ("Rocket thruster", StageProgress.Desert), ("Fuel tank", StageProgress.Desert) },
                 Trophies = new[] { "old_buzzard_feathers", "burnout_thorns", "sludge_stinger", "core_worm_fang" }, Stands = new[] { 1, 2, 3, 4 }
             },
-            // The finale stays last; the islands in between (Mudlands, Fog Forest, Crystal Caves) go above it once
-            // their order is decided (Adam, 11-09).
+            new StageInfo
+            {
+                Id = StageProgress.CrystalCaves, Scene = "CrystalCaves", Name = "the Crystal Caves", Unlocks = "NextStage", MainPart = "Flight Control Module",
+                AlsoClears = new[] { "CrystalCavesHome" },
+                Parts = new[] { ("Signal amplifier", StageProgress.CrystalCaves), ("Antenna array", StageProgress.CrystalCaves), ("Power cell", StageProgress.CrystalCaves) },
+                Trophies = new[] { "beetles_elytra", "shard_mole_hide", "geode_bear_claw", "cave_axolotl_gill" }, Stands = new[] { 5, 6, 7, 8 }
+            },
+            // The finale stays last (Adam, 11-09). The Fog Forest isn't built; it would go before the finale.
             new StageInfo
             {
                 Id = StageProgress.Finale, Scene = "Wasteland", Name = "the Wasteland (finale)",
@@ -73,7 +90,7 @@ namespace SignalLost.Progression
             int current = CurrentIndex;
             if (current < 0)
             {
-                MiniBossHud.Message("TESTING TOOL: stage skip only works in a stage scene (Crash Meadow, the Desert Dunes, the Wasteland).", new Color(1f, 0.85f, 0.3f), 3f);
+                MiniBossHud.Message("TESTING TOOL: stage skip only works in a stage scene (Crash Meadow, the Mudlands, the Desert Dunes, the Crystal Caves, the Wasteland).", new Color(1f, 0.85f, 0.3f), 3f);
                 return;
             }
             int target = current + step;
@@ -122,6 +139,8 @@ namespace SignalLost.Progression
                 foreach ((string part, string partStage) in stage.Parts) ShipPartDrop.Record(part, partStage);
                 if (!string.IsNullOrEmpty(stage.MainPart)) StageProgress.RecoverMainPart(stage.MainPart);
                 StageProgress.ClearStage(stage.Id, stage.Unlocks);
+                foreach (string also in stage.AlsoClears) StageProgress.ClearStage(also, null);
+                if (stage.Permit) SignalLost.Mudlands.MudlandsProgress.Set(SignalLost.Mudlands.MudlandsProgress.PermitFlag);
                 for (int t = 0; t < stage.Trophies.Length; t++) PlaceTrophy(stage.Trophies[t], t < stage.Stands.Length ? stage.Stands[t] : 0);
             }
         }
