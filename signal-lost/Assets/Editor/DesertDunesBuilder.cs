@@ -51,13 +51,13 @@ namespace SignalLost.Editor
 
         // ---------- Layout (meters; +Z is north) ----------
 
-        private const float MapSize = 320f;   // same footprint as the tutorial crash site
-        private const int Cells = 80;         // 4 m facets
-        private const float PlayableRadius = 128f;
+        private const float MapSize = 440f;   // (11-22, the revamp) grown from 320 m; the 4 m grid lines up with the old one
+        private const int Cells = 110;        // 4 m facets
+        private const float PlayableRadius = 188f;
         /// <summary>The sea round the island (11-07: the perimeter dune wall became a beach; see IslandKit).</summary>
         public const float SeaLevel = -0.5f;
 
-        private static readonly Vector3 SpawnPoint = new Vector3(0f, 0f, -132f);
+        private static readonly Vector3 SpawnPoint = new Vector3(0f, 0f, -192f); // on the new south beach (11-22)
 
         private struct Site
         {
@@ -67,7 +67,7 @@ namespace SignalLost.Editor
             public Site(string name, float x, float z, float radius) { Name = name; Center = new Vector2(x, z); Radius = radius; }
         }
 
-        private static readonly Site Entrance = new Site("Biome Entrance", 0f, -122f, 14f);
+        private static readonly Site Entrance = new Site("Biome Entrance", 0f, -182f, 14f);
         // The three mini-boss arenas (11-08: each themed on its boss; they were 16 m hermit-crab sites).
         private static readonly Site[] Encounters =
         {
@@ -80,7 +80,7 @@ namespace SignalLost.Editor
         private const float SumpRadius = 16f, SumpDepth = 1.4f;
         private static readonly Site BossArena = new Site("Boss Arena", 38f, 92f, 26f);
         /// <summary>Cavendish's camp (its fire), just inland of the arrival dock, beside the biome entrance.</summary>
-        private static readonly Vector2 CampOrigin = new Vector2(9f, -116f);
+        private static readonly Vector2 CampOrigin = new Vector2(9f, -176f);
         private const string CampName = "Cavendish's Camp";
 
         // Crash streak: debris was flung from the south-west toward the boss arena.
@@ -235,7 +235,9 @@ namespace SignalLost.Editor
             actor.ApplyModifiedPropertiesWithoutUndo();
             var voice = new GameObject("Cavendish Dialogue");
             voice.transform.SetParent(cavendish.transform, false);
-            voice.transform.localPosition = new Vector3(0f, 2.45f, 0f);
+            // Just over his helmet, where Cavendish Everywhere puts it (the prefab's DialogueAnchor).
+            Transform anchor = cavendish.transform.Find("DialogueAnchor");
+            voice.transform.localPosition = anchor != null ? anchor.localPosition : new Vector3(0f, 2.45f, 0f);
             var dialogue = new SerializedObject(voice.AddComponent<NpcDialogue>());
             dialogue.FindProperty("speaker").stringValue = "Cavendish";
             dialogue.ApplyModifiedPropertiesWithoutUndo();
@@ -266,7 +268,7 @@ namespace SignalLost.Editor
         {
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<SignalLost.World.IslandCamp>() == 1, "Expected one camp in the desert.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<SignalLost.World.StageTheme>() == 1, "Expected one stage theme in the desert.");
-            EnemyTestBuilder.Require(EnemyTestBuilder.Count<NpcActor>() == 2, "Expected Cavendish and Eugene in the desert.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.All<NpcActor>().FindAll(n => n.Kind != NpcActor.Role.Local).Count == 2, "Expected Cavendish and Eugene in the desert.");
             var camp = Object.FindAnyObjectByType<SignalLost.World.IslandCamp>();
             EnemyTestBuilder.Require(camp.Cavendish != null && camp.Merchant != null && camp.CavendishSeat != null && camp.MerchantSeat != null,
                 "The desert camp is missing its residents or seats.");
@@ -358,6 +360,9 @@ namespace SignalLost.Editor
         private static float Height(float x, float z)
         {
             float h = DuneHeight(x, z);
+
+            // The revamp's canyon, plateau, wash, oasis, mesa, lookout and salt flat (11-22, DesertDunesLandforms.cs).
+            h = Landforms(x, z, h);
 
             // Flatten gameplay spaces so fights and spawns happen on fair ground.
             foreach (Site site in AllSites())
@@ -548,8 +553,6 @@ namespace SignalLost.Editor
             lidMesh = SaveMesh(lidMesh);
             Mesh boulder = SaveMesh(LowPolyMesh.Icosphere("DesertBoulder", 0));
             Mesh pebble = SaveMesh(LowPolyMesh.Icosphere("DesertRoundRock", 1));
-            Mesh mesa6 = SaveMesh(LowPolyMesh.TaperedPrism("DesertMesa6", 6, 0.78f));
-            Mesh mesa7 = SaveMesh(LowPolyMesh.TaperedPrism("DesertMesa7", 7, 0.7f));
             Mesh spire = SaveMesh(LowPolyMesh.TaperedPrism("DesertSpire", 5, 0.35f));
             Mesh rib = SaveMesh(LowPolyMesh.TaperedPrism("DesertRib", 5, 0.15f));
             Mesh panel = AssetDatabase.LoadAssetAtPath<Mesh>(ShipPanelMeshPath);
@@ -593,23 +596,23 @@ namespace SignalLost.Editor
 
             // Mesas: big flat-topped landmarks, visible from far away.
             Transform mesas = Group("Mesas", root.transform);
-            for (int n = 0, tries = 0; n < 12 && tries < 500; tries++)
+            for (int n = 0, tries = 0; n < 18 && tries < 800; tries++)
             {
-                Vector2 p = RandomPoint(rng, 112f);
+                Vector2 p = RandomPoint(rng, 172f);
                 if (!Clear(p, 22f, placed, 30f)) continue;
-                float radius = Range(rng, 6f, 12f), height = Range(rng, 7f, 15f);
-                Solid(n % 2 == 0 ? mesa6 : mesa7, "Mesa " + (n + 1), mesas, OnGround(p.x, p.y, 1.5f),
-                    Quaternion.Euler(-90f, Range(rng, 0f, 360f), 0f), new Vector3(radius, radius * Range(rng, 0.7f, 1f), height),
-                    rng.NextDouble() < 0.5 ? mats["RockLight"] : mats["RockDark"], false);
+                // (11-22) Eroded Blender buttes in place of the hexagonal prisms (Lawson: "pretty blocky").
+                float across = Range(rng, 0.55f, 1.05f), tall = Range(rng, 0.7f, 1.2f);
+                Scenery(n % 3 == 0 ? "DesertButteA" : n % 3 == 1 ? "DesertButteB" : "DesertButteC", "Mesa " + (n + 1), mesas, OnGround(p.x, p.y, 0.9f),
+                    Quaternion.Euler(0f, Range(rng, 0f, 360f), 0f), new Vector3(across, tall, across * Range(rng, 0.85f, 1.15f)), Collision.Mesh);
                 placed.Add(new Vector3(p.x, 0f, p.y));
                 n++;
             }
 
             // Boulders: cover and scatter.
             Transform rocks = Group("Rocks", root.transform);
-            for (int n = 0, tries = 0; n < 70 && tries < 2000; tries++)
+            for (int n = 0, tries = 0; n < 110 && tries < 3000; tries++)
             {
-                Vector2 p = RandomPoint(rng, 122f);
+                Vector2 p = RandomPoint(rng, 180f);
                 if (!Clear(p, 6f, placed, 4f)) continue;
                 float s = Range(rng, 0.6f, 2.8f);
                 bool round = rng.NextDouble() < 0.4;
@@ -623,9 +626,9 @@ namespace SignalLost.Editor
 
             // Goofy alien cacti: teal stems with pink bulbs.
             Transform plants = Group("Alien Plants", root.transform);
-            for (int n = 0, tries = 0; n < 34 && tries < 2000; tries++)
+            for (int n = 0, tries = 0; n < 52 && tries < 3000; tries++)
             {
-                Vector2 p = RandomPoint(rng, 118f);
+                Vector2 p = RandomPoint(rng, 178f);
                 if (!Clear(p, 5f, placed, 3f)) continue;
                 Cactus(rng, "Alien Cactus " + (n + 1), plants, p, mats["Cactus"], mats["Bulb"]);
                 placed.Add(new Vector3(p.x, 0f, p.y));
@@ -649,6 +652,7 @@ namespace SignalLost.Editor
                 }
             }
             BuildMiniBossArenas(root.transform, mats, wreckMats, panel);
+            BuildLandforms(root.transform);
 
             // Bones of something big: ribs arching out of the sand near the middle of the map.
             Transform bones = Group("Giant Ribcage", root.transform);
@@ -667,6 +671,7 @@ namespace SignalLost.Editor
 
             // Boss arena ring: tall spires around the bowl, with openings to the south and west.
             Transform arena = Group("Boss Arena Spires", root.transform);
+            rng = new Random(20261108); // (11-22) their own seed, so the bowl stays put whatever is scattered before it
             for (int n = 0; n < 16; n++)
             {
                 float a = n * Mathf.PI * 2f / 16f;
@@ -688,6 +693,12 @@ namespace SignalLost.Editor
                 engine.transform.SetParent(root.transform, false);
                 engine.transform.SetPositionAndRotation(OnGround(BossArena.Center.x + 6f, BossArena.Center.y + 8f, 0.6f), Quaternion.Euler(28f, 140f, 12f));
                 engine.transform.localScale = Vector3.one * 2.2f;
+                // (11-11) The bowl's sand had swallowed it almost whole, leaving grey slivers poking out that read as stray
+                // geometry: lift it so its middle sits at the sand and a clear half of the engine shows.
+                var wreckBounds = new Bounds(engine.transform.position, Vector3.zero);
+                foreach (Renderer part in engine.GetComponentsInChildren<Renderer>()) wreckBounds.Encapsulate(part.bounds);
+                float sand = Ground(wreckBounds.center.x, wreckBounds.center.z);
+                engine.transform.position += Vector3.up * (sand + wreckBounds.size.y * 0.08f - wreckBounds.center.y);
             }
 
             return EnemyTestBuilder.SavePrefab(root, EnvironmentPrefabPath);
@@ -787,7 +798,7 @@ namespace SignalLost.Editor
                 Role = SignalLost.World.IslandDock.Role.Arrival, IslandName = "The Desert Dunes"
             }, SeaLevel, Ground, 20261109);
 
-            Vector2 exit = new Vector2(BossArena.Center.x - 40f, BossArena.Center.y + 18f);
+            Vector2 exit = new Vector2(BossArena.Center.x - 40f, BossArena.Center.y + 58f); // (11-22) out to the new north beach
             Vector2 departure = IslandKit.ShoreStart(exit, Vector2.up, Ground, SeaLevel);
             IslandKit.BuildDock(shore, new IslandKit.DockSpec
             {
@@ -839,7 +850,7 @@ namespace SignalLost.Editor
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = new Color(0.91f, 0.79f, 0.63f);
             RenderSettings.fogStartDistance = 45f;
-            RenderSettings.fogEndDistance = 260f;
+            RenderSettings.fogEndDistance = 300f;
         }
 
         private static void BuildPlayer(GameObject playerPrefab, InputActionAsset input, Material beam, GameObject scannerRig, GameObject hudPrefab)
@@ -908,10 +919,10 @@ namespace SignalLost.Editor
             {
                 var capybara = (GameObject)PrefabUtility.InstantiatePrefab(capybaraPrefab, markers);
                 capybara.name = "Cavendish (quest giver)";
-                capybara.transform.SetPositionAndRotation(OnGround(5f, -122f), Quaternion.Euler(0f, 210f, 0f));
+                capybara.transform.SetPositionAndRotation(OnGround(Entrance.Center.x + 5f, Entrance.Center.y), Quaternion.Euler(0f, 210f, 0f));
             }
 
-            Marker("Merchant Spot (hermit crab merchant goes here)", markers, OnGround(-6f, -120f));
+            Marker("Merchant Spot (hermit crab merchant goes here)", markers, OnGround(Entrance.Center.x - 6f, Entrance.Center.y + 2f));
             Marker("Boss Spawn (Tech-Enhanced Hermit Crab goes here)", markers, OnGround(BossArena.Center.x, BossArena.Center.y));
             Marker("Engine Core Drop (boss reward)", markers, OnGround(BossArena.Center.x, BossArena.Center.y - 4f));
             Marker("Biome Exit (to Fog Forest, not built)", markers, OnGround(BossArena.Center.x - 40f, BossArena.Center.y + 18f));
@@ -1024,7 +1035,8 @@ namespace SignalLost.Editor
         private static bool Clear(Vector2 p, float siteMargin, List<Vector3> placed, float spacing)
         {
             if (InsideAnySite(p, siteMargin)) return false;
-            if (Mathf.Abs(p.x) < 8f && p.y < -100f) return false; // entrance canyon
+            if (Mathf.Abs(p.x) < 8f && p.y < Entrance.Center.y + 20f) return false; // the way up from the dock
+            if (InLandform(p, 2f)) return false;                   // (11-22) the canyon, plateau, oasis and the rest
             if (!InsidePlayable(p, 8f)) return false;              // not up on the perimeter wall
             if (Vector2.Distance(p, RibcageCenter) < 14f) return false;
             foreach (Vector3 other in placed)

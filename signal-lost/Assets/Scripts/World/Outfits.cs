@@ -77,7 +77,7 @@ namespace SignalLost.World
         /// <summary>Dresses an NPC for <paramref name="look"/> (once). The meadow look is the models as they are.</summary>
         public static void Dress(NpcActor actor, IslandLook look)
         {
-            if (actor == null || look == IslandLook.Meadow || actor.transform.Find(Marker) != null) return;
+            if (actor == null || look == IslandLook.Meadow || actor.Kind == NpcActor.Role.Local || actor.transform.Find(Marker) != null) return;
             new GameObject(Marker).transform.SetParent(actor.transform, false);
             if (actor.Kind == NpcActor.Role.Cavendish) DressCavendish(actor.transform);
             else DressMerchant(actor.transform);

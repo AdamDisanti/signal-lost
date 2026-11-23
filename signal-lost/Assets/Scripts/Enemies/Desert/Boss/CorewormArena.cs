@@ -12,8 +12,9 @@ namespace SignalLost.Enemies.Desert
     /// - Phase 1: clear, open dunes.
     /// - Phase 2: a sandstorm. Thick sand fog, sand streaming past, a steady wind pushing the player, wandering sand
     ///   cyclones that drag them in, and fodder pouring in.
-    /// - Phase 3: collapse. Floor tiles shake and crack, then fall away in waves, leaving pits and islands around the
-    ///   rock pillars. Falling in hurts and drops you back on the nearest solid ground.
+    /// - Phase 3: collapse. Floor tiles shake and crack, then fall away in waves into the lava pit under the floor,
+    ///   leaving gaps of lava and islands around the rock pillars. Falling in burns and drops you back on the nearest
+    ///   solid ground.
     /// - Phase 4: meltdown. Lanes of fire sweep across what is left, so the safe spots keep moving.
     /// Everything is put back by <see cref="ResetArena"/> (the player died) and calmed by <see cref="Settle"/> (the boss died).
     /// </summary>
@@ -47,6 +48,8 @@ namespace SignalLost.Enemies.Desert
         [Tooltip("Tiles this close to cover or the drop point never fall.")]
         [SerializeField, Min(0f)] private float safeRadius = 5f;
         [SerializeField, Min(0f)] private float pitDamage = 20f;
+        [Tooltip("How far below the floor the lava lies (the level builder puts the lava pit there).")]
+        [SerializeField, Min(2f)] private float lavaDepth = 7f;
 
         [Header("Meltdown (phase 4)")]
         [SerializeField, Min(0.5f)] private float fireLaneInterval = 2.6f;
@@ -297,11 +300,26 @@ namespace SignalLost.Enemies.Desert
             foreach (Collider collider in tile.GetComponentsInChildren<Collider>()) collider.enabled = false;
             ParticleBurst.Spawn(ParticleBurst.Kind.Sand, rest + Vector3.up * 0.3f, Vector3.up, 16, 1.4f, 4f, 70f);
             CameraShake.Add(0.06f);
+            // It drops into the lava, splashes, and sinks out of sight.
             float fall = 0f;
-            while (fall < 1.5f && fallen.Contains(tile))
+            bool splashed = false;
+            while (fall < 3f && fallen.Contains(tile))
             {
                 fall += Time.deltaTime;
-                tile.position = rest + Vector3.down * (fall * fall * 14f);
+                float drop = fall * fall * 14f;
+                if (drop >= lavaDepth - 0.5f)
+                {
+                    if (!splashed)
+                    {
+                        splashed = true;
+                        ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, new Vector3(rest.x, GroundY - lavaDepth + 0.3f, rest.z), Vector3.up, 8, 1.4f, 4f, 50f);
+                        ParticleBurst.Spawn(ParticleBurst.Kind.Sparks, new Vector3(rest.x, GroundY - lavaDepth + 0.3f, rest.z), Vector3.up, 10, 0.3f, 7f, 40f);
+                    }
+                    // Sinks slowly once it hits the lava.
+                    drop = lavaDepth - 0.5f + (fall - Mathf.Sqrt((lavaDepth - 0.5f) / 14f)) * 1.5f;
+                    if (drop > lavaDepth + 1.5f) break;
+                }
+                tile.position = rest + Vector3.down * drop;
                 yield return null;
             }
             if (fallen.Contains(tile) && renderer != null) renderer.enabled = false;
@@ -356,16 +374,17 @@ namespace SignalLost.Enemies.Desert
             if (player == null || playerBody == null || !playerBody.enabled) return;
             if (storm) playerBody.Move(wind * windSpeed * Time.deltaTime);
 
-            // Fell into a pit: hurt, and hauled back up onto the nearest solid floor.
-            if (Active && Flat(player.position - Centre) < radius + 6f && player.position.y < GroundY - 3f)
+            // Fell into the lava: burned, and hauled back up onto the nearest solid floor.
+            if (Active && Flat(player.position - Centre) < radius + 6f && player.position.y < GroundY - lavaDepth + 1.2f)
             {
                 Vector3 safeSpot = NearestSolid(player.position) + Vector3.up * 0.2f;
                 playerBody.enabled = false;
                 player.position = safeSpot;
                 playerBody.enabled = true;
                 if (playerHealth != null) playerHealth.TakeDamage(pitDamage, gameObject);
-                ParticleBurst.Spawn(ParticleBurst.Kind.Sand, safeSpot, Vector3.up, 14, 0.8f, 3f, 60f);
-                MiniBossHud.Message("You fell into the pit!", new Color(1f, 0.7f, 0.5f), 1.5f);
+                ParticleBurst.Spawn(ParticleBurst.Kind.Fireball, new Vector3(player.position.x, GroundY - lavaDepth + 0.5f, player.position.z), Vector3.up, 10, 1.4f, 5f, 50f);
+                ParticleBurst.Spawn(ParticleBurst.Kind.Smoke, safeSpot, Vector3.up, 6, 1f, 2f, 40f);
+                MiniBossHud.Message("You fell into the lava!", new Color(1f, 0.55f, 0.25f), 1.5f);
             }
         }
 
