@@ -39,7 +39,11 @@ namespace SignalLost.Mudlands
             new Color(0.2f, 0.5f, 0.52f), new Color(0.5f, 0.3f, 0.62f), new Color(0.72f, 0.3f, 0.45f), new Color(0.25f, 0.42f, 0.62f)
         };
 
-        /// <summary>Builds a kind (variant picks between looks, size scales lengths where it applies).</summary>
+        /// <summary>A variant's mushroom-cap colour (the Blender buildings' MB_Cap material).</summary>
+        public static Color CapColor(int index) => Caps[((index % Caps.Length) + Caps.Length) % Caps.Length];
+
+        /// <summary>Builds a kind (variant picks between looks, size scales lengths where it applies). The buildings are
+        /// Blender models since 11-22 (MudProp.UseModel); their code here is only the fallback when no model is set.</summary>
         public static void Build(MeshKit k, Kind kind, int variant, float size = 1f)
         {
             var random = new System.Random(variant * 7919 + (int)kind * 104729);
@@ -118,12 +122,13 @@ namespace SignalLost.Mudlands
                 case Kind.LilyPads:
                     for (int i = 0; i < 5; i++)
                     {
-                        Vector3 c = new Vector3(R(-1.5f, 1.5f), 0.02f, R(-1.5f, 1.5f));
+                        // Each pad floats at its own height (11-22): overlapping pads of the two colours z-fought.
+                        Vector3 c = new Vector3(R(-1.5f, 1.5f), 0.03f + i * 0.025f, R(-1.5f, 1.5f));
                         float r = R(0.3f, 0.55f);
                         k.Prism(c, Quaternion.Euler(0f, R(0f, 360f), 0f), r, r, 0.02f, 9, i % 2 == 0 ? MudPalette.Moss : MudPalette.Grass);
                         if (i % 2 == 0)
                             for (int p = 0; p < 5; p++)
-                                k.Cone(c + Vector3.up * 0.02f, Quaternion.Euler(R(30f, 55f), p * 72f, 0f), 0.06f, 0.18f, 3, MudPalette.Lily);
+                                k.Cone(c + Vector3.up * 0.035f, Quaternion.Euler(R(30f, 55f), p * 72f, 0f), 0.06f, 0.18f, 3, MudPalette.Lily); // a little up, so no petal lies flat on the pad
                     }
                     break;
                 case Kind.Mushrooms:
@@ -144,7 +149,7 @@ namespace SignalLost.Mudlands
                     break;
                 case Kind.Stump:
                     k.Prism(Vector3.zero, Quaternion.identity, 0.7f, 0.55f, 0.7f, 7, Bark);
-                    k.Prism(new Vector3(0f, 0.7f, 0f), Quaternion.identity, 0.53f, 0.53f, 0.02f, 7, Wood);
+                    k.Prism(new Vector3(0f, 0.68f, 0f), Quaternion.identity, 0.53f, 0.53f, 0.05f, 7, Wood); // the cut top 3 cm proud of the bark
                     break;
                 case Kind.Log:
                     k.Rod(new Vector3(-2.2f, 0.4f, 0f), new Vector3(2.2f, 0.4f, 0f), 0.4f, 7, Bark, 0f, 0.35f);
@@ -185,7 +190,7 @@ namespace SignalLost.Mudlands
                     for (int i = 0; i < 2; i++)
                     {
                         k.Box(new Vector3(0f, 0.8f + i * 0.45f, 0f), new Vector3(3.8f, 0.3f, 0.08f), Rib);
-                        for (int s = 0; s < 5; s++) k.Box(new Vector3(-1.5f + s * 0.75f, 0.8f + i * 0.45f, 0.045f), new Vector3(0.3f, 0.3f, 0.02f), Quaternion.Euler(0f, 0f, 35f), Orange);
+                        for (int s = 0; s < 5; s++) k.Box(new Vector3(-1.5f + s * 0.75f, 0.8f + i * 0.45f, 0.055f), new Vector3(0.3f, 0.3f, 0.05f), Quaternion.Euler(0f, 0f, 35f), Orange); // 4 cm proud of the board
                     }
                     k.Box(new Vector3(0f, 1.75f, 0.06f), new Vector3(1.8f, 0.45f, 0.05f), DarkWood); // ROAD CLOSED
                     break;
@@ -201,8 +206,8 @@ namespace SignalLost.Mudlands
                 case Kind.HayBale:
                     // A bale of dried sage-green swamp grass.
                     k.Box(new Vector3(0f, 0.45f, 0f), new Vector3(1.6f, 0.9f, 1f), new Color(0.62f, 0.72f, 0.55f));
-                    k.Box(new Vector3(-0.4f, 0.45f, 0f), new Vector3(0.05f, 0.92f, 1.02f), HuskDark);
-                    k.Box(new Vector3(0.4f, 0.45f, 0f), new Vector3(0.05f, 0.92f, 1.02f), HuskDark);
+                    k.Box(new Vector3(-0.4f, 0.45f, 0f), new Vector3(0.06f, 0.96f, 1.06f), HuskDark); // bands 3 cm proud (they were 1 cm and flickered)
+                    k.Box(new Vector3(0.4f, 0.45f, 0f), new Vector3(0.06f, 0.96f, 1.06f), HuskDark);
                     break;
                 case Kind.MoonshineBarrel:
                     k.Lathe(Vector3.zero, Quaternion.identity, new[] { new Vector2(0.0001f, 0f), new Vector2(0.38f, 0f), new Vector2(0.44f, 0.5f), new Vector2(0.38f, 1f), new Vector2(0.0001f, 1f) }, 10, new Color(0.5f, 0.32f, 0.18f));
@@ -258,7 +263,7 @@ namespace SignalLost.Mudlands
                 {
                     float length = 10f * size;
                     for (int i = 0; i < Mathf.RoundToInt(length / 0.5f); i++)
-                        k.Box(new Vector3(0f, 0f, -length * 0.5f + 0.25f + i * 0.5f), new Vector3(3.6f, 0.12f, 0.44f), Quaternion.Euler(0f, R(-2f, 2f), 0f), i % 3 == 0 ? GreyWood : Wood);
+                        k.Box(new Vector3(0f, (i % 2) * 0.025f, -length * 0.5f + 0.25f + i * 0.5f), new Vector3(3.6f, 0.12f, 0.44f), Quaternion.Euler(0f, R(-2f, 2f), 0f), i % 3 == 0 ? GreyWood : Wood); // every other plank 2.5 cm up: skewed neighbours overlapped at one height
                     foreach (float x in new[] { -1.9f, 1.9f })
                     {
                         for (float z = -length * 0.5f; z <= length * 0.5f + 0.01f; z += 2.5f) k.Rod(new Vector3(x, -1.5f, z), new Vector3(x, 1f, z), 0.12f, 5, DarkWood);
@@ -270,7 +275,7 @@ namespace SignalLost.Mudlands
                 {
                     float length = 6f * size;
                     for (int i = 0; i < Mathf.RoundToInt(length / 0.45f); i++)
-                        k.Box(new Vector3(0f, 0f, -length * 0.5f + 0.22f + i * 0.45f), new Vector3(2f, 0.1f, 0.4f), Quaternion.Euler(R(-2f, 2f), R(-3f, 3f), 0f), i % 4 == 0 ? GreyWood : Wood);
+                        k.Box(new Vector3(0f, (i % 2) * 0.025f, -length * 0.5f + 0.22f + i * 0.45f), new Vector3(2f, 0.1f, 0.4f), Quaternion.Euler(R(-2f, 2f), R(-3f, 3f), 0f), i % 4 == 0 ? GreyWood : Wood);
                     for (float z = -length * 0.5f; z <= length * 0.5f + 0.01f; z += 2f)
                         foreach (float x in new[] { -0.9f, 0.9f }) k.Rod(new Vector3(x, -1.2f, z), new Vector3(x, 0.05f, z), 0.08f, 5, DarkWood);
                     break;
@@ -331,7 +336,7 @@ namespace SignalLost.Mudlands
                     k.Prism(Vector3.zero, Quaternion.identity, 0.35f, 0.3f, 0.2f, 6, MudPalette.Stone);
                     k.Prism(new Vector3(0f, 0.2f, 0f), Quaternion.identity, 0.12f, 0.12f, 0.8f, 6, MudPalette.Stone);
                     k.Box(new Vector3(0f, 1.2f, 0f), new Vector3(0.5f, 0.4f, 0.5f), MudPalette.Stone);
-                    k.Box(new Vector3(0f, 1.2f, 0f), new Vector3(0.3f, 0.25f, 0.52f), MudPalette.Lantern, 3f);
+                    k.Box(new Vector3(0f, 1.2f, 0f), new Vector3(0.3f, 0.25f, 0.56f), MudPalette.Lantern, 3f); // the light 3 cm proud of the stone
                     k.Cone(new Vector3(0f, 1.4f, 0f), Quaternion.identity, 0.55f, 0.35f, 6, MudPalette.Stone);
                     break;
                 case Kind.Roadhouse:
@@ -741,9 +746,9 @@ namespace SignalLost.Mudlands
                     Box(new Vector3(0f, h * 0.5f, 0f), new Vector3(w, h, d));
                     Slab(new Vector2(-w * 0.62f, h), new Vector2(0f, h + rise), d * 1.1f, 0.5f);
                     Slab(new Vector2(w * 0.62f, h), new Vector2(0f, h + rise), d * 1.1f, 0.5f);
-                    Box(new Vector3(0f, 0.3f, 4.6f), new Vector3(11f, 0.25f, 2.4f)); // the porch
-                    foreach (float x in new[] { -5f, -1.6f, 1.6f, 5f }) Box(new Vector3(x, 1.75f, 5.6f), new Vector3(0.35f, 2.9f, 0.35f));
-                    Box(new Vector3(0f, 3.25f, 4.9f), new Vector3(11.4f, 0.25f, 2.8f), new Vector3(-8f, 0f, 0f), true); // the leaf awning
+                    Box(new Vector3(0f, 0.16f, 5.53f), new Vector3(11f, 0.52f, 1.2f)); // the porch
+                    foreach (float x in new[] { -5f, -1.6f, 1.6f, 5f }) Box(new Vector3(x, 2.15f, 5.6f), new Vector3(0.35f, 3.7f, 0.35f));
+                    Box(new Vector3(0f, 4.07f, 5.66f), new Vector3(11.5f, 0.25f, 1.62f), new Vector3(21.9f, 0f, 0f), true); // the leaf awning, above the windows
                     Box(new Vector3(0f, 6.6f, 5.62f), new Vector3(7f, 1.4f, 0.3f), default, true); // the sign
                     break;
                 }
@@ -775,7 +780,7 @@ namespace SignalLost.Mudlands
                     break;
                 case Kind.Grandstand:
                     for (int i = 0; i < 4; i++) Box(new Vector3(0f, (0.36f + i * 0.5f) * 0.5f, -i * 0.8f), new Vector3(10f, 0.36f + i * 0.5f, 0.8f)); // steps you can climb
-                    Box(new Vector3(0f, 3.4f, -2.8f), new Vector3(10.4f, 0.2f, 1.4f), new Vector3(-10f, 0f, 0f), true);
+                    Box(new Vector3(0f, 3.4f, -2.6f), new Vector3(10.4f, 0.2f, 1.8f), new Vector3(-10f, 0f, 0f), true);
                     break;
                 case Kind.BananaStand:
                     Box(new Vector3(0f, 0.6f, 0f), new Vector3(2.5f, 1.2f, 1.2f));
