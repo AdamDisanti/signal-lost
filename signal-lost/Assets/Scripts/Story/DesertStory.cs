@@ -12,7 +12,14 @@ using UnityEngine;
 namespace SignalLost.Story
 {
     /// <summary>
-    /// The Desert Dunes' story (11-08): Cavendish's three jobs against the Chop Shop, then the Core Worm.
+    /// The Desert Dunes' story. Being revamped act by act (docs/desert-revamp.md, 11-22); built so far: <b>Act 1,
+    /// Breakfast</b>. Cavendish is starving and sends the player round the desert's nests for four big speckled eggs
+    /// ("abandoned, I'm sure"); Doris at Mirage Springs knows exactly whose they are. Back at camp they cook an omelet
+    /// together (<see cref="CookingStation"/>), and mid-breakfast Briarwing snatches the player off their seat and carries
+    /// them to its Roost (<see cref="WyvernSnatch"/>): the fight. Then Act 2 and 3 still run as the old jobs below (a task,
+    /// then the boss), until they are rebuilt.
+    ///
+    /// The original flow (11-08): Cavendish's three jobs against the Chop Shop, then the Core Worm.
     /// <list type="number">
     /// <item>Cavendish (at his camp by the arrival dock) explains that three thieves took the parts bolted round the
     /// Engine Core, and that he has put up a rack for a trophy from each.</item>
@@ -33,7 +40,8 @@ namespace SignalLost.Story
     /// </summary>
     public sealed class DesertStory : MonoBehaviour, INpcStory
     {
-        public enum Stage { Welcome, Tasks, Hunt, Fight, Loot, Report, WormWaiting, WormFight, WormLoot, Collapse, Climb, Homecoming, Done }
+        public enum Stage { Welcome, Tasks, Hunt, Fight, Loot, Report, WormWaiting, WormFight, WormLoot, Collapse, Climb, Homecoming, Done,
+            Eggs, ReportEggs, Cooking, Breakfast }
 
         /// <summary>One of Cavendish's jobs: a task, then a mini-boss.</summary>
         [Serializable]
@@ -59,6 +67,13 @@ namespace SignalLost.Story
         [SerializeField] private NpcActor cavendish;
         [SerializeField] private PlayerLife player;
 
+        [Header("Act 1: Breakfast")]
+        [Tooltip("The four nests' eggs (E to take one).")]
+        [SerializeField] private QuestTask[] eggs = Array.Empty<QuestTask>();
+        [SerializeField] private NpcActor doris;
+        [SerializeField] private CookingStation stove;
+        [SerializeField] private WyvernSnatch snatch;
+
         [Header("The Chop Shop")]
         [SerializeField] private Job[] jobs = Array.Empty<Job>();
         [Tooltip("The camp's rack for the three trophies (the scanner points here while one is carried).")]
@@ -75,17 +90,43 @@ namespace SignalLost.Story
         private static readonly string[] Welcome =
         {
             "Ah, mechanic! Found your feet? Splendid. I had a little wander while you were sleeping off the crossing.",
-            "Bad news, I'm afraid. The Engine Core isn't the only bit of your ship out here.",
-            "Three local ruffians made off with the parts bolted round it. The Chop Shop, the crabs call them.",
-            "A wyvern grown over with thorns, a drake with a rocket in its back, and a scorpion of living rock that drinks fuel.",
-            "Get the parts back, and bring me a little something from each of them. I've put up a new rack by the fire for the occasion.",
-            "Start with Briarwing. It's been shedding all over the dunes west of here. Follow the trail and you'll find its roost."
+            "The Engine Core's out here somewhere, and bits of the ship with it. The local wildlife has been... collecting them.",
+            "But first things first. I am STARVING. A capybara cannot think on an empty stomach. Science.",
+            "I've seen nests all over the place. Big ones. With big speckled eggs in them. Abandoned, I'm sure.",
+            "Bring me four and I'll make us an omelet. There's one up on the hoodoos out west, one by the springs, one on that great stone arch...",
+            "...and one in a dead tree along the dry riverbed. Your scanner will find them. Chop chop!"
+        };
+        private static readonly string[] EggReport =
+        {
+            "Four eggs! Look at the size of them. Whatever laid these must be enormous. And very far away. Abandoned, as I said.",
+            "Right. I'll do the talking, you do the cooking. I've got a pan on the fire.",
+            "Crack, whisk, flip. How hard can it be? Come on, over to the fire."
+        };
+        private static readonly string[] DorisEggLines =
+        {
+            "Oh, those aren't mine, dear. Mine are the small ones. Those are... well. Enjoy your breakfast.",
+            "Mm. Big egg. Big nest. Big... never mind. Off you go.",
+            "You'll want to eat that quickly, I think."
+        };
+        private static readonly string[] DorisLines =
+        {
+            "Welcome to Mirage Springs, dear. Towels are complimentary. The water is not drinkable. The view is.",
+            "I've lived by this spring for ninety years. Nothing ever happens. Nothing nice, anyway.",
+            "Don't mind the hoodoos. They creak at night. It's the wind. Mostly."
+        };
+        private static readonly string[] DorisAfterLines =
+        {
+            "I did try to tell you, dear. Big egg, big nest, big mother.",
+            "Briarwing's not one to forgive a missing egg. Still, you're alive. That's a good spa day.",
+            "Cucumber slice? For the nerves."
         };
         private static readonly string[][] Reports =
         {
             new[]
             {
-                "The tail feathers! And a wing panel off your ship. Hand that here; I'll keep it safe.",
+                "You're alive! I saw the whole thing. Well, the first bit. Then you were a dot.",
+                "Its eggs? Briarwing's? I'd never have guessed. Ostrich, I'd have said. Doris did look at me funny.",
+                "The tail feathers! And a wing panel off your ship. It had woven it into its wing. Hand that here; I'll keep it safe.",
                 "Next: Cindermaw. An ash drake that swallowed your rocket thruster and grew round it.",
                 "It's been tearing round the Mesa Pass, east of here, and setting the dunes alight as it goes.",
                 "Put out the fires it left on its way, before the whole desert goes up, then go and have a word with it."
@@ -111,7 +152,8 @@ namespace SignalLost.Story
         private bool trophyPlaced, partHandled;
         private bool coreTaken, fangTaken, fangPlaced;
         private TrophyPickup droppedTrophy;
-        private int nextReminder;
+        private int nextReminder, nextDoris;
+        private bool breakfastDone;
         private int partsAtStart;
 
         public Stage Current => stage;
@@ -127,6 +169,7 @@ namespace SignalLost.Story
                 if (item.boss != null) item.boss.gameObject.SetActive(false); // each appears once its task is done
                 foreach (QuestTask task in item.tasks) if (task != null) task.Armed = false;
             }
+            foreach (QuestTask egg in eggs) if (egg != null) egg.Armed = false;
         }
 
         private void OnEnable()
@@ -134,6 +177,9 @@ namespace SignalLost.Story
             foreach (Job item in jobs)
                 foreach (QuestTask task in item.tasks)
                     if (task != null) task.Done += OnTaskDone;
+            foreach (QuestTask egg in eggs) if (egg != null) egg.Done += OnEggTaken;
+            if (stove != null) stove.Cooked += OnCooked;
+            if (snatch != null) snatch.Landed += OnSnatchLanded;
             DesertMiniBoss.Defeated += OnBossDefeated;
             TrophyPickup.PickedUp += OnTrophyPickedUp;
             TrophyStand.Placed += OnTrophyPlaced;
@@ -156,6 +202,9 @@ namespace SignalLost.Story
             foreach (Job item in jobs)
                 foreach (QuestTask task in item.tasks)
                     if (task != null) task.Done -= OnTaskDone;
+            foreach (QuestTask egg in eggs) if (egg != null) egg.Done -= OnEggTaken;
+            if (stove != null) stove.Cooked -= OnCooked;
+            if (snatch != null) snatch.Landed -= OnSnatchLanded;
             DesertMiniBoss.Defeated -= OnBossDefeated;
             TrophyPickup.PickedUp -= OnTrophyPickedUp;
             TrophyStand.Placed -= OnTrophyPlaced;
@@ -178,7 +227,7 @@ namespace SignalLost.Story
             foreach (TrophyStand stand in FindObjectsByType<TrophyStand>()) Signal(stand, false);
             SetStage(Stage.Welcome);
             Signal(cavendish, true);
-            Quest("The Chop Shop", "Talk to Cavendish at his camp by the dock.");
+            Quest("Breakfast", "Talk to Cavendish at his camp by the dock.");
         }
 
         private void Update()
@@ -198,14 +247,29 @@ namespace SignalLost.Story
 
         public bool TalkTo(NpcActor npc, PlayerInteractor talker)
         {
+            if (npc != null && npc == doris) return TalkToDoris();
             if (npc != cavendish) return false;
             NpcDialogue bubble = cavendish.Dialogue;
             Job current = CurrentJob;
             switch (stage)
             {
                 case Stage.Welcome:
-                    Converse("The Chop Shop", Welcome, () => BeginJob(0));
+                    Converse("Breakfast Run", Welcome, BeginEggs);
                     return true;
+                case Stage.Eggs:
+                    return Remind(bubble, new[]
+                    {
+                        "Four eggs, mechanic. My stomach is making noises a capybara should never make.",
+                        "Hoodoos out west, the springs, the big stone arch over the canyon, and a dead tree in the dry riverbed.",
+                        "Use your scanner. It's very good at eggs. I assume."
+                    });
+                case Stage.ReportEggs:
+                    Converse("Breakfast Run", EggReport, BeginCooking);
+                    return true;
+                case Stage.Cooking:
+                    return Remind(bubble, new[] { "The pan's on the fire. Go on, chef. I'll supervise. Loudly." });
+                case Stage.Breakfast:
+                    return Remind(bubble, new[] { "Mmf. Don't talk with your mouth full. Or with mine." });
                 case Stage.Tasks:
                     return Remind(bubble, job == 0
                         ? new[] { "West, mechanic. Follow the feathers. Big grey ones; you can't miss them." }
@@ -246,6 +310,119 @@ namespace SignalLost.Story
 
         private void Converse(string title, string[] lines, Action done) =>
             DialogueUi.Instance.BeginConversation(cavendish.transform, "Cavendish", title, lines, done);
+
+        // ---------- Act 1: Breakfast ----------
+
+        private bool TalkToDoris()
+        {
+            NpcDialogue bubble = doris.Dialogue;
+            if (bubble == null) return false;
+            if (bubble.AdvanceManual()) return true;
+            string[] lines = breakfastDone ? DorisAfterLines : stage == Stage.Eggs ? DorisEggLines : DorisLines;
+            bubble.SpeakManual(lines[nextDoris++ % lines.Length]);
+            return true;
+        }
+
+        private void BeginEggs()
+        {
+            Signal(cavendish, false);
+            SetStage(Stage.Eggs);
+            foreach (QuestTask egg in eggs) if (egg != null) { egg.Armed = !egg.IsDone; Signal(egg, !egg.IsDone); }
+            UpdateEggs();
+        }
+
+        private int EggsTaken
+        {
+            get
+            {
+                int taken = 0;
+                foreach (QuestTask egg in eggs) if (egg != null && egg.IsDone) taken++;
+                return taken;
+            }
+        }
+
+        private void UpdateEggs() =>
+            Quest("Breakfast Run", "Cavendish wants four big speckled eggs from the nests he's seen. \"Abandoned, I'm sure.\"\n" +
+                $"Eggs: {EggsTaken} / {eggs.Length}");
+
+        private void OnEggTaken(QuestTask egg)
+        {
+            Signal(egg, false);
+            if (stage != Stage.Eggs) return;
+            MiniBossHud.Message($"EGG {EggsTaken} / {eggs.Length}", new Color(1f, 0.92f, 0.7f), 2f);
+            // Doris sees you take one near the springs.
+            if (doris != null && doris.Dialogue != null && Vector3.Distance(doris.transform.position, egg.transform.position) < 40f)
+                doris.Dialogue.Speak(DorisEggLines[0]);
+            if (EggsTaken < eggs.Length) { UpdateEggs(); return; }
+            SetStage(Stage.ReportEggs);
+            Signal(cavendish, true);
+            Quest("Breakfast Run", "Four eggs! Take them back to Cavendish at camp.");
+        }
+
+        private void BeginCooking()
+        {
+            Signal(cavendish, false);
+            SetStage(Stage.Cooking);
+            if (stove != null)
+            {
+                stove.Ready = true;
+                Signal(stove, true);
+            }
+            Quest("Omelet du Jour", "Cook Cavendish's omelet at the camp fire. Crack, whisk, flip.");
+        }
+
+        private void OnCooked(int score)
+        {
+            if (stage != Stage.Cooking) return;
+            Signal(stove, false);
+            SetStage(Stage.Breakfast);
+            StartCoroutine(Breakfast(score));
+        }
+
+        // Cavendish rates it, you eat... and Briarwing comes for its eggs.
+        private System.Collections.IEnumerator Breakfast(int score)
+        {
+            string verdict = score >= 9 ? $"A {score}. Magnificent. I may weep." :
+                score >= 6 ? $"A {score}. The shell is a bold choice, but it works." :
+                score >= 3 ? $"A {score}. It's... rustic. Like a campfire. Literally, some of it is campfire." :
+                $"A {score}. I've eaten worse. Not recently. Not willingly.";
+            Quest("Omelet du Jour", $"Breakfast is served. Cavendish gives it {score} / 10.");
+            NpcDialogue bubble = cavendish != null ? cavendish.Dialogue : null;
+            if (bubble != null) bubble.Speak(4f, verdict, "Mmf. Mmmf. Eat up, mechanic. Big day.", "...Mechanic. Don't look up.");
+            // Space (Jump) skips ahead to the snatch (which can be skipped in turn).
+            DialogueUi.Instance.Subtitle("", $"{SignalLost.Core.KeyBindings.Display("jump")} to skip", 3f);
+            bool skipped = false;
+            System.Collections.IEnumerator Wait(float seconds)
+            {
+                for (float t = 0f; t < seconds && !skipped; t += Time.deltaTime)
+                {
+                    if (t > 0.1f && SignalLost.Core.KeyBindings.WasPressed("jump")) skipped = true;
+                    yield return null;
+                }
+            }
+            for (int bite = 0; bite < 3 && !skipped; bite++)
+            {
+                yield return Wait(1.5f);
+                if (skipped) break;
+                SignalLost.Audio.Sfx.Play(bite == 2 ? "flask_burp" : "flask_glug", 0.6f, 1.3f);
+                MiniBossHud.Message(bite == 0 ? "*nom*" : bite == 1 ? "*nom nom*" : "*burp*", new Color(1f, 0.9f, 0.7f), 1.2f);
+            }
+            yield return Wait(3.5f);
+            yield return null; // so the same press doesn't also skip the snatch
+            if (snatch != null && player != null) snatch.Begin(player.gameObject);
+            else OnSnatchLanded();
+        }
+
+        private void OnSnatchLanded()
+        {
+            if (stage != Stage.Breakfast) return;
+            breakfastDone = true;
+            job = 0;
+            trophyPlaced = partHandled = false;
+            droppedTrophy = null;
+            partsAtStart = ShipPartDrop.CountFor(StageProgress.Desert);
+            EnterHunt(false);
+        }
 
         // ---------- The Chop Shop ----------
 
@@ -518,10 +695,27 @@ namespace SignalLost.Story
 
         // ---------- For tests ----------
 
-        /// <summary>Skips Cavendish's welcome and starts the first job (tests and debugging).</summary>
+        /// <summary>Skips Cavendish's welcome and starts the egg hunt (tests and debugging).</summary>
         public void SkipWelcome()
         {
-            if (stage == Stage.Welcome) BeginJob(0);
+            if (stage == Stage.Welcome) BeginEggs();
+        }
+
+        /// <summary>Tests: takes every egg, hears the report and cooks (scoring <paramref name="score"/>), up to breakfast.</summary>
+        public void SkipToBreakfastForTests(int score)
+        {
+            if (stage == Stage.Welcome) BeginEggs();
+            foreach (QuestTask egg in eggs) if (egg != null && !egg.IsDone) egg.Complete();
+            if (stage == Stage.ReportEggs) BeginCooking();
+            if (stage == Stage.Cooking && stove != null) stove.CookForTests(score);
+        }
+
+        /// <summary>Tests: skips the snatch's flight (drops the player at the Roost and wakes Briarwing).</summary>
+        public void SkipSnatchForTests()
+        {
+            if (stage != Stage.Breakfast || snatch == null || player == null) return;
+            StopAllCoroutines();
+            snatch.SkipForTests(player.gameObject);
         }
 
         /// <summary>Takes the report as if Cavendish had been talked to (tests and debugging).</summary>

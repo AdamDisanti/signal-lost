@@ -2194,13 +2194,11 @@ namespace SignalLost.Editor
             DesertMiniBoss burnout = PlaceBoss(DesertDuelBossBuilder.CindermawPath, "Cindermaw", DesertMiniBossBuilder.Theme.MesaPass, Encounters[1].Center, chopShop);
             DesertMiniBoss sludge = PlaceBoss(DesertDuelBossBuilder.PitchclawPath, "Pitchclaw", DesertMiniBossBuilder.Theme.BuriedHull, Encounters[2].Center, chopShop);
 
-            // The tasks along the way to each.
-            var feathers = new[] { new Vector2(-12f, -104f), new Vector2(-30f, -92f), new Vector2(-45f, -79f) };
+            // The tasks along the way to each. (Act 1's eggs replace Briarwing's feathers: InstallBreakfast below.)
             var fires = new[] { new Vector2(30f, -100f), new Vector2(48f, -76f), new Vector2(62f, -50f) };
             var leaks = new List<Vector2>();
             foreach (float angle in SumpLeakAngles(Encounters[2].Center))
                 leaks.Add(Encounters[2].Center + new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad)) * SumpLeakRadius);
-            QuestTask[] featherTasks = PlaceTasks(tasks, "Feather", feathers, FeatherTask);
             QuestTask[] fireTasks = PlaceTasks(tasks, "Fire", fires, FireTask);
             QuestTask[] leakTasks = PlaceTasks(tasks, "Leak", leaks.ToArray(), LeakTask, false);
 
@@ -2260,9 +2258,10 @@ namespace SignalLost.Editor
             data.FindProperty("player").objectReferenceValue = Object.FindAnyObjectByType<PlayerLife>();
             SerializedProperty jobs = data.FindProperty("jobs");
             jobs.arraySize = 3;
-            Job(jobs.GetArrayElementAtIndex(0), "Picked Clean", buzzard, "old_buzzard_feathers", "the Wreck Field, west of camp", featherTasks,
-                "Briarwing has been shedding all over the dunes west of camp. Follow its trail and pick up what it dropped.", "Trail followed",
-                "Briarwing, the thorn wyvern, roosts in the Wreck Field, west of camp. Go and find it.",
+            // Act 1 (11-22): no tasks before Briarwing; the snatch brings the player to it (InstallBreakfast).
+            Job(jobs.GetArrayElementAtIndex(0), "Briarwing", buzzard, "old_buzzard_feathers", "its Roost in the Wreck Field, west of camp", new QuestTask[0],
+                "", "",
+                "Briarwing has you at its Roost, and it wants its eggs back. Defeat it!",
                 "Defeat Briarwing. Dodge through its swipes, shoot its glowing throat while it barrages, and get out of its shadow when it climbs.");
             Job(jobs.GetArrayElementAtIndex(1), "Burning Rubber", burnout, "burnout_thorns", "the Scorch Raceway in the Mesa Pass, east of camp", fireTasks,
                 "Cindermaw set the dunes alight on its way east. Smother its fires with sand.", "Fires out",
@@ -2272,6 +2271,7 @@ namespace SignalLost.Editor
                 "Seal the three leaking fuel lines round Pitchclaw's sump, north-west of camp. That will bring it out.", "Leaks sealed",
                 "Pitchclaw has crawled out of the sump!",
                 "Defeat Pitchclaw. Get out of its fuel when its claws spark; a charged shot to its fuel tank staggers it.");
+            InstallBreakfast(data, story.transform, camp, buzzard);
             SetObjects(data.FindProperty("rack"), rack);
             data.FindProperty("wormAmbush").objectReferenceValue = exit;
             data.FindProperty("lair").objectReferenceValue = lair;
@@ -2284,6 +2284,98 @@ namespace SignalLost.Editor
             EditorSceneManager.SaveScene(scene);
             ValidateStory();
             Debug.Log("DESERT_STORY_INSTALLED");
+        }
+
+        // ---------- Act 1: Breakfast (docs/desert-revamp.md, 11-22) ----------
+
+        /// <summary>
+        /// Act 1's pieces: four nests with Briarwing's eggs (on the lookout rock in the Hoodoos, on the Big Arch's deck over
+        /// Rattlesnake Canyon, on the rim of Mirage Springs, and in a dead tree in the Dry Wash), the desert's locals (Doris
+        /// at the springs; Marshal Mo and Old Gus wait for Acts 2 and 3), the frying pan on the camp fire, and the snatch.
+        /// </summary>
+        private static void InstallBreakfast(SerializedObject data, Transform story, IslandCamp camp, DesertMiniBoss briarwing)
+        {
+            Transform act = Group("Act 1 - Breakfast", story);
+            Physics.SyncTransforms();
+
+            // The nests.
+            Transform deadTree = null;
+            foreach (GameObject top in SceneManager.GetActiveScene().GetRootGameObjects())
+                foreach (Transform t in top.GetComponentsInChildren<Transform>(true))
+                    if (deadTree == null && t.name.StartsWith("Dead Tree") && t.parent != null && t.parent.name == "Dry Wash") deadTree = t;
+            Vector2 rim = OasisCentre + Rotate(Vector2.right, 185f) * (OasisRadius - 3f);
+            var spots = new List<(string label, Vector3 at)>
+            {
+                ("Hoodoo Nest", SurfaceBelow(LookoutCentre, 60f)),
+                ("Arch Nest", SurfaceBelow(ArchSpot, PlateauTop + 8f)),
+                ("Springs Nest", SurfaceBelow(rim, 40f)),
+                ("Wash Nest", deadTree != null ? deadTree.position + Vector3.up * 1.4f : SurfaceBelow(Wash[2], 30f)),
+            };
+            var eggs = new QuestTask[spots.Count];
+            for (int i = 0; i < spots.Count; i++)
+            {
+                var holder = new GameObject(spots[i].label).transform;
+                holder.SetParent(act, false);
+                holder.SetPositionAndRotation(spots[i].at, Quaternion.Euler(0f, i * 97f, 0f));
+                Scenery("DesertNest", "Nest", holder, holder.position, holder.rotation, Vector3.one * 0.8f, Collision.None);
+                GameObject egg = Scenery("DesertEgg", "Egg", holder, holder.position + Vector3.up * 0.18f, holder.rotation * Quaternion.Euler(8f, 0f, 0f), Vector3.one, Collision.None);
+                eggs[i] = AddTask(holder.gameObject, "Take the egg", "", ParticleBurst.Kind.Sand, new[] { egg }, new GameObject[0],
+                    new Vector3(0f, 0.5f, 0f), new Vector3(1.6f, 1.2f, 1.6f));
+            }
+
+            // The locals.
+            Transform locals = Group("Locals", act);
+            NpcActor doris = PlaceLocal(DesertNpcBuilder.Doris, locals, OasisCentre + Rotate(Vector2.right, 25f) * (PondRadius + 3.5f), OasisCentre);
+            PlaceLocal(DesertNpcBuilder.Mo, locals, Vector2.Lerp(Encounters[1].Center, SaltCentre, 0.55f), Encounters[1].Center);
+            Vector2 canyonDir = (Canyon[6] - Canyon[5]).normalized;
+            PlaceLocal(DesertNpcBuilder.Gus, locals, Canyon[5] + new Vector2(-canyonDir.y, canyonDir.x) * 4f, Canyon[6]);
+
+            // The frying pan on the camp fire.
+            var stoveHolder = new GameObject("Cooking Station (camp fire)").transform;
+            stoveHolder.SetParent(act, false);
+            stoveHolder.position = camp.transform.position;
+            var pan = Scenery("DesertFryingPan", "Frying Pan", stoveHolder, camp.transform.position + Vector3.up * 0.55f, Quaternion.Euler(0f, 30f, 0f), Vector3.one, Collision.None);
+            var box = stoveHolder.gameObject.AddComponent<BoxCollider>();
+            box.center = new Vector3(0f, 0.6f, 0f);
+            box.size = new Vector3(1.8f, 1.2f, 1.8f);
+            box.isTrigger = false;
+            stoveHolder.gameObject.AddComponent<QuestSignalSource>().enabled = false;
+            var stove = stoveHolder.gameObject.AddComponent<CookingStation>();
+            var stoveData = new SerializedObject(stove);
+            stoveData.FindProperty("pan").objectReferenceValue = pan.transform;
+            stoveData.ApplyModifiedPropertiesWithoutUndo();
+
+            // The snatch: dropped by the nest, across the Roost from the way in.
+            Vector2 roost = Encounters[0].Center;
+            Vector2 away = (roost - CampOrigin).normalized;
+            var drop = new GameObject("Snatch Drop Point").transform;
+            drop.SetParent(act, false);
+            drop.position = OnGround(roost.x + away.x * 9f, roost.y + away.y * 9f) + Vector3.up * 0.1f;
+            var snatch = act.gameObject.AddComponent<WyvernSnatch>();
+            snatch.Configure(briarwing, drop);
+
+            SetObjects(data.FindProperty("eggs"), eggs);
+            data.FindProperty("doris").objectReferenceValue = doris;
+            data.FindProperty("stove").objectReferenceValue = stove;
+            data.FindProperty("snatch").objectReferenceValue = snatch;
+        }
+
+        private static NpcActor PlaceLocal(DesertNpcBuilder.Spec spec, Transform parent, Vector2 at, Vector2 facing)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DesertNpcBuilder.PrefabPath(spec)) ?? DesertNpcBuilder.Build(spec);
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+            go.name = spec.Name;
+            Vector3 look = new Vector3(facing.x - at.x, 0f, facing.y - at.y);
+            go.transform.SetPositionAndRotation(SurfaceBelow(at, 60f), look.sqrMagnitude > 0.01f ? Quaternion.LookRotation(look) : Quaternion.identity);
+            return go.GetComponent<NpcActor>();
+        }
+
+        /// <summary>The top surface under a point (whatever is there: the terrain, the arch's deck, a rock), for placing things.</summary>
+        private static Vector3 SurfaceBelow(Vector2 p, float from)
+        {
+            foreach (RaycastHit hit in System.Linq.Enumerable.OrderBy(Physics.RaycastAll(new Vector3(p.x, from, p.y), Vector3.down, from + 40f, ~0, QueryTriggerInteraction.Ignore), h => h.distance))
+                if (hit.collider.GetComponentInParent<Health>() == null && hit.collider.GetComponentInParent<NpcActor>() == null) return hit.point;
+            return OnGround(p.x, p.y);
         }
 
         private static void Job(SerializedProperty job, string title, DesertMiniBoss boss, string trophy, string where, QuestTask[] tasks,
@@ -2475,10 +2567,20 @@ namespace SignalLost.Editor
                 EnemyTestBuilder.Require(Trophy.Find(job.FindPropertyRelative("trophyId").stringValue) != null, $"Job {i + 1}: unknown trophy.");
                 EnemyTestBuilder.Require(Trophy.Find(job.FindPropertyRelative("trophyId").stringValue).LoadModel() != null, $"Job {i + 1}: trophy model missing.");
                 SerializedProperty taskList = job.FindPropertyRelative("tasks");
-                EnemyTestBuilder.Require(taskList.arraySize == 3, $"Job {i + 1}: expected three tasks.");
+                // (11-22) Briarwing's job has no tasks: Act 1's eggs, omelet and snatch lead to it.
+                EnemyTestBuilder.Require(taskList.arraySize == (i == 0 ? 0 : 3), $"Job {i + 1}: expected {(i == 0 ? 0 : 3)} tasks.");
                 for (int t = 0; t < taskList.arraySize; t++)
                     EnemyTestBuilder.Require(taskList.GetArrayElementAtIndex(t).objectReferenceValue != null, $"Job {i + 1}: task {t + 1} is missing.");
             }
+            // Act 1 (11-22).
+            SerializedProperty eggs = data.FindProperty("eggs");
+            EnemyTestBuilder.Require(eggs.arraySize == 4, "Expected Act 1's four eggs.");
+            for (int i = 0; i < eggs.arraySize; i++)
+                EnemyTestBuilder.Require(eggs.GetArrayElementAtIndex(i).objectReferenceValue is QuestTask egg && egg.GetComponent<QuestSignalSource>() != null,
+                    $"Egg {i + 1} is missing or has no quest signal.");
+            foreach (string field in new[] { "doris", "stove", "snatch" })
+                EnemyTestBuilder.Require(data.FindProperty(field).objectReferenceValue != null, "The desert story has no " + field + ".");
+            EnemyTestBuilder.Require(Object.FindObjectsByType<NpcActor>().Length == 5, "Expected Cavendish, Eugene, Doris, Marshal Mo and Old Gus.");
             EnemyTestBuilder.Require(data.FindProperty("rack").arraySize == 4, "Expected the desert's four stands (the Chop Shop's three and the Core Worm's).");
             EnemyTestBuilder.Require(Trophy.Find("core_worm_fang")?.LoadModel() != null, "The Core Worm fang trophy is missing.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<Coreworm>() == 1 && EnemyTestBuilder.Count<CorewormArena>() == 1 && EnemyTestBuilder.Count<WormLair>() == 1,

@@ -8,15 +8,19 @@ namespace SignalLost.NPC
     /// <summary>
     /// Makes an NPC talkable with E (<see cref="IInteractable"/>). The scene's story (<see cref="INpcStory"/>) gets
     /// the first say; without one (or when it has nothing to add), Cavendish makes small talk and the friendly
-    /// merchant crab opens its shop. The hostile merchant cannot be talked to until it surrenders.
+    /// merchant crab opens its shop. The hostile merchant cannot be talked to until it surrenders. A <see cref="Role.Local"/>
+    /// is anyone else living on an island (the desert's Doris, Marshal Mo and Old Gus, 11-22): always talkable, small talk
+    /// under its own name when the story has nothing for it.
     /// </summary>
     public sealed class NpcActor : MonoBehaviour, IInteractable
     {
-        public enum Role { Cavendish, Merchant }
+        public enum Role { Cavendish, Merchant, Local }
         [SerializeField] private Role role;
         [Tooltip("The scene's story/quest flow (anything implementing INpcStory). Empty: found automatically.")]
         [SerializeField] private MonoBehaviour quest;
         [SerializeField] private MerchantCrab merchant;
+        [Tooltip("A local's name, for the prompt (\"Talk to Doris\").")]
+        [SerializeField] private string displayName = "";
         [Tooltip("Overhead small talk when the story has nothing to say.")]
         [SerializeField] private string[] smallTalk =
         {
@@ -32,7 +36,8 @@ namespace SignalLost.NPC
         public bool IsQuestGiver => role == Role.Cavendish;
         public MerchantCrab Merchant => merchant;
         public NpcDialogue Dialogue => GetComponentInChildren<NpcDialogue>(true);
-        public string Prompt => role == Role.Cavendish ? "Talk to Cavendish" : "Talk to Eugene";
+        public string DisplayName => role == Role.Cavendish ? "Cavendish" : role == Role.Merchant ? "Eugene" : displayName;
+        public string Prompt => "Talk to " + DisplayName;
 
         private void Awake()
         {
@@ -45,7 +50,7 @@ namespace SignalLost.NPC
         private void Start() => Outfits.Dress(this, StageTheme.Current);
 
         public bool CanInteract(PlayerInteractor player) =>
-            isActiveAndEnabled && (role == Role.Cavendish || (merchant != null && merchant.IsDefeated));
+            isActiveAndEnabled && (role != Role.Merchant || (merchant != null && merchant.IsDefeated));
 
         public bool Interact(PlayerInteractor player)
         {
