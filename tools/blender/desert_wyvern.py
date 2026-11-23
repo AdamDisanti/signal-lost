@@ -1,7 +1,7 @@
 # Briarwing, the Thorn Wyvern: a long-necked, two-legged wyvern on its folded wing-arms, overgrown with thornwood,
 # with the ship's hull panels lashed into its torn wings. About 14 m across the wings. See docs/desert-bosses.md.
-import math
-from mathutils import Vector
+import math, os
+from mathutils import Vector, Matrix, Euler
 from bosskit import Boss, srgb, sym, mirror, X, Y, Z
 
 
@@ -182,6 +182,116 @@ def build():
     return b
 
 
+
+# ------------------------------------------------------------ wing poses for flight
+# The wings rest folded like a bat's: the forearm runs down to the knuckle the wyvern walks on and the three fingers
+# fold straight back up along it. Opening one for flight means turning every joint a long way, so flight poses are
+# solved here from what the wing should do (its stroke angle, sweep and fold) instead of being typed as joint angles.
+# Left wing, Blender axes: out = +X, back = +Y, up = +Z. Rest points are the skeleton's (see build()).
+_SH, _EL, _WR = Vector((1.0, -1.2, 3.25)), Vector((2.2, -0.4, 3.7)), Vector((2.5, -2.4, 0.45))
+_TIPS = [Vector((3.0, 0.4, 4.9)), Vector((3.9, 2.3, 3.7)), Vector((3.3, 3.6, 1.9))]
+# Bone axes: local X = world X, local Y = world up, local Z = world forward (-Y).
+_B = Matrix(((1, 0, 0), (0, 0, -1), (0, 1, 0)))
+# Directions of the arm, forearm and three fingers, spread flat (the downstroke) and folded (the upstroke).
+# Spread, the leading edge sweeps back about 35 degrees (a span of about 19 m); folded, the wrist tucks in behind the
+# shoulder and the fingers lie back and up along the body.
+_SPREAD = [Vector((1, -0.12, 0.12)), Vector((0.82, 0.57, 0.02)), Vector((0.8, 0.6, 0.05)), Vector((0.45, 0.89, 0)), Vector((0.12, 0.99, 0))]
+_FOLDED = [Vector((0.5, 0.2, 0.84)), Vector((0.3, 0.94, -0.18)), Vector((0.15, 0.75, 0.65)), Vector((0.05, 0.8, 0.6)), Vector((-0.05, 0.85, 0.5))]
+
+
+def _frame(u, n):
+    u = u.normalized()
+    n = (n - u * u.dot(n)).normalized()
+    return Matrix((u, n, u.cross(n))).transposed()
+
+
+def _degrees(rel, near=None):
+    local = _B.inverted() @ rel @ _B
+    e = local.to_euler('XYZ', Euler([math.radians(a) for a in near], 'XYZ')) if near else local.to_euler('XYZ')
+    return tuple(round(math.degrees(a), 2) for a in e)
+
+
+def wing_pose(elevation, sweep=0.0, fold=0.0, twist=0.0, curl=0.0, near=None):
+    """Joint angles (left and right) for a wing raised `elevation` degrees above level (negative: below), swept
+    `sweep` degrees forward, folded 0 (spread) to 1 (tucked for the upstroke), twisted `twist` degrees about its span
+    (+ leading edge up) and with the finger tips curled `curl` degrees by the air. `near`: a previous pose, so
+    successive keys take the closest angles and the blend between them doesn't swing round the long way."""
+    stroke = (Matrix.Rotation(math.radians(-sweep), 3, 'Z') @ Matrix.Rotation(math.radians(-elevation), 3, 'Y')
+              @ Matrix.Rotation(math.radians(twist), 3, 'X'))
+    up = stroke @ Vector((0, 0, 1))
+    rest = [_EL - _SH, _WR - _EL] + [t - _WR for t in _TIPS]
+    rest_n = (_TIPS[0] - _WR).cross(_TIPS[1] - _WR).normalized()
+    if rest_n.x < 0:
+        rest_n = -rest_n
+    world = []
+    for i, (a, b) in enumerate(zip(_SPREAD, _FOLDED)):
+        d = a.normalized().slerp(b.normalized(), fold)
+        d = stroke @ d
+        if i >= 2 and curl:
+            d = Matrix.Rotation(math.radians(-curl), 3, stroke @ Vector((0, 1, 0))) @ d
+        world.append(_frame(d, up) @ _frame(rest[i], rest_n).inverted())
+    arm, fore, f1, f2, f3 = world
+    hand = f2
+    n = near or {}
+    pose = {"WingArmL": _degrees(arm, n.get("WingArmL")), "WingForeL": _degrees(arm.inverted() @ fore, n.get("WingForeL")),
+            "WingHandL": _degrees(fore.inverted() @ hand, n.get("WingHandL")),
+            "Finger1L": _degrees(hand.inverted() @ f1, n.get("Finger1L")), "Finger2L": (0, 0, 0),
+            "Finger3L": _degrees(hand.inverted() @ f3, n.get("Finger3L"))}
+    return sym(pose)
+
+
+def _ease(a, b, t):
+    t = max(0.0, min(1.0, t))
+    return a + (b - a) * (0.5 - 0.5 * math.cos(math.pi * t))
+
+
+def stroke(t, down, top=50.0, bottom=-38.0, sweep=16.0, fold=0.8, bob=0.3, back=-6.0):
+    """One wingbeat sampled at phase t (0-1): the downstroke takes the first `down` of it. Returns the wing's
+    (elevation, sweep, fold, twist, curl) and the body's bob in metres (it rises through the downstroke, peaks just
+    after it, and sinks through the upstroke)."""
+    if t < down:
+        u = t / down
+        elev = _ease(top, bottom, u)
+        sw = _ease(0.0, sweep, u)
+        fl = _ease(0.12, 0.0, u * 3.0)
+        tw = -6.0
+        curl = 12.0 * math.sin(math.pi * u)
+    else:
+        u = (t - down) / (1.0 - down)
+        elev = _ease(bottom, top, u)
+        sw = _ease(sweep, back, u * 1.6) if u < 0.62 else _ease(back, 0.0, (u - 0.62) / 0.38)
+        fl = _ease(0.0, fold, u * 3.0) if u < 0.6 else _ease(fold, 0.12, (u - 0.6) / 0.4)
+        tw = 6.0
+        curl = 0.0
+    # The body: lowest at the top of the stroke, highest a little after the bottom.
+    return (elev, sw, fl, tw, curl), bob * math.cos(2 * math.pi * (t - down * 1.3))
+
+
+def blend(a, b, start, end, step=2):
+    """Keys from pose `a` at frame `start` to pose `b` at frame `end`, every `step` frames, turning each joint the short
+    way (a quaternion blend). Key-frame curves between far-apart joint angles swing the wings round the long way."""
+    keys = []
+    bones = set(a) | set(b)
+    near = {}
+    for f in range(start, end + 1, step):
+        t = (f - start) / float(end - start)
+        t = 0.5 - 0.5 * math.cos(math.pi * t)
+        pose = {}
+        for k in bones:
+            va, vb = a.get(k, (0, 0, 0)), b.get(k, (0, 0, 0))
+            if k == "Root@":
+                pose[k] = tuple(x + (y - x) * t for x, y in zip(va, vb))
+                continue
+            qa = Euler([math.radians(x) for x in va], 'XYZ').to_quaternion()
+            qb = Euler([math.radians(x) for x in vb], 'XYZ').to_quaternion()
+            q = qa.slerp(qb, t)
+            e = q.to_euler('XYZ', Euler([math.radians(x) for x in near[k]], 'XYZ')) if k in near else q.to_euler('XYZ')
+            pose[k] = near[k] = tuple(round(math.degrees(x), 2) for x in e)
+        keys.append((f, pose))
+    if keys[-1][0] != end:
+        keys.append((end, dict(b)))
+    return keys
+
 # ------------------------------------------------------------ animation
 STANCE = {}
 
@@ -316,13 +426,68 @@ def animate(b):
     air = dict(spread)
     air.update({"Hips": (-4, 0, 0), "ThighL": (-30, 0, 0), "ThighR": (-30, 0, 0), "ShinL": (40, 0, 0), "ShinR": (40, 0, 0),
                 "Tail1": (-8, 0, 0), "Tail2": (-6, 0, 0)})
-    b.clip("Hop", [(0, {}), (10, crouch), (14, dict(crouch, **{"Root@": (0, -0.7, 0)})), (18, air), (24, air)],
-           events={"launch": 15})
-    flap_up = dict(air)
-    flap_up.update(sym({"WingArmL": (-20, 10, 80), "WingForeL": (-20, 0, 50), "Finger2L": (0, 20, 0)}))
-    flap_down = dict(air)
-    flap_down.update(sym({"WingArmL": (10, 10, 10), "WingForeL": (0, 0, 20), "Finger2L": (0, 30, 0)}))
-    b.clip("Hover", [(0, flap_up), (9, flap_down), (18, flap_up)], loop=True, events={"flap": 9})
+    # ---- Flight (11-22, the user: "make the desert wyvern's flight look like real flight", with a dragon-flight video as
+    # the reference). It used to flap between two poses 0.6 s apart, the same speed up and down, with the body still.
+    # Real flight, tuned to its size (about 19 m across the open wings, 11.5 m long): one wingbeat every 1.2 s in cruise (1.0 s when hovering or taking off);
+    # a full, wide downstroke (wing open, swept down and forward) that drives the body up; a slower upstroke with the
+    # wing folded at the elbow and wrist and the fingers swept back, while the body sinks; glides with the wings held
+    # open between flaps; and the wings flaring forward to brake before landing, then folding away. Banking into turns
+    # and the climb itself are the code's (Briarwing.cs), timed by the "downstroke"/"upstroke" events below.
+    fly_body = {"Hips": (-4, 0, 0), "Neck1": (14, 0, 0), "Neck2": (4, 0, 0), "Head": (-12, 0, 0),
+                "ThighL": (-48, 0, 0), "ThighR": (-48, 0, 0), "ShinL": (62, 0, 0), "ShinR": (62, 0, 0),
+                "FootL": (34, 0, 0), "FootR": (34, 0, 0), "Tail1": (-6, 0, 0), "Tail2": (-4, 0, 0), "Tail3": (-2, 0, 0)}
+    def fly(wings, up=0.0, chest=0.0, tail=0.0, more=None):
+        """A flying pose: the flight body, the wings, the body's bob (metres) and its pitch, the tail's answer to it."""
+        p = dict(fly_body)
+        p.update(wings)
+        p.update({"Root@": (0, up, 0), "Chest": (chest, 0, 0), "Neck1": (14 - chest * 1.5, 0, 0),
+                  "Head": (-12 - chest, 0, 0), "Tail1": (-6 + tail, 0, 0), "Tail2": (-4 + tail * 0.6, 0, 0)})
+        p.update(more or {})
+        return p
+
+    def beats(length, down, step=2, start=0, near=None, body=None, **shape):
+        """Keys for one wingbeat of `length` frames from frame `start`, sampled every `step` frames."""
+        keys = []
+        for f in range(0, length + 1, step):
+            t = f / length
+            (elev, sw, fl, tw, curl), up = stroke(t % 1.0 if f < length else 0.0, down, **shape)
+            near = wing_pose(elev, sw, fl, tw, curl, near)
+            chest = -3 * math.sin(2 * math.pi * t)
+            pose = fly(near, up, chest, -4 * math.sin(2 * math.pi * (t - 0.15))) if body is None else dict(body(t), **near, **{"Root@": (0, up, 0)})
+            keys.append((start + f, pose))
+        return keys, near
+
+    # Flap: cruising flight, 1.2 s a beat; the downstroke takes 0.43 s, the upstroke (folded) 0.77 s.
+    flap, last = beats(36, 13 / 36)
+    b.clip("Flap", flap, loop=True, events={"downstroke": 0, "upstroke": 13, "flap": 2})
+    top = flap[0][1]
+    flap_up = top   # the top of the stroke (the plunge starts from it)
+    bottom = flap[7][1]   # frame 14: the bottom of the downstroke
+
+    # Glide: wings held open with a slight upward set, the fingers working the air, the body steady (3 s loop).
+    glide = wing_pose(7, -2, 0.04)
+    glide_b = wing_pose(4, 0, 0.0, 2, 7)
+    b.clip("Glide", [(0, fly(glide, 0, 0, 0, {"Head": (-12, 3, 0), "Tail3": (0, 3, 0)})),
+                     (45, fly(glide_b, 0.06, -1, -2, {"Head": (-12, -4, 0), "Tail3": (0, -3, 0)})),
+                     (90, fly(glide, 0, 0, 0, {"Head": (-12, 3, 0), "Tail3": (0, 3, 0)}))], loop=True)
+
+    # Hover: held in the air at the top of the hop, body raised, the wings sweeping forward and back (1.0 s a beat).
+    hover_body = {"Pivot": (-24, 0, 0), "ThighL": (-18, 0, 0), "ThighR": (-18, 0, 0), "ShinL": (26, 0, 0), "ShinR": (26, 0, 0),
+                  "FootL": (6, 0, 0), "FootR": (6, 0, 0), "Tail1": (14, 0, 0), "Tail2": (6, 0, 0), "Neck1": (30, 0, 0), "Head": (2, 0, 0)}
+    hover, _ = beats(30, 11 / 30, body=lambda t: dict(hover_body), top=38.0, bottom=-16.0, sweep=36.0, fold=0.8, bob=0.2, back=-24.0)
+    b.clip("Hover", hover, loop=True, events={"downstroke": 0, "upstroke": 11, "flap": 2})
+
+    # Takeoff: crouch with the wings lifting, spring as the first huge downstroke drives it off the ground, fold and
+    # recover, a second full beat, and it is flying (the code climbs it, faster on each downstroke).
+    lift = dict(crouch, **wing_pose(46, 0, 0.4))
+    spring = dict(fly_body, **{k: v for k, v in top.items() if k.startswith(("Wing", "Finger"))}, **{"Root@": (0, 0.2, 0), "ThighL": (-6, 0, 0), "ThighR": (-6, 0, 0), "ShinL": (0, 0, 0),
+                                       "ShinR": (0, 0, 0), "FootL": (-20, 0, 0), "FootR": (-20, 0, 0), "Neck1": (4, 0, 0)})
+    first, near = beats(28, 9 / 28, start=16, bob=0.3)
+    second, _ = beats(28, 9 / 28, start=44, near=near, bob=0.24)
+    b.clip("Takeoff", blend({}, lift, 0, 12) + [(16, dict(first[0][1], **{k: v for k, v in spring.items() if not k.startswith(("Wing", "Finger"))}))]
+           + first[1:] + second[1:],
+           events={"launch": 16, "downstroke": [16, 44], "upstroke": [25, 53], "flap": [17, 45]})
+
     tuck = {"Neck1": (24, 0, 0), "Neck2": (10, 0, 0), "Head": (6, 0, 0), "Jaw": (-25, 0, 0),
             "ThighL": (-40, 0, 0), "ThighR": (-40, 0, 0), "ShinL": (50, 0, 0), "ShinR": (50, 0, 0)}
     tuck.update(sym({"WingArmL": (-30, -10, -20), "WingForeL": (-10, 0, -10), "Finger1L": (0, -10, 0),
@@ -339,13 +504,31 @@ def animate(b):
     b.clip("SpinRecover", [(0, tangled), (16, thrash), (30, tangled), (46, thrash), (62, dict(thrash, Pivot=(0, 0, 0))),
                            (80, {})], events={"recovered": 66})
 
-    # Takeoff (for the dive bomb): two deep wing beats lifting it high; Plunge: wings folded, head down; Impact: buried
-    # nose-first, stuck, then wrenches free.
-    b.clip("Takeoff", [(0, {}), (10, crouch), (16, flap_up), (24, flap_down), (32, flap_up), (40, flap_down), (46, flap_up)],
-           events={"launch": 15})
+
+    # Hop (the spinning dive's leap): crouch, spring, and one full downstroke that carries it up into the hover.
+    b.clip("Hop", blend({}, lift, 0, 10) + [(14, dict(lift, **{"Root@": (0, -0.7, 0)})), (17, dict(spring, **{k: v for k, v in top.items() if k.startswith(("Wing", "Finger"))})),
+                   (25, dict(bottom, **{"Root@": (0, 0.3, 0)}))],
+           events={"launch": 15, "downstroke": [15], "upstroke": [25], "flap": [16]})
+
+    # Plunge: the stoop. The wings fold back in stages, half-swept first, then tucked tight with the head down.
     plunge = dict(tuck)
     plunge.update({"Root": (60, 0, 0), "Neck1": (20, 0, 0), "Head": (10, 0, 0)})
-    b.clip("Plunge", [(0, flap_up), (8, plunge), (14, plunge)], events={})
+    half = dict(fly_body, **wing_pose(18, -22, 0.7), **{"Root": (30, 0, 0)})
+    b.clip("Plunge", blend(flap_up, half, 0, 6) + blend(half, plunge, 6, 14)[1:] + [(18, plunge)], events={})
+
+    # Land: from a glide, the flare (body up, wings swept forward and wide as air brakes, legs reaching down), two short
+    # braking beats, the touchdown taken in the legs, the wings held out for balance and folded away.
+    flare_w = wing_pose(24, 26, 0.0, 22)            # forward, wide, leading edge high: an air brake
+    brake_w = wing_pose(-18, 32, 0.08, 10)
+    reach = {"Pivot": (-30, 0, 0), "ThighL": (-34, 0, 0), "ThighR": (-34, 0, 0), "ShinL": (12, 0, 0), "ShinR": (12, 0, 0),
+             "FootL": (-14, 0, 0), "FootR": (-14, 0, 0), "Tail1": (18, 0, 0), "Tail2": (8, 0, 0), "Neck1": (26, 0, 0), "Head": (4, 0, 0)}
+    touch = dict(crouch, **wing_pose(14, 0, 0.35))
+    touch.update({"Root@": (0, -0.45, 0)})
+    b.clip("Land", [(0, fly(glide)), (10, dict(reach, **flare_w)), (17, dict(reach, **brake_w, **{"Root@": (0, 0.2, 0)})),
+                    (23, dict(reach, **flare_w, **{"Root@": (0, 0.1, 0)})), (29, dict(reach, **brake_w, **{"Root@": (0, 0.15, 0)})),
+                    (34, touch)] + blend(touch, {}, 34, 56)[1:],
+           events={"touchdown": 34, "downstroke": [10, 23], "upstroke": [17, 29], "flap": [11, 24]})
+
     stuck = {"Root@": (0, -0.9, 0.6), "Root": (28, 0, 0), "Neck1": (34, 0, 0), "Neck2": (24, 0, 0), "Head": (20, 0, 0),
              "Hips": (-10, 0, 0), "Tail1": (-20, 0, 0), "Tail2": (-10, 0, 0), "ThighL": (-30, 0, 0), "ThighR": (-30, 0, 0)}
     stuck.update(sym({"WingArmL": (10, -10, 60), "WingForeL": (10, 0, 50), "WingHandL": (30, 0, 0)}))
@@ -378,8 +561,33 @@ def shots(b, folder):
         ("wyvern_lunge", "Lunge", 26, (14.0, -6.0, 5.0), (0, -1, 3.0)),
         ("wyvern_tail", "TailLash", 25, (-8.0, 15.0, 9.0), (0, 2, 2.5)),
         ("wyvern_walk", "Walk", 10, (14.0, -8.0, 5.0), (0, 0, 2.6)),
-        ("wyvern_hover", "Hover", 0, (-11.0, -14.0, 6.0), (0, 0, 3.4)),
+        ("wyvern_hover", "Hover", 11, (-11.0, -14.0, 6.0), (0, 0, 3.4)),
+        ("wyvern_flap_top", "Flap", 0, (-11.0, -14.0, 6.0), (0, 0, 3.2)),
+        ("wyvern_flap_down", "Flap", 13, (-11.0, -14.0, 6.0), (0, 0, 3.2)),
+        ("wyvern_flap_fold", "Flap", 22, (-11.0, -14.0, 6.0), (0, 0, 3.2)),
+        ("wyvern_glide", "Glide", 0, (-11.0, -14.0, 9.0), (0, 0, 3.2)),
+        ("wyvern_land", "Land", 12, (14.0, -8.0, 5.0), (0, 0, 2.8)),
         ("wyvern_spin", "SpinDive", 7, (14.0, -8.0, 5.0), (0, 0, 2.6)),
         ("wyvern_impact", "Impact", 10, (14.0, -8.0, 5.0), (0, 0, 2.0)),
         ("wyvern_death", "Death", 60, (-11.0, -14.0, 6.0), (0, 0, 1.6)),
     ])
+
+
+def flight_strips(b, folder):
+    """Frame strips of the flight clips (one wingbeat, the takeoff, the landing), for reviewing the motion. Returns the
+    contact sheets written. Not part of the export: call it after build/animate/bake_clips."""
+    import bosskit
+    sheets = []
+    plans = [("flap_front", "Flap", range(0, 36, 3), (0.0, -26.0, 5.5), (0, 0, 3.6)),
+             ("flap_side", "Flap", range(0, 36, 3), (24.0, -2.0, 5.0), (0, 0.5, 3.6)),
+             ("hover_side", "Hover", range(0, 30, 3), (24.0, -2.0, 5.0), (0, 0.5, 3.6)),
+             ("takeoff_side", "Takeoff", range(0, 72, 6), (24.0, -2.0, 5.0), (0, 0.5, 3.4)),
+             ("land_side", "Land", range(0, 57, 5), (24.0, -2.0, 5.0), (0, 0.5, 3.0)),
+             ("plunge_side", "Plunge", range(0, 19, 3), (24.0, -2.0, 5.0), (0, 0.5, 3.0))]
+    for name, clip, frames, eye, at in plans:
+        shots = [("%s_%02d" % (name, f), clip, f, eye, at) for f in frames]
+        paths = b.previews(os.path.join(folder, name), shots, size=(560, 400))
+        out = os.path.join(folder, name + ".png")
+        bosskit.contact_sheet(paths, out, cols=4, scale=1)
+        sheets.append(out)
+    return sheets

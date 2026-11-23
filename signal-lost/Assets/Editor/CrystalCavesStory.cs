@@ -1191,7 +1191,10 @@ namespace SignalLost.Editor
             reach.Add(("the camp respawn", campRespawn.position));
             Require(Mathf.Approximately(new SerializedObject(Object.FindAnyObjectByType<PlayerGear>().GetComponentInChildren<ScannerController>(true))
                 .FindProperty("levelRangeOverride").floatValue, ScannerRange), "The scanner's level range should be " + ScannerRange + " m.");
-            Require(EnemyTestBuilder.All<TrophyStand>().Select(t => t.Index).OrderBy(i => i).SequenceEqual(Enumerable.Range(0, CavesRackFirstIndex + rackSize)), $"Expected stands 0-{CavesRackFirstIndex + rackSize - 1} at the caves' camp.");
+            // Every level sailed up to the caves (11-22: tutorial, Mudlands, desert, caves), by save slot.
+            int[] expected = new[] { BaseCampBuilder.StandSet.Tutorial }.Concat(BaseCampBuilder.SetsUpTo(BaseCampBuilder.StandSet.Caves))
+                .SelectMany(set => Enumerable.Range(BaseCampBuilder.FirstStandIndex(set), BaseCampBuilder.StandCount(set))).OrderBy(i => i).ToArray();
+            Require(EnemyTestBuilder.All<TrophyStand>().Select(t => t.Index).OrderBy(i => i).SequenceEqual(expected), $"Expected stands {string.Join(", ", expected)} at the caves' camp.");
             Require(NavMesh.SamplePosition(spawn.transform.position, out NavMeshHit from, 3f, NavMesh.AllAreas), "The spawn is off the NavMesh.");
             foreach ((string name, Vector3 at) in reach)
             {

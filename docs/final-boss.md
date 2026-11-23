@@ -57,7 +57,7 @@ Rules for the fight:
 
 ### Stage order
 
-The finale is last in the stage-skip testing tool. The islands in between (Mudlands, Fog Forest, Crystal Caves) go above it once their order is decided.
+The finale is last in the stage-skip testing tool. Since 11-22 the islands before it are sailed Crash Meadow, the Mudlands, the Desert Dunes, the Crystal Caves (the Fog Forest isn't built). The caves' boat has no destination yet, so the finale is reached with the stage skip. Drunk Driving here is dressed as the Scrap Runner.
 
 ## What's built (first slice, 11-09)
 

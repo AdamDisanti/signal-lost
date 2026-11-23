@@ -55,7 +55,11 @@ namespace SignalLost.Mudlands
 
         public State Current { get; private set; } = State.Ready;
         public DrunkCar Car => car;
-        public bool Unlocked => pockets != null && pockets.HasKeyItem(KeyItems.LearnersPermit);
+        /// <summary>
+        /// The permit is in the pockets, or was earned earlier this session (<see cref="MudlandsProgress.PermitFlag"/>):
+        /// the Mudlands is the second stage, so the car comes along to every stage after it (11-22).
+        /// </summary>
+        public bool Unlocked => (pockets != null && pockets.HasKeyItem(KeyItems.LearnersPermit)) || MudlandsProgress.Has(MudlandsProgress.PermitFlag);
         public float CooldownRemaining => Mathf.Max(0f, cooldownUntil - Time.time);
         public float CooldownLength { get; private set; } = BaseCooldown;
         public bool InCar => Current == State.Driving && car != null;
@@ -196,6 +200,7 @@ namespace SignalLost.Mudlands
         private void OnPocketsChanged()
         {
             ApplyUpgrades();
+            if (pockets != null && pockets.HasKeyItem(KeyItems.LearnersPermit)) MudlandsProgress.Set(MudlandsProgress.PermitFlag);
             if (!wasUnlocked && Unlocked)
             {
                 wasUnlocked = true;

@@ -151,6 +151,9 @@ namespace SignalLost.Enemies.Desert
         private IEnumerator Ambush()
         {
             stage = Stage.Cutscene;
+            // The car comes along to the desert since the Mudlands moved before it (11-22): park it, so the worm grabs
+            // the mechanic and not an empty driver's seat.
+            if (SignalLost.Mudlands.DrunkDriving.Instance != null) SignalLost.Mudlands.DrunkDriving.Instance.ForceEnd(false);
             SetControls(false);
             BeginCutsceneCamera();
             if (!string.IsNullOrEmpty(ambushLine)) CorewormHud.Subtitle(ambushLine, 2f);

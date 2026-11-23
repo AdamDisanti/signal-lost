@@ -243,6 +243,8 @@ namespace SignalLost.Editor
             public string IslandName = "";
             public string DestinationScene = "", DestinationName = "the next island", RequiredStage = "";
             public string LockedMessage = "The boat isn't ready to sail yet.";
+            /// <summary>An arrival dock whose boat also sails on (the caves' and, since 11-22, the Mudlands').</summary>
+            public bool AlsoDeparts;
             public DockLook Look = DockLook.Timber;
         }
 
@@ -397,6 +399,7 @@ namespace SignalLost.Editor
             data.FindProperty("destinationName").stringValue = spec.DestinationName;
             data.FindProperty("requiredStage").stringValue = spec.RequiredStage;
             data.FindProperty("lockedMessage").stringValue = spec.LockedMessage;
+            data.FindProperty("alsoDeparts").boolValue = spec.AlsoDeparts;
             data.ApplyModifiedPropertiesWithoutUndo();
             var boatData = new SerializedObject(boat.GetComponent<DockBoat>());
             boatData.FindProperty("dock").objectReferenceValue = dock;

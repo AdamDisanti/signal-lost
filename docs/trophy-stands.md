@@ -9,9 +9,11 @@ Each level's camp now has only as many trophy stands as the player will have ear
 | Level | Stands in camp | Save slots (new) | Trophies earned here | Stand style |
 |---|---|---|---|---|
 | Tutorial | 1 | 0 | Chief Toad's Crown | wood |
-| Desert Dunes | 5 | 1-4 | Old Buzzard, Burnout, Sludge, Core Worm Fang | sun-bleached driftwood, brass plate |
-| Crystal Caves | 9 | 5-8 | Beetles' Elytra, Shard Mole Hide, Geode Bear Claw, Cave Axolotl Gill Frond | dark cave rock, cyan crystal inset, brass plate |
-| Mudlands | 10 | 9 | Clutch's Aviators | dark bog planks, wet mud inset, rusty plate |
+| Mudlands | 2 | 9 | Clutch's Aviators | dark bog planks, wet mud inset, rusty plate |
+| Desert Dunes | 6 | 1-4 | Old Buzzard, Burnout, Sludge, Core Worm Fang | sun-bleached driftwood, brass plate |
+| Crystal Caves | 10 | 5-8 | Beetles' Elytra, Shard Mole Hide, Geode Bear Claw, Cave Axolotl Gill Frond | dark cave rock, cyan crystal inset, brass plate |
+
+**Stage order (11-22):** the Mudlands is now sailed second, so the table is in sailing order. The save slots keep their numbers (the Mudlands' is still 9), so existing saves stay valid. `BaseCampBuilder.SailOrder` and `SetsUpTo(level)` decide which sets a camp shows: every island sailed before it, then its own.
 
 The Finale has no trophies.
 
@@ -26,9 +28,9 @@ The stands form a full ring 7 m from the fire. They are not evenly spaced: each 
 | Tutorial | 75 (north) |
 | Desert | -11, 0, 11, 22 (east) |
 | Caves | 285, 296, 307, 318 (south-east) |
-| Mudlands | 250 (south-south-west) |
+| Mudlands | 48 (north-east, between the tutorial's and the desert's; it was 250 when the Mudlands came last) |
 
-The ring keeps clear of the tent, the caves' cave-mouth and dock paths, and the desert dock.
+Read clockwise from the north, the ring goes tutorial, Mudlands, desert, caves: the order they are earned. The ring keeps clear of the tent, the caves' cave-mouth and dock paths, and the desert dock.
 
 ## Where the code is
 
