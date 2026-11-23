@@ -13,11 +13,18 @@ namespace SignalLost.Progression
     /// Mini-boss parts are tracked by <see cref="ShipPartDrop"/>, per stage (the desert's three; the tutorial's cooling
     /// system from the Chief Toad); the Engine Core, one of the main parts needed to finish the game, is recorded here
     /// when the desert stage boss drops it.
+    ///
+    /// The islands are sailed in this order (11-22): Crash Meadow (the tutorial), the Mudlands, the Desert Dunes, the
+    /// Crystal Caves, then the Wasteland (the finale). <see cref="StageSkip"/> lists the same order; the docks are linked
+    /// by the level builders and by Signal Lost &gt; Islands &gt; Link Stage Order.
     /// </summary>
     public static class StageProgress
     {
-        public const string Desert = "Desert";
         public const string Tutorial = "Tutorial";
+        /// <summary>The second stage since 11-22 (the user: the car is earned here, so it is there on every stage after).</summary>
+        public const string Mudlands = "Mudlands";
+        public const string Desert = "Desert";
+        public const string CrystalCaves = "CrystalCaves";
         /// <summary>The final level: the crash-site island laid waste, and Cavendish's mech (docs/final-boss.md).</summary>
         public const string Finale = "Finale";
 

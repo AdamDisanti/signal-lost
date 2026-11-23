@@ -668,8 +668,9 @@ namespace SignalLost.Editor
         private static readonly Vector2 BayTop = new Vector2(0f, -186f);
 
         /// <summary>
-        /// The sea round the island (clear, the same as every island's), the arrival dock in the bay below camp (the boat
-        /// from the Desert Dunes comes in here) dressed for the swamp, lanterns down the pass, and the dressing round the
+        /// The sea round the island (clear, the same as every island's), the dock in the bay below camp (the boat from
+        /// Crash Meadow comes in here, and sails on to the Desert Dunes once the Mudlands is cleared: the stage order of
+        /// 11-22) dressed for the swamp, lanterns down the pass, and the dressing round the
         /// bay. Runs after the scenery and before the NavMesh bake, with its own random numbers, so nothing inland moves.
         /// </summary>
         private static void BuildLanding(World world)
@@ -682,7 +683,9 @@ namespace SignalLost.Editor
             global::SignalLost.World.IslandDock dock = IslandKit.BuildDock(root, new IslandKit.DockSpec
             {
                 Name = "MudlandsDock", Start = start, Seaward = Vector2.down, Length = 16f,
-                Role = global::SignalLost.World.IslandDock.Role.Arrival, IslandName = "The Mudlands", Look = IslandKit.DockLook.Swamp
+                Role = global::SignalLost.World.IslandDock.Role.Arrival, IslandName = "The Mudlands", Look = IslandKit.DockLook.Swamp,
+                AlsoDeparts = true, DestinationScene = StageOrderLinker.DesertScene, DestinationName = StageOrderLinker.DesertName,
+                RequiredStage = MudlandsProgress.Stage, LockedMessage = StageOrderLinker.MudlandsLocked
             }, SeaLevel, Height, 20261120);
             DockMoss(dock.transform);
             var noParking = new GameObject("No Parking (dock)");
@@ -993,8 +996,8 @@ namespace SignalLost.Editor
         {
             Transform camp = Instance(BaseCampBuilder.PrefabPath, level).transform;
             camp.position = GroundAt(Camp);
-            // The last island so far: every earlier level's stands join the tutorial's, plus Clutch's.
-            foreach (var set in new[] { BaseCampBuilder.StandSet.Desert, BaseCampBuilder.StandSet.Caves, BaseCampBuilder.StandSet.Mudlands })
+            // The second island (11-22): Clutch's stand joins the tutorial's. The desert's and the caves' come later.
+            foreach (var set in BaseCampBuilder.SetsUpTo(BaseCampBuilder.StandSet.Mudlands))
                 BaseCampBuilder.AddStands(camp, set);
             clear.Add(new Vector3(Camp.x, Camp.y, 12f));
             var noParking = new GameObject("No Parking (camp)");
@@ -2303,28 +2306,6 @@ namespace SignalLost.Editor
             int slash = path.LastIndexOf('/');
             EnsureFolder(path.Substring(0, slash));
             AssetDatabase.CreateFolder(path.Substring(0, slash), path.Substring(slash + 1));
-        }
-
-        /// <summary>
-        /// Points the desert's stage exit at the Mudlands, so beating the Coreworm and taking off lands you here instead
-        /// of on the demo end card. A separate, optional step because it edits the desert scene (close it first).
-        /// </summary>
-        [MenuItem("Signal Lost/Mudlands/Link Desert Exit To Mudlands")]
-        public static void LinkDesertExit()
-        {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-            Scene desert = EditorSceneManager.OpenScene(CoreSceneSetup.DesertPath, OpenSceneMode.Single);
-            int linked = 0;
-            foreach (DesertStageExit exit in Object.FindObjectsByType<DesertStageExit>(FindObjectsInactive.Include))
-            {
-                var data = new SerializedObject(exit);
-                data.FindProperty("nextStageScene").stringValue = "Mudlands";
-                data.ApplyModifiedPropertiesWithoutUndo();
-                linked++;
-            }
-            EditorSceneManager.MarkSceneDirty(desert);
-            EditorSceneManager.SaveScene(desert);
-            Debug.Log($"Linked {linked} desert stage exit(s) to the Mudlands.");
         }
 
         /// <summary>Batch entry: builds everything and saves the scene.</summary>

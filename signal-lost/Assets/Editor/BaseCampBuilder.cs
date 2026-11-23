@@ -23,19 +23,39 @@ namespace SignalLost.Editor
 
         private enum Mat { Wood, Dark, Brass }
 
-        /// <summary>Each level's trophy stands, in the order the islands are sailed.</summary>
+        /// <summary>
+        /// Each level's trophy stands. The enum's order is the order of the save slots (stand indices: tutorial 0, desert
+        /// 1-4, caves 5-8, Mudlands 9), which the camp save stores, so it never changes. The order the islands are sailed
+        /// is <see cref="SailOrder"/>.
+        /// </summary>
         public enum StandSet { Tutorial, Desert, Caves, Mudlands }
 
+        /// <summary>The order the islands are sailed (11-22: the Mudlands is the second stage).</summary>
+        public static readonly StandSet[] SailOrder = { StandSet.Tutorial, StandSet.Mudlands, StandSet.Desert, StandSet.Caves };
+
+        /// <summary>
+        /// The stand sets a level's camp shows besides the tutorial's (which comes with the base camp prefab): every level
+        /// sailed before it, then its own, in sailing order.
+        /// </summary>
+        public static StandSet[] SetsUpTo(StandSet level)
+        {
+            int last = Array.IndexOf(SailOrder, level);
+            var sets = new StandSet[Mathf.Max(0, last)];
+            Array.Copy(SailOrder, 1, sets, 0, sets.Length);
+            return sets;
+        }
+
         // The stands ring the fire 7 m out: each level's grouped 11 degrees apart, with wide gaps between levels, so the
-        // order they were earned reads round the ring. Degrees from east, counter-clockwise (90 = north). Kept clear of the
-        // tent (~125), the caves' cave-mouth path (~150) and dock path (~210), and the desert's dock (south).
+        // order they were earned reads clockwise round the ring from the north (tutorial, Mudlands, desert, caves). Degrees
+        // from east, counter-clockwise (90 = north). Kept clear of the tent (~125), the caves' cave-mouth path (~150) and
+        // dock path (~210), the desert's dock (south) and the desert's sun shade (east, inside 4.4 m).
         private const float StandRadius = 7f;
         private static readonly float[][] StandAngles =
         {
             new[] { 75f },                // tutorial: north
             new[] { -11f, 0f, 11f, 22f }, // desert: east
             new[] { 285f, 296f, 307f, 318f }, // crystal caves: south-east
-            new[] { 250f },               // mudlands: south-south-west, next round after the caves'
+            new[] { 48f },                // mudlands: north-east, between the tutorial's and the desert's (sailed second, 11-22)
         };
         private static readonly string[] StandGroupNames = { "Trophy Stands", RackName, "Crystal Caves Rack", "Mudlands Stand" };
         private const string MudStandFolder = "Assets/Prefabs/Core/MudlandsStand";
@@ -185,9 +205,10 @@ namespace SignalLost.Editor
             jarBox.center = new Vector3(0.2f, 0.35f, 0f);
             jarBox.size = new Vector3(1.1f, 0.7f, 0.6f);
 
-            // The tutorial's wooden stand, and the desert's four driftwood ones east of the fire (the Chop Shop's three
-            // and the Core Worm's) under a driftwood sign.
+            // The tutorial's wooden stand, the Mudlands' bog-plank one (sailed before the desert since 11-22), and the
+            // desert's four driftwood ones east of the fire (the Chop Shop's three and the Core Worm's) under a driftwood sign.
             Transform shelf = AddStands(root.transform, StandSet.Tutorial);
+            Transform mudStand = AddStands(root.transform, StandSet.Mudlands);
             Transform rack = AddStands(root.transform, StandSet.Desert);
             var signAt = new Vector3(8.36f, 0f, 0.8f); // behind the middle of the desert's stands
             Transform sign = DesertProp(rack, "Rack Sign", RackSignKit(), signAt);
@@ -214,7 +235,7 @@ namespace SignalLost.Editor
             camp.FindProperty("merchantSeat").objectReferenceValue = merchantSeat;
             camp.FindProperty("cavendishStand").objectReferenceValue = cavendishStand;
             camp.FindProperty("merchantStand").objectReferenceValue = merchantStand;
-            Transform[] order = { pit, rug, cavendishLog, otherLog, tent, shade, supplies, barrel, jars, shelf, rack, fire };
+            Transform[] order = { pit, rug, cavendishLog, otherLog, tent, shade, supplies, barrel, jars, shelf, mudStand, rack, fire };
             SerializedProperty list = camp.FindProperty("pieces");
             list.arraySize = order.Length;
             for (int i = 0; i < order.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = order[i];

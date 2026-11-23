@@ -1333,6 +1333,10 @@ MonoBehaviour:
   diveDamage: 30
   bombDamage: 35
   spikeDamage: 22
+  climbSpeed: 5.5
+  diveBombHeight: 13
+  flySpeed: 9
+  maxBank: 35
 --- !u!114 &1902005220761315116
 MonoBehaviour:
   m_ObjectHideFlags: 0

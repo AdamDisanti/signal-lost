@@ -711,13 +711,15 @@ namespace SignalLost.Editor
             island.FindProperty("merchantSeat").objectReferenceValue = Mark("Merchant Seat", new Vector3(log.x, 0f, log.z) * (1f - 1.3f / new Vector2(log.x, log.z).magnitude));
             island.FindProperty("cavendishStand").objectReferenceValue = Mark("Cavendish Stand", new Vector3(1.9f, 0f, -1.3f));
             island.FindProperty("merchantStand").objectReferenceValue = Mark("Merchant Stand", new Vector3(2.6f, 0f, -2.6f));
-            // The tutorial's stand comes with the base camp; the desert's and the caves' own sets join it round the fire.
-            Transform desertStands = BaseCampBuilder.AddStands(camp.transform, BaseCampBuilder.StandSet.Desert);
-            Transform cavesStands = BaseCampBuilder.AddStands(camp.transform, BaseCampBuilder.StandSet.Caves);
-            Transform[] order = { Child("Fire Pit"), cavendishLog, otherLog, Child("Tent"), Child("Cavendish's Supplies"), Child("Barrel"), Child("Trophy Stands"), desertStands, cavesStands, Child("Campfire") };
+            // The tutorial's stand comes with the base camp; every level sailed before the caves (the Mudlands, then the
+            // desert, 11-22) and the caves' own set join it round the fire.
+            var order = new System.Collections.Generic.List<Transform> { Child("Fire Pit"), cavendishLog, otherLog, Child("Tent"), Child("Cavendish's Supplies"), Child("Barrel"), Child("Trophy Stands") };
+            foreach (BaseCampBuilder.StandSet set in BaseCampBuilder.SetsUpTo(BaseCampBuilder.StandSet.Caves))
+                order.Add(BaseCampBuilder.AddStands(camp.transform, set));
+            order.Add(Child("Campfire"));
             SerializedProperty pieces = island.FindProperty("pieces");
-            pieces.arraySize = order.Length;
-            for (int i = 0; i < order.Length; i++) pieces.GetArrayElementAtIndex(i).objectReferenceValue = order[i];
+            pieces.arraySize = order.Count;
+            for (int i = 0; i < order.Count; i++) pieces.GetArrayElementAtIndex(i).objectReferenceValue = order[i];
             island.ApplyModifiedPropertiesWithoutUndo();
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(camp, CampPrefabPath);
             Object.DestroyImmediate(camp);
@@ -895,7 +897,7 @@ namespace SignalLost.Editor
             IslandDock dock = EnemyTestBuilder.All<IslandDock>().SingleOrDefault();
             EnemyTestBuilder.Require(dock != null && dock.DockRole == IslandDock.Role.Arrival && dock.Boat != null, "Expected one arrival dock with its boat.");
             EnemyTestBuilder.Require(EnemyTestBuilder.Count<CaveLighting>() == 1, "Expected one CaveLighting.");
-            EnemyTestBuilder.Require(EnemyTestBuilder.Count<TrophyStand>() == 9, "Expected the tutorial's stand, the desert's four and the caves' four.");
+            EnemyTestBuilder.Require(EnemyTestBuilder.Count<TrophyStand>() == 10, "Expected the tutorial's stand, the Mudlands' one, the desert's four and the caves' four.");
             IslandCamp camp = EnemyTestBuilder.All<IslandCamp>().SingleOrDefault();
             EnemyTestBuilder.Require(camp != null && camp.Cavendish != null && camp.Merchant != null && camp.CavendishSeat != null && camp.MerchantSeat != null,
                 "Expected Cavendish's camp with Cavendish, Eugene and their seats.");

@@ -15,7 +15,7 @@ Out of scope until Lawson has tested the bosses and gives the go-ahead: the loco
 | Thorn wyvern | Mostly grounded; it takes off only for its signature dives and barrages. |
 | Ash drake's smoke | Smoke clouds it attacks out of, given away by its thruster glow and the ignition roar. |
 | Scorpion's fuel | Fuel pools ignite: its pincer sparks light them, and so can the player's shots. |
-| Scale | Large: wyvern wingspan about 14 m, drake about 10 m long, scorpion about 9 m long with a 6 m tail arch. |
+| Scale | Large: wyvern wingspan about 19 m with the wings fully open (11-22; about 14 m half-open), drake about 10 m long, scorpion about 9 m long with a 6 m tail arch. |
 
 ## Rules every boss follows
 
@@ -37,7 +37,30 @@ Out of scope until Lawson has tested the bosses and gives the go-ahead: the loco
 
 *A wyvern overgrown with the thornwood that survives under the dunes. It tore the ship's wing panels off and wove them into its own wings with briars.* Ship part: **wing panels**.
 
-**Look:** a long-necked, two-legged wyvern on its folded wing-arms. Dark bark-brown hide plated with grey-green thorny scutes. Rows of long thorns down the neck, back and tail, and thorns at every wing knuckle. Torn, ochre-brown wing membranes with the silver hull panels lashed into them. Glowing green eyes and a green glow deep in its throat. Wingspan about 14 m.
+**Look:** a long-necked, two-legged wyvern on its folded wing-arms. Dark bark-brown hide plated with grey-green thorny scutes. Rows of long thorns down the neck, back and tail, and thorns at every wing knuckle. Torn, ochre-brown wing membranes with the silver hull panels lashed into them. Glowing green eyes and a green glow deep in its throat. Wingspan about 19 m fully open.
+
+**Flight (11-22, the user: real flight, not stiff and over-powered; reference: a dragon-flight video).**
+- **The clips** (`tools/blender/desert_wyvern.py`) are solved from what the wing does (`wing_pose`: stroke angle, sweep, fold, twist, tip curl) rather than typed joint angles, and keyed every two frames so blends never swing the long way round.
+  - **Flap:** 1.2 s a beat. A 0.43 s downstroke with the wing fully open, swept down and forward, the tips bent by the air. A 0.77 s upstroke with the elbow and wrist bent and the fingers swept back. The body rises through the downstroke (about 0.3 m) and sinks through the upstroke, the chest pitching and the tail answering.
+  - **Glide:** wings open with a slight upward set.
+  - **Hover:** the body raised, the wings sweeping forward and back.
+  - **Takeoff:** a crouch, the spring, two full beats.
+  - **Hop:** the spinning dive's leap, with one beat.
+  - **Plunge:** the wings folding back in stages.
+  - **Land:** the flare (body up, wings forward and wide, leading edges high, legs reaching), two braking beats, the touchdown taken in the legs, the wings folded away.
+  - Each beat's moments ("downstroke", "upstroke") are in the clip table.
+- **The code** (`Briarwing.cs`):
+  - **Climb:** surges on each downstroke and nearly stalls on the upstroke (`BeatLift`), at about 5.5 m/s on average. It circles out towards you as it climbs (it used to rise 15 m in about a second).
+  - **Banking:** it flies where it is heading (up to 9 m/s, gaining at most 7 m/s each second) and banks into turns and pitches with its climb (`Lean`, up to 35 degrees). The body turns about its middle.
+  - **Hunting:** it flaps to catch up, glides once it is up to speed, and hovers over you before the stoop.
+  - **The stoop** accelerates to 36 m/s, and the spinning dive gathers speed.
+  - **Landing:** if it loses you in the air it flares and lands (`Landing`).
+- **Tuning:** the flight numbers are serialized (`climbSpeed`, `diveBombHeight` 13 m, `flySpeed`, `maxBank`).
+- **Frame strips:** `flight_strips()` in the script renders them.
+- **Checked (11-22, Unity 6000.6.2f1, a disposable copy, Play mode in BriarwingTest, `tools/unity/WyvernFlightSmoke.cs`):**
+  - **Dive bomb:** 9.6 s from takeoff to impact. It climbs to 13 m in about 3.4 s, rising 4.7 m/s on downstrokes against 1.1 m/s on upstrokes. Its fastest sustained rise is 10.8 m/s (the first takeoff beat), and it banks up to 35 degrees. The clips run Takeoff, Flap, Hover, Plunge, then Impact.
+  - **Spinning dive:** the hop reaches 5.1 m, rising no faster than 9.6 m/s.
+  - **Not seen in the run:** the glide (the test player stood still, so the wyvern flapped and then hovered) and the landing flare (it only lands that way after losing its target). Both clips were checked as frame strips.
 
 | Phase | Health | What changes |
 | --- | --- | --- |
